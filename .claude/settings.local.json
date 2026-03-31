@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(psql postgresql://cbrio:cbrio123@localhost:5432/cbrio_pmo -c \"\\\\df fn_auto_event_status\")",
+      "Bash(psql postgresql://cbrio:cbrio123@localhost:5432/cbrio_pmo -c \"SELECT prosrc FROM pg_proc WHERE proname = ''fn_auto_event_status'';\")",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:api.github.com)"
+    ]
+  }
+}

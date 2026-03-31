@@ -1,0 +1,913 @@
+[
+  {
+    "id": "ev0001",
+    "name": "Ano Novo",
+    "date": "2025-12-31",
+    "area": "",
+    "category": "Evento especial",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2025-12-31"
+    ],
+    "description": "Evento especial - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0002",
+    "name": "Ceia",
+    "date": "2026-01-04",
+    "area": "",
+    "category": "Rotina de Liturgia",
+    "status": "no-prazo",
+    "recurrence": "Mensal",
+    "occurrences": [
+      "2026-01-04",
+      "2026-02-01",
+      "2026-03-01",
+      "2026-04-05",
+      "2026-05-03",
+      "2026-06-07",
+      "2026-07-05",
+      "2026-08-02",
+      "2026-09-06",
+      "2026-10-04",
+      "2026-11-01",
+      "2026-12-06"
+    ],
+    "description": "Rotina de Liturgia - Mensal",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0003",
+    "name": "Encontrão",
+    "date": "2026-01-07",
+    "area": "",
+    "category": "Rotina Staff",
+    "status": "no-prazo",
+    "recurrence": "Mensal",
+    "occurrences": [
+      "2026-01-07",
+      "2026-02-11",
+      "2026-03-11",
+      "2026-04-08",
+      "2026-05-13",
+      "2026-06-17",
+      "2026-07-08",
+      "2026-08-12",
+      "2026-09-09",
+      "2026-10-07",
+      "2026-11-11"
+    ],
+    "description": "Rotina Staff - Mensal",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0004",
+    "name": "Apresentação de Bebes",
+    "date": "2026-01-11",
+    "area": "",
+    "category": "Rotina de Liturgia",
+    "status": "no-prazo",
+    "recurrence": "Mensal",
+    "occurrences": [
+      "2026-01-11",
+      "2026-02-08",
+      "2026-03-08",
+      "2026-04-12",
+      "2026-05-10",
+      "2026-06-14",
+      "2026-07-12",
+      "2026-08-09",
+      "2026-09-13",
+      "2026-10-11",
+      "2026-11-08",
+      "2026-12-13"
+    ],
+    "description": "Rotina de Liturgia - Mensal",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0005",
+    "name": "Campanha de Novos Voluntários",
+    "date": "2026-01-25",
+    "area": "",
+    "category": "Evento especial",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-01-25",
+      "2026-08-09"
+    ],
+    "description": "Evento especial - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0006",
+    "name": "Batismo",
+    "date": "2026-01-25",
+    "area": "",
+    "category": "Rotina de Liturgia",
+    "status": "no-prazo",
+    "recurrence": "Mensal",
+    "occurrences": [
+      "2026-01-25",
+      "2026-02-22",
+      "2026-03-22",
+      "2026-04-26",
+      "2026-05-24",
+      "2026-06-28",
+      "2026-07-26",
+      "2026-08-23",
+      "2026-09-27",
+      "2026-10-25",
+      "2026-11-22",
+      "2026-12-27"
+    ],
+    "description": "Rotina de Liturgia - Mensal",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0007",
+    "name": "Jantar Generosidade",
+    "date": "2026-02-06",
+    "area": "",
+    "category": "Evento especial",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-02-06"
+    ],
+    "description": "Evento especial - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0008",
+    "name": "Dia da Amizade",
+    "date": "2026-02-13",
+    "area": "",
+    "category": "Feriado",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-02-13"
+    ],
+    "description": "Feriado - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0009",
+    "name": "Retiro AMI",
+    "date": "2026-02-14",
+    "area": "",
+    "category": "Geracional",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-02-14"
+    ],
+    "description": "Geracional - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0010",
+    "name": "Carnaval",
+    "date": "2026-02-14",
+    "area": "",
+    "category": "Feriado",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-02-14"
+    ],
+    "description": "Feriado - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0011",
+    "name": "Reunião Líderes Grupos",
+    "date": "2026-02-21",
+    "area": "",
+    "category": "Grupos",
+    "status": "no-prazo",
+    "recurrence": "Bimestral",
+    "occurrences": [
+      "2026-02-21",
+      "2026-04-26",
+      "2026-06-28",
+      "2026-07-25",
+      "2026-09-27",
+      "2026-11-22"
+    ],
+    "description": "Grupos - Bimestral",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0012",
+    "name": "Treinamento Primeiros Socorros",
+    "date": "2026-02-28",
+    "area": "",
+    "category": "Geracional",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-02-28"
+    ],
+    "description": "Geracional - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0013",
+    "name": "Abertura 1ª temp. grupos",
+    "date": "2026-03-01",
+    "area": "",
+    "category": "Grupos",
+    "status": "no-prazo",
+    "recurrence": "Semestral",
+    "occurrences": [
+      "2026-03-01"
+    ],
+    "description": "Grupos - Semestral",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0014",
+    "name": "Dia Mundial da Oração",
+    "date": "2026-03-06",
+    "area": "",
+    "category": "Feriado",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-03-06"
+    ],
+    "description": "Feriado - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0015",
+    "name": "Dia da Mulher",
+    "date": "2026-03-07",
+    "area": "",
+    "category": "Feriado",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-03-07"
+    ],
+    "description": "Feriado - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0016",
+    "name": "Gênesis",
+    "date": "2026-03-09",
+    "area": "",
+    "category": "Evento especial",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-03-09"
+    ],
+    "description": "Evento especial - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0017",
+    "name": "Culto do Amigo",
+    "date": "2026-03-29",
+    "area": "",
+    "category": "Geracional",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-03-29",
+      "2026-05-31",
+      "2026-08-30",
+      "2026-11-29"
+    ],
+    "description": "Geracional - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0018",
+    "name": "Culto Jovem",
+    "date": "2026-03-29",
+    "area": "",
+    "category": "Geracional",
+    "status": "no-prazo",
+    "recurrence": "Todo quinto domingo",
+    "occurrences": [
+      "2026-03-29",
+      "2026-08-30",
+      "2026-12-04"
+    ],
+    "description": "Geracional - Todo quinto domingo",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0019",
+    "name": "Sexta-feira Santa",
+    "date": "2026-04-03",
+    "area": "",
+    "category": "Feriado",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-04-03"
+    ],
+    "description": "Feriado - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0020",
+    "name": "Culto de Páscoa",
+    "date": "2026-04-05",
+    "area": "",
+    "category": "Evento especial",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-04-05"
+    ],
+    "description": "Evento especial - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0021",
+    "name": "Reunião Gênesis",
+    "date": "2026-04-14",
+    "area": "",
+    "category": "Evento especial",
+    "status": "no-prazo",
+    "recurrence": "Mensal",
+    "occurrences": [
+      "2026-04-14",
+      "2026-05-11",
+      "2026-06-09",
+      "2026-07-14",
+      "2026-08-11",
+      "2026-09-08",
+      "2026-10-13",
+      "2026-11-10"
+    ],
+    "description": "Evento especial - Mensal",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0022",
+    "name": "Tiradentes",
+    "date": "2026-04-21",
+    "area": "",
+    "category": "Feriado",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-04-21"
+    ],
+    "description": "Feriado - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0023",
+    "name": "Treinamento anual integração",
+    "date": "2026-04-25",
+    "area": "",
+    "category": "Rotina de Liturgia",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-04-25"
+    ],
+    "description": "Rotina de Liturgia - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0024",
+    "name": "Dia do Trabalho",
+    "date": "2026-05-01",
+    "area": "",
+    "category": "Feriado",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-05-01"
+    ],
+    "description": "Feriado - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0025",
+    "name": "Dia das mães",
+    "date": "2026-05-10",
+    "area": "",
+    "category": "Feriado",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-05-10"
+    ],
+    "description": "Feriado - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0026",
+    "name": "Aniversário CBRio",
+    "date": "2026-05-18",
+    "area": "",
+    "category": "Evento especial",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-05-18"
+    ],
+    "description": "Evento especial - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0027",
+    "name": "Dia Mundial Igreja Perseguida",
+    "date": "2026-05-31",
+    "area": "",
+    "category": "Evento especial",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-05-31"
+    ],
+    "description": "Evento especial - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0028",
+    "name": "Corpus Christi",
+    "date": "2026-06-04",
+    "area": "",
+    "category": "Feriado",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-06-04"
+    ],
+    "description": "Feriado - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0029",
+    "name": "Dia dos Namorados",
+    "date": "2026-06-12",
+    "area": "",
+    "category": "Feriado",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-06-12"
+    ],
+    "description": "Feriado - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0030",
+    "name": "Dia do Pastor",
+    "date": "2026-06-14",
+    "area": "",
+    "category": "Feriado",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-06-14"
+    ],
+    "description": "Feriado - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0031",
+    "name": "Colônia de Férias",
+    "date": "2026-07-03",
+    "area": "",
+    "category": "Geracional",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-07-03"
+    ],
+    "description": "Geracional - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0032",
+    "name": "Dia do Amigo",
+    "date": "2026-07-19",
+    "area": "",
+    "category": "Geracional",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-07-19"
+    ],
+    "description": "Geracional - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0033",
+    "name": "Celebra",
+    "date": "2026-08-01",
+    "area": "",
+    "category": "Evento especial",
+    "status": "no-prazo",
+    "recurrence": "Mensal",
+    "occurrences": [
+      "2026-08-01"
+    ],
+    "description": "Evento especial - Mensal",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0034",
+    "name": "Abertura 2ª temporada de Grupos",
+    "date": "2026-08-02",
+    "area": "",
+    "category": "Grupos",
+    "status": "no-prazo",
+    "recurrence": "Semestral",
+    "occurrences": [
+      "2026-08-02"
+    ],
+    "description": "Grupos - Semestral",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0035",
+    "name": "Dia dos Pais",
+    "date": "2026-08-09",
+    "area": "",
+    "category": "Feriado",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-08-09"
+    ],
+    "description": "Feriado - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0036",
+    "name": "Dia do Voluntário",
+    "date": "2026-08-30",
+    "area": "",
+    "category": "Rotina de Liturgia",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-08-30"
+    ],
+    "description": "Rotina de Liturgia - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0037",
+    "name": "Independencia do Brasil",
+    "date": "2026-09-07",
+    "area": "",
+    "category": "Feriado",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-09-07"
+    ],
+    "description": "Feriado - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0038",
+    "name": "Dia das Crianças",
+    "date": "2026-10-12",
+    "area": "",
+    "category": "Feriado",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-10-12"
+    ],
+    "description": "Feriado - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0039",
+    "name": "Dia Reforma Protestante",
+    "date": "2026-10-31",
+    "area": "",
+    "category": "Evento especial",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-10-31"
+    ],
+    "description": "Evento especial - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0040",
+    "name": "Finados",
+    "date": "2026-11-02",
+    "area": "",
+    "category": "Feriado",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-11-02"
+    ],
+    "description": "Feriado - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0041",
+    "name": "Proclamação da República",
+    "date": "2026-11-15",
+    "area": "",
+    "category": "Feriado",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-11-15"
+    ],
+    "description": "Feriado - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0042",
+    "name": "Consciência Negra",
+    "date": "2026-11-20",
+    "area": "",
+    "category": "Feriado",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-11-20"
+    ],
+    "description": "Feriado - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0043",
+    "name": "Ação de Graças",
+    "date": "2026-11-26",
+    "area": "",
+    "category": "Feriado",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-11-26"
+    ],
+    "description": "Feriado - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0044",
+    "name": "Você faz parte",
+    "date": "2026-11-29",
+    "area": "",
+    "category": "Rotina de Liturgia",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-11-29"
+    ],
+    "description": "Rotina de Liturgia - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0045",
+    "name": "Make a Diference",
+    "date": "2026-11-29",
+    "area": "",
+    "category": "Rotina de Liturgia",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-11-29"
+    ],
+    "description": "Rotina de Liturgia - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0046",
+    "name": "Projeto Cartas",
+    "date": "2026-11-29",
+    "area": "",
+    "category": "Rotina de Liturgia",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-11-29"
+    ],
+    "description": "Rotina de Liturgia - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0047",
+    "name": "Acampamento Elevate",
+    "date": "2026-12-04",
+    "area": "",
+    "category": "Geracional",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-12-04"
+    ],
+    "description": "Geracional - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0048",
+    "name": "Dia Bíblia",
+    "date": "2026-12-13",
+    "area": "",
+    "category": "Evento especial",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-12-13"
+    ],
+    "description": "Evento especial - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0049",
+    "name": "Natal",
+    "date": "2026-12-25",
+    "area": "",
+    "category": "Feriado",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-12-25"
+    ],
+    "description": "Feriado - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  },
+  {
+    "id": "ev0050",
+    "name": "Réveillon",
+    "date": "2026-12-31",
+    "area": "",
+    "category": "Evento especial",
+    "status": "no-prazo",
+    "recurrence": "Único",
+    "occurrences": [
+      "2026-12-31"
+    ],
+    "description": "Evento especial - Único",
+    "location": "",
+    "responsible": "",
+    "budget": "",
+    "expectedAttendance": ""
+  }
+]
