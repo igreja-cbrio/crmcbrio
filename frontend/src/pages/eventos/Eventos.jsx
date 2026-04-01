@@ -249,7 +249,8 @@ function BigCalendar({ eventsByDate, onSelectDate, selectedDate }) {
 // COMPONENTE PRINCIPAL
 // ═══════════════════════════════════════════════════════════
 export default function Eventos() {
-  const { isDiretor } = useAuth();
+  const { isDiretor, isAdmin, profile } = useAuth();
+  const canEdit = isDiretor || isAdmin || !!profile;
   const [tab, setTab] = useState(0);
   const [eventList, setEventList] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -631,7 +632,7 @@ export default function Eventos() {
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <Badge status={ev.status} map={STATUS_MAP} />
-              {isDiretor && (
+              {canEdit && (
                 <>
                   <button
                     style={{ ...styles.btn(ev.status === 'concluido' ? 'secondary' : 'primary'), ...styles.btnSm }}
@@ -728,7 +729,7 @@ export default function Eventos() {
         {detailTab === 'info' && <>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 24, marginBottom: 12 }}>
           <div style={{ ...styles.sectionTitle, margin: 0 }}>Tarefas ({taskList.length})</div>
-          {isDiretor && (
+          {canEdit && (
             <button style={{ ...styles.btn('primary'), ...styles.btnSm }} onClick={() => setModalTask({})}>+ Tarefa</button>
           )}
         </div>
@@ -752,7 +753,7 @@ export default function Eventos() {
               <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
                 {task.priority && <Badge status={task.priority} map={PRIORITY_MAP} />}
                 <Badge status={task.status} map={TASK_STATUS_MAP} />
-                {isDiretor && (
+                {canEdit && (
                   <>
                     <select
                       style={{ ...styles.select, padding: '2px 6px', fontSize: 11 }}
@@ -788,7 +789,7 @@ export default function Eventos() {
                     <span style={sub.done ? { textDecoration: 'line-through', color: C.text3 } : {}}>
                       {sub.name}
                     </span>
-                    {isDiretor && (
+                    {canEdit && (
                       <button
                         style={{ background: 'none', border: 'none', color: C.text3, cursor: 'pointer', fontSize: 11, padding: '0 4px' }}
                         onClick={() => deleteSubtask(sub.id)}
@@ -1017,7 +1018,7 @@ export default function Eventos() {
           <div style={styles.title}>Eventos</div>
           <div style={styles.subtitle}>Gestão de eventos da igreja</div>
         </div>
-        {isDiretor && (tab === 0 || tab === 1) && (
+        {canEdit && (tab === 0 || tab === 1) && (
           <button style={styles.btn('primary')} onClick={() => setModalEvent({})}>+ Novo Evento</button>
         )}
       </div>
