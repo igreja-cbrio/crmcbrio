@@ -37,6 +37,7 @@ app.use('/api/projects', require('./routes/projects'));
 app.use('/api/expansion', require('./routes/expansion'));
 app.use('/api/meetings', require('./routes/meetings'));
 app.use('/api/agents', require('./routes/agents'));
+app.use('/api/rh', require('./routes/rh'));
 
 // ── Health check ──
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
