@@ -108,6 +108,17 @@ export const meetings = {
   removePendency: (id) => del(`/meetings/pendencies/${id}`),
 };
 
+export const cycles = {
+  activate: (eventId) => post(`/cycles/activate/${eventId}`, {}),
+  get: (eventId) => get(`/cycles/${eventId}`),
+  updatePhase: (phaseId, data) => patch(`/cycles/phases/${phaseId}`, data),
+  createTask: (data) => post('/cycles/tasks', data),
+  updateTask: (taskId, data) => patch(`/cycles/tasks/${taskId}`, data),
+  updateAdmItem: (itemId, data) => patch(`/cycles/adm/${itemId}`, data),
+  registerExpense: (data) => post('/cycles/expenses', data),
+  summaryAll: () => get('/cycles/summary/all'),
+};
+
 export const agents = {
   generate: (data) => post('/agents/generate', data),
   queue: () => get('/agents/queue'),

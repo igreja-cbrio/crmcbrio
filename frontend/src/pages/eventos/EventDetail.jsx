@@ -4,6 +4,8 @@ import { events as api, meetings as meetingsApi } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import TaskFormModal from './components/TaskFormModal';
 import MeetingFormModal from './components/MeetingFormModal';
+import CycleView from './components/CycleView';
+import BudgetPanel from './components/BudgetPanel';
 
 const C = {
   dark: '#1a1a2e', t2: '#6b7280', t3: '#9ca3af', border: '#e5e7eb',
@@ -206,7 +208,7 @@ export default function EventDetail() {
 
       {/* Tabs */}
       <div className="tab-bar">
-        {['tarefas', 'reuniões', 'ocorrências'].map(t => (
+        {['tarefas', 'ciclo criativo', 'reuniões', 'ocorrências'].map(t => (
           <button key={t} onClick={() => setTab(t)} style={{
             padding: '8px 16px', border: 'none', background: 'none', cursor: 'pointer',
             fontSize: 13, fontWeight: 600, color: tab === t ? C.accent : C.t3,
@@ -298,6 +300,14 @@ export default function EventDetail() {
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* Tab: Ciclo Criativo */}
+      {tab === 'ciclo criativo' && (
+        <div>
+          <BudgetPanel eventId={id} budget={null} onReload={load} />
+          <CycleView eventId={id} />
         </div>
       )}
 

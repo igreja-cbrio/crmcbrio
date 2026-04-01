@@ -16,9 +16,25 @@ const STATUS = {
   'concluido': { label: 'Concluído',  color: '#6b7280', bg: '#f3f4f6' },
 };
 
+// Normaliza qualquer formato de data para YYYY-MM-DD
+function normDate(d) {
+  if (!d) return null;
+  if (typeof d === 'string') return d.slice(0, 10);
+  return null;
+}
+
+// Formata YYYY-MM-DD ou ISO para dd/mm/aaaa
+function fmtDate(d) {
+  const s = normDate(d);
+  if (!s) return '';
+  const [y, m, day] = s.split('-');
+  return `${day}/${m}/${y}`;
+}
+
 function DaysCounter({ date }) {
-  if (!date) return null;
-  const diff = Math.ceil((new Date(date + 'T12:00:00') - new Date()) / 86400000);
+  const s = normDate(date);
+  if (!s) return null;
+  const diff = Math.ceil((new Date(s + 'T12:00:00') - new Date()) / 86400000);
   const color = diff < 0 ? '#ef4444' : diff <= 7 ? '#f59e0b' : '#10b981';
   const text = diff < 0 ? `${Math.abs(diff)}d atrás` : diff === 0 ? 'Hoje' : `${diff}d`;
   return (
@@ -97,7 +113,6 @@ const navBtn = {
 export default function Eventos() {
   const navigate = useNavigate();
   const { profile } = useAuth();
-  const isDiretor = profile?.role === 'diretor';
 
   const [eventsList, setEventsList] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -135,10 +150,10 @@ export default function Eventos() {
   const eventsByDate = useMemo(() => {
     const map = {};
     eventsList.forEach(ev => {
-      const d = ev.date?.slice(0, 10);
+      const d = normDate(ev.date);
       if (d) { if (!map[d]) map[d] = []; map[d].push(ev); }
       (ev.occurrence_dates || []).forEach(od => {
-        const odn = typeof od === 'string' ? od.slice(0, 10) : od;
+        const odn = normDate(od);
         if (odn && odn !== d) { if (!map[odn]) map[odn] = []; map[odn].push(ev); }
       });
     });
@@ -168,11 +183,9 @@ export default function Eventos() {
     <div>
       <div className="header-actions">
         <h1 style={{ fontSize: 24, fontWeight: 700, color: C.dark, margin: 0 }}>Eventos</h1>
-        {isDiretor && (
-          <button onClick={() => { setEditEvent(null); setShowForm(true); }} style={primaryBtn}>
-            + Novo Evento
-          </button>
-        )}
+        <button onClick={() => { setEditEvent(null); setShowForm(true); }} style={primaryBtn}>
+          + Novo Evento
+        </button>
       </div>
 
       <div className="kpi-grid">
@@ -204,7 +217,7 @@ export default function Eventos() {
 
       <div className="grid-2">
         <Calendar eventsByDate={eventsByDate} viewMonth={viewMonth} setViewMonth={setViewMonth} />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 480, overflowY: 'auto' }}>
           {filtered.length === 0 && (
             <div style={{ padding: 24, textAlign: 'center', color: C.t3, fontSize: 13 }}>Nenhum evento encontrado</div>
           )}
@@ -223,7 +236,7 @@ export default function Eventos() {
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600, fontSize: 14, color: C.dark }}>{ev.name}</div>
                     <div style={{ fontSize: 11, color: C.t2, marginTop: 2 }}>
-                      {ev.date && new Date(ev.date + 'T12:00:00').toLocaleDateString('pt-BR')}
+                      {fmtDate(ev.date)}
                       {ev.responsible && ` · ${ev.responsible}`}
                       {ev.category_name && ` · ${ev.category_name}`}
                     </div>
