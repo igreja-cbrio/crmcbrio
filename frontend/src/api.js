@@ -18,6 +18,13 @@ const headers = async () => {
 async function request(path, opts = {}) {
   const h = await headers();
   const res = await fetch(`${API}${path}`, { ...opts, headers: { ...h, ...opts.headers } });
+
+  // Detect HTML response (backend not available — e.g., Vercel static deploy)
+  const contentType = res.headers.get('content-type') || '';
+  if (contentType.includes('text/html')) {
+    throw new Error('Backend não disponível. Os módulos funcionam apenas com o servidor rodando localmente.');
+  }
+
   if (res.status === 401) {
     await supabase.auth.signOut();
     window.location.href = '/login';
