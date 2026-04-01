@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { events, cycles as cyclesApi } from '../../api';
+import CycleView from './components/CycleView';
+import BudgetPanel from './components/BudgetPanel';
 
 // ── Tema ────────────────────────────────────────────────────
 const C = {
@@ -104,7 +106,8 @@ const styles = {
 };
 
 // ── Helpers ─────────────────────────────────────────────────
-const fmtDate = (d) => d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
+function normDate(d) { return d ? (typeof d === 'string' ? d.slice(0, 10) : '') : ''; }
+const fmtDate = (d) => { const s = normDate(d); if (!s) return '—'; const [y, m, day] = s.split('-'); return `${day}/${m}/${y}`; };
 const fmtMoney = (v) => v != null ? `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '—';
 
 // ── Componentes auxiliares ──────────────────────────────────
@@ -176,6 +179,10 @@ export default function Eventos() {
   const [filtroStatus, setFiltroStatus] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState('');
 
+  // Ciclo criativo
+  const [hasCycle, setHasCycle] = useState(false);
+  const [detailTab, setDetailTab] = useState('info');
+
   // Modais
   const [modalEvent, setModalEvent] = useState(null);
   const [modalTask, setModalTask] = useState(null);
@@ -210,6 +217,15 @@ export default function Eventos() {
       const ev = await events.get(id);
       setSelectedEvent(ev);
       setTab(1);
+      // Verificar se tem ciclo criativo
+      try {
+        const cycleData = await cyclesApi.get(id);
+        setHasCycle(!!cycleData?.cycle);
+        setDetailTab(cycleData?.cycle ? 'ciclo' : 'info');
+      } catch {
+        setHasCycle(false);
+        setDetailTab('info');
+      }
     } catch (e) { setError(e.message); }
     finally { setLoading(false); }
   }, []);
@@ -321,14 +337,16 @@ export default function Eventos() {
   const getCatColor = (catId) => catMap[catId]?.color || C.text3;
   const getCatName = (catId) => catMap[catId]?.name || '—';
 
-  // ── Dashboard KPIs ──
-  const kpis = dash ? [
-    { label: 'Total', value: dash.total || 0, color: C.primary },
-    { label: 'No Prazo', value: dash.no_prazo || 0, color: C.green },
-    { label: 'Atenção', value: dash.atencao || 0, color: C.amber },
-    { label: 'Atrasados', value: dash.atrasado || 0, color: C.red },
-    { label: 'Concluídos', value: dash.concluido || 0, color: C.blue },
-  ] : [];
+  // ── Dashboard KPIs (calculados a partir da lista de eventos) ──
+  const counts = { total: eventList.length, 'no-prazo': 0, 'em-risco': 0, 'atrasado': 0, 'concluido': 0 };
+  eventList.forEach(e => { if (counts[e.status] !== undefined) counts[e.status]++; });
+  const kpis = [
+    { label: 'Total', value: counts.total, color: C.primary },
+    { label: 'No Prazo', value: counts['no-prazo'], color: C.green },
+    { label: 'Em Risco', value: counts['em-risco'], color: C.amber },
+    { label: 'Atrasados', value: counts['atrasado'], color: C.red },
+    { label: 'Concluídos', value: counts['concluido'], color: C.blue },
+  ];
 
   // ═══════════════════════════════════════════════════════════
   // RENDER — LISTA
@@ -477,8 +495,26 @@ export default function Eventos() {
           </div>
         </div>
 
-        {/* Ocorrências */}
-        {occurrences.length > 0 && (
+        {/* Sub-tabs do detalhe */}
+        <div style={{ ...styles.tabs, marginTop: 20, marginBottom: 16 }}>
+          {(hasCycle
+            ? [{ key: 'ciclo', label: 'Ciclo Criativo' }, { key: 'ocorrencias', label: 'Ocorrências' }]
+            : [{ key: 'info', label: 'Tarefas e Reuniões' }, { key: 'ocorrencias', label: 'Ocorrências' }, { key: 'ciclo', label: 'Ciclo Criativo' }]
+          ).map(t => (
+            <button key={t.key} style={styles.tab(detailTab === t.key)} onClick={() => setDetailTab(t.key)}>{t.label}</button>
+          ))}
+        </div>
+
+        {/* Sub-tab: Ciclo Criativo */}
+        {detailTab === 'ciclo' && (
+          <div>
+            <BudgetPanel eventId={ev.id} budget={null} onReload={() => refreshDetail()} />
+            <CycleView eventId={ev.id} />
+          </div>
+        )}
+
+        {/* Sub-tab: Ocorrências */}
+        {detailTab === 'ocorrencias' && occurrences.length > 0 && (
           <>
             <div style={styles.sectionTitle}>Ocorrências ({occurrences.length})</div>
             <div style={styles.card}>
@@ -504,7 +540,8 @@ export default function Eventos() {
           </>
         )}
 
-        {/* Tarefas */}
+        {/* Sub-tab: Tarefas e Reuniões (só quando não tem ciclo) */}
+        {detailTab === 'info' && <>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 24, marginBottom: 12 }}>
           <div style={{ ...styles.sectionTitle, margin: 0 }}>Tarefas ({taskList.length})</div>
           {isDiretor && (
@@ -654,6 +691,7 @@ export default function Eventos() {
             </div>
           </>
         )}
+        </>}
       </>
     );
   }
