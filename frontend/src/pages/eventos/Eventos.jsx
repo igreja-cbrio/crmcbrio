@@ -110,6 +110,15 @@ function normDate(d) { return d ? (typeof d === 'string' ? d.slice(0, 10) : '') 
 const fmtDate = (d) => { const s = normDate(d); if (!s) return '—'; const [y, m, day] = s.split('-'); return `${day}/${m}/${y}`; };
 const fmtMoney = (v) => v != null ? `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '—';
 
+function DaysCounter({ date, status }) {
+  const s = normDate(date);
+  if (!s || status === 'concluido') return null;
+  const diff = Math.ceil((new Date(s + 'T12:00:00') - new Date()) / 86400000);
+  const color = diff < 0 ? C.red : diff <= 7 ? C.amber : C.green;
+  const text = diff < 0 ? `${Math.abs(diff)}d atrás` : diff === 0 ? 'Hoje' : `${diff}d`;
+  return <span style={{ fontSize: 11, fontWeight: 700, color, marginLeft: 6 }}>{text}</span>;
+}
+
 // ── Componentes auxiliares ──────────────────────────────────
 function Modal({ open, onClose, title, children, footer }) {
   if (!open) return null;
@@ -330,6 +339,17 @@ export default function Eventos() {
       loadEvents();
       loadDash();
       if (data.id && selectedEvent?.id === data.id) refreshDetail();
+    } catch (e) { setError(e.message); }
+  }
+
+  async function toggleEventStatus(id, currentStatus) {
+    const newStatus = currentStatus === 'concluido' ? 'no-prazo' : 'concluido';
+    const label = newStatus === 'concluido' ? 'finalizar' : 'reabrir';
+    if (!window.confirm(`Deseja ${label} este evento?`)) return;
+    try {
+      await events.update(id, { status: newStatus });
+      loadEvents();
+      if (selectedEvent?.id === id) refreshDetail();
     } catch (e) { setError(e.message); }
   }
 
@@ -570,7 +590,10 @@ export default function Eventos() {
                   </td>
                   <td style={styles.td}>{ev.responsible || '—'}</td>
                   <td style={styles.td}>{fmtMoney(ev.budget_planned)}</td>
-                  <td style={styles.td}><Badge status={ev.status} map={STATUS_MAP} /></td>
+                  <td style={{ ...styles.td, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Badge status={ev.status} map={STATUS_MAP} />
+                    <DaysCounter date={ev.date} status={ev.status} />
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -610,6 +633,12 @@ export default function Eventos() {
               <Badge status={ev.status} map={STATUS_MAP} />
               {isDiretor && (
                 <>
+                  <button
+                    style={{ ...styles.btn(ev.status === 'concluido' ? 'secondary' : 'primary'), ...styles.btnSm }}
+                    onClick={() => toggleEventStatus(ev.id, ev.status)}
+                  >
+                    {ev.status === 'concluido' ? 'Reabrir' : 'Finalizar'}
+                  </button>
                   <button style={{ ...styles.btn('secondary'), ...styles.btnSm }} onClick={() => setModalEvent(ev)}>Editar</button>
                   <button style={{ ...styles.btn('danger'), ...styles.btnSm }} onClick={() => deleteEvent(ev.id)}>Excluir</button>
                 </>
