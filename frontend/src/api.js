@@ -127,3 +127,112 @@ export const agents = {
   reject: (id) => patch(`/agents/queue/${id}/reject`),
   log: () => get('/agents/log'),
 };
+
+export const financeiro = {
+  dashboard: () => get('/financeiro/dashboard'),
+  contas: {
+    list: () => get('/financeiro/contas'),
+    create: (data) => post('/financeiro/contas', data),
+    update: (id, data) => put(`/financeiro/contas/${id}`, data),
+    remove: (id) => del(`/financeiro/contas/${id}`),
+  },
+  categorias: {
+    list: () => get('/financeiro/categorias'),
+    create: (data) => post('/financeiro/categorias', data),
+    remove: (id) => del(`/financeiro/categorias/${id}`),
+  },
+  transacoes: {
+    list: (params) => get('/financeiro/transacoes' + (params ? '?' + new URLSearchParams(params) : '')),
+    create: (data) => post('/financeiro/transacoes', data),
+    update: (id, data) => put(`/financeiro/transacoes/${id}`, data),
+    remove: (id) => del(`/financeiro/transacoes/${id}`),
+  },
+  contasPagar: {
+    list: (params) => get('/financeiro/contas-pagar' + (params ? '?' + new URLSearchParams(params) : '')),
+    create: (data) => post('/financeiro/contas-pagar', data),
+    update: (id, data) => put(`/financeiro/contas-pagar/${id}`, data),
+    remove: (id) => del(`/financeiro/contas-pagar/${id}`),
+  },
+  reembolsos: {
+    list: (params) => get('/financeiro/reembolsos' + (params ? '?' + new URLSearchParams(params) : '')),
+    create: (data) => post('/financeiro/reembolsos', data),
+    aprovar: (id, status) => patch(`/financeiro/reembolsos/${id}`, { status }),
+  },
+};
+
+export const logistica = {
+  dashboard: () => get('/logistica/dashboard'),
+  fornecedores: {
+    list: (params) => get('/logistica/fornecedores' + (params ? '?' + new URLSearchParams(params) : '')),
+    create: (data) => post('/logistica/fornecedores', data),
+    update: (id, data) => put(`/logistica/fornecedores/${id}`, data),
+    remove: (id) => del(`/logistica/fornecedores/${id}`),
+  },
+  solicitacoes: {
+    list: (params) => get('/logistica/solicitacoes' + (params ? '?' + new URLSearchParams(params) : '')),
+    create: (data) => post('/logistica/solicitacoes', data),
+    atualizar: (id, data) => patch(`/logistica/solicitacoes/${id}`, data),
+  },
+  pedidos: {
+    list: (params) => get('/logistica/pedidos' + (params ? '?' + new URLSearchParams(params) : '')),
+    create: (data) => post('/logistica/pedidos', data),
+    update: (id, data) => put(`/logistica/pedidos/${id}`, data),
+    remove: (id) => del(`/logistica/pedidos/${id}`),
+    receber: (id, data) => post(`/logistica/pedidos/${id}/recebimento`, data),
+  },
+};
+
+export const patrimonio = {
+  dashboard: () => get('/patrimonio/dashboard'),
+  categorias: {
+    list: () => get('/patrimonio/categorias'),
+    create: (data) => post('/patrimonio/categorias', data),
+    remove: (id) => del(`/patrimonio/categorias/${id}`),
+  },
+  localizacoes: {
+    list: () => get('/patrimonio/localizacoes'),
+    create: (data) => post('/patrimonio/localizacoes', data),
+    remove: (id) => del(`/patrimonio/localizacoes/${id}`),
+  },
+  bens: {
+    list: (params) => get('/patrimonio/bens' + (params ? '?' + new URLSearchParams(params) : '')),
+    get: (id) => get(`/patrimonio/bens/${id}`),
+    create: (data) => post('/patrimonio/bens', data),
+    update: (id, data) => put(`/patrimonio/bens/${id}`, data),
+    remove: (id) => del(`/patrimonio/bens/${id}`),
+    movimentar: (id, data) => post(`/patrimonio/bens/${id}/movimentacoes`, data),
+  },
+  inventarios: {
+    list: () => get('/patrimonio/inventarios'),
+    create: (data) => post('/patrimonio/inventarios', data),
+    atualizar: (id, data) => patch(`/patrimonio/inventarios/${id}`, data),
+  },
+};
+
+export const rh = {
+  dashboard: () => get('/rh/dashboard'),
+  funcionarios: {
+    list: (params) => get('/rh/funcionarios' + (params ? '?' + new URLSearchParams(params) : '')),
+    get: (id) => get(`/rh/funcionarios/${id}`),
+    create: (data) => post('/rh/funcionarios', data),
+    update: (id, data) => put(`/rh/funcionarios/${id}`, data),
+    remove: (id) => del(`/rh/funcionarios/${id}`),
+  },
+  documentos: {
+    create: (funcId, data) => post(`/rh/funcionarios/${funcId}/documentos`, data),
+    remove: (id) => del(`/rh/documentos/${id}`),
+  },
+  treinamentos: {
+    list: () => get('/rh/treinamentos'),
+    create: (data) => post('/rh/treinamentos', data),
+    update: (id, data) => put(`/rh/treinamentos/${id}`, data),
+    remove: (id) => del(`/rh/treinamentos/${id}`),
+    inscrever: (id, data) => post(`/rh/treinamentos/${id}/inscrever`, data),
+    atualizarInscricao: (id, data) => patch(`/rh/treinamentos-funcionarios/${id}`, data),
+  },
+  ferias: {
+    create: (funcId, data) => post(`/rh/funcionarios/${funcId}/ferias`, data),
+    update: (id, data) => patch(`/rh/ferias/${id}`, data),
+    remove: (id) => del(`/rh/ferias/${id}`),
+  },
+};

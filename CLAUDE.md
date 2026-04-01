@@ -11,18 +11,20 @@ Sistema ERP interno da Igreja CBRio. Arquitetura modular com React + Express + S
 
 **Repositório:** `https://github.com/igreja-cbrio/crmcbrio`
 **Devs ativos:** Matheus Ribeiro e Marcos Paulo (cada um em um módulo por vez)
+**Deploy:** Vercel (frontend) — auto-deploy da `main`
 
 ---
 
 ## Stack
 
-| Camada    | Tecnologia                                     |
-|-----------|-----------------------------------------------|
-| Frontend  | React 18 + React Router v6 + Vite             |
-| Backend   | Express.js (Node.js)                           |
-| Banco     | Supabase (PostgreSQL + Auth + Storage)         |
-| Auth      | Supabase Auth (Google OAuth + Microsoft + e-mail) |
-| Estilo    | Inline styles com constantes de tema (sem CSS framework) |
+| Camada    | Tecnologia                                           |
+|-----------|-----------------------------------------------------|
+| Frontend  | React 18 + TypeScript + Vite + React Router v7      |
+| Estilo    | Tailwind CSS v4 + shadcn/ui pattern + lucide-react  |
+| Backend   | Express.js (Node.js)                                 |
+| Banco     | Supabase (PostgreSQL + Auth + Storage)               |
+| Auth      | Supabase Auth (Google OAuth + Microsoft + e-mail)    |
+| Deploy    | Vercel (frontend) — configurado via `vercel.json`    |
 
 ---
 
@@ -34,7 +36,7 @@ Sistema ERP interno da Igreja CBRio. Arquitetura modular com React + Express + S
 ```
 SUPABASE_URL=https://hhntwfawfnxvuobhdfkb.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=<service_role_key>
-DATABASE_URL=postgresql://postgres.hhntwfawfnxvuobhdfkb:<senha>@aws-0-sa-east-1.pooler.supabase.com:6543/postgres
+DATABASE_URL=postgresql://postgres.hhntwfawfnxvuobhdfkb:<senha>@aws-0-us-west-2.pooler.supabase.com:6543/postgres
 NODE_ENV=development
 PORT=3001
 FRONTEND_URL=http://localhost:5173
@@ -73,14 +75,28 @@ Browser → Supabase Auth (OAuth/e-mail) → JWT token
 - **`server.js`** — Express entry: middleware de segurança + rotas
 - **`utils/supabase.js`** — cliente Supabase service_role + pool pg direto
 - **`middleware/auth.js`** — valida JWT Supabase + busca profile
-- **`routes/`** — módulos: `auth`, `events`, `projects`, `expansion`, `meetings`, `agents`
+- **`routes/`** — módulos:
+  - `auth.js` — GET /me, PATCH /profile
+  - `events.js` — CRUD eventos + tarefas + subtarefas + comentários
+  - `projects.js` — CRUD projetos + objetivos + tarefas + milestones
+  - `expansion.js` — CRUD marcos de expansão + tarefas + subtarefas
+  - `meetings.js` — CRUD reuniões + pendências
+  - `agents.js` — proxy IA (Anthropic Claude)
+  - `rh.js` — CRUD funcionários, documentos, treinamentos, férias
+  - `financeiro.js` — CRUD contas, transações, contas a pagar, reembolsos
+  - `logistica.js` — CRUD fornecedores, solicitações, pedidos, recebimentos
+  - `patrimonio.js` — CRUD bens, categorias, localizações, movimentações, inventários
 - Login/registro: **não tem rota no backend** — o Supabase Auth cuida direto no frontend
 
 ### Frontend (`frontend/src/`)
+- **`main.tsx`** — entry point React
 - **`supabaseClient.js`** — cliente Supabase com anon key
+- **`api.js`** — client HTTP com todos os endpoints (events, projects, expansion, meetings, agents, rh, financeiro, logistica, patrimonio)
 - **`contexts/AuthContext.jsx`** — provider de sessão, perfil e helpers de OAuth
 - **`components/layout/AppShell.jsx`** — layout com sidebar + `<Outlet />`
-- **`components/layout/Sidebar.jsx`** — navegação por role
+- **`components/ui/modern-side-bar.tsx`** — sidebar moderna com submenus colapsáveis por módulo (Tailwind + lucide-react)
+- **`components/layout/Sidebar.jsx`** — sidebar legada (mantida para referência)
+- **`lib/utils.ts`** — helper `cn()` para merge de classes Tailwind
 - **`pages/`** — uma pasta por módulo (ver estrutura abaixo)
 - **`App.jsx`** — BrowserRouter + rotas + ProtectedRoute
 
@@ -88,17 +104,17 @@ Browser → Supabase Auth (OAuth/e-mail) → JWT token
 ```
 pages/
   Login.jsx
-  eventos/          → branch do Matheus (módulo original)
-  Projetos.jsx      → branch do Matheus
-  Expansao.jsx      → branch do Matheus
+  eventos/          → branch marcos/modulo-eventos
+  Projetos.jsx      → branch matheus/modulo-projetos
+  Expansao.jsx      → branch matheus/modulo-expansao
   admin/
-    rh/             → branch do Matheus
-    financeiro/     → branch do Matheus
-    logistica/      → branch do Matheus
-    patrimonio/     → branch do Matheus
-  ministerial/      → branch do Marcos Paulo
-  geracional/       → branch do Marcos Paulo
-  criativo/         → branch do Marcos Paulo
+    rh/             → branch matheus/modulo-rh
+    financeiro/     → branch matheus/modulo-financeiro
+    logistica/      → branch matheus/modulo-logistica
+    patrimonio/     → branch matheus/modulo-patrimonio
+  ministerial/      → branch marcos/modulo-ministerial
+  geracional/       → branch marcos/modulo-geracional
+  criativo/         → branch marcos/modulo-criativo
 ```
 
 ### Banco de Dados (Supabase)
@@ -127,64 +143,82 @@ Migrations em `supabase/migrations/`:
 ```
 {dev}/modulo-{nome}
 ```
-Exemplos:
-- `matheus/modulo-rh`
-- `matheus/modulo-financeiro`
-- `marcos/modulo-membresia`
-- `marcos/modulo-grupos`
+
+### Branches Ativas
+
+**Matheus:**
+- `matheus/modulo-rh` — Módulo RH (frontend + backend)
+- `matheus/modulo-financeiro` — Módulo Financeiro
+- `matheus/modulo-logistica` — Módulo Logística
+- `matheus/modulo-patrimonio` — Módulo Patrimônio
+- `matheus/modulo-projetos` — Módulo Projetos
+- `matheus/modulo-expansao` — Módulo Expansão
+
+**Marcos Paulo:**
+- `marcos/modulo-eventos` — Módulo Eventos (frontend + backend)
+- `marcos/modulo-ministerial` — Módulo Ministerial (Integração, Grupos, Cuidados, Voluntariado, Membresia)
+- `marcos/modulo-geracional` — Módulo Geracional (AMI, Kids)
+- `marcos/modulo-criativo` — Módulo Criativo (Marketing)
 
 **Nunca commitar direto na `main`.**
 
-### Quem mexe em quê
+### Arquivos Compartilhados — SEMPRE via PR
 
-**Marcos Paulo:**
-- Módulo de Eventos (frontend + backend)
+Estes arquivos afetam o sistema inteiro. Qualquer alteração deve ser feita via Pull Request:
 
-**Matheus:**
-- Módulo de RH (frontend + backend)
-
-> Módulos futuros serão distribuídos conforme disponibilidade.
-
-**Arquivos compartilhados — sempre usar PR para alterar:**
-- `CLAUDE.md` (este arquivo)
-- `frontend/src/App.jsx`
-- `frontend/src/components/layout/Sidebar.jsx`
-- `frontend/src/contexts/AuthContext.jsx`
-- `supabase/migrations/`
-- `backend/server.js`
-- `backend/middleware/auth.js`
-- `backend/utils/supabase.js`
+- `CLAUDE.md` / `README.md`
+- `frontend/src/App.jsx` — rotas
+- `frontend/src/components/ui/modern-side-bar.tsx` — sidebar (navegação)
+- `frontend/src/components/layout/AppShell.jsx` — layout
+- `frontend/src/contexts/AuthContext.jsx` — autenticação
+- `frontend/src/api.js` — client HTTP
+- `frontend/src/index.css` — tema global Tailwind
+- `supabase/migrations/` — schema do banco
+- `backend/server.js` — registro de rotas
+- `backend/middleware/auth.js` — autenticação
+- `backend/utils/supabase.js` — conexão Supabase
+- `vercel.json` — configuração de deploy
 
 ### Integrações via Pull Request
 1. Abrir PR da branch do módulo para `main`
 2. Descrever o que foi feito
 3. Outro dev revisa antes de mergar
+4. Vercel faz deploy automático ao mergar na `main`
 
 ---
 
 ## Padrões de Código
 
 ### Estilo (Frontend)
-- **Inline styles** com objeto `styles` no topo do componente — sem CSS modules, sem Tailwind
-- Paleta de cores consistente:
-  - Background sidebar: `#1a1a2e`
-  - Cor primária: `#7c3aed`
-  - Texto principal: `#1a1a2e`
-  - Texto secundário: `#6b7280`
-  - Background app: `#f3f4f6`
+- **Tailwind CSS v4** com classes utilitárias — NÃO usar inline styles em novos componentes
+- Tema definido em `frontend/src/index.css` com `@theme {}` (CSS custom properties)
+- Paleta de cores (via variáveis do tema):
+  - Sidebar: `var(--color-sidebar)` = `#1a1a2e`
+  - Primária: `var(--color-primary)` = `#7c3aed`
+  - Texto: `var(--color-foreground)` = `#1a1a2e`
+  - Texto secundário: `var(--color-muted-foreground)` = `#6b7280`
+  - Background: `var(--color-background)` = `#f3f4f6`
+- Ícones: `lucide-react` — usar ícones do lucide em vez de emojis para UI
+- Utility: `cn()` de `@/lib/utils.ts` para merge de classes condicionais
 - Fonte: `-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`
-- Sem biblioteca de componentes externa (tudo custom)
+- Componentes reutilizáveis em `frontend/src/components/ui/`
+- Páginas legadas (RH, Login) ainda usam inline styles — migrar gradualmente
 
-### Padrão de Componente (Frontend)
-```jsx
-// styles no topo
-const styles = { container: {...}, title: {...} };
+### Padrão de Componente (Frontend — novo)
+```tsx
+import { cn } from '@/lib/utils';
+import { SomeIcon } from 'lucide-react';
 
-// componente funcional com export default
-export default function MeuComponente({ prop }) {
-  const { role } = useAuth();
-  // ...
-  return <div style={styles.container}>...</div>;
+interface Props {
+  title: string;
+}
+
+export default function MeuComponente({ title }: Props) {
+  return (
+    <div className="max-w-5xl mx-auto">
+      <h1 className="text-2xl font-bold text-foreground">{title}</h1>
+    </div>
+  );
 }
 ```
 
@@ -217,15 +251,32 @@ module.exports = router;
 
 ---
 
+## Deploy (Vercel)
+
+O frontend é publicado automaticamente via Vercel:
+- **Produção:** deploy automático ao mergar PR na `main`
+- **Preview:** cada PR gera uma URL de preview automaticamente
+- **Config:** `vercel.json` na raiz do repositório
+- **Build:** `cd frontend && npm install && npm run build`
+- **Output:** `frontend/dist`
+
+O backend roda separadamente (configurar conforme infraestrutura).
+
+---
+
 ## Módulos do Sistema
 
 ### Implementados ✅
-- Eventos, Projetos, Expansão, Reuniões (módulo original, PostgreSQL local)
+- Backend completo: Events, Projects, Expansion, Meetings, Agents, RH, Financeiro, Logística, Patrimônio (10 módulos de API)
+- Frontend RH (parcialmente implementado)
 - Schema Supabase aplicado: profiles, RLS, RH, Financeiro, Logística, Patrimônio (24 tabelas + 1 view + indexes)
 - Storage Buckets criados: `documentos-rh`, `comprovantes`, `patrimonio-fotos`
+- Sidebar moderna com submenus colapsáveis
+- Migração para Tailwind CSS v4 + TypeScript
 
 ### Em Desenvolvimento 🔧
-- Frontend dos módulos administrativos (RH, Financeiro, Logística, Patrimônio)
+- Frontend Eventos (branch marcos/modulo-eventos)
+- Frontend Financeiro, Logística, Patrimônio (branches matheus/)
 
 ### Planejados 📋
 - Ministerial: Integração, Grupos, Cuidados, Online, Voluntariado, Membresia
