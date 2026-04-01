@@ -36,8 +36,9 @@ const put = (path, body) => request(path, { method: 'PUT', body: JSON.stringify(
 const patch = (path, body) => request(path, { method: 'PATCH', body: JSON.stringify(body) });
 const del = (path) => request(path, { method: 'DELETE' });
 
-// Auth é gerenciado pelo Supabase Auth (AuthContext.jsx)
-// Removidos: setToken, clearToken, getToken, auth.login, auth.me
+export const users = {
+  list: () => get('/auth/users'),
+};
 
 export const events = {
   list: (params) => get('/events' + (params ? '?' + new URLSearchParams(params) : '')),

@@ -37,6 +37,21 @@ router.patch('/profile', authenticate, async (req, res) => {
   }
 });
 
+// GET /api/auth/users — lista todos os usuários ativos (para selects de responsável)
+router.get('/users', authenticate, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, name, email, role')
+      .eq('active', true)
+      .order('name');
+    if (error) return res.status(400).json({ error: error.message });
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: 'Erro interno' });
+  }
+});
+
 // Nota: login, registro, OAuth (Google/Microsoft) são tratados
 // diretamente pelo Supabase Auth no frontend — sem passar pelo backend.
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { cycles as api } from '../../../api';
+import { cycles as api, users as usersApi } from '../../../api';
 
 const C = { dark: '#1a1a2e', t2: '#6b7280', t3: '#9ca3af', border: '#e5e7eb', accent: '#7c3aed', accentBg: '#f3e8ff' };
 
@@ -30,18 +30,199 @@ function Badge({ text, color, bg }) {
 }
 
 function normDate(d) { return d ? (typeof d === 'string' ? d.slice(0, 10) : '') : ''; }
-function fmtDate(d) { const s = normDate(d); if (!s) return ''; const [y,m,day] = s.split('-'); return `${day}/${m}/${y}`; }
+function fmtDate(d) { const s = normDate(d); if (!s) return ''; const [y, m, day] = s.split('-'); return `${day}/${m}/${y}`; }
 
+// ── Modal de detalhe da fase ────────────────────────────────
+function PhaseDetailModal({ phase, tasks, onClose, onCreateTask, onTaskStatusChange }) {
+  const phaseTasks = tasks.filter(t => t.event_phase_id === phase.id);
+  const done = phaseTasks.filter(t => t.status === 'concluida').length;
+  const pending = phaseTasks.length - done;
+  const st = PHASE_STATUS[phase.status] || PHASE_STATUS.pendente;
+
+  return (
+    <div style={overlay} onClick={onClose}>
+      <div style={modal} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: C.accent }}>Fase {phase.numero_fase}</div>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: C.dark, margin: '4px 0' }}>{phase.nome_fase}</h2>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <Badge text={st.label} color={st.color} bg={st.bg} />
+              {phase.momento_chave && <Badge text="Momento-chave" color="#f59e0b" bg="#fffbeb" />}
+              <Badge text={phase.area} color={phase.area === 'marketing' ? '#7c3aed' : '#3b82f6'} />
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: C.t2 }}>×</button>
+        </div>
+
+        {/* Info */}
+        <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
+          <div style={{ background: '#f9fafb', borderRadius: 8, padding: '10px 14px', flex: 1, textAlign: 'center' }}>
+            <div style={{ fontSize: 10, color: C.t2, fontWeight: 600 }}>Período</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: C.dark, marginTop: 2 }}>
+              {fmtDate(phase.data_inicio_prevista)} → {fmtDate(phase.data_fim_prevista)}
+            </div>
+          </div>
+          <div style={{ background: '#ecfdf5', borderRadius: 8, padding: '10px 14px', flex: 1, textAlign: 'center' }}>
+            <div style={{ fontSize: 10, color: '#10b981', fontWeight: 600 }}>Concluídas</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: '#10b981' }}>{done}</div>
+          </div>
+          <div style={{ background: '#f3f4f6', borderRadius: 8, padding: '10px 14px', flex: 1, textAlign: 'center' }}>
+            <div style={{ fontSize: 10, color: C.t2, fontWeight: 600 }}>Pendentes</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: C.t2 }}>{pending}</div>
+          </div>
+        </div>
+
+        {/* Progress */}
+        {phaseTasks.length > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ height: 6, background: '#e5e7eb', borderRadius: 3 }}>
+              <div style={{ height: '100%', width: `${phaseTasks.length > 0 ? Math.round((done / phaseTasks.length) * 100) : 0}%`, background: '#10b981', borderRadius: 3, transition: 'width 0.3s' }} />
+            </div>
+          </div>
+        )}
+
+        {/* Botão criar tarefa */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: C.dark }}>Tarefas ({phaseTasks.length})</span>
+          <button onClick={() => onCreateTask(phase)} style={btnPrimary}>+ Nova Tarefa</button>
+        </div>
+
+        {/* Lista de tarefas */}
+        {phaseTasks.length === 0 && <div style={{ color: C.t3, fontSize: 12, padding: 12, textAlign: 'center' }}>Nenhuma tarefa nesta fase</div>}
+        {phaseTasks.map(task => {
+          const ts = TASK_STATUS[task.status] || TASK_STATUS.a_fazer;
+          return (
+            <div key={task.id} style={{ background: '#fff', borderRadius: 8, padding: 10, border: `1px solid ${C.border}`, marginBottom: 6 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: C.dark }}>{task.titulo}</div>
+                  <div style={{ fontSize: 11, color: C.t2, marginTop: 2 }}>
+                    {task.responsavel_nome || 'Sem responsável'}
+                    {task.prazo && ` · Prazo: ${fmtDate(task.prazo)}`}
+                  </div>
+                </div>
+                <select value={task.status} onChange={e => onTaskStatusChange(task.id, e.target.value)}
+                  style={{ fontSize: 11, padding: '2px 6px', borderRadius: 6, border: `1px solid ${C.border}`, color: ts.color }}>
+                  {Object.entries(TASK_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                </select>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Modal de criar tarefa ───────────────────────────────────
+function CreateTaskModal({ phase, eventId, usersList, onSave, onClose }) {
+  const [f, setF] = useState({ titulo: '', prazo_inicio: '', prazo: '', responsavel_id: '', area: phase.area === 'ambos' ? 'marketing' : phase.area });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const maxDate = normDate(phase.data_fim_prevista);
+  const minDate = normDate(phase.data_inicio_prevista);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!f.titulo) { setError('Nome é obrigatório'); return; }
+    setSaving(true);
+    setError('');
+    try {
+      const selectedUser = usersList.find(u => u.id === f.responsavel_id);
+      await onSave({
+        event_phase_id: phase.id,
+        event_id: eventId,
+        titulo: f.titulo,
+        prazo: f.prazo || null,
+        area: f.area,
+        responsavel_id: f.responsavel_id || null,
+        responsavel_nome: selectedUser?.name || null,
+        prioridade: 'normal',
+        status: 'a_fazer',
+      });
+    } catch (err) {
+      setError(err.message);
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div style={overlay} onClick={onClose}>
+      <div style={{ ...modal, maxWidth: 460 }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: C.dark, margin: 0 }}>
+            Nova Tarefa — Fase {phase.numero_fase}
+          </h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: C.t2 }}>×</button>
+        </div>
+
+        {error && <div style={errBox}>{error}</div>}
+
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: 12 }}>
+            <label style={labelStyle}>Nome da tarefa *</label>
+            <input value={f.titulo} onChange={e => setF(p => ({ ...p, titulo: e.target.value }))} style={inputStyle} />
+          </div>
+
+          <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ flex: 1, marginBottom: 12 }}>
+              <label style={labelStyle}>Prazo início</label>
+              <input type="date" value={f.prazo_inicio} min={minDate} max={maxDate}
+                onChange={e => setF(p => ({ ...p, prazo_inicio: e.target.value }))} style={inputStyle} />
+            </div>
+            <div style={{ flex: 1, marginBottom: 12 }}>
+              <label style={labelStyle}>Prazo fim</label>
+              <input type="date" value={f.prazo} min={f.prazo_inicio || minDate} max={maxDate}
+                onChange={e => setF(p => ({ ...p, prazo: e.target.value }))} style={inputStyle} />
+              <div style={{ fontSize: 10, color: C.t3, marginTop: 2 }}>Limite: {fmtDate(maxDate)}</div>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 12 }}>
+            <label style={labelStyle}>Responsável</label>
+            <select value={f.responsavel_id} onChange={e => setF(p => ({ ...p, responsavel_id: e.target.value }))} style={inputStyle}>
+              <option value="">Selecionar...</option>
+              {usersList.map(u => <option key={u.id} value={u.id}>{u.name} ({u.email})</option>)}
+            </select>
+          </div>
+
+          <div style={{ marginBottom: 12 }}>
+            <label style={labelStyle}>Área</label>
+            <select value={f.area} onChange={e => setF(p => ({ ...p, area: e.target.value }))} style={inputStyle}>
+              <option value="marketing">Marketing</option>
+              <option value="adm">Administrativo</option>
+            </select>
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
+            <button type="button" onClick={onClose} style={btnCancel}>Cancelar</button>
+            <button type="submit" disabled={saving} style={{ ...btnPrimary, opacity: saving ? 0.6 : 1 }}>
+              {saving ? 'Salvando...' : 'Criar Tarefa'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ── Componente principal ────────────────────────────────────
 export default function CycleView({ eventId }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activating, setActivating] = useState(false);
   const [tab, setTab] = useState('fases');
+  const [selectedPhase, setSelectedPhase] = useState(null);
+  const [createTaskForPhase, setCreateTaskForPhase] = useState(null);
+  const [usersList, setUsersList] = useState([]);
 
   const load = async () => {
     try {
-      const res = await api.get(eventId);
+      const [res, usrs] = await Promise.all([api.get(eventId), usersApi.list()]);
       setData(res);
+      setUsersList(usrs);
     } catch {
       setData(null);
     } finally {
@@ -53,14 +234,9 @@ export default function CycleView({ eventId }) {
 
   const handleActivate = async () => {
     setActivating(true);
-    try {
-      await api.activate(eventId);
-      load();
-    } catch (e) {
-      alert(e.message);
-    } finally {
-      setActivating(false);
-    }
+    try { await api.activate(eventId); load(); }
+    catch (e) { alert(e.message); }
+    finally { setActivating(false); }
   };
 
   const handlePhaseStatusChange = async (phaseId, status) => {
@@ -78,6 +254,12 @@ export default function CycleView({ eventId }) {
     load();
   };
 
+  const handleCreateTask = async (taskData) => {
+    await api.createTask(taskData);
+    setCreateTaskForPhase(null);
+    load();
+  };
+
   if (loading) return <div style={{ padding: 16, color: C.t2 }}>Carregando ciclo...</div>;
 
   if (!data?.cycle) {
@@ -91,7 +273,7 @@ export default function CycleView({ eventId }) {
     );
   }
 
-  const { phases, tasks, admTrack, budget } = data;
+  const { phases, tasks, admTrack } = data;
   const phasesDone = phases.filter(p => p.status === 'concluida').length;
   const pctDone = phases.length > 0 ? Math.round((phasesDone / phases.length) * 100) : 0;
 
@@ -121,26 +303,34 @@ export default function CycleView({ eventId }) {
         ))}
       </div>
 
-      {/* Tab: Fases */}
+      {/* Tab: Fases (clicáveis) */}
       {tab === 'fases' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {phases.map(phase => {
             const st = PHASE_STATUS[phase.status] || PHASE_STATUS.pendente;
+            const phaseTasks = tasks.filter(t => t.event_phase_id === phase.id);
+            const tasksDone = phaseTasks.filter(t => t.status === 'concluida').length;
             return (
-              <div key={phase.id} style={{ background: '#fff', borderRadius: 10, padding: 12, border: `1px solid ${C.border}`,
-                borderLeft: phase.momento_chave ? '4px solid #f59e0b' : `4px solid ${st.color}` }}>
+              <div key={phase.id} onClick={() => setSelectedPhase(phase)} style={{
+                background: '#fff', borderRadius: 10, padding: 12, border: `1px solid ${C.border}`, cursor: 'pointer',
+                borderLeft: phase.momento_chave ? '4px solid #f59e0b' : `4px solid ${st.color}`,
+                transition: 'box-shadow 0.15s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'}
+              onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
+              >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
+                  <div style={{ flex: 1 }}>
                     <span style={{ fontSize: 11, fontWeight: 700, color: C.accent }}>Fase {phase.numero_fase}</span>
                     <span style={{ fontSize: 14, fontWeight: 600, color: C.dark, marginLeft: 8 }}>{phase.nome_fase}</span>
-                    {phase.momento_chave && <Badge text="Momento-chave" color="#f59e0b" />}
+                    {phase.momento_chave && <span style={{ marginLeft: 6 }}><Badge text="Momento-chave" color="#f59e0b" /></span>}
                   </div>
-                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+                    {phaseTasks.length > 0 && (
+                      <span style={{ fontSize: 10, color: C.t2, fontWeight: 600 }}>{tasksDone}/{phaseTasks.length} tarefas</span>
+                    )}
                     <span style={{ fontSize: 10, color: C.t3 }}>{fmtDate(phase.data_inicio_prevista)} → {fmtDate(phase.data_fim_prevista)}</span>
-                    <select value={phase.status} onChange={e => handlePhaseStatusChange(phase.id, e.target.value)}
-                      style={{ fontSize: 11, padding: '2px 6px', borderRadius: 6, border: `1px solid ${C.border}`, color: st.color }}>
-                      {Object.entries(PHASE_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                    </select>
+                    <Badge text={st.label} color={st.color} bg={st.bg} />
                   </div>
                 </div>
                 <div style={{ fontSize: 11, color: C.t2, marginTop: 2 }}>Área: {phase.area}</div>
@@ -206,7 +396,8 @@ export default function CycleView({ eventId }) {
                         <div style={{ fontSize: 11, color: C.t2 }}>{item.area} · {item.entrega_esperada}</div>
                       </div>
                       <select value={item.status} onChange={e => handleAdmStatusChange(item.id, e.target.value)}
-                        style={{ fontSize: 11, padding: '2px 6px', borderRadius: 6, border: `1px solid ${C.border}`, color: st.color }}>
+                        style={{ fontSize: 11, padding: '2px 6px', borderRadius: 6, border: `1px solid ${C.border}`, color: st.color }}
+                        onClick={e => e.stopPropagation()}>
                         {Object.entries(ADM_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                       </select>
                     </div>
@@ -217,11 +408,36 @@ export default function CycleView({ eventId }) {
           })}
         </div>
       )}
+
+      {/* Modal: Detalhe da fase */}
+      {selectedPhase && (
+        <PhaseDetailModal
+          phase={selectedPhase}
+          tasks={tasks}
+          onClose={() => setSelectedPhase(null)}
+          onCreateTask={(phase) => { setSelectedPhase(null); setCreateTaskForPhase(phase); }}
+          onTaskStatusChange={(taskId, status) => { handleTaskStatusChange(taskId, status); }}
+        />
+      )}
+
+      {/* Modal: Criar tarefa */}
+      {createTaskForPhase && (
+        <CreateTaskModal
+          phase={createTaskForPhase}
+          eventId={eventId}
+          usersList={usersList}
+          onSave={handleCreateTask}
+          onClose={() => setCreateTaskForPhase(null)}
+        />
+      )}
     </div>
   );
 }
 
-const btnPrimary = {
-  padding: '10px 24px', borderRadius: 8, border: 'none', cursor: 'pointer',
-  background: '#7c3aed', color: '#fff', fontWeight: 600, fontSize: 14,
-};
+const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 };
+const modal = { background: '#fff', borderRadius: 12, padding: '24px 28px', width: '100%', maxWidth: 600, maxHeight: '90vh', overflowY: 'auto' };
+const labelStyle = { fontSize: 12, fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: 4 };
+const inputStyle = { width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 13, color: '#1a1a2e', outline: 'none' };
+const errBox = { background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', padding: '8px 12px', borderRadius: 8, fontSize: 12, marginBottom: 12 };
+const btnPrimary = { padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', background: '#7c3aed', color: '#fff', fontWeight: 600, fontSize: 12 };
+const btnCancel = { padding: '8px 16px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', color: '#6b7280', cursor: 'pointer', fontWeight: 600, fontSize: 12 };
