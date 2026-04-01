@@ -8,9 +8,9 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sa
 }
 
 /* Kanban: 3 cols on desktop, horizontal scroll on mobile */
-.kanban-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.kanban-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
 @media (max-width: 767px) {
-  .kanban-grid { grid-template-columns: repeat(3, minmax(240px, 1fr)); overflow-x: auto; padding-bottom: 8px; }
+  .kanban-grid { grid-template-columns: repeat(4, minmax(220px, 1fr)); overflow-x: auto; padding-bottom: 8px; }
 }
 
 /* Info grid: 2 cols → 1 col */

@@ -32,6 +32,30 @@ function Badge({ text, color, bg }) {
 function normDate(d) { return d ? (typeof d === 'string' ? d.slice(0, 10) : '') : ''; }
 function fmtDate(d) { const s = normDate(d); if (!s) return ''; const [y, m, day] = s.split('-'); return `${day}/${m}/${y}`; }
 
+function DelayBadge({ prazo, status, fimFase }) {
+  if (status === 'concluida') return null;
+  const p = normDate(prazo);
+  const fim = normDate(fimFase);
+  if (!p) return null;
+  const today = new Date().toISOString().slice(0, 10);
+  const diasAtraso = Math.ceil((new Date(today) - new Date(p)) / 86400000);
+  const diasAlemFase = fim ? Math.ceil((new Date(p) - new Date(fim)) / 86400000) : 0;
+  return (
+    <div style={{ display: 'flex', gap: 4, marginTop: 2 }}>
+      {diasAtraso > 0 && (
+        <span style={{ fontSize: 10, fontWeight: 600, color: '#ef4444', padding: '1px 6px', borderRadius: 4, background: '#fef2f2' }}>
+          {diasAtraso}d atrasado
+        </span>
+      )}
+      {diasAlemFase > 0 && (
+        <span style={{ fontSize: 10, fontWeight: 600, color: '#f59e0b', padding: '1px 6px', borderRadius: 4, background: '#fffbeb' }}>
+          {diasAlemFase}d além da fase
+        </span>
+      )}
+    </div>
+  );
+}
+
 // ── Modal de detalhe da fase ────────────────────────────────
 function PhaseDetailModal({ phase, tasks, onClose, onCreateTask, onTaskStatusChange }) {
   const phaseTasks = tasks.filter(t => t.event_phase_id === phase.id);
@@ -101,6 +125,7 @@ function PhaseDetailModal({ phase, tasks, onClose, onCreateTask, onTaskStatusCha
                     {task.responsavel_nome || 'Sem responsável'}
                     {task.prazo && ` · Prazo: ${fmtDate(task.prazo)}`}
                   </div>
+                  <DelayBadge prazo={task.prazo} status={task.status} fimFase={phase.data_fim_prevista} />
                 </div>
                 <select value={task.status} onChange={e => onTaskStatusChange(task.id, e.target.value)}
                   style={{ fontSize: 11, padding: '2px 6px', borderRadius: 6, border: `1px solid ${C.border}`, color: ts.color }}>
@@ -169,14 +194,19 @@ function CreateTaskModal({ phase, eventId, usersList, onSave, onClose }) {
           <div style={{ display: 'flex', gap: 8 }}>
             <div style={{ flex: 1, marginBottom: 12 }}>
               <label style={labelStyle}>Prazo início</label>
-              <input type="date" value={f.prazo_inicio} min={minDate} max={maxDate}
+              <input type="date" value={f.prazo_inicio}
                 onChange={e => setF(p => ({ ...p, prazo_inicio: e.target.value }))} style={inputStyle} />
             </div>
             <div style={{ flex: 1, marginBottom: 12 }}>
               <label style={labelStyle}>Prazo fim</label>
-              <input type="date" value={f.prazo} min={f.prazo_inicio || minDate} max={maxDate}
+              <input type="date" value={f.prazo}
                 onChange={e => setF(p => ({ ...p, prazo: e.target.value }))} style={inputStyle} />
-              <div style={{ fontSize: 10, color: C.t3, marginTop: 2 }}>Limite: {fmtDate(maxDate)}</div>
+              {f.prazo && maxDate && f.prazo > maxDate && (
+                <div style={{ fontSize: 10, color: '#ef4444', fontWeight: 600, marginTop: 2 }}>
+                  Atenção: {Math.ceil((new Date(f.prazo) - new Date(maxDate)) / 86400000)}d além do fim da fase ({fmtDate(maxDate)})
+                </div>
+              )}
+              <div style={{ fontSize: 10, color: C.t3, marginTop: 2 }}>Fim da fase: {fmtDate(maxDate)}</div>
             </div>
           </div>
 
@@ -364,6 +394,7 @@ export default function CycleView({ eventId }) {
                       <Badge text={task.area === 'marketing' ? 'MKT' : 'ADM'} color={task.area === 'marketing' ? '#7c3aed' : '#f59e0b'} />
                       <Badge text={task.prioridade} color={task.prioridade === 'alta' ? '#ef4444' : task.prioridade === 'normal' ? '#3b82f6' : '#9ca3af'} />
                     </div>
+                    <DelayBadge prazo={task.prazo} status={task.status} fimFase={phases.find(p => p.id === task.event_phase_id)?.data_fim_prevista} />
                   </div>
                 ))}
                 {colTasks.length === 0 && <div style={{ fontSize: 11, color: C.t3, padding: 8 }}>Nenhuma tarefa</div>}
