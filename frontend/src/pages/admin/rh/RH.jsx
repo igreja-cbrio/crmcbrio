@@ -112,6 +112,7 @@ function Modal({ open, onClose, title, children, footer }) {
         <div style={styles.modalBody}>{children}</div>
         {footer && <div style={styles.modalFooter}>{footer}</div>}
       </div>
+>>>>>>> f36828f2e2b110c0171d22f93891eaab788abe56
     </div>
   );
 }

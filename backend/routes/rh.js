@@ -69,14 +69,15 @@ router.get('/dashboard', async (req, res) => {
 // GET /api/rh/funcionarios
 router.get('/funcionarios', async (req, res) => {
   try {
-    const { status, area, busca } = req.query;
+    const { status, area, busca, tipo_contrato } = req.query;
     let query = supabase
       .from('rh_funcionarios')
-      .select('*')
+      .select('*, rh_ferias_licencas(tipo, data_inicio, data_fim, status)')
       .order('nome');
 
     if (status) query = query.eq('status', status);
     if (area) query = query.eq('area', area);
+    if (tipo_contrato) query = query.eq('tipo_contrato', tipo_contrato);
     if (busca) query = query.ilike('nome', `%${busca}%`);
 
     const { data, error } = await query;
@@ -141,7 +142,7 @@ router.post('/funcionarios', async (req, res) => {
       .single();
 
     if (error) return res.status(400).json({ error: error.message });
-    res.json(data);
+    res.status(201).json(data);
   } catch (e) {
     console.error('[RH] Criar funcionário:', e.message);
     res.status(500).json({ error: 'Erro ao criar funcionário' });
@@ -158,6 +159,7 @@ router.put('/funcionarios/:id', async (req, res) => {
         nome, cpf, email, telefone, cargo, area, tipo_contrato,
         data_admissao, data_demissao: data_demissao || null,
         salario, status, observacoes,
+        updated_at: new Date().toISOString(),
       })
       .eq('id', req.params.id)
       .select()
@@ -171,19 +173,19 @@ router.put('/funcionarios/:id', async (req, res) => {
   }
 });
 
-// DELETE /api/rh/funcionarios/:id
+// DELETE /api/rh/funcionarios/:id (desativação lógica)
 router.delete('/funcionarios/:id', async (req, res) => {
   try {
     const { error } = await supabase
       .from('rh_funcionarios')
-      .delete()
+      .update({ status: 'inativo', data_demissao: new Date().toISOString().split('T')[0] })
       .eq('id', req.params.id);
 
     if (error) return res.status(400).json({ error: error.message });
     res.json({ success: true });
   } catch (e) {
-    console.error('[RH] Remover funcionário:', e.message);
-    res.status(500).json({ error: 'Erro ao remover funcionário' });
+    console.error('[RH] Desativar funcionário:', e.message);
+    res.status(500).json({ error: 'Erro ao desativar funcionário' });
   }
 });
 
@@ -259,7 +261,7 @@ router.post('/treinamentos', async (req, res) => {
       .single();
 
     if (error) return res.status(400).json({ error: error.message });
-    res.json(data);
+    res.status(201).json(data);
   } catch (e) {
     console.error('[RH] Criar treinamento:', e.message);
     res.status(500).json({ error: 'Erro ao criar treinamento' });
@@ -297,17 +299,29 @@ router.delete('/treinamentos/:id', async (req, res) => {
   }
 });
 
-// POST /api/rh/treinamentos/:id/inscrever — inscrever funcionário
+// POST /api/rh/treinamentos/:id/inscrever — inscrever funcionários
 router.post('/treinamentos/:id/inscrever', async (req, res) => {
   try {
-    const { funcionario_id } = req.body;
-    if (!funcionario_id) return res.status(400).json({ error: 'funcionario_id é obrigatório' });
+    const { funcionario_id, funcionario_ids } = req.body;
+
+    // Suporta tanto inscrição única quanto em lote
+    let insercoes;
+    if (funcionario_ids && Array.isArray(funcionario_ids)) {
+      insercoes = funcionario_ids.map((fid) => ({
+        treinamento_id: req.params.id,
+        funcionario_id: fid,
+        status: 'inscrito',
+      }));
+    } else if (funcionario_id) {
+      insercoes = [{ treinamento_id: req.params.id, funcionario_id, status: 'inscrito' }];
+    } else {
+      return res.status(400).json({ error: 'funcionario_id ou funcionario_ids é obrigatório' });
+    }
 
     const { data, error } = await supabase
       .from('rh_treinamentos_funcionarios')
-      .insert({ treinamento_id: req.params.id, funcionario_id })
-      .select()
-      .single();
+      .upsert(insercoes)
+      .select();
 
     if (error) return res.status(400).json({ error: error.message });
     res.json(data);
@@ -341,6 +355,26 @@ router.patch('/treinamentos-funcionarios/:id', async (req, res) => {
 });
 
 // ── FÉRIAS E LICENÇAS ──────────────────────────────────────
+// GET /api/rh/ferias
+router.get('/ferias', async (req, res) => {
+  try {
+    const { status } = req.query;
+    let query = supabase
+      .from('rh_ferias_licencas')
+      .select('*, rh_funcionarios(nome, cargo, area)')
+      .order('data_inicio', { ascending: false });
+
+    if (status) query = query.eq('status', status);
+
+    const { data, error } = await query;
+    if (error) return res.status(400).json({ error: error.message });
+    res.json(data);
+  } catch (e) {
+    console.error('[RH] Listar férias:', e.message);
+    res.status(500).json({ error: 'Erro ao listar férias' });
+  }
+});
+
 // POST /api/rh/funcionarios/:id/ferias
 router.post('/funcionarios/:id/ferias', async (req, res) => {
   try {
@@ -383,6 +417,13 @@ router.patch('/ferias/:id', async (req, res) => {
       .single();
 
     if (error) return res.status(400).json({ error: error.message });
+
+    // Atualiza status do funcionário se aprovado
+    if (status === 'aprovado') {
+      const tipo = data.tipo === 'ferias' ? 'ferias' : 'licenca';
+      await supabase.from('rh_funcionarios').update({ status: tipo }).eq('id', data.funcionario_id);
+    }
+
     res.json(data);
   } catch (e) {
     console.error('[RH] Aprovar/rejeitar férias:', e.message);
@@ -399,6 +440,32 @@ router.delete('/ferias/:id', async (req, res) => {
   } catch (e) {
     console.error('[RH] Remover férias:', e.message);
     res.status(500).json({ error: 'Erro ao remover férias/licença' });
+  }
+});
+
+// ── KPIs ──────────────────────────────────────────────────────
+// GET /api/rh/kpis
+router.get('/kpis', async (req, res) => {
+  try {
+    const [{ count: total }, { count: ativos }, { count: ferias }, admissoes] = await Promise.all([
+      supabase.from('rh_funcionarios').select('*', { count: 'exact', head: true }),
+      supabase.from('rh_funcionarios').select('*', { count: 'exact', head: true }).eq('status', 'ativo'),
+      supabase.from('rh_funcionarios').select('*', { count: 'exact', head: true }).in('status', ['ferias', 'licenca']),
+      supabase.from('rh_funcionarios')
+        .select('id, nome, cargo, data_admissao')
+        .gte('data_admissao', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0])
+        .order('data_admissao', { ascending: false }),
+    ]);
+
+    res.json({
+      total_funcionarios: total ?? 0,
+      ativos: ativos ?? 0,
+      em_ferias_licenca: ferias ?? 0,
+      admissoes_mes: admissoes.data ?? [],
+    });
+  } catch (e) {
+    console.error('[RH] KPIs:', e.message);
+    res.status(500).json({ error: 'Erro ao carregar KPIs' });
   }
 });
 
