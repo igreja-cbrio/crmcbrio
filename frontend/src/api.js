@@ -112,3 +112,31 @@ export const agents = {
   reject: (id) => patch(`/agents/queue/${id}/reject`),
   log: () => get('/agents/log'),
 };
+
+export const rh = {
+  dashboard: () => get('/rh/dashboard'),
+  funcionarios: {
+    list: (params) => get('/rh/funcionarios' + (params ? '?' + new URLSearchParams(params) : '')),
+    get: (id) => get(`/rh/funcionarios/${id}`),
+    create: (data) => post('/rh/funcionarios', data),
+    update: (id, data) => put(`/rh/funcionarios/${id}`, data),
+    remove: (id) => del(`/rh/funcionarios/${id}`),
+  },
+  documentos: {
+    create: (funcId, data) => post(`/rh/funcionarios/${funcId}/documentos`, data),
+    remove: (id) => del(`/rh/documentos/${id}`),
+  },
+  treinamentos: {
+    list: () => get('/rh/treinamentos'),
+    create: (data) => post('/rh/treinamentos', data),
+    update: (id, data) => put(`/rh/treinamentos/${id}`, data),
+    remove: (id) => del(`/rh/treinamentos/${id}`),
+    inscrever: (id, data) => post(`/rh/treinamentos/${id}/inscrever`, data),
+    atualizarInscricao: (id, data) => patch(`/rh/treinamentos-funcionarios/${id}`, data),
+  },
+  ferias: {
+    create: (funcId, data) => post(`/rh/funcionarios/${funcId}/ferias`, data),
+    update: (id, data) => patch(`/rh/ferias/${id}`, data),
+    remove: (id) => del(`/rh/ferias/${id}`),
+  },
+};
