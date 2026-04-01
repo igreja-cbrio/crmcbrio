@@ -2,43 +2,29 @@
 
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Calendar,
-  ChevronDown,
+  ChevronRight,
   ChevronsUpDown,
   Church,
-  ClipboardCheck,
-  CreditCard,
   DollarSign,
-  FileText,
   FolderKanban,
-  GraduationCap,
   HandHelping,
   Heart,
   LogOut,
   Map,
-  MapPin,
   Megaphone,
-  Package,
-  Palmtree,
-  Receipt,
-  RotateCcw,
-  Settings,
-  ShoppingCart,
   Tag,
   Truck,
   UserCheck,
-  UserPlus,
   Users,
   UsersRound,
-  Warehouse,
   BookOpen,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,44 +32,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
 import React from "react";
 
 const sidebarVariants = {
-  open: { width: "16rem" },
+  open: { width: "15rem" },
   closed: { width: "3.5rem" },
 };
 
-const contentVariants = {
-  open: { display: "block", opacity: 1 },
-  closed: { display: "block", opacity: 1 },
-};
-
-const variants = {
-  open: {
-    x: 0,
-    opacity: 1,
-    transition: { x: { stiffness: 1000, velocity: -100 } },
-  },
-  closed: {
-    x: -20,
-    opacity: 0,
-    transition: { x: { stiffness: 100 } },
-  },
+const labelVariants = {
+  open: { opacity: 1, x: 0, display: "block" },
+  closed: { opacity: 0, x: -10, transitionEnd: { display: "none" } },
 };
 
 const transitionProps = {
   type: "tween" as const,
   ease: "easeOut",
   duration: 0.2,
-  staggerChildren: 0.1,
-};
-
-const staggerVariants = {
-  open: {
-    transition: { staggerChildren: 0.03, delayChildren: 0.02 },
-  },
 };
 
 interface NavItem {
@@ -107,21 +72,9 @@ const NAV_GROUPS: NavGroup[] = [
     roles: ["admin", "diretor"],
     items: [
       { label: "RH", path: "/admin/rh", icon: Users },
-      { label: "Funcionários", path: "/admin/rh?tab=1", icon: UserPlus },
-      { label: "Treinamentos", path: "/admin/rh?tab=2", icon: GraduationCap },
-      { label: "Férias", path: "/admin/rh?tab=3", icon: Palmtree },
       { label: "Financeiro", path: "/admin/financeiro", icon: DollarSign },
-      { label: "Transações", path: "/admin/financeiro?tab=2", icon: Receipt },
-      { label: "Contas a Pagar", path: "/admin/financeiro?tab=3", icon: FileText },
-      { label: "Reembolsos", path: "/admin/financeiro?tab=4", icon: CreditCard },
       { label: "Logística", path: "/admin/logistica", icon: Truck },
-      { label: "Fornecedores", path: "/admin/logistica?tab=1", icon: ShoppingCart },
-      { label: "Solicitações", path: "/admin/logistica?tab=2", icon: ClipboardCheck },
-      { label: "Pedidos", path: "/admin/logistica?tab=3", icon: Package },
       { label: "Patrimônio", path: "/admin/patrimonio", icon: Tag },
-      { label: "Bens", path: "/admin/patrimonio?tab=1", icon: Warehouse },
-      { label: "Localizações", path: "/admin/patrimonio?tab=2", icon: MapPin },
-      { label: "Inventários", path: "/admin/patrimonio?tab=3", icon: RotateCcw },
     ],
   },
   {
@@ -157,7 +110,7 @@ const NAV_GROUPS: NavGroup[] = [
 
 export function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(true);
-  const [openGroups, setOpenGroups] = useState<string[]>(["admin", "projetos"]);
+  const [openGroups, setOpenGroups] = useState<string[]>(["admin", "projetos", "ministerial", "criativo"]);
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, role, signOut } = useAuth();
@@ -183,8 +136,8 @@ export function Sidebar() {
     .toUpperCase();
 
   return (
-    <motion.div
-      className={cn("sidebar fixed left-0 z-40 h-full shrink-0 border-r border-[#d5e4e6]")}
+    <motion.nav
+      className="fixed left-0 top-0 z-40 h-screen"
       initial={isCollapsed ? "closed" : "open"}
       animate={isCollapsed ? "closed" : "open"}
       variants={sidebarVariants}
@@ -192,159 +145,147 @@ export function Sidebar() {
       onMouseEnter={() => setIsCollapsed(false)}
       onMouseLeave={() => setIsCollapsed(true)}
     >
-      <motion.div
-        className="relative z-40 flex text-[#408097] h-full shrink-0 flex-col bg-[#eae3da] transition-all"
-        variants={contentVariants}
-      >
-        <motion.ul variants={staggerVariants} className="flex h-full flex-col">
-          <div className="flex grow flex-col items-center">
-            {/* Header */}
-            <div className="flex h-[54px] w-full shrink-0 border-b border-[#d5e4e6] p-2">
-              <div className="mt-[1.5px] flex w-full">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="flex w-fit items-center gap-2 px-2 hover:bg-[#d5e4e6]"
-                >
-                  <div className="flex h-5 w-5 items-center justify-center rounded bg-[#408097]">
-                    <Church className="h-3 w-3 text-white" />
-                  </div>
-                  <motion.li variants={variants} className="flex w-fit items-center gap-2">
-                    {!isCollapsed && (
-                      <p className="text-sm font-semibold text-[#408097]">CBRio ERP</p>
-                    )}
-                  </motion.li>
-                </Button>
-              </div>
-            </div>
+      <div className="flex h-full flex-col bg-white/80 backdrop-blur-xl border-r border-gray-200/60 shadow-sm">
+        {/* Logo */}
+        <div className="flex h-14 items-center gap-2.5 px-3 border-b border-gray-100">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#00B39D] shadow-sm">
+            <Church className="h-4 w-4 text-white" />
+          </div>
+          <motion.span
+            variants={labelVariants}
+            transition={transitionProps}
+            className="text-sm font-bold text-gray-800 whitespace-nowrap"
+          >
+            CBRio ERP
+          </motion.span>
+        </div>
 
-            {/* Navigation */}
-            <div className="flex h-full w-full flex-col">
-              <div className="flex grow flex-col gap-1">
-                <ScrollArea className="h-16 grow p-2">
-                  <div className={cn("flex w-full flex-col gap-0.5")}>
-                    {NAV_GROUPS.map((group) => {
-                      if (group.roles && !group.roles.includes(role || "")) return null;
-                      const isExpanded = openGroups.includes(group.id);
+        {/* Navigation */}
+        <ScrollArea className="flex-1 py-2">
+          <div className="flex flex-col gap-1 px-2">
+            {NAV_GROUPS.map((group) => {
+              if (group.roles && !group.roles.includes(role || "")) return null;
+              const isExpanded = openGroups.includes(group.id);
 
-                      return (
-                        <React.Fragment key={group.id}>
-                          {/* Group header */}
-                          <button
-                            onClick={() => toggleGroup(group.id)}
-                            className={cn(
-                              "flex h-8 w-full flex-row items-center rounded-md px-2 py-1.5 transition hover:bg-[#d5e4e6]",
-                              isCollapsed && "justify-center"
-                            )}
-                          >
-                            <ChevronDown
-                              className={cn(
-                                "h-3 w-3 shrink-0 transition-transform text-[#70a8b0]",
-                                !isExpanded && "-rotate-90"
-                              )}
-                            />
-                            <motion.li variants={variants}>
-                              {!isCollapsed && (
-                                <p className="ml-1.5 text-[11px] font-bold uppercase tracking-wider text-[#70a8b0]">
-                                  {group.label}
-                                </p>
-                              )}
-                            </motion.li>
-                          </button>
+              return (
+                <div key={group.id} className="mb-1">
+                  {/* Group header */}
+                  <button
+                    onClick={() => !isCollapsed && toggleGroup(group.id)}
+                    className="flex h-7 w-full items-center gap-1.5 rounded-md px-2 transition-colors hover:bg-gray-100/80"
+                  >
+                    <ChevronRight
+                      className={cn(
+                        "h-3 w-3 shrink-0 text-gray-400 transition-transform duration-200",
+                        isExpanded && "rotate-90",
+                        isCollapsed && "opacity-0 w-0"
+                      )}
+                    />
+                    <motion.span
+                      variants={labelVariants}
+                      transition={transitionProps}
+                      className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 whitespace-nowrap"
+                    >
+                      {group.label}
+                    </motion.span>
+                  </button>
 
-                          {/* Group items */}
-                          {isExpanded &&
-                            group.items.map((item) => {
-                              if (item.roles && !item.roles.includes(role || "")) return null;
-                              const Icon = item.icon;
-                              const basePath = item.path.split("?")[0];
-                              const isActive = pathname === basePath;
-
-                              return (
-                                <Link
-                                  key={item.path}
-                                  to={item.path}
-                                  className={cn(
-                                    "flex h-8 w-full flex-row items-center rounded-md px-2 py-1.5 transition hover:bg-[#d5e4e6] hover:text-[#408097]",
-                                    isActive && "bg-[#d5e4e6] text-[#408097] font-medium",
-                                    !isActive && "text-[#70a8b0]",
-                                  )}
-                                >
-                                  <Icon className="h-4 w-4 shrink-0" />
-                                  <motion.li variants={variants}>
-                                    {!isCollapsed && (
-                                      <p className="ml-2 text-sm">{item.label}</p>
-                                    )}
-                                  </motion.li>
-                                </Link>
-                              );
-                            })}
-
-                          <Separator className="my-1 bg-[#d5e4e6]" />
-                        </React.Fragment>
-                      );
-                    })}
-                  </div>
-                </ScrollArea>
-              </div>
-
-              {/* Footer - Settings & User */}
-              <div className="flex flex-col p-2 border-t border-[#d5e4e6]">
-                <div>
-                  <DropdownMenu modal={false}>
-                    <DropdownMenuTrigger className="w-full">
-                      <div className="flex h-8 w-full flex-row items-center gap-2 rounded-md px-2 py-1.5 transition hover:bg-[#d5e4e6] hover:text-[#408097]">
-                        <Avatar className="size-5 bg-[#408097]">
-                          <AvatarFallback className="bg-[#408097] text-white text-[10px] font-medium">
-                            {initials}
-                          </AvatarFallback>
-                        </Avatar>
-                        <motion.li
-                          variants={variants}
-                          className="flex w-full items-center gap-2"
-                        >
-                          {!isCollapsed && (
-                            <>
-                              <p className="text-sm font-medium text-[#408097] truncate">
-                                {profile?.name || "—"}
-                              </p>
-                              <ChevronsUpDown className="ml-auto h-4 w-4 text-[#70a8b0]/50" />
-                            </>
-                          )}
-                        </motion.li>
-                      </div>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent sideOffset={5} className="bg-white border-[#d5e4e6]">
-                      <div className="flex flex-row items-center gap-2 p-2">
-                        <Avatar className="size-6 bg-[#408097]">
-                          <AvatarFallback className="bg-[#408097] text-white text-[10px]">
-                            {initials}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex flex-col text-left">
-                          <span className="text-sm font-medium text-[#408097]">
-                            {profile?.name || "—"}
-                          </span>
-                          <span className="line-clamp-1 text-xs text-[#70a8b0] capitalize">
-                            {profile?.role || ""}
-                          </span>
-                        </div>
-                      </div>
-                      <DropdownMenuSeparator className="bg-[#d5e4e6]" />
-                      <DropdownMenuItem
-                        className="flex items-center gap-2 text-red-500 cursor-pointer hover:text-red-600"
-                        onClick={handleSignOut}
+                  {/* Group items */}
+                  <AnimatePresence initial={false}>
+                    {(isExpanded || isCollapsed) && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.15 }}
+                        className="overflow-hidden"
                       >
-                        <LogOut className="h-4 w-4" /> Sair
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                        {group.items.map((item) => {
+                          if (item.roles && !item.roles.includes(role || "")) return null;
+                          const Icon = item.icon;
+                          const basePath = item.path.split("?")[0];
+                          const isActive = pathname.startsWith(basePath);
+
+                          return (
+                            <Link
+                              key={item.path}
+                              to={item.path}
+                              className={cn(
+                                "flex h-9 items-center gap-2.5 rounded-lg px-2.5 my-0.5 transition-all duration-150",
+                                isActive
+                                  ? "bg-[#00B39D]/10 text-[#00897B] font-medium"
+                                  : "text-gray-500 hover:bg-gray-100/80 hover:text-gray-700"
+                              )}
+                            >
+                              <Icon className={cn(
+                                "h-4 w-4 shrink-0",
+                                isActive ? "text-[#00B39D]" : "text-gray-400"
+                              )} />
+                              <motion.span
+                                variants={labelVariants}
+                                transition={transitionProps}
+                                className="text-[13px] whitespace-nowrap"
+                              >
+                                {item.label}
+                              </motion.span>
+                            </Link>
+                          );
+                        })}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+          </div>
+        </ScrollArea>
+
+        {/* User footer */}
+        <div className="border-t border-gray-100 p-2">
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger className="w-full outline-none">
+              <div className="flex h-10 w-full items-center gap-2.5 rounded-lg px-2 transition-colors hover:bg-gray-100/80">
+                <Avatar className="h-7 w-7 shrink-0">
+                  <AvatarFallback className="bg-[#00B39D] text-white text-[11px] font-semibold">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                <motion.div
+                  variants={labelVariants}
+                  transition={transitionProps}
+                  className="flex flex-1 items-center min-w-0"
+                >
+                  <div className="flex-1 text-left min-w-0">
+                    <p className="text-sm font-medium text-gray-700 truncate">{profile?.name || "—"}</p>
+                    <p className="text-[10px] text-gray-400 capitalize">{profile?.role || ""}</p>
+                  </div>
+                  <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-gray-300" />
+                </motion.div>
+              </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="top" sideOffset={8} align="start" className="w-56 rounded-xl border-gray-200 shadow-lg">
+              <div className="flex items-center gap-2.5 p-3">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback className="bg-[#00B39D] text-white text-xs font-semibold">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-gray-800">{profile?.name || "—"}</span>
+                  <span className="text-xs text-gray-400">{profile?.email || ""}</span>
                 </div>
               </div>
-            </div>
-          </div>
-        </motion.ul>
-      </motion.div>
-    </motion.div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="flex items-center gap-2 text-red-500 cursor-pointer rounded-lg mx-1 hover:text-red-600"
+                onClick={handleSignOut}
+              >
+                <LogOut className="h-4 w-4" /> Sair
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+    </motion.nav>
   );
 }
