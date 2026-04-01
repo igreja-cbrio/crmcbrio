@@ -159,8 +159,82 @@ function Badge({ status, map }) {
   return <span style={styles.badge(s.c, s.bg)}>{s.label}</span>;
 }
 
-// ── TABS ────────────────────────────────────────────────────
-const TABS = ['Lista', 'Detalhes'];
+// ── Calendário interativo ───────────────────────────────────
+const MONTH_NAMES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const WEEK_DAYS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+function BigCalendar({ eventsByDate, onSelectDate, selectedDate }) {
+  const [viewMonth, setViewMonth] = useState(() => {
+    const d = selectedDate ? new Date(selectedDate + 'T12:00:00') : new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  });
+  const year = viewMonth.getFullYear();
+  const month = viewMonth.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = new Date().toISOString().slice(0, 10);
+
+  const days = [];
+  for (let i = 0; i < firstDay; i++) days.push(null);
+  for (let d = 1; d <= daysInMonth; d++) days.push(d);
+
+  return (
+    <div style={{ background: '#fff', borderRadius: 12, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: `1px solid ${C.border}` }}>
+        <button onClick={() => setViewMonth(new Date(year, month - 1, 1))} style={{ ...styles.btn('ghost'), fontSize: 16 }}>‹</button>
+        <span style={{ fontWeight: 700, fontSize: 16, color: C.text }}>{MONTH_NAMES[month]} {year}</span>
+        <button onClick={() => setViewMonth(new Date(year, month + 1, 1))} style={{ ...styles.btn('ghost'), fontSize: 16 }}>›</button>
+      </div>
+      {/* Weekday headers */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: `1px solid ${C.border}` }}>
+        {WEEK_DAYS.map(d => (
+          <div key={d} style={{ padding: '8px 0', textAlign: 'center', fontSize: 11, fontWeight: 700, color: C.text3, textTransform: 'uppercase' }}>{d}</div>
+        ))}
+      </div>
+      {/* Day cells */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
+        {days.map((d, i) => {
+          if (!d) return <div key={`e${i}`} style={{ minHeight: 80, borderRight: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}` }} />;
+          const ds = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+          const evs = eventsByDate[ds] || [];
+          const isToday = ds === today;
+          const isSelected = ds === selectedDate;
+          return (
+            <div key={d} onClick={() => onSelectDate(ds)} style={{
+              minHeight: 80, padding: '4px 6px', cursor: 'pointer', borderRight: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`,
+              background: isSelected ? C.primaryBg : isToday ? '#fafafa' : '#fff',
+              transition: 'background 0.1s',
+            }}>
+              <div style={{
+                fontSize: 12, fontWeight: isToday ? 800 : 400, marginBottom: 4,
+                color: isToday ? '#fff' : C.text,
+                ...(isToday ? { background: C.primary, borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center' } : {}),
+              }}>
+                {d}
+              </div>
+              {evs.slice(0, 3).map((ev, j) => {
+                const st = STATUS_MAP[ev.status];
+                return (
+                  <div key={j} style={{
+                    fontSize: 10, padding: '1px 4px', marginBottom: 2, borderRadius: 4, overflow: 'hidden',
+                    whiteSpace: 'nowrap', textOverflow: 'ellipsis',
+                    background: ev.category_color ? `${ev.category_color}20` : C.primaryBg,
+                    color: ev.category_color || C.primary,
+                    borderLeft: `3px solid ${st?.c || C.text3}`,
+                  }}>
+                    {ev.name}
+                  </div>
+                );
+              })}
+              {evs.length > 3 && <div style={{ fontSize: 9, color: C.text3, fontWeight: 600 }}>+{evs.length - 3} mais</div>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 // ═══════════════════════════════════════════════════════════
 // COMPONENTE PRINCIPAL
@@ -178,6 +252,9 @@ export default function Eventos() {
   // Filtros
   const [filtroStatus, setFiltroStatus] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState('');
+
+  // Home / Calendário
+  const [selectedDate, setSelectedDate] = useState(null);
 
   // Ciclo criativo
   const [hasCycle, setHasCycle] = useState(false);
@@ -216,7 +293,7 @@ export default function Eventos() {
       setLoading(true);
       const ev = await events.get(id);
       setSelectedEvent(ev);
-      setTab(1);
+      setTab(2);
       // Verificar se tem ciclo criativo
       try {
         const cycleData = await cyclesApi.get(id);
@@ -261,7 +338,7 @@ export default function Eventos() {
     try {
       await events.remove(id);
       setSelectedEvent(null);
-      setTab(0);
+      setTab(1);
       loadEvents();
       loadDash();
     } catch (e) { setError(e.message); }
@@ -337,6 +414,20 @@ export default function Eventos() {
   const getCatColor = (catId) => catMap[catId]?.color || C.text3;
   const getCatName = (catId) => catMap[catId]?.name || '—';
 
+  // ── EventsByDate (para calendário) ──
+  const eventsByDate = {};
+  eventList.forEach(ev => {
+    const d = normDate(ev.date);
+    if (d) { if (!eventsByDate[d]) eventsByDate[d] = []; eventsByDate[d].push(ev); }
+    (ev.occurrence_dates || []).forEach(od => {
+      const odn = normDate(od);
+      if (odn && odn !== d) { if (!eventsByDate[odn]) eventsByDate[odn] = []; eventsByDate[odn].push(ev); }
+    });
+  });
+
+  // ── Eventos do dia selecionado ──
+  const selectedDayEvents = selectedDate ? (eventsByDate[selectedDate] || []) : [];
+
   // ── Dashboard KPIs (calculados a partir da lista de eventos) ──
   const counts = { total: eventList.length, 'no-prazo': 0, 'em-risco': 0, 'atrasado': 0, 'concluido': 0 };
   eventList.forEach(e => { if (counts[e.status] !== undefined) counts[e.status]++; });
@@ -347,6 +438,70 @@ export default function Eventos() {
     { label: 'Atrasados', value: counts['atrasado'], color: C.red },
     { label: 'Concluídos', value: counts['concluido'], color: C.blue },
   ];
+
+  // ═══════════════════════════════════════════════════════════
+  // RENDER — HOME (calendário)
+  // ═══════════════════════════════════════════════════════════
+  function renderHome() {
+    return (
+      <>
+        {/* KPIs */}
+        {kpis.length > 0 && (
+          <div style={styles.kpiGrid}>
+            {kpis.map(k => (
+              <div key={k.label} style={styles.kpi(k.color)}>
+                <div style={styles.kpiValue}>{k.value}</div>
+                <div style={styles.kpiLabel}>{k.label}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Calendário */}
+        <BigCalendar
+          eventsByDate={eventsByDate}
+          selectedDate={selectedDate}
+          onSelectDate={(date) => setSelectedDate(date === selectedDate ? null : date)}
+        />
+
+        {/* Eventos do dia selecionado */}
+        {selectedDate && (
+          <div style={{ marginTop: 16 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 10 }}>
+              {fmtDate(selectedDate)} — {selectedDayEvents.length} evento{selectedDayEvents.length !== 1 ? 's' : ''}
+            </div>
+            {selectedDayEvents.length === 0 && (
+              <div style={styles.empty}>Nenhum evento neste dia</div>
+            )}
+            {selectedDayEvents.map(ev => {
+              const st = STATUS_MAP[ev.status] || {};
+              return (
+                <div key={ev.id} onClick={() => loadDetail(ev.id)} style={{
+                  ...styles.taskCard, cursor: 'pointer', borderLeft: `4px solid ${getCatColor(ev.category_id)}`,
+                  transition: 'box-shadow 0.15s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'}
+                onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{ev.name}</div>
+                      <div style={{ fontSize: 12, color: C.text2, marginTop: 2 }}>
+                        {getCatName(ev.category_id)}
+                        {ev.responsible && ` · ${ev.responsible}`}
+                        {ev.location && ` · ${ev.location}`}
+                      </div>
+                    </div>
+                    <Badge status={ev.status} map={STATUS_MAP} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </>
+    );
+  }
 
   // ═══════════════════════════════════════════════════════════
   // RENDER — LISTA
@@ -437,7 +592,7 @@ export default function Eventos() {
 
     return (
       <>
-        <button style={styles.backBtn} onClick={() => { setTab(0); setSelectedEvent(null); }}>
+        <button style={styles.backBtn} onClick={() => { setTab(1); setSelectedEvent(null); }}>
           ← Voltar para lista
         </button>
 
@@ -833,7 +988,7 @@ export default function Eventos() {
           <div style={styles.title}>Eventos</div>
           <div style={styles.subtitle}>Gestão de eventos da igreja</div>
         </div>
-        {isDiretor && tab === 0 && (
+        {isDiretor && (tab === 0 || tab === 1) && (
           <button style={styles.btn('primary')} onClick={() => setModalEvent({})}>+ Novo Evento</button>
         )}
       </div>
@@ -848,13 +1003,15 @@ export default function Eventos() {
 
       {/* Tabs */}
       <div style={styles.tabs}>
-        <button style={styles.tab(tab === 0)} onClick={() => setTab(0)}>Lista</button>
-        {selectedEvent && <button style={styles.tab(tab === 1)} onClick={() => setTab(1)}>Detalhes</button>}
+        <button style={styles.tab(tab === 0)} onClick={() => setTab(0)}>Home</button>
+        <button style={styles.tab(tab === 1)} onClick={() => setTab(1)}>Lista</button>
+        {selectedEvent && <button style={styles.tab(tab === 2)} onClick={() => setTab(2)}>Detalhes</button>}
       </div>
 
       {/* Content */}
-      {tab === 0 && renderList()}
-      {tab === 1 && renderDetail()}
+      {tab === 0 && renderHome()}
+      {tab === 1 && renderList()}
+      {tab === 2 && renderDetail()}
 
       {/* Modals */}
       {renderEventModal()}
