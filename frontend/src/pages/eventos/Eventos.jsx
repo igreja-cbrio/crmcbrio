@@ -758,7 +758,7 @@ export default function Eventos() {
                       ))}
                     </select>
                     <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => setModalTask(task)}>Editar</button>
-                    <button style={{ ...styles.btn('ghost'), ...styles.btnSm, color: C.red }} onClick={() => deleteTask(task.id)}>✕</button>}
+                    <button style={{ ...styles.btn('ghost'), ...styles.btnSm, color: C.red }} onClick={() => deleteTask(task.id)}>✕</button>
               </div>
             </div>
 
