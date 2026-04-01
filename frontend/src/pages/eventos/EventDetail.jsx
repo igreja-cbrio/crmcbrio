@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { events as api, meetings as meetingsApi } from '../../api';
+import { events as api, meetings as meetingsApi, cycles as cyclesApi } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import TaskFormModal from './components/TaskFormModal';
 import MeetingFormModal from './components/MeetingFormModal';
@@ -58,8 +58,9 @@ export default function EventDetail() {
   const isDiretor = profile?.role === 'diretor';
 
   const [event, setEvent] = useState(null);
+  const [hasCycle, setHasCycle] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState('tarefas');
+  const [tab, setTab] = useState(null);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [editTask, setEditTask] = useState(null);
   const [showMeetingForm, setShowMeetingForm] = useState(false);
@@ -69,6 +70,16 @@ export default function EventDetail() {
     try {
       const data = await api.get(id);
       setEvent(data);
+      // Verificar se o evento tem ciclo criativo
+      try {
+        const cycleData = await cyclesApi.get(id);
+        const has = !!cycleData?.cycle;
+        setHasCycle(has);
+        if (tab === null) setTab(has ? 'ciclo criativo' : 'tarefas');
+      } catch {
+        setHasCycle(false);
+        if (tab === null) setTab('tarefas');
+      }
     } catch (e) {
       console.error(e.message);
     } finally {
@@ -208,7 +219,10 @@ export default function EventDetail() {
 
       {/* Tabs */}
       <div className="tab-bar">
-        {['tarefas', 'ciclo criativo', 'reuniões', 'ocorrências'].map(t => (
+        {(hasCycle
+          ? ['ciclo criativo', 'ocorrências']
+          : ['tarefas', 'reuniões', 'ocorrências']
+        ).map(t => (
           <button key={t} onClick={() => setTab(t)} style={{
             padding: '8px 16px', border: 'none', background: 'none', cursor: 'pointer',
             fontSize: 13, fontWeight: 600, color: tab === t ? C.accent : C.t3,

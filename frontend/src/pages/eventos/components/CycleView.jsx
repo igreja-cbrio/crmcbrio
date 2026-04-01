@@ -243,7 +243,7 @@ export default function CycleView({ eventId }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activating, setActivating] = useState(false);
-  const [tab, setTab] = useState('fases');
+  const [tab, setTab] = useState('Fases Marketing');
   const [selectedPhase, setSelectedPhase] = useState(null);
   const [createTaskForPhase, setCreateTaskForPhase] = useState(null);
   const [usersList, setUsersList] = useState([]);
@@ -322,7 +322,7 @@ export default function CycleView({ eventId }) {
 
       {/* Tabs */}
       <div className="tab-bar" style={{ marginBottom: 12 }}>
-        {['fases', 'tarefas', 'trilha ADM'].map(t => (
+        {['Fases Marketing', 'Tarefas', 'Fases Administração'].map(t => (
           <button key={t} onClick={() => setTab(t)} style={{
             padding: '8px 16px', border: 'none', background: 'none', cursor: 'pointer',
             fontSize: 13, fontWeight: 600, color: tab === t ? C.accent : C.t3,
@@ -333,8 +333,8 @@ export default function CycleView({ eventId }) {
         ))}
       </div>
 
-      {/* Tab: Fases (clicáveis) */}
-      {tab === 'fases' && (
+      {/* Tab: Fases Marketing (clicáveis) */}
+      {tab === 'Fases Marketing' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {phases.map(phase => {
             const st = PHASE_STATUS[phase.status] || PHASE_STATUS.pendente;
@@ -371,7 +371,7 @@ export default function CycleView({ eventId }) {
       )}
 
       {/* Tab: Tarefas (Kanban) */}
-      {tab === 'tarefas' && (
+      {tab === 'Tarefas' && (
         <div className="kanban-grid">
           {Object.entries(TASK_STATUS).map(([status, meta]) => {
             const colTasks = tasks.filter(t => t.status === status);
@@ -404,8 +404,8 @@ export default function CycleView({ eventId }) {
         </div>
       )}
 
-      {/* Tab: Trilha ADM */}
-      {tab === 'trilha ADM' && (
+      {/* Tab: Fases Administração */}
+      {tab === 'Fases Administração' && (
         <div>
           {[-5, -4, -3, -2, -1, 0].map(semana => {
             const items = admTrack.filter(a => a.semana === semana);

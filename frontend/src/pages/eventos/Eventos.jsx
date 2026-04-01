@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { events as api } from '../../api';
+import { events as api, cycles as cyclesApi } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import EventFormModal from './components/EventFormModal';
 
@@ -167,10 +167,15 @@ export default function Eventos() {
   }, [eventsList]);
 
   const handleSave = async (data) => {
+    const ativarCiclo = data.ativar_ciclo;
+    delete data.ativar_ciclo;
     if (editEvent) {
       await api.update(editEvent.id, data);
     } else {
-      await api.create(data);
+      const created = await api.create(data);
+      if (ativarCiclo && created?.id) {
+        try { await cyclesApi.activate(created.id); } catch (e) { console.error('Erro ao ativar ciclo:', e.message); }
+      }
     }
     setShowForm(false);
     setEditEvent(null);

@@ -37,7 +37,7 @@ export default function EventFormModal({ event, categories, onSave, onClose }) {
   const [f, setF] = useState({
     name: '', date: '', category_id: '', description: '', location: '', responsible: '',
     recurrence: 'unico', budget_planned: '', expected_attendance: '', status: 'no-prazo',
-    notes: '',
+    notes: '', ativar_ciclo: false,
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -146,6 +146,16 @@ export default function EventFormModal({ event, categories, onSave, onClose }) {
             <textarea value={f.notes} onChange={e => upd('notes', e.target.value)}
               rows={2} style={{ ...inputStyle, resize: 'vertical' }} />
           </div>
+
+          {!event && (
+            <div style={{ marginBottom: 12, padding: '10px 12px', background: '#f3e8ff', borderRadius: 8, border: '1px solid #e9d5ff', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input type="checkbox" checked={f.ativar_ciclo} onChange={e => upd('ativar_ciclo', e.target.checked)} id="ciclo" />
+              <label htmlFor="ciclo" style={{ fontSize: 13, color: '#7c3aed', fontWeight: 600, cursor: 'pointer' }}>
+                Ativar Ciclo Criativo
+              </label>
+              <span style={{ fontSize: 11, color: '#6b7280' }}>— ativa as 11 fases de produção + trilha administrativa</span>
+            </div>
+          )}
 
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
             <button type="button" onClick={onClose} style={cancelBtn}>Cancelar</button>
