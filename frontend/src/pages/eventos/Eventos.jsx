@@ -343,7 +343,7 @@ export default function Eventos() {
   }
 
   async function toggleEventStatus(id, currentStatus) {
-    const newStatus = currentStatus === 'concluido' ? 'no-prazo' : 'concluido';
+    const newStatus = currentStatus === 'concluido' ? 'reabrir' : 'concluido';
     const label = newStatus === 'concluido' ? 'finalizar' : 'reabrir';
     if (!window.confirm(`Deseja ${label} este evento?`)) return;
     try {
@@ -696,29 +696,50 @@ export default function Eventos() {
         )}
 
         {/* Sub-tab: Ocorrências */}
-        {detailTab === 'ocorrencias' && occurrences.length > 0 && (
+        {detailTab === 'ocorrencias' && (
           <>
             <div style={styles.sectionTitle}>Ocorrências ({occurrences.length})</div>
-            <div style={styles.card}>
-              <table style={styles.table}>
-                <thead>
-                  <tr>
-                    <th style={styles.th}>Data</th>
-                    <th style={styles.th}>Público Real</th>
-                    <th style={styles.th}>Observações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {occurrences.map(occ => (
-                    <tr key={occ.id}>
-                      <td style={styles.td}>{fmtDate(occ.date)}</td>
-                      <td style={styles.td}>{occ.actual_attendance ?? '—'}</td>
-                      <td style={styles.td}>{occ.notes || '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            {occurrences.length === 0 && <div style={styles.empty}>Evento único — sem ocorrências</div>}
+            {occurrences.map(occ => {
+              const occDate = normDate(occ.date);
+              const today = new Date().toISOString().slice(0, 10);
+              const isPast = occDate < today;
+              const isToday = occDate === today;
+              const statusColor = occ.status === 'concluido' ? C.green : isPast ? C.red : isToday ? C.amber : C.text3;
+              const statusLabel = occ.status === 'concluido' ? 'Concluído' : isPast ? 'Passado' : isToday ? 'Hoje' : 'Pendente';
+              return (
+                <div key={occ.id} style={{
+                  ...styles.taskCard, borderLeft: `4px solid ${statusColor}`,
+                  opacity: occ.status === 'concluido' ? 0.7 : 1,
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontWeight: 700, fontSize: 15, color: C.text }}>{fmtDate(occ.date)}</span>
+                        <span style={styles.badge(statusColor, `${statusColor}15`)}>{statusLabel}</span>
+                        {occ.attendance && <span style={{ fontSize: 12, color: C.text2 }}>{occ.attendance} presentes</span>}
+                      </div>
+                      {occ.notes && <div style={{ fontSize: 12, color: C.text2, marginTop: 4 }}>{occ.notes}</div>}
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <select
+                        value={occ.status}
+                        onChange={async (e) => {
+                          try {
+                            await events.updateOccurrence(ev.id, occ.id, { status: e.target.value });
+                            refreshDetail();
+                          } catch (err) { setError(err.message); }
+                        }}
+                        style={{ ...styles.select, padding: '4px 8px', fontSize: 11 }}
+                      >
+                        <option value="pendente">Pendente</option>
+                        <option value="concluido">Concluído</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </>
         )}
 

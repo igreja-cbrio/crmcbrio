@@ -133,12 +133,26 @@ router.put('/:id', async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ error: 'Erro ao atualizar evento' }); }
 });
 
-// PATCH /api/events/:id/status — atualizar só o status
+// PATCH /api/events/:id/status — atualizar status (com cálculo automático ao reabrir)
 router.patch('/:id/status', async (req, res) => {
   try {
     if (!isValidUUID(req.params.id)) return res.status(400).json({ error: 'ID inválido' });
-    const { status } = req.body;
+    let { status } = req.body;
     if (!status) return res.status(400).json({ error: 'Status obrigatório' });
+
+    // Se estiver reabrindo (saindo de concluido), calcular status correto pela data
+    if (status === 'reabrir') {
+      const ev = await db.query('SELECT date FROM events WHERE id=$1', [req.params.id]);
+      if (!ev.rows[0]) return res.status(404).json({ error: 'Evento não encontrado' });
+      const evDate = new Date(ev.rows[0].date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const diffDays = Math.ceil((evDate - today) / 86400000);
+      if (diffDays < 0) status = 'atrasado';
+      else if (diffDays <= 7) status = 'em-risco';
+      else status = 'no-prazo';
+    }
+
     const r = await db.query('UPDATE events SET status=$1 WHERE id=$2 RETURNING *', [status, req.params.id]);
     if (!r.rows[0]) return res.status(404).json({ error: 'Evento não encontrado' });
     res.json(r.rows[0]);
