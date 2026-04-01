@@ -137,14 +137,13 @@ Exemplos:
 
 ### Quem mexe em quê
 
-**Matheus:**
-- Módulos Administrativos: RH, Financeiro, Logística, Patrimônio
-- Módulos existentes: Eventos, Projetos, Expansão
-
 **Marcos Paulo:**
-- Módulos Ministeriais: Integração, Grupos, Cuidados, Online, Voluntariado, Membresia
-- Módulos Geracionais: AMI (Jovens), Kids
-- Módulos Criativos: Marketing, Produção, Louvor
+- Módulo de Eventos (frontend + backend)
+
+**Matheus:**
+- Módulo de RH (frontend + backend)
+
+> Módulos futuros serão distribuídos conforme disponibilidade.
 
 **Arquivos compartilhados — sempre usar PR para alterar:**
 - `CLAUDE.md` (este arquivo)
