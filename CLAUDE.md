@@ -32,9 +32,9 @@ Sistema ERP interno da Igreja CBRio. Arquitetura modular com React + Express + S
 
 **Backend — `backend/.env`** (não committar, usar `.env.example`):
 ```
-SUPABASE_URL=https://hhwtwfawfnxvuobhdfkb.supabase.co
+SUPABASE_URL=https://hhntwfawfnxvuobhdfkb.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=<service_role_key>
-DATABASE_URL=postgresql://postgres.hhwtwfawfnxvuobhdfkb:<senha>@aws-0-sa-east-1.pooler.supabase.com:6543/postgres
+DATABASE_URL=postgresql://postgres.hhntwfawfnxvuobhdfkb:<senha>@aws-0-sa-east-1.pooler.supabase.com:6543/postgres
 NODE_ENV=development
 PORT=3001
 FRONTEND_URL=http://localhost:5173
@@ -43,7 +43,7 @@ ANTHROPIC_API_KEY=<chave_anthropic>
 
 **Frontend — `frontend/.env`** (não committar, usar `.env.example`):
 ```
-VITE_SUPABASE_URL=https://hhwtwfawfnxvuobhdfkb.supabase.co
+VITE_SUPABASE_URL=https://hhntwfawfnxvuobhdfkb.supabase.co
 VITE_SUPABASE_ANON_KEY=<anon_key>
 VITE_API_URL=http://localhost:3001
 ```
@@ -237,8 +237,8 @@ module.exports = router;
 
 ## Supabase
 
-**Project ref:** `hhwtwfawfnxvuobhdfkb`
-**URL:** `https://hhwtwfawfnxvuobhdfkb.supabase.co`
+**Project ref:** `hhntwfawfnxvuobhdfkb`
+**URL:** `https://hhntwfawfnxvuobhdfkb.supabase.co`
 
 Para rodar as migrations:
 ```bash
