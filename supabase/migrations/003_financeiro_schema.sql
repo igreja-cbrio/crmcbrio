@@ -121,3 +121,19 @@ CREATE POLICY "fin_arrecadacao_admin"  ON fin_arrecadacao  FOR ALL USING (EXISTS
 CREATE POLICY "fin_reembolsos_create"  ON fin_reembolsos FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 CREATE POLICY "fin_reembolsos_own"     ON fin_reembolsos FOR SELECT USING (solicitante_id = auth.uid());
 CREATE POLICY "fin_reembolsos_admin"   ON fin_reembolsos FOR ALL USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin','diretor')));
+
+-- ── Indexes ─────────────────────────────────────────────────
+CREATE INDEX idx_fin_contas_ativa ON fin_contas(ativa);
+CREATE INDEX idx_fin_categorias_tipo ON fin_categorias(tipo);
+CREATE INDEX idx_fin_transacoes_conta ON fin_transacoes(conta_id);
+CREATE INDEX idx_fin_transacoes_categoria ON fin_transacoes(categoria_id);
+CREATE INDEX idx_fin_transacoes_data ON fin_transacoes(data_competencia);
+CREATE INDEX idx_fin_transacoes_status ON fin_transacoes(status);
+CREATE INDEX idx_fin_transacoes_tipo ON fin_transacoes(tipo);
+CREATE INDEX idx_fin_contas_pagar_status ON fin_contas_pagar(status);
+CREATE INDEX idx_fin_contas_pagar_vencimento ON fin_contas_pagar(data_vencimento);
+CREATE INDEX idx_fin_contas_pagar_conta ON fin_contas_pagar(conta_id);
+CREATE INDEX idx_fin_reembolsos_solicitante ON fin_reembolsos(solicitante_id);
+CREATE INDEX idx_fin_reembolsos_status ON fin_reembolsos(status);
+CREATE INDEX idx_fin_arrecadacao_data ON fin_arrecadacao(data);
+CREATE INDEX idx_fin_arrecadacao_conta ON fin_arrecadacao(conta_id);

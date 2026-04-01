@@ -73,24 +73,24 @@ CREATE POLICY "profiles_update_diretor" ON profiles
     EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'diretor')
   );
 
--- ── RLS nas tabelas existentes (módulo Eventos/Projetos) ──────
--- Usuários autenticados podem ler tudo
-ALTER TABLE IF EXISTS events    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS projects  ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS meetings  ENABLE ROW LEVEL SECURITY;
+-- ── RLS nas tabelas legadas (só aplica se existirem) ──────
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'events') THEN
+    ALTER TABLE events ENABLE ROW LEVEL SECURITY;
+    CREATE POLICY "auth_read_events" ON events FOR SELECT USING (auth.role() = 'authenticated');
+    CREATE POLICY "auth_write_events" ON events FOR ALL USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'diretor')));
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'projects') THEN
+    ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
+    CREATE POLICY "auth_read_projects" ON projects FOR SELECT USING (auth.role() = 'authenticated');
+    CREATE POLICY "auth_write_projects" ON projects FOR ALL USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'diretor')));
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'meetings') THEN
+    ALTER TABLE meetings ENABLE ROW LEVEL SECURITY;
+  END IF;
+END $$;
 
-CREATE POLICY IF NOT EXISTS "auth_read_events" ON events
-  FOR SELECT USING (auth.role() = 'authenticated');
-
-CREATE POLICY IF NOT EXISTS "auth_write_events" ON events
-  FOR ALL USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'diretor'))
-  );
-
-CREATE POLICY IF NOT EXISTS "auth_read_projects" ON projects
-  FOR SELECT USING (auth.role() = 'authenticated');
-
-CREATE POLICY IF NOT EXISTS "auth_write_projects" ON projects
-  FOR ALL USING (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'diretor'))
-  );
+-- ── Indexes ─────────────────────────────────────────────────
+CREATE INDEX idx_profiles_role ON profiles(role);
+CREATE INDEX idx_profiles_email ON profiles(email);
+CREATE INDEX idx_profiles_active ON profiles(active);

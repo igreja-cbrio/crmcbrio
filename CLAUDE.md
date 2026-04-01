@@ -222,7 +222,8 @@ module.exports = router;
 
 ### Implementados ✅
 - Eventos, Projetos, Expansão, Reuniões (módulo original, PostgreSQL local)
-- Schema Supabase: profiles, RLS, RH, Financeiro, Logística, Patrimônio (migrations prontas)
+- Schema Supabase aplicado: profiles, RLS, RH, Financeiro, Logística, Patrimônio (24 tabelas + 1 view + indexes)
+- Storage Buckets criados: `documentos-rh`, `comprovantes`, `patrimonio-fotos`
 
 ### Em Desenvolvimento 🔧
 - Frontend dos módulos administrativos (RH, Financeiro, Logística, Patrimônio)
@@ -240,15 +241,18 @@ module.exports = router;
 **Project ref:** `hhntwfawfnxvuobhdfkb`
 **URL:** `https://hhntwfawfnxvuobhdfkb.supabase.co`
 
-Para rodar as migrations:
-```bash
-# Via Supabase CLI
-supabase db push
+Migrations aplicadas (001-005) em 2026-04-01 via `supabase db push`.
 
-# Ou manualmente no SQL Editor do dashboard
+Para adicionar novas migrations:
+```bash
+# Criar novo arquivo em supabase/migrations/006_nome.sql
+# Depois rodar:
+npx supabase db push
 ```
 
-Storage buckets a criar:
-- `documentos-rh` — documentos de funcionários
-- `comprovantes` — notas fiscais e comprovantes financeiros
-- `patrimonio-fotos` — fotos de bens e recebimentos
+Storage Buckets (já criados):
+- `documentos-rh` — documentos de funcionários (privado)
+- `comprovantes` — notas fiscais e comprovantes financeiros (privado)
+- `patrimonio-fotos` — fotos de bens e recebimentos (privado)
+
+**Região do pooler:** `aws-0-us-west-2` (DATABASE_URL usa esta região, não sa-east-1)
