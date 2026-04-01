@@ -6,6 +6,7 @@ import Login from './pages/Login';
 
 // Lazy loading por módulo
 const Eventos      = lazy(() => import('./pages/eventos/Eventos'));
+const EventDetail  = lazy(() => import('./pages/eventos/EventDetail'));
 const Projetos     = lazy(() => import('./pages/Projetos'));
 const Expansao     = lazy(() => import('./pages/Expansao'));
 const RH           = lazy(() => import('./pages/admin/rh/RH'));
@@ -47,6 +48,7 @@ function AppRoutes() {
 
         {/* Projetos e Eventos */}
         <Route path="eventos" element={<Suspense fallback={<Loading />}><Eventos /></Suspense>} />
+        <Route path="eventos/:id" element={<Suspense fallback={<Loading />}><EventDetail /></Suspense>} />
         <Route path="projetos" element={<Suspense fallback={<Loading />}><Projetos /></Suspense>} />
         <Route path="expansao" element={<Suspense fallback={<Loading />}><Expansao /></Suspense>} />
 
