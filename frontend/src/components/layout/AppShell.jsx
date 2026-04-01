@@ -1,32 +1,12 @@
 import { Outlet } from 'react-router-dom';
-import Sidebar from './Sidebar';
-
-const styles = {
-  shell: {
-    display: 'flex',
-    minHeight: '100vh',
-    background: '#f3f4f6',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-  },
-  main: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    overflow: 'hidden',
-  },
-  content: {
-    flex: 1,
-    padding: '32px',
-    overflowY: 'auto',
-  },
-};
+import { Sidebar } from '../ui/modern-side-bar';
 
 export default function AppShell() {
   return (
-    <div style={styles.shell}>
+    <div className="flex h-screen bg-background">
       <Sidebar />
-      <div style={styles.main}>
-        <main style={styles.content}>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <main className="flex-1 p-8 overflow-y-auto">
           <Outlet />
         </main>
       </div>

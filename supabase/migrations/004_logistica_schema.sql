@@ -108,3 +108,15 @@ CREATE POLICY "log_notas_admin"               ON log_notas_fiscais       FOR ALL
 CREATE POLICY "log_solicitacoes_create"  ON log_solicitacoes_compra FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 CREATE POLICY "log_solicitacoes_own"     ON log_solicitacoes_compra FOR SELECT USING (solicitante_id = auth.uid());
 CREATE POLICY "log_solicitacoes_admin"   ON log_solicitacoes_compra FOR ALL USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin','diretor')));
+
+-- ── Indexes ─────────────────────────────────────────────────
+CREATE INDEX idx_log_fornecedores_ativo ON log_fornecedores(ativo);
+CREATE INDEX idx_log_solicitacoes_status ON log_solicitacoes_compra(status);
+CREATE INDEX idx_log_solicitacoes_solicitante ON log_solicitacoes_compra(solicitante_id);
+CREATE INDEX idx_log_pedidos_fornecedor ON log_pedidos(fornecedor_id);
+CREATE INDEX idx_log_pedidos_status ON log_pedidos(status);
+CREATE INDEX idx_log_pedidos_data ON log_pedidos(data_pedido);
+CREATE INDEX idx_log_itens_pedido ON log_itens_pedido(pedido_id);
+CREATE INDEX idx_log_recebimentos_pedido ON log_recebimentos(pedido_id);
+CREATE INDEX idx_log_notas_pedido ON log_notas_fiscais(pedido_id);
+CREATE INDEX idx_log_notas_fornecedor ON log_notas_fiscais(fornecedor_id);
