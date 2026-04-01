@@ -100,3 +100,13 @@ CREATE POLICY "pat_loc_write_admin" ON pat_localizacoes     FOR ALL USING (EXIST
 CREATE POLICY "pat_mov_write_admin" ON pat_movimentacoes    FOR ALL USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin','diretor')));
 CREATE POLICY "pat_inv_write_admin" ON pat_inventarios      FOR ALL USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin','diretor')));
 CREATE POLICY "pat_inv_it_admin"    ON pat_inventario_itens FOR ALL USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin','diretor')));
+
+-- ── Indexes ─────────────────────────────────────────────────
+CREATE INDEX idx_pat_bens_categoria ON pat_bens(categoria_id);
+CREATE INDEX idx_pat_bens_localizacao ON pat_bens(localizacao_id);
+CREATE INDEX idx_pat_bens_status ON pat_bens(status);
+CREATE INDEX idx_pat_movimentacoes_bem ON pat_movimentacoes(bem_id);
+CREATE INDEX idx_pat_movimentacoes_data ON pat_movimentacoes(data_movimentacao);
+CREATE INDEX idx_pat_inventario_itens_inventario ON pat_inventario_itens(inventario_id);
+CREATE INDEX idx_pat_inventario_itens_bem ON pat_inventario_itens(bem_id);
+CREATE INDEX idx_pat_inventarios_status ON pat_inventarios(status);

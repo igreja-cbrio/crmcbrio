@@ -102,3 +102,15 @@ CREATE POLICY "rh_ferias_admin_all" ON rh_ferias_licencas
   FOR ALL USING (
     EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'diretor'))
   );
+
+-- ── Indexes ─────────────────────────────────────────────────
+CREATE INDEX idx_rh_funcionarios_status ON rh_funcionarios(status);
+CREATE INDEX idx_rh_funcionarios_area ON rh_funcionarios(area);
+CREATE INDEX idx_rh_funcionarios_tipo_contrato ON rh_funcionarios(tipo_contrato);
+CREATE INDEX idx_rh_documentos_funcionario ON rh_documentos(funcionario_id);
+CREATE INDEX idx_rh_documentos_expiracao ON rh_documentos(data_expiracao);
+CREATE INDEX idx_rh_trein_func_treinamento ON rh_treinamentos_funcionarios(treinamento_id);
+CREATE INDEX idx_rh_trein_func_funcionario ON rh_treinamentos_funcionarios(funcionario_id);
+CREATE INDEX idx_rh_ferias_funcionario ON rh_ferias_licencas(funcionario_id);
+CREATE INDEX idx_rh_ferias_status ON rh_ferias_licencas(status);
+CREATE INDEX idx_rh_ferias_datas ON rh_ferias_licencas(data_inicio, data_fim);
