@@ -47,6 +47,7 @@ export const events = {
   get: (id) => get(`/events/${id}`),
   create: (data) => post('/events', data),
   update: (id, data) => put(`/events/${id}`, data),
+  updateStatus: (id, status) => patch(`/events/${id}/status`, { status }),
   remove: (id) => del(`/events/${id}`),
   // Occurrences
   updateOccurrence: (evId, occId, data) => patch(`/events/${evId}/occurrences/${occId}`, data),

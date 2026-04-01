@@ -347,7 +347,7 @@ export default function Eventos() {
     const label = newStatus === 'concluido' ? 'finalizar' : 'reabrir';
     if (!window.confirm(`Deseja ${label} este evento?`)) return;
     try {
-      await events.update(id, { status: newStatus });
+      await events.updateStatus(id, newStatus);
       loadEvents();
       if (selectedEvent?.id === id) refreshDetail();
     } catch (e) { setError(e.message); }
