@@ -1,17 +1,26 @@
-const API = '/api';
-let token = localStorage.getItem('cbrio-token');
+import { supabase } from './supabaseClient';
 
-const headers = () => ({
-  'Content-Type': 'application/json',
-  ...(token ? { Authorization: `Bearer ${token}` } : {}),
-});
+const API = '/api';
+
+async function getToken() {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token || null;
+}
+
+const headers = async () => {
+  const token = await getToken();
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+};
 
 async function request(path, opts = {}) {
-  const res = await fetch(`${API}${path}`, { ...opts, headers: { ...headers(), ...opts.headers } });
+  const h = await headers();
+  const res = await fetch(`${API}${path}`, { ...opts, headers: { ...h, ...opts.headers } });
   if (res.status === 401) {
-    token = null;
-    localStorage.removeItem('cbrio-token');
-    window.location.reload();
+    await supabase.auth.signOut();
+    window.location.href = '/login';
     throw new Error('Sessão expirada');
   }
   if (!res.ok) {
@@ -27,14 +36,8 @@ const put = (path, body) => request(path, { method: 'PUT', body: JSON.stringify(
 const patch = (path, body) => request(path, { method: 'PATCH', body: JSON.stringify(body) });
 const del = (path) => request(path, { method: 'DELETE' });
 
-export const setToken = (t) => { token = t; localStorage.setItem('cbrio-token', t); };
-export const clearToken = () => { token = null; localStorage.removeItem('cbrio-token'); };
-export const getToken = () => token;
-
-export const auth = {
-  login: (email, password) => post('/auth/login', { email, password }),
-  me: () => get('/auth/me'),
-};
+// Auth é gerenciado pelo Supabase Auth (AuthContext.jsx)
+// Removidos: setToken, clearToken, getToken, auth.login, auth.me
 
 export const events = {
   list: (params) => get('/events' + (params ? '?' + new URLSearchParams(params) : '')),
