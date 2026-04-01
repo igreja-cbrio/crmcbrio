@@ -267,22 +267,36 @@ O backend roda separadamente (configurar conforme infraestrutura).
 ## Módulos do Sistema
 
 ### Implementados ✅
-- Backend completo: Events, Projects, Expansion, Meetings, Agents, RH, Financeiro, Logística, Patrimônio (10 módulos de API)
+- Backend completo: Events, Projects, Expansion, Meetings, Agents, RH, Financeiro, Logística, Patrimônio, **Cycles** (11 módulos de API)
+- **Módulo Eventos frontend completo** (branch marcos/modulo-eventos):
+  - Aba Home com calendário interativo mensal + KPIs
+  - Aba Lista com tabela, filtros, DaysCounter colorido, busca
+  - Detalhe do evento com tarefas, reuniões, ocorrências
+  - Formulários: criar/editar evento, tarefa, reunião
+  - Botões Finalizar/Reabrir evento
+- **Módulo Ciclo Criativo** (11 fases marketing + trilha ADM):
+  - 8 tabelas Supabase: cycle_phase_templates, event_cycles, event_cycle_phases, cycle_phase_tasks, event_adm_track, event_budgets, event_expenses, budget_alerts
+  - Backend routes/cycles.js: ativar ciclo, CRUD fases/tarefas/ADM, gastos com alerta de estouro
+  - Frontend: CycleView (Fases Marketing, Tarefas kanban, Fases Administração), BudgetPanel
+  - Integrado como sub-aba no detalhe do evento
 - Frontend RH (parcialmente implementado)
-- Schema Supabase aplicado: profiles, RLS, RH, Financeiro, Logística, Patrimônio (24 tabelas + 1 view + indexes)
+- Schema Supabase aplicado: profiles, RLS, todos os módulos (34+ tabelas + views + indexes)
 - Storage Buckets criados: `documentos-rh`, `comprovantes`, `patrimonio-fotos`
 - Sidebar moderna com submenus colapsáveis
 - Migração para Tailwind CSS v4 + TypeScript
 
+### Regra atual: Permissões
+- **Tudo visível para todos os usuários** — sem restrições de role por enquanto
+- Permissões (isDiretor, isAdmin, canEdit) serão implementadas depois
+
 ### Em Desenvolvimento 🔧
-- Frontend Eventos (branch marcos/modulo-eventos)
 - Frontend Financeiro, Logística, Patrimônio (branches matheus/)
 
 ### Planejados 📋
 - Ministerial: Integração, Grupos, Cuidados, Online, Voluntariado, Membresia
 - Geracionais: AMI (Jovens), Kids
 - Criativo: Marketing, Produção, Louvor
-- Sistema: Notificações, busca de membro, trilha dos valores
+- Sistema: Notificações, busca de membro, trilha dos valores, permissões por role
 
 ---
 
@@ -291,7 +305,11 @@ O backend roda separadamente (configurar conforme infraestrutura).
 **Project ref:** `hhntwfawfnxvuobhdfkb`
 **URL:** `https://hhntwfawfnxvuobhdfkb.supabase.co`
 
-Migrations aplicadas (001-005) em 2026-04-01 via `supabase db push`.
+Migrations aplicadas (001-008) em 2026-04-01 via `supabase db push`.
+- 001-005: core, RH, financeiro, logística, patrimônio
+- 006: módulo eventos (10 tabelas + view v_events_dashboard)
+- 007: fix trigger handle_new_user (search_path)
+- 008: ciclo criativo (8 tabelas + 2 views + seed 11 fases)
 
 Para adicionar novas migrations:
 ```bash

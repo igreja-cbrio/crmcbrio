@@ -249,8 +249,7 @@ function BigCalendar({ eventsByDate, onSelectDate, selectedDate }) {
 // COMPONENTE PRINCIPAL
 // ═══════════════════════════════════════════════════════════
 export default function Eventos() {
-  const { isDiretor, isAdmin, profile } = useAuth();
-  const canEdit = isDiretor || isAdmin || !!profile;
+  const { profile } = useAuth();
   const [tab, setTab] = useState(0);
   const [eventList, setEventList] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -632,8 +631,7 @@ export default function Eventos() {
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <Badge status={ev.status} map={STATUS_MAP} />
-              {canEdit && (
-                <>
+                              <>
                   <button
                     style={{ ...styles.btn(ev.status === 'concluido' ? 'secondary' : 'primary'), ...styles.btnSm }}
                     onClick={() => toggleEventStatus(ev.id, ev.status)}
@@ -643,7 +641,6 @@ export default function Eventos() {
                   <button style={{ ...styles.btn('secondary'), ...styles.btnSm }} onClick={() => setModalEvent(ev)}>Editar</button>
                   <button style={{ ...styles.btn('danger'), ...styles.btnSm }} onClick={() => deleteEvent(ev.id)}>Excluir</button>
                 </>
-              )}
             </div>
           </div>
           <div style={{ padding: '16px 20px' }}>
@@ -729,9 +726,7 @@ export default function Eventos() {
         {detailTab === 'info' && <>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 24, marginBottom: 12 }}>
           <div style={{ ...styles.sectionTitle, margin: 0 }}>Tarefas ({taskList.length})</div>
-          {canEdit && (
-            <button style={{ ...styles.btn('primary'), ...styles.btnSm }} onClick={() => setModalTask({})}>+ Tarefa</button>
-          )}
+          <button style={{ ...styles.btn('primary'), ...styles.btnSm }} onClick={() => setModalTask({})}>+ Tarefa</button>
         </div>
 
         {taskList.length === 0 && <div style={styles.empty}>Nenhuma tarefa cadastrada.</div>}
@@ -753,8 +748,6 @@ export default function Eventos() {
               <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
                 {task.priority && <Badge status={task.priority} map={PRIORITY_MAP} />}
                 <Badge status={task.status} map={TASK_STATUS_MAP} />
-                {canEdit && (
-                  <>
                     <select
                       style={{ ...styles.select, padding: '2px 6px', fontSize: 11 }}
                       value={task.status}
@@ -765,9 +758,7 @@ export default function Eventos() {
                       ))}
                     </select>
                     <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => setModalTask(task)}>Editar</button>
-                    <button style={{ ...styles.btn('ghost'), ...styles.btnSm, color: C.red }} onClick={() => deleteTask(task.id)}>✕</button>
-                  </>
-                )}
+                    <button style={{ ...styles.btn('ghost'), ...styles.btnSm, color: C.red }} onClick={() => deleteTask(task.id)}>✕</button>}
               </div>
             </div>
 
@@ -789,12 +780,10 @@ export default function Eventos() {
                     <span style={sub.done ? { textDecoration: 'line-through', color: C.text3 } : {}}>
                       {sub.name}
                     </span>
-                    {canEdit && (
-                      <button
-                        style={{ background: 'none', border: 'none', color: C.text3, cursor: 'pointer', fontSize: 11, padding: '0 4px' }}
-                        onClick={() => deleteSubtask(sub.id)}
-                      >✕</button>
-                    )}
+                    <button
+                      style={{ background: 'none', border: 'none', color: C.text3, cursor: 'pointer', fontSize: 11, padding: '0 4px' }}
+                      onClick={() => deleteSubtask(sub.id)}
+                    >✕</button>
                   </div>
                 ))}
               </div>
@@ -1018,7 +1007,7 @@ export default function Eventos() {
           <div style={styles.title}>Eventos</div>
           <div style={styles.subtitle}>Gestão de eventos da igreja</div>
         </div>
-        {canEdit && (tab === 0 || tab === 1) && (
+        {(tab === 0 || tab === 1) && (
           <button style={styles.btn('primary')} onClick={() => setModalEvent({})}>+ Novo Evento</button>
         )}
       </div>
