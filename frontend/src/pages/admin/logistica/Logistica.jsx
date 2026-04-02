@@ -1485,109 +1485,130 @@ function ShipmentCard({ ship, expanded, detail, onToggle }) {
   const itemImg = items[0]?.item?.thumbnail || items[0]?.item?.picture || null;
 
   return (
-    <div style={{ ...styles.card, overflow: 'hidden', borderRadius: 16, cursor: 'pointer' }} onClick={onToggle}>
-      {/* Header — product info */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, padding: 20 }}>
-        {/* Product image */}
-        <div style={{ width: 80, height: 80, borderRadius: 10, background: statusInfo.bg, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-          {itemImg ? (
-            <img src={itemImg} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          ) : (
-            <span style={{ fontSize: 32 }}>📦</span>
-          )}
+    <div style={{ ...styles.card, overflow: 'hidden', borderRadius: 14 }}>
+      {/* Compact header — always visible */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', cursor: 'pointer' }} onClick={onToggle}>
+        <div style={{ width: 48, height: 48, borderRadius: 8, background: statusInfo.bg, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+          {itemImg ? <img src={itemImg} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: 22 }}>📦</span>}
         </div>
-        <div style={{ flex: 1 }}>
-          <span style={styles.badge(statusInfo.c, statusInfo.bg)}>{statusInfo.label}</span>
-          {items.map((item, i) => (
-            <div key={i} style={{ fontSize: 15, fontWeight: 700, color: C.text, marginTop: 4, lineHeight: 1.3 }}>{item.item?.title || 'Produto'}</div>
-          ))}
-          {ship.total_amount && <div style={{ fontSize: 20, fontWeight: 700, color: C.text, marginTop: 4 }}>{fmtMoney(ship.total_amount)}</div>}
-          <div style={{ fontSize: 11, color: C.text3, textTransform: 'uppercase', fontWeight: 500 }}>Pedido #{ship.order_id}</div>
-        </div>
-        <span style={{ fontSize: 16, color: C.text3, transition: 'transform 0.2s', transform: expanded ? 'rotate(180deg)' : '', marginTop: 4 }}>▼</span>
-      </div>
-
-      {/* Tracker timeline — always visible */}
-      <div style={{ padding: '0 20px 20px' }}>
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-          {TRACK_STEPS.map((step, i) => {
-            const isCompleted = i < currentStepIdx;
-            const isActive = i === currentStepIdx;
-            const isPending = i > currentStepIdx;
-            const isLast = i === TRACK_STEPS.length - 1;
-            const dotColor = isCompleted ? '#10b981' : isActive ? statusInfo.c : C.border;
-            const lineColor = isCompleted ? '#10b981' : C.border;
-
-            return (
-              <li key={step.key} style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-                {/* Dot + line */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 28 }}>
-                  <div style={{
-                    width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: isCompleted ? '#10b98120' : isActive ? `${statusInfo.c}20` : 'var(--cbrio-input-bg)',
-                    border: `2px solid ${dotColor}`, marginTop: 2,
-                  }}>
-                    {isCompleted ? (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                    ) : isActive ? (
-                      <div style={{ width: 10, height: 10, borderRadius: '50%', background: statusInfo.c }} />
-                    ) : (
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: C.text3, opacity: 0.4 }} />
-                    )}
-                  </div>
-                  {!isLast && <div style={{ width: 2, height: 32, background: lineColor, marginTop: 2 }} />}
-                </div>
-                {/* Content */}
-                <div style={{ paddingBottom: isLast ? 0 : 16, paddingTop: 3 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: isPending ? C.text3 : C.text }}>{step.label}</div>
-                  <div style={{ fontSize: 12, color: isPending ? C.text3 : C.text2 }}>{step.desc}</div>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-
-      {/* Expanded details */}
-      {expanded && detail && (
-        <div style={{ padding: '0 20px 20px', borderTop: `1px solid ${C.border}` }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px 20px', paddingTop: 16 }}>
-            {detail.tracking_number && (
-              <div><div style={{ fontSize: 11, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>Código Rastreio</div>
-                <div style={{ fontSize: 14, fontWeight: 600, fontFamily: 'monospace', color: C.text }}>{detail.tracking_number}</div></div>
-            )}
-            {detail.tracking_method && (
-              <div><div style={{ fontSize: 11, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>Transportadora</div>
-                <div style={{ fontSize: 14, color: C.text }}>{detail.tracking_method}</div></div>
-            )}
-            {detail.date_created && (
-              <div><div style={{ fontSize: 11, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>Data Criação</div>
-                <div style={{ fontSize: 14, color: C.text }}>{fmtDateTime(detail.date_created)}</div></div>
-            )}
-            {detail.last_updated && (
-              <div><div style={{ fontSize: 11, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>Última Atualização</div>
-                <div style={{ fontSize: 14, color: C.text }}>{fmtDateTime(detail.last_updated)}</div></div>
-            )}
-            {detail.receiver_address && (
-              <div style={{ gridColumn: '1 / -1' }}><div style={{ fontSize: 11, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>Endereço de Entrega</div>
-                <div style={{ fontSize: 14, color: C.text }}>
-                  {[detail.receiver_address.street_name, detail.receiver_address.street_number].filter(Boolean).join(', ')}
-                  {detail.receiver_address.city?.name && ` — ${detail.receiver_address.city.name}`}
-                  {detail.receiver_address.state?.name && ` / ${detail.receiver_address.state.name}`}
-                  {detail.receiver_address.zip_code && ` — CEP: ${detail.receiver_address.zip_code}`}
-                </div>
-              </div>
-            )}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {items[0]?.item?.title || 'Produto'}
           </div>
-          {detail.substatus && (
-            <div style={{ marginTop: 12, padding: '8px 12px', background: 'var(--cbrio-input-bg)', borderRadius: 8, fontSize: 13, color: C.text2 }}>
-              Sub-status: <strong>{detail.substatus}</strong>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{fmtMoney(ship.total_amount)}</span>
+            <span style={{ fontSize: 11, color: C.text3 }}>#{ship.order_id}</span>
+          </div>
+        </div>
+        <span style={styles.badge(statusInfo.c, statusInfo.bg)}>{statusInfo.label}</span>
+        <span style={{ fontSize: 13, color: C.text3, transition: 'transform 0.2s', transform: expanded ? 'rotate(180deg)' : '' }}>▼</span>
+      </div>
+
+      {/* Progress bar — always visible */}
+      <div style={{ padding: '0 18px 12px' }}>
+        <div style={{ display: 'flex', gap: 3 }}>
+          {TRACK_STEPS.map((step, i) => (
+            <div key={step.key} style={{ flex: 1, height: 3, borderRadius: 2, background: i <= currentStepIdx ? (i < currentStepIdx ? '#10b981' : statusInfo.c) : C.border }} />
+          ))}
+        </div>
+      </div>
+
+      {/* Expanded — timeline + details */}
+      {expanded && (
+        <div style={{ borderTop: `1px solid ${C.border}` }}>
+          {/* Product full info */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, padding: '16px 18px' }}>
+            <div style={{ width: 72, height: 72, borderRadius: 10, background: statusInfo.bg, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+              {itemImg ? <img src={itemImg} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: 28 }}>📦</span>}
+            </div>
+            <div style={{ flex: 1 }}>
+              {items.map((item, i) => (
+                <div key={i} style={{ fontSize: 14, fontWeight: 700, color: C.text, lineHeight: 1.3 }}>{item.item?.title || 'Produto'}</div>
+              ))}
+              <div style={{ fontSize: 18, fontWeight: 700, color: C.text, marginTop: 4 }}>{fmtMoney(ship.total_amount)}</div>
+              {items[0]?.quantity > 1 && <div style={{ fontSize: 12, color: C.text2 }}>Qtd: {items[0].quantity}</div>}
+            </div>
+          </div>
+
+          {/* Timeline */}
+          <div style={{ padding: '0 18px 16px' }}>
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+              {TRACK_STEPS.map((step, i) => {
+                const isCompleted = i < currentStepIdx;
+                const isActive = i === currentStepIdx;
+                const isPending = i > currentStepIdx;
+                const isLast = i === TRACK_STEPS.length - 1;
+                const dotColor = isCompleted ? '#10b981' : isActive ? statusInfo.c : C.border;
+
+                return (
+                  <li key={step.key} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 24 }}>
+                      <div style={{
+                        width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: isCompleted ? '#10b98120' : isActive ? `${statusInfo.c}20` : 'var(--cbrio-input-bg)',
+                        border: `2px solid ${dotColor}`,
+                      }}>
+                        {isCompleted ? (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                        ) : isActive ? (
+                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: statusInfo.c }} />
+                        ) : (
+                          <div style={{ width: 6, height: 6, borderRadius: '50%', background: C.text3, opacity: 0.3 }} />
+                        )}
+                      </div>
+                      {!isLast && <div style={{ width: 2, height: 24, background: isCompleted ? '#10b981' : C.border, marginTop: 1 }} />}
+                    </div>
+                    <div style={{ paddingBottom: isLast ? 0 : 10, paddingTop: 2 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: isPending ? C.text3 : C.text }}>{step.label}</div>
+                      <div style={{ fontSize: 11, color: isPending ? C.text3 : C.text2 }}>{step.desc}</div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+
+          {/* Shipping details */}
+          {detail && (
+            <div style={{ padding: '0 18px 16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px 16px', padding: '12px 14px', background: 'var(--cbrio-input-bg)', borderRadius: 10 }}>
+                {detail.tracking_number && (
+                  <div><div style={{ fontSize: 10, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>Rastreio</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, fontFamily: 'monospace', color: C.text }}>{detail.tracking_number}</div></div>
+                )}
+                {detail.tracking_method && (
+                  <div><div style={{ fontSize: 10, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>Transportadora</div>
+                    <div style={{ fontSize: 12, color: C.text }}>{detail.tracking_method}</div></div>
+                )}
+                {detail.date_created && (
+                  <div><div style={{ fontSize: 10, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>Criação</div>
+                    <div style={{ fontSize: 12, color: C.text }}>{fmtDateTime(detail.date_created)}</div></div>
+                )}
+                {detail.last_updated && (
+                  <div><div style={{ fontSize: 10, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>Atualização</div>
+                    <div style={{ fontSize: 12, color: C.text }}>{fmtDateTime(detail.last_updated)}</div></div>
+                )}
+                {detail.receiver_address && (
+                  <div style={{ gridColumn: '1 / -1' }}><div style={{ fontSize: 10, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>Endereço</div>
+                    <div style={{ fontSize: 12, color: C.text }}>
+                      {[detail.receiver_address.street_name, detail.receiver_address.street_number].filter(Boolean).join(', ')}
+                      {detail.receiver_address.city?.name && ` — ${detail.receiver_address.city.name}`}
+                      {detail.receiver_address.state?.name && ` / ${detail.receiver_address.state.name}`}
+                      {detail.receiver_address.zip_code && ` • CEP: ${detail.receiver_address.zip_code}`}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
-          <a href={`https://www.mercadolivre.com.br/purchases/${ship.order_id}`} target="_blank" rel="noopener noreferrer"
-            style={{ display: 'block', textAlign: 'center', marginTop: 16, padding: '10px 0', background: C.primary, color: '#fff', borderRadius: 8, fontWeight: 600, fontSize: 14, textDecoration: 'none' }}>
-            Ver no Mercado Livre ↗
-          </a>
+
+          {/* Action button */}
+          <div style={{ padding: '0 18px 16px' }}>
+            <a href={`https://www.mercadolivre.com.br/purchases/${ship.order_id}`} target="_blank" rel="noopener noreferrer"
+              style={{ display: 'block', textAlign: 'center', padding: '10px 0', background: C.primary, color: '#fff', borderRadius: 8, fontWeight: 600, fontSize: 13, textDecoration: 'none' }}>
+              Ver no Mercado Livre ↗
+            </a>
+          </div>
         </div>
       )}
     </div>
