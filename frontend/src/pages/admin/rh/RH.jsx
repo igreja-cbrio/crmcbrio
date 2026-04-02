@@ -1231,24 +1231,32 @@ const BENEFICIOS_FIELDS = [
 function BeneficiosSection({ data }) {
   const [expanded, setExpanded] = useState(false);
   const activeBenefits = BENEFICIOS_FIELDS.filter(b => Number(data[b.key]) > 0);
-  if (activeBenefits.length === 0 && !data.remuneracao_bruta) return null;
+  const isPJ = data.tipo_contrato === 'pj';
+  // PJ: remuneração líquida = salário base (sem descontos)
+  const remLiquida = isPJ ? data.salario : data.remuneracao_liquida;
+  if (activeBenefits.length === 0 && !data.salario) return null;
 
   return (
     <div style={{ marginBottom: 16 }}>
       <button onClick={() => setExpanded(!expanded)}
         style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: 8 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: C.text2, textTransform: 'uppercase' }}>💰 Benefícios e Remuneração ({activeBenefits.length})</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: C.text2, textTransform: 'uppercase' }}>💰 Benefícios e Remuneração ({activeBenefits.length}) {isPJ && <span style={{ color: C.amber, fontSize: 10 }}>• PJ</span>}</span>
         <span style={{ fontSize: 12, color: C.text3, transition: 'transform 0.2s', transform: expanded ? 'rotate(180deg)' : '' }}>▼</span>
       </button>
       {expanded && (
         <div style={{ background: 'var(--cbrio-input-bg)', borderRadius: 10, padding: 16 }}>
+          {isPJ && (
+            <div style={{ padding: '8px 12px', background: '#f59e0b18', borderRadius: 8, marginBottom: 12, fontSize: 12, color: C.amber, border: '1px solid #f59e0b30' }}>
+              Vínculo PJ — sem descontos de FGTS, IR e INSS. Remuneração líquida = salário base.
+            </div>
+          )}
           {/* Resumo financeiro */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: 12 }}>
             {[
               { label: 'Salário Base', value: data.salario, color: C.primary },
-              { label: 'Rem. Bruta', value: data.remuneracao_bruta, color: C.blue },
-              { label: 'Rem. Líquida', value: data.remuneracao_liquida, color: C.green },
-              { label: 'Custo Total', value: data.custo_total_mensal, color: C.amber },
+              ...(!isPJ ? [{ label: 'Rem. Bruta', value: data.remuneracao_bruta, color: C.blue }] : []),
+              { label: 'Rem. Líquida', value: remLiquida, color: C.green },
+              { label: 'Custo Total', value: isPJ ? data.salario : data.custo_total_mensal, color: C.amber },
             ].map(item => (
               <div key={item.label} style={{ padding: '10px 12px', borderRadius: 8, border: `1px solid ${C.border}`, borderLeft: `3px solid ${item.color}` }}>
                 <div style={{ fontSize: 10, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>{item.label}</div>
@@ -1269,8 +1277,8 @@ function BeneficiosSection({ data }) {
             </div>
           )}
 
-          {/* Descontos */}
-          {(Number(data.fgts) > 0 || Number(data.ir) > 0 || Number(data.inss) > 0) && (
+          {/* Descontos (apenas CLT) */}
+          {!isPJ && (Number(data.fgts) > 0 || Number(data.ir) > 0 || Number(data.inss) > 0) && (
             <div style={{ marginTop: 10, paddingTop: 8, borderTop: `1px solid ${C.border}` }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 4 }}>Descontos</div>
               <div style={{ display: 'flex', gap: 16 }}>
