@@ -1136,7 +1136,7 @@ function ComprasMLTab() {
       <table style={styles.table}><thead><tr>
         <th style={styles.th}>Pedido</th>
         <th style={styles.th}>Produto(s)</th>
-        <th style={styles.th}>Comprador</th>
+        <th style={styles.th}>Vendedor</th>
         <th style={styles.th}>Valor</th>
         <th style={styles.th}>Data</th>
         <th style={styles.th}>Status</th>
@@ -1156,7 +1156,7 @@ function ComprasMLTab() {
               ))}
             </td>
             <td style={styles.td}>
-              <div style={{ fontSize: 13 }}>{o.buyer?.nickname || '—'}</div>
+              <div style={{ fontSize: 13 }}>{o.seller?.nickname || '—'}</div>
             </td>
             <td style={{ ...styles.td, fontWeight: 600 }}>{fmtMoney(o.total_amount)}</td>
             <td style={styles.td}>{o.date_created ? new Date(o.date_created).toLocaleDateString('pt-BR') : '—'}</td>

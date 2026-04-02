@@ -177,7 +177,7 @@ router.get('/orders', async (req, res) => {
     if (!config?.connected) return res.status(400).json({ error: 'Mercado Livre não conectado' });
 
     const { offset = 0, limit = 20, status } = req.query;
-    let path = `/orders/search?seller=${config.user_id}&offset=${offset}&limit=${limit}&sort=date_desc`;
+    let path = `/orders/search?buyer=${config.user_id}&offset=${offset}&limit=${limit}&sort=date_desc`;
     if (status) path += `&order.status=${status}`;
 
     const data = await mlFetch(path, config);
@@ -215,7 +215,7 @@ router.get('/shipments', async (req, res) => {
     if (!config?.connected) return res.status(400).json({ error: 'Mercado Livre não conectado' });
 
     // Get recent orders that have shipments
-    const ordersData = await mlFetch(`/orders/search?seller=${config.user_id}&sort=date_desc&limit=50`, config);
+    const ordersData = await mlFetch(`/orders/search?buyer=${config.user_id}&sort=date_desc&limit=50`, config);
     const orders = ordersData.results || [];
 
     // Get shipment details for orders with shipping
