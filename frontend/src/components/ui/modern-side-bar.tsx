@@ -7,7 +7,6 @@ import {
   Bell,
   CalendarDays,
   ChevronRight,
-  ChevronsUpDown,
   Church,
   DollarSign,
   FolderKanban,
@@ -16,8 +15,6 @@ import {
   LogOut,
   Map,
   Megaphone,
-  Moon,
-  Sun,
   Tag,
   Truck,
   UserCheck,
@@ -25,19 +22,10 @@ import {
   UsersRound,
   BookOpen,
 } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTheme } from "@/contexts/ThemeContext";
 import React from "react";
 
 const sidebarVariants = {
@@ -120,7 +108,6 @@ export function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, role, signOut } = useAuth();
-  const { isDark, setIsDark } = useTheme();
   const [notificationCount] = useState(3); // TODO: fetch from Supabase notifications table
 
   const pathname = location.pathname;
@@ -252,25 +239,6 @@ export function Sidebar() {
           </div>
         </ScrollArea>
 
-        {/* Theme toggle */}
-        <div className="px-2.5 pb-1">
-          <div className={cn("flex h-9 items-center gap-2 rounded-lg", isCollapsed ? "justify-center px-0" : "pl-6 pr-3")}>
-            <Sun className={cn("h-4 w-4 shrink-0 transition-colors", isDark ? "text-[#525252]" : "text-amber-400")} />
-            <motion.div
-              variants={labelVariants}
-              transition={transitionProps}
-              className="flex items-center gap-2"
-            >
-              <Switch
-                checked={isDark}
-                onCheckedChange={setIsDark}
-                aria-label="Alternar tema"
-              />
-              <Moon className={cn("h-4 w-4 shrink-0 transition-colors", isDark ? "text-blue-400" : "text-[#525252]")} />
-            </motion.div>
-          </div>
-        </div>
-
         {/* Notifications */}
         <div className="px-2.5 pb-1">
           <button className={cn(
@@ -292,56 +260,44 @@ export function Sidebar() {
         </div>
 
         {/* User footer */}
-        <div className="border-t border-[#262626] p-2.5">
-          <DropdownMenu modal={false}>
-            <DropdownMenuTrigger className="w-full outline-none">
-              <div className="flex h-10 w-full items-center gap-2.5 rounded-lg px-2 transition-colors hover:bg-[#1e1e1e]">
-                <div className="relative shrink-0">
-                  <Avatar className="h-7 w-7">
-                    <AvatarFallback className="bg-[#00B39D] text-[#0a0a0a] text-[11px] font-semibold">
-                      {initials}
-                    </AvatarFallback>
-                  </Avatar>
-                  {notificationCount > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-bold text-white border-2 border-[#111111]">
-                      {notificationCount > 9 ? '9+' : notificationCount}
-                    </span>
-                  )}
-                </div>
+        <div className="border-t border-[#262626] px-2.5 py-3 space-y-2">
+          {/* User info */}
+          <div className="flex items-center gap-2.5 rounded-lg px-2">
+            <div className="relative shrink-0">
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="bg-[#00B39D] text-[#0a0a0a] text-[11px] font-semibold">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              {notificationCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-bold text-white border-2 border-[#111111]">
+                  {notificationCount > 9 ? '9+' : notificationCount}
+                </span>
+              )}
+            </div>
                 <motion.div
                   variants={labelVariants}
                   transition={transitionProps}
-                  className="flex flex-1 items-center min-w-0"
+                  className="flex-1 text-left min-w-0"
                 >
-                  <div className="flex-1 text-left min-w-0">
-                    <p className="text-sm font-medium text-[#e5e5e5] truncate">{profile?.name || "—"}</p>
-                    <p className="text-[10px] text-[#525252] capitalize">{profile?.role || ""}</p>
-                  </div>
-                  <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-[#525252]" />
+                  <p className="text-sm font-medium text-[#e5e5e5] truncate">{profile?.name || "—"}</p>
+                  <p className="text-[10px] text-[#525252] capitalize">{profile?.role || ""}</p>
                 </motion.div>
-              </div>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent side="top" sideOffset={8} align="start" className="w-56 rounded-xl bg-[#1a1a1a] border-[#262626] shadow-xl">
-              <div className="flex items-center gap-2.5 p-3">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-[#00B39D] text-[#0a0a0a] text-xs font-semibold">
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium text-[#e5e5e5]">{profile?.name || "—"}</span>
-                  <span className="text-xs text-[#525252]">{profile?.email || ""}</span>
-                </div>
-              </div>
-              <DropdownMenuSeparator className="bg-[#262626]" />
-              <DropdownMenuItem
-                className="flex items-center gap-2 text-red-400 cursor-pointer rounded-lg mx-1 hover:text-red-300 hover:bg-red-500/10"
-                onClick={handleSignOut}
-              >
-                <LogOut className="h-4 w-4" /> Sair
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </div>
+
+          {/* Sign out button */}
+          <button
+            onClick={handleSignOut}
+            className={cn(
+              "flex w-full items-center gap-2.5 rounded-lg h-9 transition-colors text-[#737373] hover:bg-red-500/10 hover:text-red-400",
+              isCollapsed ? "justify-center px-0" : "pl-6 pr-3"
+            )}
+          >
+            <LogOut className="h-4 w-4 shrink-0" />
+            <motion.span variants={labelVariants} transition={transitionProps} className="text-[13px] whitespace-nowrap">
+              Sair
+            </motion.span>
+          </button>
         </div>
       </div>
     </motion.nav>
