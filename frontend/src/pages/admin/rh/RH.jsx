@@ -292,7 +292,7 @@ export default function RH() {
       )}
       {tab === 4 && (
         <div style={{ minHeight: 200, padding: '4px 0' }}>
-          <TabExtras funcionarios={funcs} onRefresh={loadData} />
+          <TabExtras funcionarios={funcs} onRefresh={() => { loadDash(); loadFuncs(); }} />
         </div>
       )}
 
