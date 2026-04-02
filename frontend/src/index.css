@@ -132,3 +132,43 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 #root { min-height: 100vh; }
+
+/* ── Loading shimmer animation ───────────────────── */
+@keyframes cbrio-shimmer {
+  0% { mask-position: 200% center; -webkit-mask-position: 200% center; }
+  100% { mask-position: -200% center; -webkit-mask-position: -200% center; }
+}
+
+@keyframes cbrio-shine {
+  0% { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+
+@keyframes cbrio-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.cbrio-loading-logo {
+  animation: cbrio-pulse 2s ease-in-out infinite;
+  position: relative;
+}
+
+.cbrio-loading-logo::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 16px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    transparent 35%,
+    rgba(0, 179, 157, 0.35) 50%,
+    transparent 65%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: cbrio-shine 2s ease-in-out infinite;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
