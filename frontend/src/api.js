@@ -242,6 +242,23 @@ export const rh = {
     update: (id, data) => patch(`/rh/ferias/${id}`, data),
     remove: (id) => del(`/rh/ferias/${id}`),
   },
+  extras: {
+    list: (params) => get('/rh/extras' + (params ? '?' + new URLSearchParams(params) : '')),
+    create: (data) => post('/rh/extras', data),
+    update: (id, data) => patch(`/rh/extras/${id}`, data),
+    remove: (id) => del(`/rh/extras/${id}`),
+  },
+  config: {
+    get: () => get('/rh/config'),
+    set: (chave, valor) => put(`/rh/config/${chave}`, { valor }),
+  },
+};
+
+export const notificacoes = {
+  list: () => get('/notificacoes'),
+  count: () => get('/notificacoes/count'),
+  ler: (id) => patch(`/notificacoes/${id}/ler`),
+  lerTodas: () => patch('/notificacoes/ler-todas'),
 };
 
 export const membresia = {

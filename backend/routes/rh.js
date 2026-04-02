@@ -469,4 +469,137 @@ router.get('/kpis', async (req, res) => {
   }
 });
 
+// ══════════════════════════════════════════════════════════
+// ESCALAS DE EXTRAS
+// ══════════════════════════════════════════════════════════
+
+// GET /api/rh/extras
+router.get('/extras', async (req, res) => {
+  try {
+    const { status, mes } = req.query;
+    let query = supabase
+      .from('rh_escalas_extras')
+      .select('*, funcionario:rh_funcionarios(id, nome, cpf, cargo, foto_url)')
+      .order('data', { ascending: true });
+
+    if (status) query = query.eq('status', status);
+    if (mes) {
+      const [year, month] = mes.split('-');
+      const start = `${year}-${month}-01`;
+      const end = new Date(year, month, 0).toISOString().split('T')[0];
+      query = query.gte('data', start).lte('data', end);
+    }
+
+    const { data, error } = await query;
+    if (error) return res.status(400).json({ error: error.message });
+    res.json(data);
+  } catch (e) {
+    console.error('[RH] Listar extras:', e.message);
+    res.status(500).json({ error: 'Erro ao buscar escalas de extras' });
+  }
+});
+
+// POST /api/rh/extras — escalar funcionário + enviar notificação
+router.post('/extras', async (req, res) => {
+  try {
+    const { funcionario_id, titulo, descricao, data, horario_inicio, horario_fim, valor, observacoes } = req.body;
+
+    // Criar escala
+    const { data: escala, error } = await supabase
+      .from('rh_escalas_extras')
+      .insert({
+        funcionario_id, titulo, descricao, data,
+        horario_inicio, horario_fim, valor,
+        escalado_por: req.user.id, observacoes,
+      })
+      .select('*, funcionario:rh_funcionarios(nome, email)')
+      .single();
+
+    if (error) return res.status(400).json({ error: error.message });
+
+    // Buscar profile_id do funcionário pelo email (se tiver conta no sistema)
+    if (escala.funcionario?.email) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', escala.funcionario.email)
+        .single();
+
+      if (profile) {
+        // Criar notificação
+        await supabase.from('notificacoes').insert({
+          usuario_id: profile.id,
+          titulo: '📋 Escala de Extra',
+          mensagem: `Você foi escalado para "${titulo}" em ${new Date(data).toLocaleDateString('pt-BR')} das ${horario_inicio} às ${horario_fim}. Valor: R$ ${Number(valor).toFixed(2)}${descricao ? '. ' + descricao : ''}`,
+          tipo: 'extra',
+          link: '/admin/rh?tab=extras',
+          dados: { escala_id: escala.id, data, horario_inicio, horario_fim, valor },
+        });
+      }
+    }
+
+    res.status(201).json(escala);
+  } catch (e) {
+    console.error('[RH] Criar extra:', e.message);
+    res.status(500).json({ error: 'Erro ao criar escala de extra' });
+  }
+});
+
+// PATCH /api/rh/extras/:id
+router.patch('/extras/:id', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('rh_escalas_extras')
+      .update(req.body)
+      .eq('id', req.params.id)
+      .select()
+      .single();
+    if (error) return res.status(400).json({ error: error.message });
+    res.json(data);
+  } catch (e) {
+    console.error('[RH] Atualizar extra:', e.message);
+    res.status(500).json({ error: 'Erro ao atualizar extra' });
+  }
+});
+
+// DELETE /api/rh/extras/:id
+router.delete('/extras/:id', async (req, res) => {
+  try {
+    const { error } = await supabase.from('rh_escalas_extras').delete().eq('id', req.params.id);
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ success: true });
+  } catch (e) {
+    console.error('[RH] Remover extra:', e.message);
+    res.status(500).json({ error: 'Erro ao remover extra' });
+  }
+});
+
+// GET /api/rh/config (valor padrão de extra, etc.)
+router.get('/config', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('rh_config').select('*');
+    if (error) return res.status(400).json({ error: error.message });
+    const config = {};
+    (data || []).forEach(r => { config[r.chave] = r.valor; });
+    res.json(config);
+  } catch (e) {
+    res.status(500).json({ error: 'Erro ao buscar configurações' });
+  }
+});
+
+// PUT /api/rh/config/:chave
+router.put('/config/:chave', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('rh_config')
+      .upsert({ chave: req.params.chave, valor: req.body.valor })
+      .select()
+      .single();
+    if (error) return res.status(400).json({ error: error.message });
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: 'Erro ao salvar configuração' });
+  }
+});
+
 module.exports = router;

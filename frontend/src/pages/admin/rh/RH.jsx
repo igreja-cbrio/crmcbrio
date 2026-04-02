@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Users, Pencil, Trash2, Palmtree } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { rh } from '../../../api';
+import TabExtras from './TabExtras';
 
 // ── Tema ────────────────────────────────────────────────────
 const C = {
@@ -141,7 +142,7 @@ function Badge({ status, map }) {
 }
 
 // ── TABS ────────────────────────────────────────────────────
-const TABS = ['Dashboard', 'Funcionários', 'Treinamentos', 'Férias/Licenças'];
+const TABS = ['Dashboard', 'Funcionários', 'Treinamentos', 'Férias/Licenças', 'Extras'];
 
 // ═══════════════════════════════════════════════════════════
 // COMPONENTE PRINCIPAL
@@ -288,6 +289,9 @@ export default function RH() {
         <FeriasTab dash={dash} funcs={funcs}
           onNew={() => setModalFerias({})} onAprovar={aprovarFerias}
         />
+      )}
+      {tab === 4 && (
+        <TabExtras funcionarios={funcs} onRefresh={loadData} />
       )}
 
       {/* Modais */}

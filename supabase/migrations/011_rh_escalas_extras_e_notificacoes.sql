@@ -1,0 +1,1 @@
+-- saved for reference, user runs this manually in Supabase SQL Editor
