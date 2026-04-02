@@ -117,6 +117,27 @@ export const meetings = {
   removePendency: (id) => del(`/meetings/pendencies/${id}`),
 };
 
+export const dashboard = {
+  pmo: () => get('/dashboard/pmo'),
+  workload: () => get('/dashboard/workload'),
+};
+
+export const risks = {
+  list: (eventId) => get(`/events/${eventId}/risks`),
+  create: (eventId, data) => post(`/events/${eventId}/risks`, data),
+  update: (riskId, data) => patch(`/events/risks/${riskId}`, data),
+  remove: (riskId) => del(`/events/risks/${riskId}`),
+};
+
+export const retrospective = {
+  get: (eventId) => get(`/events/${eventId}/retrospective`),
+  save: (eventId, data) => post(`/events/${eventId}/retrospective`, data),
+};
+
+export const history = {
+  list: (eventId) => get(`/events/${eventId}/history`),
+};
+
 export const tasks = {
   all: (params) => {
     const q = new URLSearchParams();

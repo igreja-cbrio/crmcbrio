@@ -269,4 +269,81 @@ router.post('/tasks/:taskId/comments', async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'Erro' }); }
 });
 
+// ── RISKS ──
+router.get('/:id/risks', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('event_risks').select('*').eq('event_id', req.params.id).order('score', { ascending: false });
+    if (error) throw error;
+    res.json(data);
+  } catch (e) { res.status(500).json({ error: 'Erro ao buscar riscos' }); }
+});
+
+router.post('/:id/risks', async (req, res) => {
+  try {
+    const d = req.body;
+    const { data, error } = await supabase.from('event_risks').insert({
+      event_id: req.params.id, title: d.title, description: d.description || '',
+      category: d.category || 'other', probability: d.probability || 3, impact: d.impact || 3,
+      mitigation: d.mitigation || '', owner_id: d.owner_id || null, owner_name: d.owner_name || '',
+      target_date: d.target_date || null, status: 'aberto', created_by: req.user.userId,
+    }).select().single();
+    if (error) throw error;
+    // Audit
+    await supabase.from('audit_log').insert({ table_name: 'event_risks', record_id: data.id, event_id: req.params.id, action: 'create', description: `Risco criado: ${d.title}`, changed_by: req.user.userId, changed_by_name: req.user.name });
+    res.json(data);
+  } catch (e) { console.error(e); res.status(500).json({ error: 'Erro ao criar risco' }); }
+});
+
+router.patch('/risks/:riskId', async (req, res) => {
+  try {
+    const d = req.body;
+    const { data: old } = await supabase.from('event_risks').select('status').eq('id', req.params.riskId).single();
+    const { data, error } = await supabase.from('event_risks').update(d).eq('id', req.params.riskId).select().single();
+    if (error) throw error;
+    if (old && old.status !== d.status) {
+      await supabase.from('audit_log').insert({ table_name: 'event_risks', record_id: data.id, event_id: data.event_id, action: 'status_change', field_name: 'status', old_value: old.status, new_value: d.status, changed_by: req.user.userId, changed_by_name: req.user.name });
+    }
+    res.json(data);
+  } catch (e) { res.status(500).json({ error: 'Erro ao atualizar risco' }); }
+});
+
+router.delete('/risks/:riskId', async (req, res) => {
+  try {
+    await supabase.from('event_risks').delete().eq('id', req.params.riskId);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: 'Erro' }); }
+});
+
+// ── RETROSPECTIVE ──
+router.get('/:id/retrospective', async (req, res) => {
+  try {
+    const { data } = await supabase.from('event_retrospectives').select('*').eq('event_id', req.params.id).maybeSingle();
+    res.json(data);
+  } catch (e) { res.status(500).json({ error: 'Erro' }); }
+});
+
+router.post('/:id/retrospective', async (req, res) => {
+  try {
+    const d = req.body;
+    const { data, error } = await supabase.from('event_retrospectives').upsert({
+      event_id: req.params.id, what_went_well: d.what_went_well || '',
+      what_to_improve: d.what_to_improve || '', action_items: d.action_items || '',
+      attendee_feedback: d.attendee_feedback || '', overall_rating: d.overall_rating || null,
+      created_by: req.user.userId,
+    }, { onConflict: 'event_id' }).select().single();
+    if (error) throw error;
+    await supabase.from('audit_log').insert({ table_name: 'event_retrospectives', record_id: data.id, event_id: req.params.id, action: 'create', description: 'Retrospectiva salva', changed_by: req.user.userId, changed_by_name: req.user.name });
+    res.json(data);
+  } catch (e) { console.error(e); res.status(500).json({ error: 'Erro ao salvar retrospectiva' }); }
+});
+
+// ── AUDIT LOG ──
+router.get('/:id/history', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('audit_log').select('*').eq('event_id', req.params.id).order('created_at', { ascending: false }).limit(50);
+    if (error) throw error;
+    res.json(data);
+  } catch (e) { res.status(500).json({ error: 'Erro ao buscar histórico' }); }
+});
+
 module.exports = router;

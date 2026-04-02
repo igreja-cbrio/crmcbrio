@@ -40,6 +40,7 @@ app.use('/api/agents', require('./routes/agents'));
 app.use('/api/cycles', require('./routes/cycles'));
 app.use('/api/occurrences', require('./routes/occurrences'));
 app.use('/api/tasks', require('./routes/tasks'));
+app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/rh', require('./routes/rh'));
 app.use('/api/financeiro', require('./routes/financeiro'));
 app.use('/api/logistica', require('./routes/logistica'));

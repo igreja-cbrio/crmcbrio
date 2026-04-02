@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { events, cycles as cyclesApi, occurrences as occApi, tasks as tasksApi } from '../../api';
+import { events, cycles as cyclesApi, occurrences as occApi, tasks as tasksApi, dashboard as dashApi, risks as risksApi, retrospective as retroApi, history as historyApi } from '../../api';
 import CycleView from './components/CycleView';
 import BudgetPanel from './components/BudgetPanel';
 
@@ -262,6 +262,22 @@ export default function Eventos() {
   const [filtroStatus, setFiltroStatus] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState('');
 
+  // PMO KPIs + workload
+  const [pmoKpis, setPmoKpis] = useState(null);
+  const [workload, setWorkload] = useState([]);
+
+  // Lista melhorias
+  const [hideDone, setHideDone] = useState(true);
+  const [sortCol, setSortCol] = useState('date');
+  const [sortAsc, setSortAsc] = useState(true);
+
+  // Riscos, retrospectiva, histórico do evento selecionado
+  const [eventRisks, setEventRisks] = useState([]);
+  const [retroData, setRetroData] = useState(null);
+  const [auditHistory, setAuditHistory] = useState([]);
+  const [showRetroForm, setShowRetroForm] = useState(false);
+  const [showRiskForm, setShowRiskForm] = useState(false);
+
   // Kanban
   const [kanbanTasks, setKanbanTasks] = useState([]);
   const [kanbanFilter, setKanbanFilter] = useState('');
@@ -314,6 +330,10 @@ export default function Eventos() {
       const ev = await events.get(id);
       setSelectedEvent(ev);
       setTab(4);
+      // Carregar riscos, retrospectiva, histórico
+      risksApi.list(id).then(d => setEventRisks(d)).catch(() => setEventRisks([]));
+      retroApi.get(id).then(d => setRetroData(d)).catch(() => setRetroData(null));
+      historyApi.list(id).then(d => setAuditHistory(d)).catch(() => setAuditHistory([]));
       // Verificar se tem ciclo criativo
       try {
         const cycleData = await cyclesApi.get(id);
@@ -335,7 +355,11 @@ export default function Eventos() {
     }
   }, [selectedEvent?.id]);
 
-  useEffect(() => { loadCategories(); loadDash(); loadEvents(); }, []);
+  useEffect(() => {
+    loadCategories(); loadDash(); loadEvents();
+    dashApi.pmo().then(d => setPmoKpis(d)).catch(() => {});
+    dashApi.workload().then(d => setWorkload(d)).catch(() => {});
+  }, []);
   useEffect(() => { loadEvents(); }, [filtroStatus, filtroCategoria]);
 
   // ── Event CRUD ──
@@ -500,15 +524,21 @@ export default function Eventos() {
   // ── Eventos do dia selecionado ──
   const selectedDayEvents = selectedDate ? (eventsByDate[selectedDate] || []) : [];
 
-  // ── Dashboard KPIs (calculados a partir da lista de eventos) ──
+  // ── Dashboard KPIs (PMO real + contagem local) ──
   const counts = { total: eventList.length, 'no-prazo': 0, 'em-risco': 0, 'atrasado': 0, 'concluido': 0 };
   eventList.forEach(e => { if (counts[e.status] !== undefined) counts[e.status]++; });
+  const k = pmoKpis || {};
   const kpis = [
-    { label: 'Total', value: counts.total, color: C.primary },
+    { label: 'Eventos', value: counts.total, color: C.primary },
     { label: 'No Prazo', value: counts['no-prazo'], color: C.green },
     { label: 'Em Risco', value: counts['em-risco'], color: C.amber },
     { label: 'Atrasados', value: counts['atrasado'], color: C.red },
     { label: 'Concluídos', value: counts['concluido'], color: C.blue },
+    { label: 'Próx. 7 dias', value: k.events_next_7d || 0, color: '#8b5cf6' },
+    { label: 'Tarefas abertas', value: k.tasks_open || 0, color: '#6b7280' },
+    { label: 'Tarefas atrasadas', value: k.tasks_overdue || 0, color: C.red },
+    { label: 'Riscos abertos', value: k.risks_open || 0, color: '#f59e0b' },
+    { label: 'Sem responsável', value: k.events_no_owner || 0, color: '#9ca3af' },
   ];
 
   // ── Kanban ──
@@ -848,6 +878,42 @@ export default function Eventos() {
           </div>
         )}
 
+        {/* Orçamento global + Carga de trabalho */}
+        {(k.budget_total > 0 || workload.length > 0) && (
+          <div style={{ display: 'grid', gridTemplateColumns: workload.length > 0 ? '1fr 1fr' : '1fr', gap: 12, marginBottom: 16 }}>
+            {k.budget_total > 0 && (
+              <div style={styles.card}>
+                <div style={{ padding: '14px 20px' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--cbrio-text, #1a1a2e)', marginBottom: 8 }}>Orçamento Global</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--cbrio-text2, #6b7280)', marginBottom: 4 }}>
+                    <span>R$ {Number(k.budget_spent || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                    <span>R$ {Number(k.budget_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div style={{ height: 8, background: 'var(--cbrio-border, #e5e7eb)', borderRadius: 4 }}>
+                    <div style={{ height: '100%', width: `${Math.min(((k.budget_spent || 0) / k.budget_total) * 100, 100)}%`, borderRadius: 4, background: (k.budget_spent || 0) > k.budget_total ? '#ef4444' : '#10b981' }} />
+                  </div>
+                </div>
+              </div>
+            )}
+            {workload.length > 0 && (
+              <div style={styles.card}>
+                <div style={{ padding: '14px 20px' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--cbrio-text, #1a1a2e)', marginBottom: 8 }}>Carga de Trabalho</div>
+                  {workload.slice(0, 5).map((w, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                      <span style={{ fontSize: 12, color: 'var(--cbrio-text, #1a1a2e)', width: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.responsible}</span>
+                      <div style={{ flex: 1, height: 6, background: 'var(--cbrio-border, #e5e7eb)', borderRadius: 3 }}>
+                        <div style={{ height: '100%', width: `${Math.min((w.total_tasks / Math.max(...workload.map(x => x.total_tasks))) * 100, 100)}%`, borderRadius: 3, background: w.atrasadas > 0 ? '#ef4444' : '#10b981' }} />
+                      </div>
+                      <span style={{ fontSize: 11, color: 'var(--cbrio-text3, #9ca3af)', minWidth: 40, textAlign: 'right' }}>{w.total_tasks}t {w.atrasadas > 0 ? `(${w.atrasadas}⚠)` : ''}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Calendário */}
         <BigCalendar
           eventsByDate={eventsByDate}
@@ -926,6 +992,10 @@ export default function Eventos() {
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--cbrio-text2, #6b7280)', cursor: 'pointer' }}>
+            <input type="checkbox" checked={hideDone} onChange={e => setHideDone(e.target.checked)} />
+            Esconder concluídos
+          </label>
         </div>
 
         {/* Tabela */}
@@ -933,21 +1003,31 @@ export default function Eventos() {
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={styles.th}>Nome</th>
-                <th style={styles.th}>Data</th>
-                <th style={styles.th}>Categoria</th>
-                <th style={styles.th}>Responsável</th>
-                <th style={styles.th}>Orçamento</th>
-                <th style={styles.th}>Status</th>
+                {[{ key: 'name', label: 'Nome' }, { key: 'date', label: 'Data' }, { key: 'category', label: 'Categoria' }, { key: 'responsible', label: 'Responsável' }, { key: 'budget', label: 'Orçamento' }, { key: 'status', label: 'Status' }].map(col => (
+                  <th key={col.key} style={{ ...styles.th, cursor: 'pointer', userSelect: 'none' }}
+                    onClick={() => { if (sortCol === col.key) setSortAsc(!sortAsc); else { setSortCol(col.key); setSortAsc(true); } }}>
+                    {col.label} {sortCol === col.key ? (sortAsc ? '▲' : '▼') : ''}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {eventList.length === 0 && (
-                <tr><td colSpan={6} style={styles.empty}>
-                  {loading ? 'Carregando...' : 'Nenhum evento encontrado.'}
-                </td></tr>
-              )}
-              {eventList.map(ev => (
+              {(() => {
+                let list = hideDone ? eventList.filter(e => e.status !== 'concluido') : eventList;
+                list = [...list].sort((a, b) => {
+                  let va, vb;
+                  if (sortCol === 'name') { va = a.name || ''; vb = b.name || ''; }
+                  else if (sortCol === 'date') { va = a.date || ''; vb = b.date || ''; }
+                  else if (sortCol === 'status') { va = a.status || ''; vb = b.status || ''; }
+                  else if (sortCol === 'responsible') { va = a.responsible || ''; vb = b.responsible || ''; }
+                  else if (sortCol === 'budget') { va = Number(a.budget_planned) || 0; vb = Number(b.budget_planned) || 0; return sortAsc ? va - vb : vb - va; }
+                  else { va = a.name || ''; vb = b.name || ''; }
+                  return sortAsc ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+                });
+                if (list.length === 0) return (
+                  <tr><td colSpan={6} style={styles.empty}>{loading ? 'Carregando...' : 'Nenhum evento encontrado.'}</td></tr>
+                );
+                return list.map(ev => (
                 <tr key={ev.id} style={styles.clickRow}
                   onClick={() => loadDetail(ev.id)}
                   onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
@@ -966,7 +1046,8 @@ export default function Eventos() {
                     <DaysCounter date={ev.date} status={ev.status} />
                   </td>
                 </tr>
-              ))}
+              ));
+              })()}
             </tbody>
           </table>
         </div>
@@ -1158,6 +1239,154 @@ export default function Eventos() {
                   onChange={e => setOccMeetingDate(e.target.value)} />
                 <button style={styles.inlineBtn} onClick={() => addOccMeeting(expandedOcc.id)}>+</button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Riscos ── */}
+        <div style={{ ...styles.card, marginBottom: 20 }}>
+          <div style={{ ...styles.cardHeader }}>
+            <div style={styles.cardTitle}>Riscos ({eventRisks.length})</div>
+            <button style={{ ...styles.btn('primary'), ...styles.btnSm }} onClick={() => setShowRiskForm(true)}>+ Risco</button>
+          </div>
+          {eventRisks.length > 0 && (
+            <div style={{ padding: '0 20px 16px' }}>
+              {eventRisks.map(risk => {
+                const scoreColor = risk.score >= 15 ? C.red : risk.score >= 9 ? C.amber : C.green;
+                return (
+                  <div key={risk.id} style={{ ...styles.taskCard, borderLeft: `4px solid ${scoreColor}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <span style={{ fontWeight: 600, fontSize: 13 }}>{risk.title}</span>
+                        <span style={styles.badge(scoreColor, `${scoreColor}15`)}> P{risk.probability}×I{risk.impact}={risk.score}</span>
+                      </div>
+                      <select value={risk.status} onChange={async e => { await risksApi.update(risk.id, { status: e.target.value }); risksApi.list(ev.id).then(setEventRisks); }}
+                        style={{ ...styles.select, padding: '2px 6px', fontSize: 11 }}>
+                        {['aberto','mitigando','mitigado','aceito','fechado'].map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </div>
+                    {risk.mitigation && <div style={{ fontSize: 11, color: C.text2, marginTop: 4 }}>Mitigação: {risk.mitigation}</div>}
+                    {risk.owner_name && <div style={{ fontSize: 11, color: C.text3 }}>Responsável: {risk.owner_name}</div>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Modal: Novo risco */}
+        {showRiskForm && (
+          <Modal open onClose={() => setShowRiskForm(false)} title="Novo Risco"
+            footer={<>
+              <button style={styles.btn('ghost')} onClick={() => setShowRiskForm(false)}>Cancelar</button>
+              <button style={styles.btn('primary')} onClick={async () => {
+                const f = document.getElementById('risk-form');
+                const fd = new FormData(f);
+                const data = Object.fromEntries(fd.entries());
+                data.probability = parseInt(data.probability); data.impact = parseInt(data.impact);
+                await risksApi.create(ev.id, data);
+                setShowRiskForm(false);
+                risksApi.list(ev.id).then(setEventRisks);
+              }}>Salvar</button>
+            </>}>
+            <form id="risk-form" onSubmit={e => e.preventDefault()}>
+              <Input label="Título" name="title" required />
+              <Textarea label="Descrição" name="description" />
+              <div style={styles.formRow}>
+                <Select label="Categoria" name="category">
+                  <option value="timeline">Timeline</option>
+                  <option value="budget">Orçamento</option>
+                  <option value="resources">Recursos</option>
+                  <option value="quality">Qualidade</option>
+                  <option value="stakeholder">Stakeholder</option>
+                  <option value="other">Outro</option>
+                </Select>
+                <Select label="Status" name="status">
+                  <option value="aberto">Aberto</option>
+                  <option value="mitigando">Mitigando</option>
+                  <option value="aceito">Aceito</option>
+                </Select>
+              </div>
+              <div style={styles.formRow}>
+                <Select label="Probabilidade (1-5)" name="probability" defaultValue="3">
+                  {[1,2,3,4,5].map(n => <option key={n} value={n}>{n} - {['Rara','Baixa','Média','Alta','Muito Alta'][n-1]}</option>)}
+                </Select>
+                <Select label="Impacto (1-5)" name="impact" defaultValue="3">
+                  {[1,2,3,4,5].map(n => <option key={n} value={n}>{n} - {['Insignificante','Baixo','Moderado','Grave','Catastrófico'][n-1]}</option>)}
+                </Select>
+              </div>
+              <Textarea label="Estratégia de mitigação" name="mitigation" />
+              <div style={styles.formRow}>
+                <Input label="Responsável" name="owner_name" />
+                <Input label="Data alvo" name="target_date" type="date" />
+              </div>
+            </form>
+          </Modal>
+        )}
+
+        {/* ── Retrospectiva (só eventos concluídos) ── */}
+        {ev.status === 'concluido' && (
+          <div style={{ ...styles.card, marginBottom: 20 }}>
+            <div style={{ ...styles.cardHeader }}>
+              <div style={styles.cardTitle}>Retrospectiva</div>
+              {!retroData && <button style={{ ...styles.btn('primary'), ...styles.btnSm }} onClick={() => setShowRetroForm(true)}>Preencher</button>}
+            </div>
+            {retroData ? (
+              <div style={{ padding: '12px 20px' }}>
+                {retroData.overall_rating && <div style={{ fontSize: 13, marginBottom: 8 }}>Avaliação: {'★'.repeat(retroData.overall_rating)}{'☆'.repeat(5 - retroData.overall_rating)}</div>}
+                {retroData.what_went_well && <div style={{ marginBottom: 8 }}><span style={styles.label}>O que foi bem</span><div style={{ fontSize: 13, color: C.text2 }}>{retroData.what_went_well}</div></div>}
+                {retroData.what_to_improve && <div style={{ marginBottom: 8 }}><span style={styles.label}>O que melhorar</span><div style={{ fontSize: 13, color: C.text2 }}>{retroData.what_to_improve}</div></div>}
+                {retroData.action_items && <div><span style={styles.label}>Ações</span><div style={{ fontSize: 13, color: C.text2 }}>{retroData.action_items}</div></div>}
+              </div>
+            ) : (
+              <div style={{ padding: 16, textAlign: 'center', color: C.text3, fontSize: 13 }}>Nenhuma retrospectiva registrada</div>
+            )}
+          </div>
+        )}
+
+        {/* Modal: Retrospectiva */}
+        {showRetroForm && (
+          <Modal open onClose={() => setShowRetroForm(false)} title="Retrospectiva do Evento"
+            footer={<>
+              <button style={styles.btn('ghost')} onClick={() => setShowRetroForm(false)}>Cancelar</button>
+              <button style={styles.btn('primary')} onClick={async () => {
+                const f = document.getElementById('retro-form');
+                const fd = new FormData(f);
+                const data = Object.fromEntries(fd.entries());
+                if (data.overall_rating) data.overall_rating = parseInt(data.overall_rating);
+                await retroApi.save(ev.id, data);
+                setShowRetroForm(false);
+                retroApi.get(ev.id).then(setRetroData);
+              }}>Salvar</button>
+            </>}>
+            <form id="retro-form" onSubmit={e => e.preventDefault()}>
+              <Select label="Avaliação geral" name="overall_rating">
+                <option value="">Selecionar...</option>
+                {[5,4,3,2,1].map(n => <option key={n} value={n}>{'★'.repeat(n)} ({n}/5)</option>)}
+              </Select>
+              <Textarea label="O que foi bem?" name="what_went_well" />
+              <Textarea label="O que pode melhorar?" name="what_to_improve" />
+              <Textarea label="Ações para próximos eventos" name="action_items" />
+              <Textarea label="Feedback dos participantes" name="attendee_feedback" />
+            </form>
+          </Modal>
+        )}
+
+        {/* ── Histórico de alterações ── */}
+        {auditHistory.length > 0 && (
+          <div style={{ ...styles.card, marginBottom: 20 }}>
+            <div style={{ ...styles.cardHeader }}>
+              <div style={styles.cardTitle}>Histórico ({auditHistory.length})</div>
+            </div>
+            <div style={{ padding: '8px 20px 16px', maxHeight: 200, overflowY: 'auto' }}>
+              {auditHistory.map(h => (
+                <div key={h.id} style={{ display: 'flex', gap: 8, padding: '6px 0', borderBottom: `1px solid ${C.border}`, fontSize: 12 }}>
+                  <span style={{ color: C.text3, minWidth: 110 }}>{new Date(h.created_at).toLocaleString('pt-BR')}</span>
+                  <span style={{ color: C.text2 }}>{h.changed_by_name || '—'}</span>
+                  <span style={{ color: C.text, flex: 1 }}>{h.description || `${h.action}: ${h.field_name || h.table_name}`}</span>
+                  {h.old_value && h.new_value && <span style={{ color: C.text3 }}>{h.old_value} → {h.new_value}</span>}
+                </div>
+              ))}
             </div>
           </div>
         )}
