@@ -92,11 +92,11 @@ export default function AppShell() {
     <div className="flex flex-col h-screen" style={{ background: 'var(--cbrio-bg)', color: 'var(--cbrio-text)' }}>
       {/* Header */}
       <header
-        className="flex items-center h-14 px-6 shrink-0 border-b z-30"
+        className="flex items-center h-16 px-8 shrink-0 border-b z-30"
         style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}
       >
         {/* Logo */}
-        <div className="flex items-center gap-2.5 mr-8 shrink-0">
+        <div className="flex items-center gap-3 mr-10 shrink-0">
           <img
             src="/images/logo-cbrio.svg"
             alt="CBRio"
@@ -117,7 +117,7 @@ export default function AppShell() {
         </nav>
 
         {/* Right side: theme toggle, notifications, user */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-3 shrink-0">
           {/* Theme toggle */}
           <button
             onClick={() => setIsDark(!isDark)}
@@ -144,10 +144,10 @@ export default function AppShell() {
           </button>
 
           {/* Separator */}
-          <div className="h-6 w-px mx-1" style={{ background: 'var(--cbrio-border)' }} />
+          <div className="h-6 w-px mx-2" style={{ background: 'var(--cbrio-border)' }} />
 
           {/* User avatar + sign out */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#00B39D] text-[#0a0a0a] text-[11px] font-semibold shrink-0">
               {initials}
             </div>
