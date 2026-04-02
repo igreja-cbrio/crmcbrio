@@ -169,8 +169,10 @@ router.patch('/:id/status', async (req, res) => {
       }
     }
 
+    const { data: oldEv } = await supabase.from('events').select('status, name').eq('id', req.params.id).single();
     const { data, error } = await supabase.from('events').update({ status }).eq('id', req.params.id).select().single();
     if (error) throw error;
+    if (oldEv) await supabase.from('audit_log').insert({ table_name: 'events', record_id: req.params.id, event_id: req.params.id, action: 'status_change', field_name: 'status', old_value: oldEv.status, new_value: status, description: `Evento "${oldEv.name}" ${oldEv.status} → ${status}`, changed_by: req.user.userId, changed_by_name: req.user.name });
     res.json(data);
   } catch (e) { console.error(e); res.status(500).json({ error: 'Erro ao atualizar status' }); }
 });
@@ -236,6 +238,7 @@ router.post('/:id/tasks', async (req, res) => {
       created_by: req.user.userId,
     }).select().single();
     if (error) throw error;
+    await supabase.from('audit_log').insert({ table_name: 'event_tasks', record_id: data.id, event_id: req.params.id, action: 'create', description: `Tarefa criada: ${d.name}`, changed_by: req.user.userId, changed_by_name: req.user.name });
     res.json(data);
   } catch (e) { console.error(e); res.status(500).json({ error: 'Erro ao criar tarefa' }); }
 });
@@ -256,8 +259,10 @@ router.put('/tasks/:taskId', async (req, res) => {
 
 router.patch('/tasks/:taskId/status', async (req, res) => {
   try {
+    const { data: old } = await supabase.from('event_tasks').select('status, name, event_id').eq('id', req.params.taskId).single();
     const { data, error } = await supabase.from('event_tasks').update({ status: req.body.status }).eq('id', req.params.taskId).select().single();
     if (error) throw error;
+    if (old) await supabase.from('audit_log').insert({ table_name: 'event_tasks', record_id: data.id, event_id: old.event_id, action: 'status_change', field_name: 'status', old_value: old.status, new_value: req.body.status, description: `Tarefa "${old.name}" ${old.status} → ${req.body.status}`, changed_by: req.user.userId, changed_by_name: req.user.name });
     res.json(data);
   } catch (e) { res.status(500).json({ error: 'Erro' }); }
 });

@@ -48,6 +48,7 @@ router.post('/', async (req, res) => {
       }));
       if (pends.length > 0) await supabase.from('pendencies').insert(pends);
     }
+    if (d.event_id) await supabase.from('audit_log').insert({ table_name: 'meetings', record_id: meeting.id, event_id: d.event_id, action: 'create', description: `Reunião criada: ${d.title || 'Reunião'}`, changed_by: req.user.userId, changed_by_name: req.user.name });
     res.json(meeting);
   } catch (e) { console.error(e); res.status(500).json({ error: 'Erro ao criar reunião' }); }
 });

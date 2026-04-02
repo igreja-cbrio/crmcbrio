@@ -1221,8 +1221,9 @@ export default function Eventos() {
 
         {/* ── ABA: Tarefas ── */}
         {detailTab === 'tarefas' && !expandedOcc && <>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 24, marginBottom: 12 }}>
-          <div style={{ ...styles.sectionTitle, margin: 0 }}>Tarefas ({taskList.length})</div>
+        <div style={{ padding: '20px 0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--cbrio-text, #1a1a2e)' }}>Tarefas do Evento ({taskList.length})</div>
           <button style={{ ...styles.btn('primary'), ...styles.btnSm }} onClick={() => setModalTask({})}>+ Tarefa</button>
         </div>
 
@@ -1326,14 +1327,18 @@ export default function Eventos() {
           </div>
         ))}
 
-        {/* Reuniões */}
-        {meetingsList.length > 0 && (
-          <>
-            <div style={styles.sectionTitle}>Reuniões ({meetingsList.length})</div>
-            <div style={styles.card}>
-              <table style={styles.table}>
-                <thead>
-                  <tr>
+        </div>
+        </>}
+
+        {/* ── ABA: Reuniões (evento) — movida para aba própria ── */}
+        {detailTab === 'reunioes' && !expandedOcc && (
+          <div style={{ padding: '20px 0' }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--cbrio-text, #1a1a2e)', marginBottom: 16 }}>Reuniões do Evento ({meetingsList.length})</div>
+            {meetingsList.length === 0 && <div style={styles.empty}>Nenhuma reunião</div>}
+            {meetingsList.length > 0 && (
+              <div style={styles.card}>
+                <table style={styles.table}>
+                  <thead><tr>
                     <th style={styles.th}>Data</th>
                     <th style={styles.th}>Título</th>
                     <th style={styles.th}>Pendências</th>
@@ -1360,13 +1365,14 @@ export default function Eventos() {
                 </tbody>
               </table>
             </div>
-          </>
+          )}
+          </div>
         )}
-        </>}
 
         {/* ── ABA: Tarefas (ocorrência) ── */}
         {detailTab === 'tarefas' && expandedOcc && (
-          <div>
+          <div style={{ padding: '20px 0' }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--cbrio-text, #1a1a2e)', marginBottom: 16 }}>Tarefas — {fmtDate(expandedOcc.date)} ({expandedOcc.tasks?.length || 0})</div>
             {(expandedOcc.tasks || []).map(task => (
               <div key={task.id} style={styles.taskCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1396,36 +1402,11 @@ export default function Eventos() {
           </div>
         )}
 
-        {/* ── ABA: Reuniões (evento) ── */}
-        {detailTab === 'reunioes' && !expandedOcc && meetingsList.length > 0 && (
-          <div style={styles.card}>
-            <table style={styles.table}>
-              <thead><tr><th style={styles.th}>Data</th><th style={styles.th}>Título</th><th style={styles.th}>Pendências</th></tr></thead>
-              <tbody>
-                {meetingsList.map(m => (
-                  <tr key={m.id}>
-                    <td style={styles.td}>{fmtDate(m.date)}</td>
-                    <td style={styles.td}>{m.title || '—'}</td>
-                    <td style={styles.td}>
-                      {(m.pendencies || []).length === 0 ? '—' : (
-                        <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12 }}>
-                          {m.pendencies.map(p => (
-                            <li key={p.id} style={p.done ? { textDecoration: 'line-through', color: C.text3 } : {}}>{p.description || p.text} {p.responsible ? `(${p.responsible})` : ''}</li>
-                          ))}
-                        </ul>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {detailTab === 'reunioes' && !expandedOcc && meetingsList.length === 0 && <div style={styles.empty}>Nenhuma reunião</div>}
 
         {/* ── ABA: Reuniões (ocorrência) ── */}
         {detailTab === 'reunioes' && expandedOcc && (
-          <div>
+          <div style={{ padding: '20px 0' }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--cbrio-text, #1a1a2e)', marginBottom: 16 }}>Reuniões — {fmtDate(expandedOcc.date)} ({expandedOcc.meetings?.length || 0})</div>
             {(expandedOcc.meetings || []).map(m => (
               <div key={m.id} style={styles.taskCard}>
                 <div style={{ fontWeight: 600, fontSize: 13, color: C.text }}>{m.title}</div>
@@ -1456,8 +1437,9 @@ export default function Eventos() {
 
         {/* ── ABA: Riscos ── */}
         {detailTab === 'riscos' && (
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+          <div style={{ padding: '20px 0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--cbrio-text, #1a1a2e)' }}>Riscos do Evento ({eventRisks.length})</div>
               <button style={{ ...styles.btn('primary'), ...styles.btnSm }} onClick={() => setShowRiskForm(true)}>+ Risco</button>
             </div>
             {eventRisks.length === 0 && <div style={styles.empty}>Nenhum risco registrado</div>}
@@ -1485,7 +1467,8 @@ export default function Eventos() {
 
         {/* ── ABA: Histórico ── */}
         {detailTab === 'historico' && (
-          <div>
+          <div style={{ padding: '20px 0' }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--cbrio-text, #1a1a2e)', marginBottom: 16 }}>Histórico de Alterações</div>
             {auditHistory.length === 0 && <div style={styles.empty}>Nenhuma alteração registrada</div>}
             {auditHistory.map(h => (
               <div key={h.id} style={{ display: 'flex', gap: 8, padding: '8px 0', borderBottom: `1px solid ${C.border}`, fontSize: 12 }}>
