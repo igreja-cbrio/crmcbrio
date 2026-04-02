@@ -111,8 +111,8 @@ export default function AppShell() {
           </span>
         </div>
 
-        {/* Mega Menu */}
-        <nav className="flex-1 flex items-center">
+        {/* Mega Menu — centered */}
+        <nav className="flex-1 flex items-center justify-center">
           <MegaMenu items={NAV_ITEMS} role={role} />
         </nav>
 

@@ -39,7 +39,7 @@ export default function MegaMenu({ items, role }: MegaMenuProps) {
   };
 
   return (
-    <ul className="relative flex items-center gap-4">
+    <ul className="relative flex items-center gap-6">
       {items.map((navItem) => {
         // Filter by role at group level
         const hasAccess = !navItem.subMenus || navItem.subMenus.some(sub =>
@@ -127,7 +127,7 @@ export default function MegaMenu({ items, role }: MegaMenuProps) {
                           >
                             {sub.title}
                           </h3>
-                          <ul className="space-y-1">
+                          <ul className="space-y-0.5">
                             {sub.items.map((item) => {
                               const Icon = item.icon;
                               const isActive = location.pathname.startsWith(item.path);
@@ -136,7 +136,7 @@ export default function MegaMenu({ items, role }: MegaMenuProps) {
                                   <Link
                                     to={item.path}
                                     onClick={() => setOpenMenu(null)}
-                                    className="flex items-center gap-3.5 rounded-xl p-3 transition-colors duration-150 group"
+                                    className="flex items-center gap-3.5 rounded-xl px-3 py-3.5 transition-colors duration-150 group"
                                     style={{
                                       background: isActive ? '#00B39D10' : undefined,
                                     }}
