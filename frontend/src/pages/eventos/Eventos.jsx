@@ -46,13 +46,14 @@ const styles = {
     borderBottom: active ? `2px solid ${C.primary}` : '2px solid transparent',
     marginBottom: -2, transition: 'all 0.15s',
   }),
-  kpiGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 24 },
+  kpiGrid: { display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 24 },
   kpi: (color) => ({
-    background: C.card, borderRadius: 12, padding: '16px 20px', border: `1px solid ${C.border}`,
+    background: C.card, borderRadius: 12, padding: '20px 24px', border: `1px solid ${C.border}`,
     borderLeft: `4px solid ${color}`, boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+    flex: '1 1 170px', minWidth: 140,
   }),
-  kpiValue: { fontSize: 28, fontWeight: 800, color: C.text },
-  kpiLabel: { fontSize: 11, fontWeight: 600, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 },
+  kpiValue: { fontSize: 32, fontWeight: 800, color: C.text },
+  kpiLabel: { fontSize: 12, fontWeight: 600, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 4 },
   card: {
     background: C.card, borderRadius: 12, border: `1px solid ${C.border}`,
     boxShadow: '0 1px 3px rgba(0,0,0,0.04)', overflow: 'hidden',
@@ -880,32 +881,37 @@ export default function Eventos() {
 
         {/* Orçamento global + Carga de trabalho */}
         {(k.budget_total > 0 || workload.length > 0) && (
-          <div style={{ display: 'grid', gridTemplateColumns: workload.length > 0 ? '1fr 1fr' : '1fr', gap: 12, marginBottom: 16 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginBottom: 20 }}>
             {k.budget_total > 0 && (
-              <div style={styles.card}>
-                <div style={{ padding: '14px 20px' }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--cbrio-text, #1a1a2e)', marginBottom: 8 }}>Orçamento Global</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--cbrio-text2, #6b7280)', marginBottom: 4 }}>
-                    <span>R$ {Number(k.budget_spent || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                    <span>R$ {Number(k.budget_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+              <div style={{ ...styles.card, flex: '1 1 320px', minWidth: 280 }}>
+                <div style={{ padding: '20px 24px' }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--cbrio-text, #1a1a2e)', marginBottom: 12 }}>Orçamento Global</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--cbrio-text2, #6b7280)', marginBottom: 6 }}>
+                    <span>Gasto: R$ {Number(k.budget_spent || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                    <span>Aprovado: R$ {Number(k.budget_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                   </div>
-                  <div style={{ height: 8, background: 'var(--cbrio-border, #e5e7eb)', borderRadius: 4 }}>
-                    <div style={{ height: '100%', width: `${Math.min(((k.budget_spent || 0) / k.budget_total) * 100, 100)}%`, borderRadius: 4, background: (k.budget_spent || 0) > k.budget_total ? '#ef4444' : '#10b981' }} />
+                  <div style={{ height: 10, background: 'var(--cbrio-border, #e5e7eb)', borderRadius: 5 }}>
+                    <div style={{ height: '100%', width: `${Math.min(((k.budget_spent || 0) / k.budget_total) * 100, 100)}%`, borderRadius: 5, background: (k.budget_spent || 0) > k.budget_total ? '#ef4444' : '#10b981', transition: 'width 0.3s' }} />
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--cbrio-text3, #9ca3af)', marginTop: 6 }}>
+                    {Math.round(((k.budget_spent || 0) / (k.budget_total || 1)) * 100)}% utilizado
                   </div>
                 </div>
               </div>
             )}
             {workload.length > 0 && (
-              <div style={styles.card}>
-                <div style={{ padding: '14px 20px' }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--cbrio-text, #1a1a2e)', marginBottom: 8 }}>Carga de Trabalho</div>
-                  {workload.slice(0, 5).map((w, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                      <span style={{ fontSize: 12, color: 'var(--cbrio-text, #1a1a2e)', width: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.responsible}</span>
-                      <div style={{ flex: 1, height: 6, background: 'var(--cbrio-border, #e5e7eb)', borderRadius: 3 }}>
-                        <div style={{ height: '100%', width: `${Math.min((w.total_tasks / Math.max(...workload.map(x => x.total_tasks))) * 100, 100)}%`, borderRadius: 3, background: w.atrasadas > 0 ? '#ef4444' : '#10b981' }} />
+              <div style={{ ...styles.card, flex: '1 1 320px', minWidth: 280 }}>
+                <div style={{ padding: '20px 24px' }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--cbrio-text, #1a1a2e)', marginBottom: 12 }}>Carga de Trabalho</div>
+                  {workload.slice(0, 6).map((w, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                      <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--cbrio-text, #1a1a2e)', width: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.responsible}</span>
+                      <div style={{ flex: 1, height: 8, background: 'var(--cbrio-border, #e5e7eb)', borderRadius: 4 }}>
+                        <div style={{ height: '100%', width: `${Math.min((w.total_tasks / Math.max(...workload.map(x => x.total_tasks), 1)) * 100, 100)}%`, borderRadius: 4, background: w.atrasadas > 0 ? '#ef4444' : '#10b981', transition: 'width 0.3s' }} />
                       </div>
-                      <span style={{ fontSize: 11, color: 'var(--cbrio-text3, #9ca3af)', minWidth: 40, textAlign: 'right' }}>{w.total_tasks}t {w.atrasadas > 0 ? `(${w.atrasadas}⚠)` : ''}</span>
+                      <span style={{ fontSize: 12, color: w.atrasadas > 0 ? '#ef4444' : 'var(--cbrio-text3, #9ca3af)', fontWeight: 600, minWidth: 60, textAlign: 'right' }}>
+                        {w.total_tasks} tarefas{w.atrasadas > 0 ? ` (${w.atrasadas} ⚠)` : ''}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -956,6 +962,9 @@ export default function Eventos() {
             })}
           </div>
         )}
+
+        {/* Margem inferior */}
+        <div style={{ height: 80 }} />
       </>
     );
   }
