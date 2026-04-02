@@ -339,10 +339,10 @@ export default function Eventos() {
       try {
         const cycleData = await cyclesApi.get(id);
         setHasCycle(!!cycleData?.cycle);
-        setDetailTab(cycleData?.cycle ? 'ciclo' : 'info');
+        setDetailTab('tarefas');
       } catch {
         setHasCycle(false);
-        setDetailTab('info');
+        setDetailTab('tarefas');
       }
     } catch (e) { setError(e.message); }
     finally { setLoading(false); }
@@ -1187,268 +1187,40 @@ export default function Eventos() {
           </div>
         </div>
 
-        {/* Área expandida da ocorrência selecionada */}
+        {/* Contexto: ocorrência selecionada ou evento */}
         {expandedOcc && (
-          <div style={{ ...styles.card, marginBottom: 20, borderTop: `3px solid ${C.primary}` }}>
-            <div style={{ ...styles.cardHeader }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={styles.cardTitle}>Ocorrência: {fmtDate(expandedOcc.date)}</div>
-                <span style={styles.badge(
-                  expandedOcc.status === 'concluido' ? C.green : C.text3,
-                  expandedOcc.status === 'concluido' ? `${C.green}15` : '#f3f4f6'
-                )}>{expandedOcc.status === 'concluido' ? 'Concluído' : 'Pendente'}</span>
-              </div>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button
-                  style={{ ...styles.btn(expandedOcc.status === 'concluido' ? 'secondary' : 'primary'), ...styles.btnSm }}
-                  onClick={async () => {
-                    const newStatus = expandedOcc.status === 'concluido' ? 'pendente' : 'concluido';
-                    try {
-                      await events.updateOccurrence(ev.id, expandedOcc.id, { status: newStatus });
-                      refreshDetail();
-                      loadOccurrence(expandedOcc.id);
-                      // Atualizar KPIs
-                      dashApi.pmo().then(d => setPmoKpis(d)).catch(() => {});
-                    } catch (err) { setError(err.message); }
-                  }}>
-                  {expandedOcc.status === 'concluido' ? 'Reabrir' : 'Finalizar'}
-                </button>
-                <button style={{ ...styles.btn('ghost'), fontSize: 16 }} onClick={() => setExpandedOcc(null)}>✕</button>
-              </div>
-            </div>
-            <div style={{ padding: '16px 20px' }}>
-              {/* Tarefas da ocorrência */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>Tarefas ({expandedOcc.tasks?.length || 0})</div>
-              </div>
-              {(expandedOcc.tasks || []).map(task => (
-                <div key={task.id} style={{ ...styles.taskCard, padding: '10px 14px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <span style={{ fontWeight: 600, fontSize: 13, color: C.text }}>{task.name}</span>
-                      {task.responsible && <span style={{ fontSize: 11, color: C.text2, marginLeft: 8 }}>{task.responsible}</span>}
-                      {task.deadline && <span style={{ fontSize: 11, color: C.text3, marginLeft: 8 }}>Prazo: {fmtDate(task.deadline)}</span>}
-                    </div>
-                    <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                      <select value={task.status} onChange={e => changeOccTaskStatus(task.id, e.target.value, expandedOcc.id)}
-                        style={{ ...styles.select, padding: '2px 6px', fontSize: 11 }}>
-                        <option value="pendente">Pendente</option>
-                        <option value="em-andamento">Em andamento</option>
-                        <option value="concluida">Concluída</option>
-                      </select>
-                      <button style={{ ...styles.btn('ghost'), ...styles.btnSm, color: C.red }} onClick={() => deleteOccTask(task.id, expandedOcc.id)}>✕</button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              <div style={{ display: 'flex', gap: 6, marginBottom: 20 }}>
-                <input style={styles.inlineInput} placeholder="Nova tarefa..." value={occTaskName}
-                  onChange={e => setOccTaskName(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && addOccTask(expandedOcc.id)} />
-                <button style={styles.inlineBtn} onClick={() => addOccTask(expandedOcc.id)}>+</button>
-              </div>
-
-              {/* Reuniões da ocorrência */}
-              <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 10 }}>Reuniões ({expandedOcc.meetings?.length || 0})</div>
-              {(expandedOcc.meetings || []).map(m => (
-                <div key={m.id} style={{ ...styles.taskCard, padding: '10px 14px' }}>
-                  <div style={{ fontWeight: 600, fontSize: 13, color: C.text }}>{m.title}</div>
-                  <div style={{ fontSize: 11, color: C.text2, marginTop: 2 }}>
-                    {fmtDate(m.date)}
-                    {m.participants?.length > 0 && ` · ${m.participants.join(', ')}`}
-                  </div>
-                  {m.decisions && <div style={{ fontSize: 12, color: C.text2, marginTop: 4 }}><strong>Decisões:</strong> {m.decisions}</div>}
-                  {(m.pendencies || []).length > 0 && (
-                    <div style={{ marginTop: 6 }}>
-                      {m.pendencies.map(p => (
-                        <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '2px 0' }}>
-                          <input type="checkbox" checked={p.done} onChange={() => toggleOccPendency(p.id, p.done, expandedOcc.id)} />
-                          <span style={p.done ? { textDecoration: 'line-through', color: C.text3 } : { color: C.text }}>{p.description}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-              <div style={{ display: 'flex', gap: 6 }}>
-                <input style={{ ...styles.inlineInput, flex: 2 }} placeholder="Título da reunião..." value={occMeetingTitle}
-                  onChange={e => setOccMeetingTitle(e.target.value)} />
-                <input type="date" style={{ ...styles.inlineInput, flex: 1 }} value={occMeetingDate}
-                  onChange={e => setOccMeetingDate(e.target.value)} />
-                <button style={styles.inlineBtn} onClick={() => addOccMeeting(expandedOcc.id)}>+</button>
-              </div>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, padding: '8px 14px', background: 'var(--cbrio-bg, #f3f4f6)', borderRadius: 8, border: `1px solid ${C.border}` }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Visualizando: {fmtDate(expandedOcc.date)}</span>
+            <span style={styles.badge(expandedOcc.status === 'concluido' ? C.green : C.text3, expandedOcc.status === 'concluido' ? `${C.green}15` : '#f3f4f6')}>
+              {expandedOcc.status === 'concluido' ? 'Concluído' : 'Pendente'}
+            </span>
+            <button style={{ ...styles.btn(expandedOcc.status === 'concluido' ? 'secondary' : 'primary'), ...styles.btnSm }}
+              onClick={async () => {
+                const ns = expandedOcc.status === 'concluido' ? 'pendente' : 'concluido';
+                try { await events.updateOccurrence(ev.id, expandedOcc.id, { status: ns }); refreshDetail(); loadOccurrence(expandedOcc.id); dashApi.pmo().then(setPmoKpis).catch(() => {}); }
+                catch (err) { setError(err.message); }
+              }}>
+              {expandedOcc.status === 'concluido' ? 'Reabrir' : 'Finalizar'}
+            </button>
           </div>
         )}
 
-        {/* ── Riscos ── */}
-        <div style={{ ...styles.card, marginBottom: 20 }}>
-          <div style={{ ...styles.cardHeader }}>
-            <div style={styles.cardTitle}>Riscos ({eventRisks.length})</div>
-            <button style={{ ...styles.btn('primary'), ...styles.btnSm }} onClick={() => setShowRiskForm(true)}>+ Risco</button>
-          </div>
-          {eventRisks.length > 0 && (
-            <div style={{ padding: '0 20px 16px' }}>
-              {eventRisks.map(risk => {
-                const scoreColor = risk.score >= 15 ? C.red : risk.score >= 9 ? C.amber : C.green;
-                return (
-                  <div key={risk.id} style={{ ...styles.taskCard, borderLeft: `4px solid ${scoreColor}` }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <span style={{ fontWeight: 600, fontSize: 13 }}>{risk.title}</span>
-                        <span style={styles.badge(scoreColor, `${scoreColor}15`)}> P{risk.probability}×I{risk.impact}={risk.score}</span>
-                      </div>
-                      <select value={risk.status} onChange={async e => { await risksApi.update(risk.id, { status: e.target.value }); risksApi.list(ev.id).then(setEventRisks); }}
-                        style={{ ...styles.select, padding: '2px 6px', fontSize: 11 }}>
-                        {['aberto','mitigando','mitigado','aceito','fechado'].map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                    </div>
-                    {risk.mitigation && <div style={{ fontSize: 11, color: C.text2, marginTop: 4 }}>Mitigação: {risk.mitigation}</div>}
-                    {risk.owner_name && <div style={{ fontSize: 11, color: C.text3 }}>Responsável: {risk.owner_name}</div>}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Modal: Novo risco */}
-        {showRiskForm && (
-          <Modal open onClose={() => setShowRiskForm(false)} title="Novo Risco"
-            footer={<>
-              <button style={styles.btn('ghost')} onClick={() => setShowRiskForm(false)}>Cancelar</button>
-              <button style={styles.btn('primary')} onClick={async () => {
-                const f = document.getElementById('risk-form');
-                const fd = new FormData(f);
-                const data = Object.fromEntries(fd.entries());
-                data.probability = parseInt(data.probability); data.impact = parseInt(data.impact);
-                await risksApi.create(ev.id, data);
-                setShowRiskForm(false);
-                risksApi.list(ev.id).then(setEventRisks);
-              }}>Salvar</button>
-            </>}>
-            <form id="risk-form" onSubmit={e => e.preventDefault()}>
-              <Input label="Título" name="title" required />
-              <Textarea label="Descrição" name="description" />
-              <div style={styles.formRow}>
-                <Select label="Categoria" name="category">
-                  <option value="timeline">Timeline</option>
-                  <option value="budget">Orçamento</option>
-                  <option value="resources">Recursos</option>
-                  <option value="quality">Qualidade</option>
-                  <option value="stakeholder">Stakeholder</option>
-                  <option value="other">Outro</option>
-                </Select>
-                <Select label="Status" name="status">
-                  <option value="aberto">Aberto</option>
-                  <option value="mitigando">Mitigando</option>
-                  <option value="aceito">Aceito</option>
-                </Select>
-              </div>
-              <div style={styles.formRow}>
-                <Select label="Probabilidade (1-5)" name="probability" defaultValue="3">
-                  {[1,2,3,4,5].map(n => <option key={n} value={n}>{n} - {['Rara','Baixa','Média','Alta','Muito Alta'][n-1]}</option>)}
-                </Select>
-                <Select label="Impacto (1-5)" name="impact" defaultValue="3">
-                  {[1,2,3,4,5].map(n => <option key={n} value={n}>{n} - {['Insignificante','Baixo','Moderado','Grave','Catastrófico'][n-1]}</option>)}
-                </Select>
-              </div>
-              <Textarea label="Estratégia de mitigação" name="mitigation" />
-              <div style={styles.formRow}>
-                <Input label="Responsável" name="owner_name" />
-                <Input label="Data alvo" name="target_date" type="date" />
-              </div>
-            </form>
-          </Modal>
-        )}
-
-        {/* ── Retrospectiva (só eventos concluídos) ── */}
-        {ev.status === 'concluido' && (
-          <div style={{ ...styles.card, marginBottom: 20 }}>
-            <div style={{ ...styles.cardHeader }}>
-              <div style={styles.cardTitle}>Retrospectiva</div>
-              {!retroData && <button style={{ ...styles.btn('primary'), ...styles.btnSm }} onClick={() => setShowRetroForm(true)}>Preencher</button>}
-            </div>
-            {retroData ? (
-              <div style={{ padding: '12px 20px' }}>
-                {retroData.overall_rating && <div style={{ fontSize: 13, marginBottom: 8 }}>Avaliação: {'★'.repeat(retroData.overall_rating)}{'☆'.repeat(5 - retroData.overall_rating)}</div>}
-                {retroData.what_went_well && <div style={{ marginBottom: 8 }}><span style={styles.label}>O que foi bem</span><div style={{ fontSize: 13, color: C.text2 }}>{retroData.what_went_well}</div></div>}
-                {retroData.what_to_improve && <div style={{ marginBottom: 8 }}><span style={styles.label}>O que melhorar</span><div style={{ fontSize: 13, color: C.text2 }}>{retroData.what_to_improve}</div></div>}
-                {retroData.action_items && <div><span style={styles.label}>Ações</span><div style={{ fontSize: 13, color: C.text2 }}>{retroData.action_items}</div></div>}
-              </div>
-            ) : (
-              <div style={{ padding: 16, textAlign: 'center', color: C.text3, fontSize: 13 }}>Nenhuma retrospectiva registrada</div>
-            )}
-          </div>
-        )}
-
-        {/* Modal: Retrospectiva */}
-        {showRetroForm && (
-          <Modal open onClose={() => setShowRetroForm(false)} title="Retrospectiva do Evento"
-            footer={<>
-              <button style={styles.btn('ghost')} onClick={() => setShowRetroForm(false)}>Cancelar</button>
-              <button style={styles.btn('primary')} onClick={async () => {
-                const f = document.getElementById('retro-form');
-                const fd = new FormData(f);
-                const data = Object.fromEntries(fd.entries());
-                if (data.overall_rating) data.overall_rating = parseInt(data.overall_rating);
-                await retroApi.save(ev.id, data);
-                setShowRetroForm(false);
-                retroApi.get(ev.id).then(setRetroData);
-              }}>Salvar</button>
-            </>}>
-            <form id="retro-form" onSubmit={e => e.preventDefault()}>
-              <Select label="Avaliação geral" name="overall_rating">
-                <option value="">Selecionar...</option>
-                {[5,4,3,2,1].map(n => <option key={n} value={n}>{'★'.repeat(n)} ({n}/5)</option>)}
-              </Select>
-              <Textarea label="O que foi bem?" name="what_went_well" />
-              <Textarea label="O que pode melhorar?" name="what_to_improve" />
-              <Textarea label="Ações para próximos eventos" name="action_items" />
-              <Textarea label="Feedback dos participantes" name="attendee_feedback" />
-            </form>
-          </Modal>
-        )}
-
-        {/* ── Histórico de alterações ── */}
-        {auditHistory.length > 0 && (
-          <div style={{ ...styles.card, marginBottom: 20 }}>
-            <div style={{ ...styles.cardHeader }}>
-              <div style={styles.cardTitle}>Histórico ({auditHistory.length})</div>
-            </div>
-            <div style={{ padding: '8px 20px 16px', maxHeight: 200, overflowY: 'auto' }}>
-              {auditHistory.map(h => (
-                <div key={h.id} style={{ display: 'flex', gap: 8, padding: '6px 0', borderBottom: `1px solid ${C.border}`, fontSize: 12 }}>
-                  <span style={{ color: C.text3, minWidth: 110 }}>{new Date(h.created_at).toLocaleString('pt-BR')}</span>
-                  <span style={{ color: C.text2 }}>{h.changed_by_name || '—'}</span>
-                  <span style={{ color: C.text, flex: 1 }}>{h.description || `${h.action}: ${h.field_name || h.table_name}`}</span>
-                  {h.old_value && h.new_value && <span style={{ color: C.text3 }}>{h.old_value} → {h.new_value}</span>}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Sub-tabs do detalhe */}
-        <div style={{ ...styles.tabs, marginTop: 20, marginBottom: 16 }}>
-          {(hasCycle
-            ? [{ key: 'ciclo', label: 'Ciclo Criativo' }]
-            : [{ key: 'info', label: 'Tarefas e Reuniões' }, { key: 'ciclo', label: 'Ciclo Criativo' }]
-          ).map(t => (
+        {/* ── ABAS FIXAS ── */}
+        <div style={styles.tabs}>
+          {[
+            { key: 'tarefas', label: `Tarefas (${expandedOcc ? (expandedOcc.tasks?.length || 0) : taskList.length})` },
+            { key: 'reunioes', label: `Reuniões (${expandedOcc ? (expandedOcc.meetings?.length || 0) : meetingsList.length})` },
+            { key: 'riscos', label: `Riscos (${eventRisks.length})` },
+            { key: 'historico', label: `Histórico (${auditHistory.length})` },
+            ...(hasCycle ? [{ key: 'ciclo', label: 'Ciclo Criativo' }] : []),
+            ...(ev.status === 'concluido' ? [{ key: 'retro', label: 'Retrospectiva' }] : []),
+          ].map(t => (
             <button key={t.key} style={styles.tab(detailTab === t.key)} onClick={() => setDetailTab(t.key)}>{t.label}</button>
           ))}
         </div>
 
-        {/* Sub-tab: Ciclo Criativo */}
-        {detailTab === 'ciclo' && (
-          <div>
-            <BudgetPanel eventId={ev.id} budget={null} onReload={() => refreshDetail()} />
-            <CycleView eventId={ev.id} />
-          </div>
-        )}
-
-        {/* Sub-tab: Tarefas e Reuniões (só quando não tem ciclo) */}
-        {detailTab === 'info' && <>
+        {/* ── ABA: Tarefas ── */}
+        {detailTab === 'tarefas' && !expandedOcc && <>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 24, marginBottom: 12 }}>
           <div style={{ ...styles.sectionTitle, margin: 0 }}>Tarefas ({taskList.length})</div>
           <button style={{ ...styles.btn('primary'), ...styles.btnSm }} onClick={() => setModalTask({})}>+ Tarefa</button>
@@ -1591,6 +1363,237 @@ export default function Eventos() {
           </>
         )}
         </>}
+
+        {/* ── ABA: Tarefas (ocorrência) ── */}
+        {detailTab === 'tarefas' && expandedOcc && (
+          <div>
+            {(expandedOcc.tasks || []).map(task => (
+              <div key={task.id} style={styles.taskCard}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <span style={{ fontWeight: 600, fontSize: 13, color: C.text }}>{task.name}</span>
+                    {task.responsible && <span style={{ fontSize: 11, color: C.text2, marginLeft: 8 }}>{task.responsible}</span>}
+                    {task.deadline && <span style={{ fontSize: 11, color: C.text3, marginLeft: 8 }}>Prazo: {fmtDate(task.deadline)}</span>}
+                  </div>
+                  <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                    <select value={task.status} onChange={e => changeOccTaskStatus(task.id, e.target.value, expandedOcc.id)}
+                      style={{ ...styles.select, padding: '2px 6px', fontSize: 11 }}>
+                      <option value="pendente">Pendente</option>
+                      <option value="em-andamento">Em andamento</option>
+                      <option value="concluida">Concluída</option>
+                    </select>
+                    <button style={{ ...styles.btn('ghost'), ...styles.btnSm, color: C.red }} onClick={() => deleteOccTask(task.id, expandedOcc.id)}>✕</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+            <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+              <input style={styles.inlineInput} placeholder="Nova tarefa..." value={occTaskName}
+                onChange={e => setOccTaskName(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && addOccTask(expandedOcc.id)} />
+              <button style={styles.inlineBtn} onClick={() => addOccTask(expandedOcc.id)}>+</button>
+            </div>
+          </div>
+        )}
+
+        {/* ── ABA: Reuniões (evento) ── */}
+        {detailTab === 'reunioes' && !expandedOcc && meetingsList.length > 0 && (
+          <div style={styles.card}>
+            <table style={styles.table}>
+              <thead><tr><th style={styles.th}>Data</th><th style={styles.th}>Título</th><th style={styles.th}>Pendências</th></tr></thead>
+              <tbody>
+                {meetingsList.map(m => (
+                  <tr key={m.id}>
+                    <td style={styles.td}>{fmtDate(m.date)}</td>
+                    <td style={styles.td}>{m.title || '—'}</td>
+                    <td style={styles.td}>
+                      {(m.pendencies || []).length === 0 ? '—' : (
+                        <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12 }}>
+                          {m.pendencies.map(p => (
+                            <li key={p.id} style={p.done ? { textDecoration: 'line-through', color: C.text3 } : {}}>{p.description || p.text} {p.responsible ? `(${p.responsible})` : ''}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {detailTab === 'reunioes' && !expandedOcc && meetingsList.length === 0 && <div style={styles.empty}>Nenhuma reunião</div>}
+
+        {/* ── ABA: Reuniões (ocorrência) ── */}
+        {detailTab === 'reunioes' && expandedOcc && (
+          <div>
+            {(expandedOcc.meetings || []).map(m => (
+              <div key={m.id} style={styles.taskCard}>
+                <div style={{ fontWeight: 600, fontSize: 13, color: C.text }}>{m.title}</div>
+                <div style={{ fontSize: 11, color: C.text2, marginTop: 2 }}>
+                  {fmtDate(m.date)}{m.participants?.length > 0 && ` · ${m.participants.join(', ')}`}
+                </div>
+                {m.decisions && <div style={{ fontSize: 12, color: C.text2, marginTop: 4 }}><strong>Decisões:</strong> {m.decisions}</div>}
+                {(m.pendencies || []).length > 0 && (
+                  <div style={{ marginTop: 6 }}>
+                    {m.pendencies.map(p => (
+                      <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '2px 0' }}>
+                        <input type="checkbox" checked={p.done} onChange={() => toggleOccPendency(p.id, p.done, expandedOcc.id)} />
+                        <span style={p.done ? { textDecoration: 'line-through', color: C.text3 } : { color: C.text }}>{p.description}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+            {(expandedOcc.meetings || []).length === 0 && <div style={styles.empty}>Nenhuma reunião nesta ocorrência</div>}
+            <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+              <input style={{ ...styles.inlineInput, flex: 2 }} placeholder="Título da reunião..." value={occMeetingTitle} onChange={e => setOccMeetingTitle(e.target.value)} />
+              <input type="date" style={{ ...styles.inlineInput, flex: 1 }} value={occMeetingDate} onChange={e => setOccMeetingDate(e.target.value)} />
+              <button style={styles.inlineBtn} onClick={() => addOccMeeting(expandedOcc.id)}>+</button>
+            </div>
+          </div>
+        )}
+
+        {/* ── ABA: Riscos ── */}
+        {detailTab === 'riscos' && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+              <button style={{ ...styles.btn('primary'), ...styles.btnSm }} onClick={() => setShowRiskForm(true)}>+ Risco</button>
+            </div>
+            {eventRisks.length === 0 && <div style={styles.empty}>Nenhum risco registrado</div>}
+            {eventRisks.map(risk => {
+              const scoreColor = risk.score >= 15 ? C.red : risk.score >= 9 ? C.amber : C.green;
+              return (
+                <div key={risk.id} style={{ ...styles.taskCard, borderLeft: `4px solid ${scoreColor}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <span style={{ fontWeight: 600, fontSize: 13 }}>{risk.title}</span>
+                      <span style={styles.badge(scoreColor, `${scoreColor}15`)}> P{risk.probability}×I{risk.impact}={risk.score}</span>
+                    </div>
+                    <select value={risk.status} onChange={async e => { await risksApi.update(risk.id, { status: e.target.value }); risksApi.list(ev.id).then(setEventRisks); }}
+                      style={{ ...styles.select, padding: '2px 6px', fontSize: 11 }}>
+                      {['aberto','mitigando','mitigado','aceito','fechado'].map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                  {risk.mitigation && <div style={{ fontSize: 11, color: C.text2, marginTop: 4 }}>Mitigação: {risk.mitigation}</div>}
+                  {risk.owner_name && <div style={{ fontSize: 11, color: C.text3 }}>Responsável: {risk.owner_name}</div>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── ABA: Histórico ── */}
+        {detailTab === 'historico' && (
+          <div>
+            {auditHistory.length === 0 && <div style={styles.empty}>Nenhuma alteração registrada</div>}
+            {auditHistory.map(h => (
+              <div key={h.id} style={{ display: 'flex', gap: 8, padding: '8px 0', borderBottom: `1px solid ${C.border}`, fontSize: 12 }}>
+                <span style={{ color: C.text3, minWidth: 120 }}>{new Date(h.created_at).toLocaleString('pt-BR')}</span>
+                <span style={{ color: C.text2, minWidth: 80 }}>{h.changed_by_name || '—'}</span>
+                <span style={{ color: C.text, flex: 1 }}>{h.description || `${h.action}: ${h.field_name || h.table_name}`}</span>
+                {h.old_value && h.new_value && <span style={{ color: C.text3 }}>{h.old_value} → {h.new_value}</span>}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── ABA: Ciclo Criativo (só se ativado) ── */}
+        {detailTab === 'ciclo' && (
+          <div>
+            <BudgetPanel eventId={ev.id} budget={null} onReload={() => refreshDetail()} />
+            <CycleView eventId={ev.id} />
+          </div>
+        )}
+
+        {/* ── ABA: Retrospectiva (só evento concluído) ── */}
+        {detailTab === 'retro' && (
+          <div>
+            {retroData ? (
+              <div style={styles.card}>
+                <div style={{ padding: '16px 20px' }}>
+                  {retroData.overall_rating && <div style={{ fontSize: 14, marginBottom: 10 }}>Avaliação: {'★'.repeat(retroData.overall_rating)}{'☆'.repeat(5 - retroData.overall_rating)}</div>}
+                  {retroData.what_went_well && <div style={{ marginBottom: 10 }}><span style={styles.label}>O que foi bem</span><div style={{ fontSize: 13, color: C.text2 }}>{retroData.what_went_well}</div></div>}
+                  {retroData.what_to_improve && <div style={{ marginBottom: 10 }}><span style={styles.label}>O que melhorar</span><div style={{ fontSize: 13, color: C.text2 }}>{retroData.what_to_improve}</div></div>}
+                  {retroData.action_items && <div><span style={styles.label}>Ações</span><div style={{ fontSize: 13, color: C.text2 }}>{retroData.action_items}</div></div>}
+                </div>
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: 24 }}>
+                <div style={{ color: C.text3, fontSize: 13, marginBottom: 12 }}>Nenhuma retrospectiva registrada</div>
+                <button style={styles.btn('primary')} onClick={() => setShowRetroForm(true)}>Preencher Retrospectiva</button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Modal: Novo risco */}
+        {showRiskForm && (
+          <Modal open onClose={() => setShowRiskForm(false)} title="Novo Risco"
+            footer={<>
+              <button style={styles.btn('ghost')} onClick={() => setShowRiskForm(false)}>Cancelar</button>
+              <button style={styles.btn('primary')} onClick={async () => {
+                const f = document.getElementById('risk-form');
+                const fd = new FormData(f);
+                const data = Object.fromEntries(fd.entries());
+                data.probability = parseInt(data.probability); data.impact = parseInt(data.impact);
+                await risksApi.create(ev.id, data);
+                setShowRiskForm(false);
+                risksApi.list(ev.id).then(setEventRisks);
+              }}>Salvar</button>
+            </>}>
+            <form id="risk-form" onSubmit={e => e.preventDefault()}>
+              <Input label="Título" name="title" required />
+              <Textarea label="Descrição" name="description" />
+              <div style={styles.formRow}>
+                <Select label="Categoria" name="category">
+                  <option value="timeline">Timeline</option><option value="budget">Orçamento</option>
+                  <option value="resources">Recursos</option><option value="quality">Qualidade</option>
+                  <option value="stakeholder">Stakeholder</option><option value="other">Outro</option>
+                </Select>
+                <Select label="Probabilidade (1-5)" name="probability" defaultValue="3">
+                  {[1,2,3,4,5].map(n => <option key={n} value={n}>{n} - {['Rara','Baixa','Média','Alta','Muito Alta'][n-1]}</option>)}
+                </Select>
+              </div>
+              <div style={styles.formRow}>
+                <Select label="Impacto (1-5)" name="impact" defaultValue="3">
+                  {[1,2,3,4,5].map(n => <option key={n} value={n}>{n} - {['Insignificante','Baixo','Moderado','Grave','Catastrófico'][n-1]}</option>)}
+                </Select>
+                <Input label="Responsável" name="owner_name" />
+              </div>
+              <Textarea label="Estratégia de mitigação" name="mitigation" />
+              <Input label="Data alvo" name="target_date" type="date" />
+            </form>
+          </Modal>
+        )}
+
+        {/* Modal: Retrospectiva */}
+        {showRetroForm && (
+          <Modal open onClose={() => setShowRetroForm(false)} title="Retrospectiva do Evento"
+            footer={<>
+              <button style={styles.btn('ghost')} onClick={() => setShowRetroForm(false)}>Cancelar</button>
+              <button style={styles.btn('primary')} onClick={async () => {
+                const f = document.getElementById('retro-form');
+                const fd = new FormData(f);
+                const data = Object.fromEntries(fd.entries());
+                if (data.overall_rating) data.overall_rating = parseInt(data.overall_rating);
+                await retroApi.save(ev.id, data);
+                setShowRetroForm(false);
+                retroApi.get(ev.id).then(setRetroData);
+              }}>Salvar</button>
+            </>}>
+            <form id="retro-form" onSubmit={e => e.preventDefault()}>
+              <Select label="Avaliação geral" name="overall_rating">
+                <option value="">Selecionar...</option>
+                {[5,4,3,2,1].map(n => <option key={n} value={n}>{'★'.repeat(n)} ({n}/5)</option>)}
+              </Select>
+              <Textarea label="O que foi bem?" name="what_went_well" />
+              <Textarea label="O que pode melhorar?" name="what_to_improve" />
+              <Textarea label="Ações para próximos eventos" name="action_items" />
+              <Textarea label="Feedback dos participantes" name="attendee_feedback" />
+            </form>
+          </Modal>
+        )}
       </>
     );
   }
