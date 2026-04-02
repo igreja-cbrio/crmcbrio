@@ -248,6 +248,13 @@ export const rh = {
     inscrever: (id, data) => post(`/rh/treinamentos/${id}/inscrever`, data),
     atualizarInscricao: (id, data) => patch(`/rh/treinamentos-funcionarios/${id}`, data),
   },
+  materiais: {
+    list: (params) => get('/rh/materiais' + (params ? '?' + new URLSearchParams(params) : '')),
+    create: (data) => post('/rh/materiais', data),
+    remove: (id) => del(`/rh/materiais/${id}`),
+    enviar: (id, data) => post(`/rh/materiais/${id}/enviar`, data),
+    atualizarStatus: (id, data) => patch(`/rh/materiais-funcionarios/${id}`, data),
+  },
   ferias: {
     create: (funcId, data) => post(`/rh/funcionarios/${funcId}/ferias`, data),
     update: (id, data) => patch(`/rh/ferias/${id}`, data),

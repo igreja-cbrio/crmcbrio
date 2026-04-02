@@ -238,7 +238,7 @@ router.get('/treinamentos', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('rh_treinamentos')
-      .select('*, rh_treinamentos_funcionarios(*, rh_funcionarios(id, nome))')
+      .select('*, rh_treinamentos_funcionarios(*, rh_funcionarios(id, nome, cargo, foto_url))')
       .order('data_inicio', { ascending: false });
 
     if (error) return res.status(400).json({ error: error.message });
@@ -600,6 +600,120 @@ router.put('/config/:chave', async (req, res) => {
     res.json(data);
   } catch (e) {
     res.status(500).json({ error: 'Erro ao salvar configuração' });
+  }
+});
+
+// ── MATERIAIS DE TREINAMENTO ──────────────────────────────
+
+// GET /api/rh/materiais?treinamento_id=xxx
+router.get('/materiais', async (req, res) => {
+  try {
+    let query = supabase
+      .from('rh_materiais')
+      .select('*, rh_materiais_funcionarios(*, funcionario:rh_funcionarios(id, nome, cargo, foto_url))')
+      .order('created_at', { ascending: false });
+
+    if (req.query.treinamento_id) {
+      query = query.eq('treinamento_id', req.query.treinamento_id);
+    }
+
+    const { data, error } = await query;
+    if (error) return res.status(400).json({ error: error.message });
+    res.json(data);
+  } catch (e) {
+    console.error('[RH] Listar materiais:', e.message);
+    res.status(500).json({ error: 'Erro ao listar materiais' });
+  }
+});
+
+// POST /api/rh/materiais
+router.post('/materiais', async (req, res) => {
+  try {
+    const { treinamento_id, titulo, descricao, tipo, arquivo_url, arquivo_nome, arquivo_tipo, obrigatorio } = req.body;
+    if (!titulo) return res.status(400).json({ error: 'Título é obrigatório' });
+
+    const { data, error } = await supabase
+      .from('rh_materiais')
+      .insert({
+        treinamento_id: treinamento_id || null,
+        titulo, descricao: descricao || null,
+        tipo: tipo || 'material',
+        arquivo_url: arquivo_url || null,
+        arquivo_nome: arquivo_nome || null,
+        arquivo_tipo: arquivo_tipo || null,
+        obrigatorio: obrigatorio || false,
+        created_by: req.user.userId,
+      })
+      .select()
+      .single();
+
+    if (error) return res.status(400).json({ error: error.message });
+    res.status(201).json(data);
+  } catch (e) {
+    console.error('[RH] Criar material:', e.message);
+    res.status(500).json({ error: 'Erro ao criar material' });
+  }
+});
+
+// DELETE /api/rh/materiais/:id
+router.delete('/materiais/:id', async (req, res) => {
+  try {
+    const { error } = await supabase.from('rh_materiais').delete().eq('id', req.params.id);
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ success: true });
+  } catch (e) {
+    console.error('[RH] Remover material:', e.message);
+    res.status(500).json({ error: 'Erro ao remover material' });
+  }
+});
+
+// POST /api/rh/materiais/:id/enviar — envia material para colaboradores
+router.post('/materiais/:id/enviar', async (req, res) => {
+  try {
+    const { funcionario_ids } = req.body;
+    if (!funcionario_ids || !funcionario_ids.length) {
+      return res.status(400).json({ error: 'Selecione ao menos um colaborador' });
+    }
+
+    const rows = funcionario_ids.map(fid => ({
+      material_id: req.params.id,
+      funcionario_id: fid,
+      status: 'pendente',
+    }));
+
+    const { data, error } = await supabase
+      .from('rh_materiais_funcionarios')
+      .upsert(rows, { onConflict: 'material_id,funcionario_id' })
+      .select('*, funcionario:rh_funcionarios(id, nome, cargo, foto_url)');
+
+    if (error) return res.status(400).json({ error: error.message });
+    res.status(201).json(data);
+  } catch (e) {
+    console.error('[RH] Enviar material:', e.message);
+    res.status(500).json({ error: 'Erro ao enviar material' });
+  }
+});
+
+// PATCH /api/rh/materiais-funcionarios/:id — atualiza status (visualizado/concluido)
+router.patch('/materiais-funcionarios/:id', async (req, res) => {
+  try {
+    const { status } = req.body;
+    const update = { status };
+    if (status === 'visualizado') update.data_visualizacao = new Date().toISOString();
+    if (status === 'concluido') update.data_conclusao = new Date().toISOString();
+
+    const { data, error } = await supabase
+      .from('rh_materiais_funcionarios')
+      .update(update)
+      .eq('id', req.params.id)
+      .select('*, funcionario:rh_funcionarios(id, nome, cargo, foto_url)')
+      .single();
+
+    if (error) return res.status(400).json({ error: error.message });
+    res.json(data);
+  } catch (e) {
+    console.error('[RH] Atualizar status material:', e.message);
+    res.status(500).json({ error: 'Erro ao atualizar status' });
   }
 });
 
