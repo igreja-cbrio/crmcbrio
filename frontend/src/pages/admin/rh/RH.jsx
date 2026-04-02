@@ -1327,6 +1327,41 @@ function DocumentosSection({ data, onNewDoc, onDeleteDoc }) {
   );
 }
 
+function NotasColaborador({ funcId, initialValue }) {
+  const [notas, setNotas] = useState(initialValue);
+  const [saved, setSaved] = useState(true);
+  const timerRef = useRef(null);
+
+  function handleChange(e) {
+    setNotas(e.target.value);
+    setSaved(false);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => saveNotas(e.target.value), 1500);
+  }
+
+  async function saveNotas(value) {
+    try {
+      await rh.funcionarios.update(funcId, { observacoes: value });
+      setSaved(true);
+    } catch (e) { console.error(e); }
+  }
+
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: C.text2, textTransform: 'uppercase' }}>📝 Anotações</span>
+        <span style={{ fontSize: 11, color: saved ? C.green : C.amber }}>{saved ? '✓ Salvo' : '⏳ Salvando...'}</span>
+      </div>
+      <textarea
+        style={{ ...styles.input, minHeight: 80, resize: 'vertical' }}
+        value={notas}
+        onChange={handleChange}
+        placeholder="Escreva anotações sobre este colaborador..."
+      />
+    </div>
+  );
+}
+
 const NIVEL_LABELS = { 1: 'Sem acesso', 2: 'Pessoal', 3: 'Área', 4: 'Setor', 5: 'Admin' };
 const NIVEL_COLORS = { 1: C.red, 2: C.amber, 3: C.blue, 4: C.green, 5: '#8b5cf6' };
 
@@ -1445,9 +1480,8 @@ function FuncionarioDetailPanel({ open, data, onClose, onEdit, onDelete, onNewDo
         <div><span style={{ fontSize: 11, color: C.text2 }}>Status:</span><div><Badge status={data.status} map={STATUS_COLORS} /></div></div>
       </div>
 
-      {data.observacoes && (
-        <div style={{ padding: '8px 12px', background: 'var(--cbrio-input-bg)', borderRadius: 8, marginBottom: 16, fontSize: 13, color: C.text2 }}>{data.observacoes}</div>
-      )}
+      {/* Anotações editáveis */}
+      <NotasColaborador funcId={data.id} initialValue={data.observacoes || ''} />
 
       {/* Benefícios e Remuneração */}
       <BeneficiosSection data={data} />
