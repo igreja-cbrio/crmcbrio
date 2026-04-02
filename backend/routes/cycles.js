@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const { authenticate, authorizeCycle } = require('../middleware/auth');
 const { supabase } = require('../utils/supabase');
+const ADM_TASKS_TEMPLATE = require('../adm_tasks_template.json');
 
 router.use(authenticate);
 
@@ -90,6 +91,56 @@ router.post('/activate/:eventId', async (req, res) => {
     if (admErr) throw admErr;
 
     await supabase.from('event_budgets').insert({ event_id: eventId, orcamento_aprovado: 0, created_by: userId });
+
+    // Buscar fases criadas para vincular tarefas por etapa
+    const { data: createdPhases } = await supabase.from('event_cycle_phases')
+      .select('id, nome_fase').eq('event_id', eventId);
+    const phaseMap = {};
+    (createdPhases || []).forEach(p => { phaseMap[p.nome_fase] = p.id; });
+
+    // Mapear etapas da planilha para fases do ciclo
+    const etapaToFase = {
+      'Aprovação': 'Aprovação',
+      'Execução Estratégica': 'Execução Estratégica',
+      'Pré-Testes': 'Pré-Testes',
+      'Finalizações': 'Finalizações',
+      'Alinhamentos Operacionais Finais': 'Alinhamentos Operacionais Finais',
+      'Dia D': 'Dia D',
+      'Debriefing': 'Debrief',
+    };
+
+    // Criar tarefas detalhadas com subtarefas para cada área ADM
+    for (const tmpl of ADM_TASKS_TEMPLATE) {
+      const faseNome = etapaToFase[tmpl.etapa] || tmpl.etapa;
+      const phaseId = phaseMap[faseNome] || null;
+      const dataInicio = new Date(diaDObj); dataInicio.setDate(diaDObj.getDate() + tmpl.offset_start);
+      const dataFim = new Date(diaDObj); dataFim.setDate(diaDObj.getDate() + tmpl.offset_end);
+
+      const { data: task, error: taskErr } = await supabase.from('cycle_phase_tasks').insert({
+        event_phase_id: phaseId,
+        event_id: eventId,
+        titulo: tmpl.titulo,
+        area: tmpl.area === 'compras' || tmpl.area === 'financeiro' || tmpl.area === 'manutencao' || tmpl.area === 'limpeza' || tmpl.area === 'cozinha' ? 'adm' : 'marketing',
+        prazo: dataFim.toISOString().split('T')[0],
+        status: 'a_fazer',
+        prioridade: 'normal',
+        observacoes: `Área: ${tmpl.area} | Início: ${dataInicio.toISOString().split('T')[0]} | Fim: ${dataFim.toISOString().split('T')[0]}`,
+      }).select().single();
+
+      if (taskErr) { console.error('Erro criando tarefa ADM:', taskErr.message); continue; }
+
+      // Criar subtarefas
+      if (tmpl.subtasks.length > 0 && task) {
+        const subs = tmpl.subtasks.map((s, i) => ({
+          task_id: task.id,
+          name: s.name,
+          offset_start: s.offset_start,
+          offset_end: s.offset_end,
+          sort_order: i,
+        }));
+        await supabase.from('cycle_task_subtasks').insert(subs);
+      }
+    }
 
     res.json({ success: true, cycle, message: `Ciclo criativo ativado para ${event.name}` });
   } catch (err) {
