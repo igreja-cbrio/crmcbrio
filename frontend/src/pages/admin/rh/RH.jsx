@@ -102,18 +102,18 @@ const styles = {
 const fmtDate = (d) => d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
 const fmtMoney = (v) => v != null ? `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '—';
 
-// ── Componentes auxiliares ──────────────────────────────────
+// ── Componentes auxiliares (Tailwind) ────────────────────────
 function Modal({ open, onClose, title, children, footer }) {
   if (!open) return null;
   return (
-    <div style={styles.overlay} onClick={onClose}>
-      <div style={styles.modal} onClick={e => e.stopPropagation()}>
-        <div style={styles.modalHeader}>
-          <div style={styles.modalTitle}>{title}</div>
-          <button style={{ ...styles.btn('ghost'), fontSize: 18 }} onClick={onClose}>✕</button>
+    <div className="fixed inset-0 bg-[var(--cbrio-overlay)] flex justify-center items-start pt-[60px] z-[1000]" onClick={onClose}>
+      <div className="bg-[var(--cbrio-modal-bg)] rounded-2xl w-[95%] max-w-[560px] max-h-[85vh] overflow-y-auto shadow-[0_20px_60px_rgba(0,0,0,0.2)]" onClick={e => e.stopPropagation()}>
+        <div className="px-6 pt-5 pb-3 border-b border-[var(--cbrio-border)] flex justify-between items-center">
+          <div className="text-lg font-bold text-[var(--cbrio-text)]">{title}</div>
+          <button className="bg-transparent text-[var(--cbrio-text2)] border-none text-lg cursor-pointer px-3 py-1.5 rounded-lg hover:bg-white/10 transition-all" onClick={onClose}>✕</button>
         </div>
-        <div style={styles.modalBody}>{children}</div>
-        {footer && <div style={styles.modalFooter}>{footer}</div>}
+        <div className="px-6 pt-4 pb-6">{children}</div>
+        {footer && <div className="px-6 pb-5 flex gap-2 justify-end">{footer}</div>}
       </div>
     </div>
   );
@@ -121,25 +121,25 @@ function Modal({ open, onClose, title, children, footer }) {
 
 function Input({ label, ...props }) {
   return (
-    <div style={styles.formGroup}>
-      {label && <label style={styles.label}>{label}</label>}
-      <input style={styles.input} {...props} />
+    <div className="mb-3.5">
+      {label && <label className="block text-[11px] font-semibold text-[var(--cbrio-text2)] mb-1 uppercase tracking-wider">{label}</label>}
+      <input className="w-full px-3 py-2 rounded-lg border border-[var(--cbrio-border)] text-[13px] outline-none bg-[var(--cbrio-input-bg)] text-[var(--cbrio-text)] transition-[border] duration-150 focus:border-[#00B39D]" {...props} />
     </div>
   );
 }
 
 function Select({ label, children, ...props }) {
   return (
-    <div style={styles.formGroup}>
-      {label && <label style={styles.label}>{label}</label>}
-      <select style={{ ...styles.select, width: '100%' }} {...props}>{children}</select>
+    <div className="mb-3.5">
+      {label && <label className="block text-[11px] font-semibold text-[var(--cbrio-text2)] mb-1 uppercase tracking-wider">{label}</label>}
+      <select className="w-full px-3 py-2 rounded-lg border border-[var(--cbrio-border)] text-[13px] bg-[var(--cbrio-input-bg)] text-[var(--cbrio-text)] outline-none" {...props}>{children}</select>
     </div>
   );
 }
 
 function Badge({ status, map }) {
   const s = map[status] || { c: C.text3, bg: '#73737318', label: status };
-  return <span style={styles.badge(s.c, s.bg)}>{s.label}</span>;
+  return <span className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold" style={{ color: s.c, background: s.bg }}>{s.label}</span>;
 }
 
 // ── TABS ────────────────────────────────────────────────────
