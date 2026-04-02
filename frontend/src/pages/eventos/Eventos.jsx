@@ -1754,17 +1754,17 @@ export default function Eventos() {
           {isEdit && <Textarea label="Lições Aprendidas" name="lessons_learned" defaultValue={modalEvent?.lessons_learned || ''} />}
 
           {/* Ciclo Criativo */}
-          {hasCycle ? (
-            <div style={{ padding: '10px 12px', background: '#d1fae5', borderRadius: 8, border: '1px solid #a7f3d0', display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#10b981' }}>✓ Ciclo Criativo ativado</span>
+          {isEdit && hasCycle && selectedEvent?.id === modalEvent?.id ? (
+            <div style={{ padding: '12px 14px', background: '#d1fae5', borderRadius: 8, border: '1px solid #a7f3d0', display: 'flex', alignItems: 'center', gap: 8, marginTop: 12 }}>
+              <span style={{ fontSize: 14, fontWeight: 600, color: '#10b981' }}>✓ Ciclo Criativo ativado</span>
             </div>
           ) : (
-            <div style={{ padding: '10px 12px', background: '#f3e8ff', borderRadius: 8, border: '1px solid #e9d5ff', display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
-              <input type="checkbox" name="ativar_ciclo" id="ciclo-modal" value="true" />
-              <label htmlFor="ciclo-modal" style={{ fontSize: 13, color: '#7c3aed', fontWeight: 600, cursor: 'pointer' }}>
+            <div style={{ padding: '12px 14px', background: '#f3e8ff', borderRadius: 8, border: '1px solid #e9d5ff', display: 'flex', alignItems: 'center', gap: 8, marginTop: 12 }}>
+              <input type="checkbox" name="ativar_ciclo" id="ciclo-modal" value="true" style={{ width: 18, height: 18, cursor: 'pointer' }} />
+              <label htmlFor="ciclo-modal" style={{ fontSize: 14, color: '#7c3aed', fontWeight: 600, cursor: 'pointer' }}>
                 Ativar Ciclo Criativo
               </label>
-              <span style={{ fontSize: 11, color: C.text3 }}>— 11 fases de produção + trilha administrativa</span>
+              <span style={{ fontSize: 12, color: C.text3 }}>— 11 fases de produção + trilha administrativa</span>
             </div>
           )}
         </form>
