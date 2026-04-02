@@ -270,7 +270,7 @@ export default function RH() {
       {error && <div style={{ color: C.red, marginBottom: 12, fontSize: 13 }}>{error}</div>}
 
       {/* Tab Content */}
-      {tab === 0 && <DashboardTab dash={dash} />}
+      {tab === 0 && <DashboardTab dash={dash} onNavigate={setTab} setFiltroStatus={setFiltroStatus} />}
       {tab === 1 && (
         <FuncionariosTab
           funcs={funcs} loading={loading} busca={busca} setBusca={setBusca}
@@ -316,9 +316,15 @@ export default function RH() {
 // TAB: DASHBOARD
 // ═══════════════════════════════════════════════════════════
 // Stat Card com visual moderno (inspirado em reui/statistics-card)
-function StatCard({ label, value, bg, svg }) {
+function StatCard({ label, value, bg, svg, onClick }) {
   return (
-    <div style={{ position: 'relative', overflow: 'hidden', background: bg, borderRadius: 12, padding: '20px 24px', color: '#fff', minHeight: 100 }}>
+    <div onClick={onClick} style={{
+      position: 'relative', overflow: 'hidden', background: bg, borderRadius: 12, padding: '20px 24px', color: '#fff', minHeight: 100,
+      cursor: onClick ? 'pointer' : 'default', transition: 'transform 0.15s, box-shadow 0.15s',
+    }}
+      onMouseEnter={e => { if (onClick) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.3)'; } }}
+      onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
+    >
       {svg}
       <div style={{ position: 'relative', zIndex: 1 }}>
         <div style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.8)', marginBottom: 8 }}>{label}</div>
@@ -336,22 +342,24 @@ const kpiSvgs = [
   <svg key="s5" style={{ position: 'absolute', right: 0, top: 0, width: 192, height: 192, pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 200 200" fill="none"><circle cx="160" cy="50" r="40" fill="#fff" fillOpacity="0.10" /><rect x="130" y="80" width="50" height="16" rx="8" fill="#fff" fillOpacity="0.08" /><polygon points="180,0 200,0 200,40" fill="#fff" fillOpacity="0.12" /></svg>,
 ];
 
-function DashboardTab({ dash }) {
+function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
   if (!dash) return <div style={styles.empty}>Carregando dashboard...</div>;
 
+  const goTo = (tab, status) => { if (setFiltroStatus) setFiltroStatus(status || ''); if (onNavigate) onNavigate(tab); };
+
   const kpis = [
-    { label: 'Total Colaboradores', value: dash.total, bg: '#0a0a0a' },
-    { label: 'Ativos', value: dash.ativos, bg: '#00B39D' },
-    { label: 'Em Férias', value: dash.ferias, bg: '#3b82f6' },
-    { label: 'Em Licença', value: dash.licenca, bg: '#f59e0b' },
-    { label: 'Inativos', value: dash.inativos, bg: '#6b7280' },
+    { label: 'Total Colaboradores', value: dash.total, bg: '#0a0a0a', onClick: () => goTo(1) },
+    { label: 'Ativos', value: dash.ativos, bg: '#00B39D', onClick: () => goTo(1, 'ativo') },
+    { label: 'Em Férias', value: dash.ferias, bg: '#3b82f6', onClick: () => goTo(3) },
+    { label: 'Em Licença', value: dash.licenca, bg: '#f59e0b', onClick: () => goTo(3) },
+    { label: 'Inativos', value: dash.inativos, bg: '#6b7280', onClick: () => goTo(1, 'inativo') },
   ];
 
   return (
     <>
       <div style={styles.kpiGrid}>
         {kpis.map((k, i) => (
-          <StatCard key={k.label} label={k.label} value={k.value} bg={k.bg} svg={kpiSvgs[i]} />
+          <StatCard key={k.label} label={k.label} value={k.value} bg={k.bg} svg={kpiSvgs[i]} onClick={k.onClick} />
         ))}
       </div>
 

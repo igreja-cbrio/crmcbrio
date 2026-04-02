@@ -478,20 +478,42 @@ export default function Logistica() {
 // ═══════════════════════════════════════════════════════════
 // TAB: Dashboard
 // ═══════════════════════════════════════════════════════════
+const STAT_SVGS = [
+  <svg key="s0" style={{ position: 'absolute', right: 0, top: 0, height: '100%', width: '67%', pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 300 200" fill="none"><circle cx="220" cy="100" r="90" fill="#fff" fillOpacity="0.08" /><circle cx="260" cy="60" r="60" fill="#fff" fillOpacity="0.10" /></svg>,
+  <svg key="s1" style={{ position: 'absolute', right: 0, top: 0, height: '100%', width: '67%', pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 300 200" fill="none"><circle cx="200" cy="140" r="100" fill="#fff" fillOpacity="0.07" /><circle cx="270" cy="40" r="50" fill="#fff" fillOpacity="0.09" /></svg>,
+  <svg key="s2" style={{ position: 'absolute', right: 0, top: 0, height: '100%', width: '67%', pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 300 200" fill="none"><circle cx="240" cy="80" r="80" fill="#fff" fillOpacity="0.08" /><circle cx="280" cy="150" r="55" fill="#fff" fillOpacity="0.10" /></svg>,
+  <svg key="s3" style={{ position: 'absolute', right: 0, top: 0, height: '100%', width: '67%', pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 300 200" fill="none"><circle cx="210" cy="120" r="95" fill="#fff" fillOpacity="0.07" /><circle cx="265" cy="50" r="45" fill="#fff" fillOpacity="0.10" /></svg>,
+  <svg key="s4" style={{ position: 'absolute', right: 0, top: 0, height: '100%', width: '67%', pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 300 200" fill="none"><circle cx="230" cy="90" r="85" fill="#fff" fillOpacity="0.08" /><circle cx="270" cy="160" r="50" fill="#fff" fillOpacity="0.09" /></svg>,
+  <svg key="s5" style={{ position: 'absolute', right: 0, top: 0, height: '100%', width: '67%', pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 300 200" fill="none"><circle cx="200" cy="100" r="90" fill="#fff" fillOpacity="0.07" /><circle cx="260" cy="40" r="60" fill="#fff" fillOpacity="0.10" /></svg>,
+  <svg key="s6" style={{ position: 'absolute', right: 0, top: 0, height: '100%', width: '67%', pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 300 200" fill="none"><circle cx="220" cy="110" r="88" fill="#fff" fillOpacity="0.08" /><circle cx="275" cy="55" r="52" fill="#fff" fillOpacity="0.09" /></svg>,
+];
+
+function StatCard({ label, value, bg, svg }) {
+  return (
+    <div style={{ position: 'relative', overflow: 'hidden', background: bg, borderRadius: 12, padding: '20px 24px', color: '#fff', minHeight: 100 }}>
+      {svg}
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <div style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.8)', marginBottom: 8 }}>{label}</div>
+        <div style={{ fontSize: 32, fontWeight: 700, letterSpacing: -1 }}>{value}</div>
+      </div>
+    </div>
+  );
+}
+
 function DashboardTab({ dash }) {
   if (!dash) return <div style={styles.empty}>Carregando dashboard...</div>;
   const kpis = [
-    { label: 'Fornecedores Ativos', value: dash.fornecedoresAtivos ?? 0, color: C.primary },
-    { label: 'Solic. Pendentes', value: dash.solicitacoesPendentes ?? 0, color: C.amber },
-    { label: 'Solic. Aprovadas', value: dash.solicitacoesAprovadas ?? 0, color: C.green },
-    { label: 'Ped. Aguardando', value: dash.pedidosAguardando ?? 0, color: C.blue },
-    { label: 'Ped. Em Trânsito', value: dash.pedidosEmTransito ?? 0, color: C.amber },
-    { label: 'Ped. Recebidos', value: dash.pedidosRecebidos ?? 0, color: C.green },
-    { label: 'Valor Total Pedidos', value: fmtMoney(dash.valorTotalPedidos), color: C.primary },
+    { label: 'Fornecedores Ativos', value: dash.fornecedoresAtivos ?? 0, bg: '#00B39D' },
+    { label: 'Solic. Pendentes', value: dash.solicitacoesPendentes ?? 0, bg: '#f59e0b' },
+    { label: 'Ped. Aguardando', value: dash.pedidosAguardando ?? 0, bg: '#3b82f6' },
+    { label: 'Ped. Em Trânsito', value: dash.pedidosEmTransito ?? 0, bg: '#0a0a0a' },
+    { label: 'Ped. Recebidos', value: dash.pedidosRecebidos ?? 0, bg: '#10b981' },
+    { label: 'Solic. Aprovadas', value: dash.solicitacoesAprovadas ?? 0, bg: '#6b7280' },
+    { label: 'Valor Total Pedidos', value: fmtMoney(dash.valorTotalPedidos), bg: '#00B39D' },
   ];
   return (
-    <div style={styles.kpiGrid}>
-      {kpis.map(k => <div key={k.label} style={styles.kpi(k.color)}><div style={styles.kpiValue}>{k.value}</div><div style={styles.kpiLabel}>{k.label}</div></div>)}
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 24 }}>
+      {kpis.map((k, i) => <StatCard key={k.label} label={k.label} value={k.value} bg={k.bg} svg={STAT_SVGS[i % STAT_SVGS.length]} />)}
     </div>
   );
 }
@@ -1447,51 +1469,88 @@ function RastreioMLTab() {
   </>);
 }
 
+// Tracker steps definition
+const TRACK_STEPS = [
+  { key: 'pending', label: 'Pedido Realizado', desc: 'Aguardando processamento' },
+  { key: 'handling', label: 'Preparando Envio', desc: 'Produto sendo separado' },
+  { key: 'ready_to_ship', label: 'Pronto para Envio', desc: 'Aguardando coleta' },
+  { key: 'shipped', label: 'Enviado', desc: 'Em trânsito' },
+  { key: 'delivered', label: 'Entregue', desc: 'Pedido finalizado' },
+];
+
 function ShipmentCard({ ship, expanded, detail, onToggle }) {
   const items = ship.order_items || [];
   const statusInfo = ML_SHIP_STATUS[ship.status] || { c: C.text3, bg: '#73737318', label: ship.status };
+  const currentStepIdx = TRACK_STEPS.findIndex(s => s.key === ship.status);
+  const itemImg = items[0]?.item?.thumbnail || items[0]?.item?.picture || null;
 
   return (
-    <div style={{ ...styles.card, borderLeft: `4px solid ${statusInfo.c}` }}>
-      <div style={{ padding: '16px 20px', cursor: 'pointer' }} onClick={onToggle}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
-          <div style={{ flex: 1, minWidth: 200 }}>
-            {items.map((item, i) => (
-              <div key={i} style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{item.item?.title || 'Produto'}</div>
-            ))}
-            <div style={{ fontSize: 12, color: C.text2, marginTop: 4 }}>
-              Pedido #{ship.order_id}
-              {ship.tracking_number && <span style={{ marginLeft: 8, fontFamily: 'monospace' }}>Rastreio: {ship.tracking_number}</span>}
-            </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {ship.total_amount && <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{fmtMoney(ship.total_amount)}</span>}
-            <span style={styles.badge(statusInfo.c, statusInfo.bg)}>{statusInfo.label}</span>
-            <span style={{ fontSize: 14, color: C.text3, transition: 'transform 0.2s', transform: expanded ? 'rotate(180deg)' : '' }}>▼</span>
-          </div>
+    <div style={{ ...styles.card, overflow: 'hidden', borderRadius: 16, cursor: 'pointer' }} onClick={onToggle}>
+      {/* Header — product info */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, padding: 20 }}>
+        {/* Product image */}
+        <div style={{ width: 80, height: 80, borderRadius: 10, background: statusInfo.bg, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+          {itemImg ? (
+            <img src={itemImg} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ) : (
+            <span style={{ fontSize: 32 }}>📦</span>
+          )}
         </div>
-
-        {/* Barra de progresso visual */}
-        <div style={{ display: 'flex', gap: 4, marginTop: 12 }}>
-          {['pending', 'handling', 'ready_to_ship', 'shipped', 'delivered'].map((step, i) => {
-            const steps = ['pending', 'handling', 'ready_to_ship', 'shipped', 'delivered'];
-            const currentIdx = steps.indexOf(ship.status);
-            const active = i <= currentIdx;
-            return <div key={step} style={{ flex: 1, height: 4, borderRadius: 2, background: active ? statusInfo.c : `${C.border}` }} />;
-          })}
+        <div style={{ flex: 1 }}>
+          <span style={styles.badge(statusInfo.c, statusInfo.bg)}>{statusInfo.label}</span>
+          {items.map((item, i) => (
+            <div key={i} style={{ fontSize: 15, fontWeight: 700, color: C.text, marginTop: 4, lineHeight: 1.3 }}>{item.item?.title || 'Produto'}</div>
+          ))}
+          {ship.total_amount && <div style={{ fontSize: 20, fontWeight: 700, color: C.text, marginTop: 4 }}>{fmtMoney(ship.total_amount)}</div>}
+          <div style={{ fontSize: 11, color: C.text3, textTransform: 'uppercase', fontWeight: 500 }}>Pedido #{ship.order_id}</div>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-          <span style={{ fontSize: 10, color: C.text3 }}>Pendente</span>
-          <span style={{ fontSize: 10, color: C.text3 }}>Preparando</span>
-          <span style={{ fontSize: 10, color: C.text3 }}>Pronto</span>
-          <span style={{ fontSize: 10, color: C.text3 }}>Enviado</span>
-          <span style={{ fontSize: 10, color: C.text3 }}>Entregue</span>
-        </div>
+        <span style={{ fontSize: 16, color: C.text3, transition: 'transform 0.2s', transform: expanded ? 'rotate(180deg)' : '', marginTop: 4 }}>▼</span>
       </div>
 
-      {/* Detalhes expandidos */}
+      {/* Tracker timeline — always visible */}
+      <div style={{ padding: '0 20px 20px' }}>
+        <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+          {TRACK_STEPS.map((step, i) => {
+            const isCompleted = i < currentStepIdx;
+            const isActive = i === currentStepIdx;
+            const isPending = i > currentStepIdx;
+            const isLast = i === TRACK_STEPS.length - 1;
+            const dotColor = isCompleted ? '#10b981' : isActive ? statusInfo.c : C.border;
+            const lineColor = isCompleted ? '#10b981' : C.border;
+
+            return (
+              <li key={step.key} style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+                {/* Dot + line */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 28 }}>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: isCompleted ? '#10b98120' : isActive ? `${statusInfo.c}20` : 'var(--cbrio-input-bg)',
+                    border: `2px solid ${dotColor}`, marginTop: 2,
+                  }}>
+                    {isCompleted ? (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                    ) : isActive ? (
+                      <div style={{ width: 10, height: 10, borderRadius: '50%', background: statusInfo.c }} />
+                    ) : (
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: C.text3, opacity: 0.4 }} />
+                    )}
+                  </div>
+                  {!isLast && <div style={{ width: 2, height: 32, background: lineColor, marginTop: 2 }} />}
+                </div>
+                {/* Content */}
+                <div style={{ paddingBottom: isLast ? 0 : 16, paddingTop: 3 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: isPending ? C.text3 : C.text }}>{step.label}</div>
+                  <div style={{ fontSize: 12, color: isPending ? C.text3 : C.text2 }}>{step.desc}</div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
+      {/* Expanded details */}
       {expanded && detail && (
-        <div style={{ padding: '0 20px 16px', borderTop: `1px solid ${C.border}` }}>
+        <div style={{ padding: '0 20px 20px', borderTop: `1px solid ${C.border}` }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px 20px', paddingTop: 16 }}>
             {detail.tracking_number && (
               <div><div style={{ fontSize: 11, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>Código Rastreio</div>
@@ -1520,13 +1579,15 @@ function ShipmentCard({ ship, expanded, detail, onToggle }) {
               </div>
             )}
           </div>
-
-          {/* Sub-status / tracking history */}
           {detail.substatus && (
             <div style={{ marginTop: 12, padding: '8px 12px', background: 'var(--cbrio-input-bg)', borderRadius: 8, fontSize: 13, color: C.text2 }}>
               Sub-status: <strong>{detail.substatus}</strong>
             </div>
           )}
+          <a href={`https://www.mercadolivre.com.br/purchases/${ship.order_id}`} target="_blank" rel="noopener noreferrer"
+            style={{ display: 'block', textAlign: 'center', marginTop: 16, padding: '10px 0', background: C.primary, color: '#fff', borderRadius: 8, fontWeight: 600, fontSize: 14, textDecoration: 'none' }}>
+            Ver no Mercado Livre ↗
+          </a>
         </div>
       )}
     </div>
