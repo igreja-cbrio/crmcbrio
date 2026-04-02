@@ -153,10 +153,20 @@ router.patch('/:id/status', async (req, res) => {
     if (!status) return res.status(400).json({ error: 'Status obrigatório' });
 
     if (status === 'reabrir') {
-      const { data: ev } = await supabase.from('events').select('date').eq('id', req.params.id).single();
+      const { data: ev } = await supabase.from('events').select('date, recurrence').eq('id', req.params.id).single();
       if (!ev) return res.status(404).json({ error: 'Evento não encontrado' });
-      const diffDays = Math.ceil((new Date(ev.date) - new Date()) / 86400000);
-      status = diffDays < 0 ? 'atrasado' : diffDays <= 7 ? 'em-risco' : 'no-prazo';
+
+      // Se recorrente, usar próxima ocorrência pendente
+      if (ev.recurrence !== 'unico') {
+        const { data: nextOcc } = await supabase.from('event_occurrences')
+          .select('date').eq('event_id', req.params.id).eq('status', 'pendente').order('date').limit(1);
+        const refDate = nextOcc?.length > 0 ? new Date(nextOcc[0].date) : new Date(ev.date);
+        const diffDays = Math.ceil((refDate - new Date()) / 86400000);
+        status = diffDays < 0 ? 'atrasado' : diffDays <= 7 ? 'em-risco' : 'no-prazo';
+      } else {
+        const diffDays = Math.ceil((new Date(ev.date) - new Date()) / 86400000);
+        status = diffDays < 0 ? 'atrasado' : diffDays <= 7 ? 'em-risco' : 'no-prazo';
+      }
     }
 
     const { data, error } = await supabase.from('events').update({ status }).eq('id', req.params.id).select().single();
@@ -173,6 +183,30 @@ router.delete('/:id', async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'Erro ao excluir evento' }); }
 });
 
+// Helper: recalcular status do evento baseado na próxima ocorrência pendente
+async function recalcEventStatus(eventId) {
+  const { data: occs } = await supabase.from('event_occurrences')
+    .select('date, status')
+    .eq('event_id', eventId)
+    .eq('status', 'pendente')
+    .order('date')
+    .limit(1);
+
+  if (!occs || occs.length === 0) {
+    // Todas as ocorrências concluídas — evento concluído
+    const { data: ev } = await supabase.from('events').select('recurrence').eq('id', eventId).single();
+    if (ev && ev.recurrence !== 'unico') {
+      await supabase.from('events').update({ status: 'concluido' }).eq('id', eventId);
+    }
+    return;
+  }
+
+  const nextDate = new Date(occs[0].date);
+  const diffDays = Math.ceil((nextDate - new Date()) / 86400000);
+  const newStatus = diffDays < 0 ? 'atrasado' : diffDays <= 7 ? 'em-risco' : 'no-prazo';
+  await supabase.from('events').update({ status: newStatus }).eq('id', eventId);
+}
+
 // ── OCCURRENCES ──
 router.patch('/:id/occurrences/:occId', async (req, res) => {
   try {
@@ -184,6 +218,8 @@ router.patch('/:id/occurrences/:occId', async (req, res) => {
     if (d.attendance !== undefined) update.attendance = d.attendance;
     const { data, error } = await supabase.from('event_occurrences').update(update).eq('id', req.params.occId).eq('event_id', req.params.id).select().single();
     if (error) throw error;
+    // Recalcular status do evento pai baseado na próxima ocorrência pendente
+    await recalcEventStatus(req.params.id);
     res.json(data);
   } catch (e) { res.status(500).json({ error: 'Erro ao atualizar ocorrência' }); }
 });
