@@ -182,7 +182,7 @@ export function Sidebar() {
                     onClick={() => !isCollapsed && toggleGroup(group.id)}
                     className={cn(
                       "flex h-7 w-full items-center gap-1.5 rounded-md transition-colors hover:bg-[#1e1e1e]",
-                      isCollapsed ? "justify-center px-0" : "px-2"
+                      isCollapsed ? "justify-center px-0" : "pl-4 pr-2"
                     )}
                   >
                     <ChevronRight
@@ -223,7 +223,7 @@ export function Sidebar() {
                               to={item.path}
                               className={cn(
                                 "flex h-9 items-center gap-2.5 rounded-lg my-0.5 transition-all duration-150",
-                                isCollapsed ? "justify-center px-0" : "px-3",
+                                isCollapsed ? "justify-center px-0" : "pl-6 pr-3",
                                 isActive
                                   ? "bg-[#00B39D]/10 text-[#00B39D]"
                                   : "text-[#737373] hover:bg-[#1e1e1e] hover:text-[#a3a3a3]"
@@ -254,7 +254,7 @@ export function Sidebar() {
 
         {/* Theme toggle */}
         <div className="px-2.5 pb-1">
-          <div className={cn("flex h-9 items-center gap-2 rounded-lg", isCollapsed ? "justify-center px-0" : "px-3")}>
+          <div className={cn("flex h-9 items-center gap-2 rounded-lg", isCollapsed ? "justify-center px-0" : "pl-6 pr-3")}>
             <Sun className={cn("h-4 w-4 shrink-0 transition-colors", isDark ? "text-[#525252]" : "text-amber-400")} />
             <motion.div
               variants={labelVariants}
@@ -275,7 +275,7 @@ export function Sidebar() {
         <div className="px-2.5 pb-1">
           <button className={cn(
             "flex h-9 w-full items-center gap-2.5 rounded-lg transition-colors hover:bg-[#1e1e1e] text-[#737373] hover:text-[#a3a3a3]",
-            isCollapsed ? "justify-center px-0" : "px-3"
+            isCollapsed ? "justify-center px-0" : "pl-6 pr-3"
           )}>
             <div className="relative shrink-0">
               <Bell className="h-4 w-4 text-[#525252]" />
