@@ -1193,17 +1193,28 @@ export default function Eventos() {
             <div style={{ ...styles.cardHeader }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={styles.cardTitle}>Ocorrência: {fmtDate(expandedOcc.date)}</div>
-                <select value={expandedOcc.status}
-                  onChange={async (e) => {
-                    try { await events.updateOccurrence(ev.id, expandedOcc.id, { status: e.target.value }); refreshDetail(); loadOccurrence(expandedOcc.id); }
-                    catch (err) { setError(err.message); }
-                  }}
-                  style={{ ...styles.select, padding: '4px 8px', fontSize: 11 }}>
-                  <option value="pendente">Pendente</option>
-                  <option value="concluido">Concluído</option>
-                </select>
+                <span style={styles.badge(
+                  expandedOcc.status === 'concluido' ? C.green : C.text3,
+                  expandedOcc.status === 'concluido' ? `${C.green}15` : '#f3f4f6'
+                )}>{expandedOcc.status === 'concluido' ? 'Concluído' : 'Pendente'}</span>
               </div>
-              <button style={{ ...styles.btn('ghost'), fontSize: 16 }} onClick={() => setExpandedOcc(null)}>✕</button>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  style={{ ...styles.btn(expandedOcc.status === 'concluido' ? 'secondary' : 'primary'), ...styles.btnSm }}
+                  onClick={async () => {
+                    const newStatus = expandedOcc.status === 'concluido' ? 'pendente' : 'concluido';
+                    try {
+                      await events.updateOccurrence(ev.id, expandedOcc.id, { status: newStatus });
+                      refreshDetail();
+                      loadOccurrence(expandedOcc.id);
+                      // Atualizar KPIs
+                      dashApi.pmo().then(d => setPmoKpis(d)).catch(() => {});
+                    } catch (err) { setError(err.message); }
+                  }}>
+                  {expandedOcc.status === 'concluido' ? 'Reabrir' : 'Finalizar'}
+                </button>
+                <button style={{ ...styles.btn('ghost'), fontSize: 16 }} onClick={() => setExpandedOcc(null)}>✕</button>
+              </div>
             </div>
             <div style={{ padding: '16px 20px' }}>
               {/* Tarefas da ocorrência */}
