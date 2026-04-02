@@ -182,6 +182,34 @@ router.get('/orders', async (req, res) => {
     if (q) path += `&q=${encodeURIComponent(q)}`;
 
     const data = await mlFetch(path, config);
+
+    // Enrich order items with product thumbnails
+    const itemIds = new Set();
+    (data.results || []).forEach(o => {
+      (o.order_items || []).forEach(oi => {
+        if (oi.item?.id) itemIds.add(oi.item.id);
+      });
+    });
+    if (itemIds.size > 0) {
+      try {
+        const ids = [...itemIds].slice(0, 20).join(',');
+        const items = await mlFetch(`/items?ids=${ids}`, config);
+        const thumbMap = {};
+        (items || []).forEach(r => {
+          if (r.code === 200 && r.body) {
+            thumbMap[r.body.id] = r.body.thumbnail || r.body.pictures?.[0]?.url || null;
+          }
+        });
+        (data.results || []).forEach(o => {
+          (o.order_items || []).forEach(oi => {
+            if (oi.item?.id && thumbMap[oi.item.id]) {
+              oi.item.thumbnail = thumbMap[oi.item.id];
+            }
+          });
+        });
+      } catch (e) { console.error('[ML] Thumbnail enrichment failed:', e.message); }
+    }
+
     res.json(data);
   } catch (e) {
     console.error('[ML] Orders:', e.message);

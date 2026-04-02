@@ -1009,7 +1009,16 @@ function ComprasMLTab() {
             onClick={() => toggleExpand(o)}>
             <div style={{ padding: '16px 20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                <div style={{ flex: 1 }}>
+                {/* Thumbnail do produto */}
+                {(() => {
+                  const thumb = o.order_items?.[0]?.item?.thumbnail || o.order_items?.[0]?.item?.picture;
+                  return (
+                    <div style={{ width: 56, height: 56, borderRadius: 10, overflow: 'hidden', flexShrink: 0, background: 'var(--cbrio-input-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {thumb ? <img src={thumb} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: 24 }}>📦</span>}
+                    </div>
+                  );
+                })()}
+                <div style={{ flex: 1, minWidth: 0 }}>
                   {(o.order_items || []).map((item, i) => (
                     <div key={i} style={{ marginBottom: i < o.order_items.length - 1 ? 6 : 0 }}>
                       <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{item.item?.title}</div>
