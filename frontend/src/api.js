@@ -259,6 +259,14 @@ export const ml = {
   order: (id) => get(`/ml/orders/${id}`),
   shipments: () => get('/ml/shipments'),
   shipment: (id) => get(`/ml/shipments/${id}`),
+  syncNotas: () => post('/ml/sync-notas'),
+};
+
+export const arquivei = {
+  status: () => get('/arquivei/status'),
+  config: (data) => post('/arquivei/config', data),
+  disconnect: () => post('/arquivei/disconnect'),
+  sync: () => post('/arquivei/sync'),
 };
 
 export const patrimonio = {

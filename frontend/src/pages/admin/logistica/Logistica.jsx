@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
-import { logistica, ml } from '../../../api';
+import { logistica, ml, arquivei } from '../../../api';
 import { supabase } from '../../../supabaseClient';
 
 // ── Tema ────────────────────────────────────────────────────
@@ -370,6 +370,7 @@ export default function Logistica() {
         <NotasFiscaisTab data={notas} loading={loading}
           onNew={() => setModalNota({ pedido_id: '', fornecedor_id: '', numero: '', serie: '', chave_acesso: '', valor: '', data_emissao: '', storage_path: '' })}
           onDelete={deleteNota} fornecedores={fornecedores} pedidos={pedidos}
+          onReload={fetchNotas}
         />
       )}
       {tab === 5 && (
@@ -608,24 +609,121 @@ function PedidosTab({ data, loading, isDiretor, filtroStatus, setFiltroStatus, o
 // ═══════════════════════════════════════════════════════════
 // TAB: Notas Fiscais
 // ═══════════════════════════════════════════════════════════
-function NotasFiscaisTab({ data, loading, onNew, onDelete }) {
+const NF_ORIGEM = {
+  manual: { c: C.text3, bg: '#73737318', label: 'Manual' },
+  mercadolivre: { c: '#FFE600', bg: '#FFE60020', label: 'Mercado Livre' },
+  arquivei: { c: C.blue, bg: C.blueBg, label: 'Arquivei' },
+};
+
+function NotasFiscaisTab({ data, loading, onNew, onDelete, onReload }) {
+  const [syncing, setSyncing] = useState(false);
+  const [arquiveiStatus, setArquiveiStatus] = useState(null);
+  const [arquiveiForm, setArquiveiForm] = useState({ api_id: '', api_key: '', cnpj: '07023068000135' });
+  const [configuring, setConfiguring] = useState(false);
+
+  useEffect(() => { checkArquivei(); }, []);
+
+  async function checkArquivei() {
+    try { setArquiveiStatus(await arquivei.status()); } catch (e) { setArquiveiStatus({ connected: false }); }
+  }
+
+  async function syncML() {
+    setSyncing(true);
+    try {
+      const result = await ml.syncNotas();
+      alert(`${result.imported} nota(s) importada(s) do Mercado Livre`);
+      onReload();
+    } catch (e) { alert('Erro: ' + e.message); }
+    setSyncing(false);
+  }
+
+  async function syncArquiveiNFs() {
+    setSyncing(true);
+    try {
+      const result = await arquivei.sync();
+      alert(`${result.imported} nota(s) importada(s) do Arquivei`);
+      onReload();
+    } catch (e) { alert('Erro: ' + e.message); }
+    setSyncing(false);
+  }
+
+  async function connectArquivei() {
+    setConfiguring(true);
+    try {
+      await arquivei.config(arquiveiForm);
+      checkArquivei();
+      alert('Arquivei conectado com sucesso!');
+    } catch (e) { alert('Erro: ' + e.message); }
+    setConfiguring(false);
+  }
+
   return (<>
+    {/* Barra de ações */}
     <div style={styles.filterRow}>
       <button style={styles.btn('primary')} onClick={onNew}>+ Nova Nota Fiscal</button>
+      <button style={styles.btn('secondary')} onClick={syncML} disabled={syncing}>
+        {syncing ? '⏳ Sincronizando...' : '🛒 Importar do Mercado Livre'}
+      </button>
+      {arquiveiStatus?.connected ? (
+        <button style={styles.btn('secondary')} onClick={syncArquiveiNFs} disabled={syncing}>
+          {syncing ? '⏳ Sincronizando...' : '📋 Importar do Arquivei'}
+        </button>
+      ) : (
+        <button style={styles.btn('ghost')} onClick={() => setConfiguring(c => !c)}>
+          ⚙️ Configurar Arquivei
+        </button>
+      )}
     </div>
+
+    {/* Config Arquivei inline */}
+    {configuring && !arquiveiStatus?.connected && (
+      <div style={{ ...styles.card, padding: 20, marginBottom: 16 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 12 }}>Conectar Arquivei — Importar NFs por CNPJ</div>
+        <div style={{ fontSize: 12, color: C.text2, marginBottom: 12 }}>
+          O Arquivei captura automaticamente todas as NFs emitidas contra o CNPJ da igreja na Sefaz.
+          Crie uma conta em <a href="https://app.arquivei.com.br" target="_blank" rel="noopener noreferrer" style={{ color: C.primary }}>app.arquivei.com.br</a> e gere as credenciais da API.
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+          <Input label="API ID" value={arquiveiForm.api_id} onChange={e => setArquiveiForm(f => ({ ...f, api_id: e.target.value }))} />
+          <Input label="API Key" value={arquiveiForm.api_key} onChange={e => setArquiveiForm(f => ({ ...f, api_key: e.target.value }))} />
+          <Input label="CNPJ" value={arquiveiForm.cnpj} onChange={e => setArquiveiForm(f => ({ ...f, cnpj: e.target.value }))} />
+        </div>
+        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+          <button style={styles.btn('primary')} onClick={connectArquivei} disabled={!arquiveiForm.api_id || !arquiveiForm.api_key}>Conectar</button>
+          <button style={styles.btn('ghost')} onClick={() => setConfiguring(false)}>Cancelar</button>
+        </div>
+      </div>
+    )}
+
+    {/* Status das integrações */}
+    {arquiveiStatus?.connected && (
+      <div style={{ display: 'flex', gap: 12, marginBottom: 12, fontSize: 12, color: C.text2 }}>
+        <span>📋 Arquivei: <strong style={{ color: C.green }}>Conectado</strong> (CNPJ: {arquiveiStatus.cnpj})</span>
+        {arquiveiStatus.last_sync && <span>• Último sync: {fmtDateTime(arquiveiStatus.last_sync)}</span>}
+      </div>
+    )}
+
+    {/* Tabela */}
     <div style={styles.card}><table style={styles.table}><thead><tr>
-      <th style={styles.th}>Número</th><th style={styles.th}>Fornecedor</th><th style={styles.th}>Pedido</th><th style={styles.th}>Valor</th><th style={styles.th}>Emissão</th><th style={styles.th}>PDF</th><th style={styles.th}>Ações</th>
+      <th style={styles.th}>Número</th><th style={styles.th}>Emitente</th><th style={styles.th}>Valor</th><th style={styles.th}>Emissão</th><th style={styles.th}>Origem</th><th style={styles.th}>PDF</th><th style={styles.th}>Ações</th>
     </tr></thead><tbody>
       {loading ? <tr><td style={styles.td} colSpan={7}>Carregando...</td></tr>
-      : data.length === 0 ? <tr><td style={styles.td} colSpan={7}><div style={styles.empty}>Nenhuma nota fiscal</div></td></tr>
+      : data.length === 0 ? <tr><td style={styles.td} colSpan={7}><div style={styles.empty}>Nenhuma nota fiscal — importe do ML ou Arquivei</div></td></tr>
       : data.map(n => (
         <tr key={n.id}>
-          <td style={{ ...styles.td, fontWeight: 600 }}>{n.numero}{n.serie ? `/${n.serie}` : ''}</td>
-          <td style={styles.td}>{n.log_fornecedores?.nome_fantasia || n.log_fornecedores?.razao_social || '—'}</td>
-          <td style={styles.td}>{n.log_pedidos?.descricao ? n.log_pedidos.descricao.slice(0, 30) : '—'}</td>
-          <td style={styles.td}>{fmtMoney(n.valor)}</td>
+          <td style={{ ...styles.td, fontWeight: 600 }}>
+            {n.numero}
+            {n.serie && n.origem !== 'mercadolivre' ? `/${n.serie}` : ''}
+            {n.origem === 'mercadolivre' && n.serie && <div style={{ fontSize: 11, color: C.text3, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.serie}</div>}
+          </td>
+          <td style={styles.td}>
+            {n.emitente_nome || n.log_fornecedores?.nome_fantasia || n.log_fornecedores?.razao_social || '—'}
+            {n.emitente_cnpj && <div style={{ fontSize: 11, color: C.text3 }}>{n.emitente_cnpj}</div>}
+          </td>
+          <td style={{ ...styles.td, fontWeight: 600 }}>{fmtMoney(n.valor)}</td>
           <td style={styles.td}>{fmtDate(n.data_emissao)}</td>
-          <td style={styles.td}>{n.storage_path ? <a href={n.storage_path} target="_blank" rel="noopener noreferrer" style={{ color: C.primary }}>📄 Ver PDF</a> : '—'}</td>
+          <td style={styles.td}><Badge status={n.origem || 'manual'} map={NF_ORIGEM} /></td>
+          <td style={styles.td}>{n.storage_path ? <a href={n.storage_path} target="_blank" rel="noopener noreferrer" style={{ color: C.primary }}>📄 Ver</a> : '—'}</td>
           <td style={styles.td}><button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => onDelete(n.id)}>🗑</button></td>
         </tr>
       ))}

@@ -242,4 +242,52 @@ router.get('/shipments', async (req, res) => {
   }
 });
 
+// GET /api/ml/sync-notas — extract NF data from ML orders and save to log_notas_fiscais
+router.post('/sync-notas', async (req, res) => {
+  try {
+    const config = await getMLConfig();
+    if (!config?.connected) return res.status(400).json({ error: 'Mercado Livre não conectado' });
+
+    // Fetch recent orders
+    const ordersData = await mlFetch(`/orders/search?buyer=${config.user_id}&sort=date_desc&limit=50`, config);
+    const orders = ordersData.results || [];
+
+    let imported = 0;
+    for (const order of orders) {
+      if (!order.order_items?.length) continue;
+
+      // Check if already imported
+      const { data: existing } = await supabase.from('log_notas_fiscais')
+        .select('id').eq('ml_order_id', String(order.id)).limit(1);
+      if (existing?.length) continue;
+
+      // Get seller info
+      let sellerName = '';
+      try {
+        const seller = await mlFetch(`/users/${order.seller?.id}`, config);
+        sellerName = seller.nickname || '';
+      } catch (e) { /* ignore */ }
+
+      const items = order.order_items.map(i => i.item?.title).join(', ');
+      const dataEmissao = order.date_created ? order.date_created.slice(0, 10) : new Date().toISOString().slice(0, 10);
+
+      await supabase.from('log_notas_fiscais').insert({
+        numero: String(order.id),
+        valor: order.total_amount,
+        data_emissao: dataEmissao,
+        origem: 'mercadolivre',
+        ml_order_id: String(order.id),
+        emitente_nome: sellerName,
+        serie: items.slice(0, 200),
+      });
+      imported++;
+    }
+
+    res.json({ imported, total: orders.length });
+  } catch (e) {
+    console.error('[ML] Sync notas:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 module.exports = router;
