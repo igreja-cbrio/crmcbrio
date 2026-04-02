@@ -272,6 +272,9 @@ export default function Eventos() {
   const [sortCol, setSortCol] = useState('date');
   const [sortAsc, setSortAsc] = useState(true);
 
+  // Card expandido (clicável)
+  const [expandedCard, setExpandedCard] = useState(null); // 'task-id', 'meeting-id', 'risk-id'
+
   // Riscos, retrospectiva, histórico do evento selecionado
   const [eventRisks, setEventRisks] = useState([]);
   const [retroData, setRetroData] = useState(null);
@@ -1221,159 +1224,173 @@ export default function Eventos() {
 
         {/* ── ABA: Tarefas ── */}
         {detailTab === 'tarefas' && !expandedOcc && <>
-        <div style={{ padding: '20px 0' }}>
+        <div style={{ padding: '20px 0 60px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--cbrio-text, #1a1a2e)' }}>Tarefas do Evento ({taskList.length})</div>
           <button style={{ ...styles.btn('primary'), ...styles.btnSm }} onClick={() => setModalTask({})}>+ Tarefa</button>
         </div>
 
         {taskList.length === 0 && <div style={styles.empty}>Nenhuma tarefa cadastrada.</div>}
-        {taskList.map(task => (
-          <div key={task.id} style={styles.taskCard}>
-            {/* Task header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>
-                  {task.is_milestone && <span style={{ color: C.amber, marginRight: 4 }}>★</span>}
-                  {task.name}
-                </div>
-                <div style={{ fontSize: 12, color: C.text2, marginTop: 2 }}>
-                  {task.responsible && <span style={{ marginRight: 12 }}>{task.responsible}</span>}
-                  {task.area && <span style={{ marginRight: 12 }}>• {task.area}</span>}
-                  {task.deadline && <span>• Prazo: {fmtDate(task.deadline)}</span>}
+        {taskList.map(task => {
+          const isOpen = expandedCard === `task-${task.id}`;
+          const subsDone = (task.subtasks || []).filter(s => s.done).length;
+          const subsTotal = (task.subtasks || []).length;
+          return (
+          <div key={task.id} style={{ ...styles.taskCard, cursor: 'pointer', transition: 'box-shadow 0.15s' }}
+            onClick={() => setExpandedCard(isOpen ? null : `task-${task.id}`)}
+            onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'}
+            onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
+            {/* Resumo (sempre visível) */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+                <span style={{ color: C.text3, fontSize: 12 }}>{isOpen ? '▼' : '▶'}</span>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>
+                    {task.is_milestone && <span style={{ color: C.amber, marginRight: 4 }}>★</span>}
+                    {task.name}
+                  </div>
+                  <div style={{ fontSize: 12, color: C.text2, marginTop: 2 }}>
+                    {task.responsible || 'Sem responsável'}
+                    {task.deadline && ` · ${fmtDate(task.deadline)}`}
+                    {subsTotal > 0 && ` · ${subsDone}/${subsTotal} subtarefas`}
+                    {(task.comments || []).length > 0 && ` · ${task.comments.length} comentários`}
+                  </div>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
                 {task.priority && <Badge status={task.priority} map={PRIORITY_MAP} />}
                 <Badge status={task.status} map={TASK_STATUS_MAP} />
-                    <select
-                      style={{ ...styles.select, padding: '2px 6px', fontSize: 11 }}
-                      value={task.status}
-                      onChange={e => changeTaskStatus(task.id, e.target.value)}
-                    >
-                      {Object.entries(TASK_STATUS_MAP).map(([k, v]) => (
-                        <option key={k} value={k}>{v.label}</option>
-                      ))}
-                    </select>
-                    <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => setModalTask(task)}>Editar</button>
-                    <button style={{ ...styles.btn('ghost'), ...styles.btnSm, color: C.red }} onClick={() => deleteTask(task.id)}>✕</button>
+                <select style={{ ...styles.select, padding: '2px 6px', fontSize: 11 }} value={task.status}
+                  onChange={e => changeTaskStatus(task.id, e.target.value)}>
+                  {Object.entries(TASK_STATUS_MAP).map(([k, v]) => (<option key={k} value={k}>{v.label}</option>))}
+                </select>
               </div>
             </div>
 
-            {task.description && (
-              <div style={{ fontSize: 12, color: C.text2, marginTop: 6 }}>{task.description}</div>
-            )}
+            {/* Detalhe expandido */}
+            {isOpen && (
+              <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.border}` }} onClick={e => e.stopPropagation()}>
+                <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                  <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => setModalTask(task)}>Editar</button>
+                  <button style={{ ...styles.btn('ghost'), ...styles.btnSm, color: C.red }} onClick={() => deleteTask(task.id)}>Excluir</button>
+                </div>
 
-            {/* Subtasks */}
-            {(task.subtasks || []).length > 0 && (
-              <div style={{ marginTop: 10, paddingLeft: 4 }}>
-                {task.subtasks.map(sub => (
-                  <div key={sub.id} style={styles.subtaskRow}>
-                    <input
-                      type="checkbox"
-                      checked={!!sub.done}
-                      onChange={() => toggleSubtask(sub.id, !sub.done)}
-                      style={{ cursor: 'pointer' }}
-                    />
-                    <span style={sub.done ? { textDecoration: 'line-through', color: C.text3 } : {}}>
-                      {sub.name}
-                    </span>
-                    <button
-                      style={{ background: 'none', border: 'none', color: C.text3, cursor: 'pointer', fontSize: 11, padding: '0 4px' }}
-                      onClick={() => deleteSubtask(sub.id)}
-                    >✕</button>
+                {task.description && <div style={{ fontSize: 12, color: C.text2, marginBottom: 8 }}>{task.description}</div>}
+                {task.area && <div style={{ fontSize: 12, color: C.text3, marginBottom: 8 }}>Área: {task.area}</div>}
+
+                {/* Subtasks */}
+                {subsTotal > 0 && (
+                  <div style={{ marginBottom: 8 }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 4 }}>Subtarefas ({subsDone}/{subsTotal})</div>
+                    {task.subtasks.map(sub => (
+                      <div key={sub.id} style={styles.subtaskRow}>
+                        <input type="checkbox" checked={!!sub.done} onChange={() => toggleSubtask(sub.id, !sub.done)} style={{ cursor: 'pointer' }} />
+                        <span style={sub.done ? { textDecoration: 'line-through', color: C.text3 } : {}}>{sub.name}</span>
+                        <button style={{ background: 'none', border: 'none', color: C.text3, cursor: 'pointer', fontSize: 11, padding: '0 4px' }} onClick={() => deleteSubtask(sub.id)}>✕</button>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
+                )}
+                <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                  <input style={styles.inlineInput} placeholder="Nova subtarefa..." value={newSubtask[task.id] || ''}
+                    onChange={e => setNewSubtask(prev => ({ ...prev, [task.id]: e.target.value }))}
+                    onKeyDown={e => e.key === 'Enter' && addSubtask(task.id)} />
+                  <button style={styles.inlineBtn} onClick={() => addSubtask(task.id)}>+</button>
+                </div>
 
-            {/* Add subtask inline */}
-            <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-              <input
-                style={styles.inlineInput}
-                placeholder="Nova subtarefa..."
-                value={newSubtask[task.id] || ''}
-                onChange={e => setNewSubtask(prev => ({ ...prev, [task.id]: e.target.value }))}
-                onKeyDown={e => e.key === 'Enter' && addSubtask(task.id)}
-              />
-              <button style={styles.inlineBtn} onClick={() => addSubtask(task.id)}>+</button>
-            </div>
-
-            {/* Comments */}
-            {(task.comments || []).length > 0 && (
-              <div style={{ marginTop: 10 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 4 }}>Comentários</div>
-                {task.comments.map(c => (
-                  <div key={c.id} style={styles.commentBox}>
-                    <div style={{ fontWeight: 600, fontSize: 11, color: C.text }}>{c.author || 'Anônimo'}</div>
-                    <div style={{ marginTop: 2 }}>{c.text}</div>
-                    <div style={{ fontSize: 10, color: C.text3, marginTop: 2 }}>{c.created_at ? new Date(c.created_at).toLocaleString('pt-BR') : ''}</div>
+                {/* Comments */}
+                {(task.comments || []).length > 0 && (
+                  <div style={{ marginBottom: 8 }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 4 }}>Comentários</div>
+                    {task.comments.map(c => (
+                      <div key={c.id} style={styles.commentBox}>
+                        <div style={{ fontWeight: 600, fontSize: 11, color: C.text }}>{c.author_name || c.author || 'Anônimo'}</div>
+                        <div style={{ marginTop: 2 }}>{c.text}</div>
+                        <div style={{ fontSize: 10, color: C.text3, marginTop: 2 }}>{c.created_at ? new Date(c.created_at).toLocaleString('pt-BR') : ''}</div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <input style={styles.inlineInput} placeholder="Adicionar comentário..." value={newComment[task.id] || ''}
+                    onChange={e => setNewComment(prev => ({ ...prev, [task.id]: e.target.value }))}
+                    onKeyDown={e => e.key === 'Enter' && addComment(task.id)} />
+                  <button style={styles.inlineBtn} onClick={() => addComment(task.id)}>Enviar</button>
+                </div>
               </div>
             )}
-
-            {/* Add comment inline */}
-            <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-              <input
-                style={styles.inlineInput}
-                placeholder="Adicionar comentário..."
-                value={newComment[task.id] || ''}
-                onChange={e => setNewComment(prev => ({ ...prev, [task.id]: e.target.value }))}
-                onKeyDown={e => e.key === 'Enter' && addComment(task.id)}
-              />
-              <button style={styles.inlineBtn} onClick={() => addComment(task.id)}>Enviar</button>
-            </div>
           </div>
-        ))}
-
+          );
+        })}
         </div>
         </>}
 
         {/* ── ABA: Reuniões (evento) ── */}
         {detailTab === 'reunioes' && !expandedOcc && (
-          <div style={{ padding: '20px 0' }}>
+          <div style={{ padding: '20px 0 60px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--cbrio-text, #1a1a2e)' }}>Reuniões do Evento ({meetingsList.length})</div>
               <button style={{ ...styles.btn('primary'), ...styles.btnSm }} onClick={() => setModalTask(null)}>+ Reunião</button>
             </div>
             {meetingsList.length === 0 && <div style={styles.empty}>Nenhuma reunião cadastrada</div>}
-            {meetingsList.map(m => (
-              <div key={m.id} style={styles.taskCard}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{m.title || 'Reunião'}</div>
-                    <div style={{ fontSize: 12, color: C.text2, marginTop: 2 }}>
-                      {fmtDate(m.date)}
-                      {m.participants?.length > 0 && ` · ${m.participants.join(', ')}`}
-                    </div>
-                    {m.decisions && <div style={{ fontSize: 12, color: C.text2, marginTop: 6 }}><strong>Decisões:</strong> {m.decisions}</div>}
-                    {m.notes && <div style={{ fontSize: 12, color: C.text3, marginTop: 4 }}>{m.notes}</div>}
-                  </div>
-                  <button style={{ ...styles.btn('ghost'), ...styles.btnSm, color: C.red }}
-                    onClick={async () => { if (window.confirm('Excluir reunião?')) { try { await meetings.remove(m.id); refreshDetail(); } catch(err) { setError(err.message); } } }}>✕</button>
-                </div>
-                {(m.pendencies || []).length > 0 && (
-                  <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${C.border}` }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 4 }}>Pendências</div>
-                    {m.pendencies.map(p => (
-                      <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '3px 0' }}>
-                        <input type="checkbox" checked={p.done}
-                          onChange={async () => { try { await meetings.togglePendency(p.id, !p.done); refreshDetail(); } catch(err) { setError(err.message); } }} />
-                        <span style={p.done ? { textDecoration: 'line-through', color: C.text3 } : { color: C.text }}>{p.description || p.text}</span>
-                        {p.responsible && <span style={{ fontSize: 10, color: C.text3 }}>({p.responsible})</span>}
+            {meetingsList.map(m => {
+              const isOpen = expandedCard === `meeting-${m.id}`;
+              const pendsCount = (m.pendencies || []).length;
+              const pendsDone = (m.pendencies || []).filter(p => p.done).length;
+              return (
+              <div key={m.id} style={{ ...styles.taskCard, cursor: 'pointer', transition: 'box-shadow 0.15s' }}
+                onClick={() => setExpandedCard(isOpen ? null : `meeting-${m.id}`)}
+                onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'}
+                onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
+                {/* Resumo */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+                    <span style={{ color: C.text3, fontSize: 12 }}>{isOpen ? '▼' : '▶'}</span>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{m.title || 'Reunião'}</div>
+                      <div style={{ fontSize: 12, color: C.text2, marginTop: 2 }}>
+                        {fmtDate(m.date)}
+                        {m.participants?.length > 0 && ` · ${m.participants.join(', ')}`}
+                        {pendsCount > 0 && ` · ${pendsDone}/${pendsCount} pendências`}
                       </div>
-                    ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Detalhe expandido */}
+                {isOpen && (
+                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.border}` }} onClick={e => e.stopPropagation()}>
+                    <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                      <button style={{ ...styles.btn('ghost'), ...styles.btnSm, color: C.red }}
+                        onClick={async () => { if (window.confirm('Excluir reunião?')) { await meetings.remove(m.id); refreshDetail(); } }}>Excluir</button>
+                    </div>
+                    {m.decisions && <div style={{ fontSize: 12, color: C.text2, marginBottom: 6 }}><strong>Decisões:</strong> {m.decisions}</div>}
+                    {m.notes && <div style={{ fontSize: 12, color: C.text3, marginBottom: 6 }}><strong>Notas:</strong> {m.notes}</div>}
+                    {pendsCount > 0 && (
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 4 }}>Pendências ({pendsDone}/{pendsCount})</div>
+                        {m.pendencies.map(p => (
+                          <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '3px 0' }}>
+                            <input type="checkbox" checked={p.done}
+                              onChange={async () => { await meetings.togglePendency(p.id, !p.done); refreshDetail(); }} />
+                            <span style={p.done ? { textDecoration: 'line-through', color: C.text3 } : { color: C.text }}>{p.description || p.text}</span>
+                            {p.responsible && <span style={{ fontSize: 10, color: C.text3 }}>({p.responsible})</span>}
+                            {p.deadline && <span style={{ fontSize: 10, color: C.text3 }}>{fmtDate(p.deadline)}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
         {/* ── ABA: Tarefas (ocorrência) ── */}
         {detailTab === 'tarefas' && expandedOcc && (
-          <div style={{ padding: '20px 0' }}>
+          <div style={{ padding: '20px 0 60px' }}>
             <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--cbrio-text, #1a1a2e)', marginBottom: 16 }}>Tarefas — {fmtDate(expandedOcc.date)} ({expandedOcc.tasks?.length || 0})</div>
             {(expandedOcc.tasks || []).map(task => (
               <div key={task.id} style={styles.taskCard}>
@@ -1407,7 +1424,7 @@ export default function Eventos() {
 
         {/* ── ABA: Reuniões (ocorrência) ── */}
         {detailTab === 'reunioes' && expandedOcc && (
-          <div style={{ padding: '20px 0' }}>
+          <div style={{ padding: '20px 0 60px' }}>
             <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--cbrio-text, #1a1a2e)', marginBottom: 16 }}>Reuniões — {fmtDate(expandedOcc.date)} ({expandedOcc.meetings?.length || 0})</div>
             {(expandedOcc.meetings || []).map(m => (
               <div key={m.id} style={styles.taskCard}>
@@ -1439,7 +1456,7 @@ export default function Eventos() {
 
         {/* ── ABA: Riscos ── */}
         {detailTab === 'riscos' && (
-          <div style={{ padding: '20px 0' }}>
+          <div style={{ padding: '20px 0 60px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--cbrio-text, #1a1a2e)' }}>Riscos do Evento ({eventRisks.length})</div>
               <button style={{ ...styles.btn('primary'), ...styles.btnSm }} onClick={() => setShowRiskForm(true)}>+ Risco</button>
@@ -1447,30 +1464,45 @@ export default function Eventos() {
             {eventRisks.length === 0 && <div style={styles.empty}>Nenhum risco registrado</div>}
             {eventRisks.map(risk => {
               const scoreColor = risk.score >= 15 ? C.red : risk.score >= 9 ? C.amber : C.green;
+              const isOpen = expandedCard === `risk-${risk.id}`;
               return (
-                <div key={risk.id} style={styles.taskCard}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                        <div style={{ width: 10, height: 10, borderRadius: '50%', background: scoreColor, flexShrink: 0 }} />
-                        <span style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{risk.title}</span>
-                        <span style={styles.badge(scoreColor, `${scoreColor}15`)}>Score: {risk.score}</span>
+                <div key={risk.id} style={{ ...styles.taskCard, cursor: 'pointer', transition: 'box-shadow 0.15s' }}
+                  onClick={() => setExpandedCard(isOpen ? null : `risk-${risk.id}`)}
+                  onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'}
+                  onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
+                  {/* Resumo */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+                      <span style={{ color: C.text3, fontSize: 12 }}>{isOpen ? '▼' : '▶'}</span>
+                      <div style={{ width: 10, height: 10, borderRadius: '50%', background: scoreColor, flexShrink: 0 }} />
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{risk.title}</div>
+                        <div style={{ fontSize: 12, color: C.text2, marginTop: 2 }}>
+                          Score: {risk.score} · {risk.category} · {risk.status}
+                          {risk.owner_name && ` · ${risk.owner_name}`}
+                        </div>
                       </div>
-                      <div style={{ fontSize: 12, color: C.text2 }}>
-                        Probabilidade: {risk.probability}/5 · Impacto: {risk.impact}/5 · {risk.category}
-                      </div>
-                      {risk.mitigation && <div style={{ fontSize: 12, color: C.text2, marginTop: 6 }}><strong>Mitigação:</strong> {risk.mitigation}</div>}
-                      {risk.owner_name && <div style={{ fontSize: 12, color: C.text3, marginTop: 2 }}>Responsável: {risk.owner_name}{risk.target_date ? ` · Prazo: ${fmtDate(risk.target_date)}` : ''}</div>}
                     </div>
-                    <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}>
-                      <select value={risk.status} onChange={async e => { await risksApi.update(risk.id, { status: e.target.value }); risksApi.list(ev.id).then(setEventRisks); }}
-                        style={{ ...styles.select, padding: '2px 6px', fontSize: 11 }}>
-                        {['aberto','mitigando','mitigado','aceito','fechado'].map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                      <button style={{ ...styles.btn('ghost'), ...styles.btnSm, color: C.red }}
-                        onClick={async () => { if (window.confirm('Excluir risco?')) { await risksApi.remove(risk.id); risksApi.list(ev.id).then(setEventRisks); } }}>✕</button>
-                    </div>
+                    <span style={styles.badge(scoreColor, `${scoreColor}15`)}>{risk.score}</span>
                   </div>
+
+                  {/* Detalhe expandido */}
+                  {isOpen && (
+                    <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.border}` }} onClick={e => e.stopPropagation()}>
+                      <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                        <select value={risk.status} onChange={async e => { await risksApi.update(risk.id, { status: e.target.value }); risksApi.list(ev.id).then(setEventRisks); }}
+                          style={{ ...styles.select, padding: '4px 8px', fontSize: 12 }}>
+                          {['aberto','mitigando','mitigado','aceito','fechado'].map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                        <button style={{ ...styles.btn('ghost'), ...styles.btnSm, color: C.red }}
+                          onClick={async () => { if (window.confirm('Excluir risco?')) { await risksApi.remove(risk.id); risksApi.list(ev.id).then(setEventRisks); } }}>Excluir</button>
+                      </div>
+                      {risk.description && <div style={{ fontSize: 12, color: C.text2, marginBottom: 6 }}>{risk.description}</div>}
+                      <div style={{ fontSize: 12, color: C.text2, marginBottom: 4 }}>Probabilidade: {risk.probability}/5 · Impacto: {risk.impact}/5</div>
+                      {risk.mitigation && <div style={{ fontSize: 12, color: C.text2, marginBottom: 4 }}><strong>Mitigação:</strong> {risk.mitigation}</div>}
+                      {risk.owner_name && <div style={{ fontSize: 12, color: C.text3 }}>Responsável: {risk.owner_name}{risk.target_date ? ` · Prazo: ${fmtDate(risk.target_date)}` : ''}</div>}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -1479,7 +1511,7 @@ export default function Eventos() {
 
         {/* ── ABA: Histórico ── */}
         {detailTab === 'historico' && (
-          <div style={{ padding: '20px 0' }}>
+          <div style={{ padding: '20px 0 60px' }}>
             <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--cbrio-text, #1a1a2e)', marginBottom: 16 }}>Histórico de Alterações</div>
             {auditHistory.length === 0 && <div style={styles.empty}>Nenhuma alteração registrada</div>}
             {auditHistory.map(h => (
