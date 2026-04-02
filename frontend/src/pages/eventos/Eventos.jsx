@@ -412,6 +412,7 @@ export default function Eventos() {
         await events.createTask(selectedEvent.id, data);
       }
       setModalTask(null);
+      setExpandedCard(null);
       refreshDetail();
     } catch (e) { setError(e.message); }
   }
@@ -420,6 +421,7 @@ export default function Eventos() {
     if (!window.confirm('Excluir esta tarefa?')) return;
     try {
       await events.removeTask(taskId);
+      setExpandedCard(null);
       refreshDetail();
     } catch (e) { setError(e.message); }
   }
@@ -1171,7 +1173,7 @@ export default function Eventos() {
                     const isSelected = expandedOcc?.id === occ.id;
                     return (
                       <button key={occ.id}
-                        onClick={() => { if (isSelected) { setExpandedOcc(null); } else { loadOccurrence(occ.id); } }}
+                        onClick={() => { setExpandedCard(null); if (isSelected) { setExpandedOcc(null); } else { loadOccurrence(occ.id); } }}
                         style={{
                           padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer',
                           border: isSelected ? `2px solid ${C.primary}` : `1.5px solid ${statusColor}`,
@@ -1218,7 +1220,7 @@ export default function Eventos() {
             ...(hasCycle ? [{ key: 'ciclo', label: 'Ciclo Criativo' }] : []),
             ...(ev.status === 'concluido' ? [{ key: 'retro', label: 'Retrospectiva' }] : []),
           ].map(t => (
-            <button key={t.key} style={styles.tab(detailTab === t.key)} onClick={() => setDetailTab(t.key)}>{t.label}</button>
+            <button key={t.key} style={styles.tab(detailTab === t.key)} onClick={() => { setDetailTab(t.key); setExpandedCard(null); }}>{t.label}</button>
           ))}
         </div>
 
@@ -1391,27 +1393,50 @@ export default function Eventos() {
         {/* ── ABA: Tarefas (ocorrência) ── */}
         {detailTab === 'tarefas' && expandedOcc && (
           <div style={{ padding: '20px 0 60px' }}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--cbrio-text, #1a1a2e)', marginBottom: 16 }}>Tarefas — {fmtDate(expandedOcc.date)} ({expandedOcc.tasks?.length || 0})</div>
-            {(expandedOcc.tasks || []).map(task => (
-              <div key={task.id} style={styles.taskCard}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <span style={{ fontWeight: 600, fontSize: 13, color: C.text }}>{task.name}</span>
-                    {task.responsible && <span style={{ fontSize: 11, color: C.text2, marginLeft: 8 }}>{task.responsible}</span>}
-                    {task.deadline && <span style={{ fontSize: 11, color: C.text3, marginLeft: 8 }}>Prazo: {fmtDate(task.deadline)}</span>}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--cbrio-text, #1a1a2e)' }}>Tarefas — {fmtDate(expandedOcc.date)} ({expandedOcc.tasks?.length || 0})</div>
+            </div>
+            {(expandedOcc.tasks || []).length === 0 && <div style={styles.empty}>Nenhuma tarefa nesta ocorrência</div>}
+            {(expandedOcc.tasks || []).map(task => {
+              const isOpen = expandedCard === `occtask-${task.id}`;
+              return (
+              <div key={task.id} style={{ ...styles.taskCard, cursor: 'pointer', transition: 'box-shadow 0.15s' }}
+                onClick={() => setExpandedCard(isOpen ? null : `occtask-${task.id}`)}
+                onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'}
+                onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+                    <span style={{ color: C.text3, fontSize: 12 }}>{isOpen ? '▼' : '▶'}</span>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{task.name}</div>
+                      <div style={{ fontSize: 12, color: C.text2, marginTop: 2 }}>
+                        {task.responsible || 'Sem responsável'}
+                        {task.deadline && ` · ${fmtDate(task.deadline)}`}
+                      </div>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                    <Badge status={task.status} map={TASK_STATUS_MAP} />
                     <select value={task.status} onChange={e => changeOccTaskStatus(task.id, e.target.value, expandedOcc.id)}
                       style={{ ...styles.select, padding: '2px 6px', fontSize: 11 }}>
                       <option value="pendente">Pendente</option>
                       <option value="em-andamento">Em andamento</option>
                       <option value="concluida">Concluída</option>
                     </select>
-                    <button style={{ ...styles.btn('ghost'), ...styles.btnSm, color: C.red }} onClick={() => deleteOccTask(task.id, expandedOcc.id)}>✕</button>
                   </div>
                 </div>
+                {isOpen && (
+                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.border}` }} onClick={e => e.stopPropagation()}>
+                    <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                      <button style={{ ...styles.btn('ghost'), ...styles.btnSm, color: C.red }} onClick={() => deleteOccTask(task.id, expandedOcc.id)}>Excluir</button>
+                    </div>
+                    {task.description && <div style={{ fontSize: 12, color: C.text2, marginBottom: 6 }}>{task.description}</div>}
+                    {task.area && <div style={{ fontSize: 12, color: C.text3 }}>Área: {task.area}</div>}
+                  </div>
+                )}
               </div>
-            ))}
+              );
+            })}
             <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
               <input style={styles.inlineInput} placeholder="Nova tarefa..." value={occTaskName}
                 onChange={e => setOccTaskName(e.target.value)}
@@ -1425,27 +1450,52 @@ export default function Eventos() {
         {/* ── ABA: Reuniões (ocorrência) ── */}
         {detailTab === 'reunioes' && expandedOcc && (
           <div style={{ padding: '20px 0 60px' }}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--cbrio-text, #1a1a2e)', marginBottom: 16 }}>Reuniões — {fmtDate(expandedOcc.date)} ({expandedOcc.meetings?.length || 0})</div>
-            {(expandedOcc.meetings || []).map(m => (
-              <div key={m.id} style={styles.taskCard}>
-                <div style={{ fontWeight: 600, fontSize: 13, color: C.text }}>{m.title}</div>
-                <div style={{ fontSize: 11, color: C.text2, marginTop: 2 }}>
-                  {fmtDate(m.date)}{m.participants?.length > 0 && ` · ${m.participants.join(', ')}`}
-                </div>
-                {m.decisions && <div style={{ fontSize: 12, color: C.text2, marginTop: 4 }}><strong>Decisões:</strong> {m.decisions}</div>}
-                {(m.pendencies || []).length > 0 && (
-                  <div style={{ marginTop: 6 }}>
-                    {m.pendencies.map(p => (
-                      <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '2px 0' }}>
-                        <input type="checkbox" checked={p.done} onChange={() => toggleOccPendency(p.id, p.done, expandedOcc.id)} />
-                        <span style={p.done ? { textDecoration: 'line-through', color: C.text3 } : { color: C.text }}>{p.description}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--cbrio-text, #1a1a2e)' }}>Reuniões — {fmtDate(expandedOcc.date)} ({expandedOcc.meetings?.length || 0})</div>
+            </div>
+            {(expandedOcc.meetings || []).length === 0 && <div style={styles.empty}>Nenhuma reunião nesta ocorrência</div>}
+            {(expandedOcc.meetings || []).map(m => {
+              const isOpen = expandedCard === `occmeeting-${m.id}`;
+              const pendsCount = (m.pendencies || []).length;
+              const pendsDone = (m.pendencies || []).filter(p => p.done).length;
+              return (
+              <div key={m.id} style={{ ...styles.taskCard, cursor: 'pointer', transition: 'box-shadow 0.15s' }}
+                onClick={() => setExpandedCard(isOpen ? null : `occmeeting-${m.id}`)}
+                onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'}
+                onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+                    <span style={{ color: C.text3, fontSize: 12 }}>{isOpen ? '▼' : '▶'}</span>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{m.title || 'Reunião'}</div>
+                      <div style={{ fontSize: 12, color: C.text2, marginTop: 2 }}>
+                        {fmtDate(m.date)}
+                        {m.participants?.length > 0 && ` · ${m.participants.join(', ')}`}
+                        {pendsCount > 0 && ` · ${pendsDone}/${pendsCount} pendências`}
                       </div>
-                    ))}
+                    </div>
+                  </div>
+                </div>
+                {isOpen && (
+                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.border}` }} onClick={e => e.stopPropagation()}>
+                    {m.decisions && <div style={{ fontSize: 12, color: C.text2, marginBottom: 6 }}><strong>Decisões:</strong> {m.decisions}</div>}
+                    {m.notes && <div style={{ fontSize: 12, color: C.text3, marginBottom: 6 }}><strong>Notas:</strong> {m.notes}</div>}
+                    {pendsCount > 0 && (
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 4 }}>Pendências ({pendsDone}/{pendsCount})</div>
+                        {m.pendencies.map(p => (
+                          <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '3px 0' }}>
+                            <input type="checkbox" checked={p.done} onChange={() => toggleOccPendency(p.id, p.done, expandedOcc.id)} />
+                            <span style={p.done ? { textDecoration: 'line-through', color: C.text3 } : { color: C.text }}>{p.description}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-            ))}
-            {(expandedOcc.meetings || []).length === 0 && <div style={styles.empty}>Nenhuma reunião nesta ocorrência</div>}
+              );
+            })}
             <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
               <input style={{ ...styles.inlineInput, flex: 2 }} placeholder="Título da reunião..." value={occMeetingTitle} onChange={e => setOccMeetingTitle(e.target.value)} />
               <input type="date" style={{ ...styles.inlineInput, flex: 1 }} value={occMeetingDate} onChange={e => setOccMeetingDate(e.target.value)} />
