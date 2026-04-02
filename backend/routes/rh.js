@@ -33,15 +33,15 @@ router.get('/dashboard', async (req, res) => {
       porArea[area] = (porArea[area] || 0) + 1;
     });
 
-    // Férias/licenças próximas do vencimento (próximos 30 dias)
+    // Férias/licenças nos próximos 30 dias (inclui em andamento e futuras)
     const hoje = new Date().toISOString().slice(0, 10);
     const em30 = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
     const { data: feriasProximas } = await supabase
       .from('rh_ferias_licencas')
-      .select('*, rh_funcionarios(nome)')
+      .select('*, rh_funcionarios(nome, cargo, area, foto_url)')
       .eq('status', 'aprovado')
-      .gte('data_inicio', hoje)
       .lte('data_inicio', em30)
+      .gte('data_fim', hoje)
       .order('data_inicio');
 
     // Documentos com vencimento próximo (60 dias)
@@ -361,19 +361,28 @@ router.patch('/treinamentos-funcionarios/:id', async (req, res) => {
 });
 
 // ── FÉRIAS E LICENÇAS ──────────────────────────────────────
-// GET /api/rh/ferias
+// GET /api/rh/ferias?status=&area=&data_de=&data_ate=&funcionario_id=
 router.get('/ferias', async (req, res) => {
   try {
-    const { status } = req.query;
+    const { status, area, data_de, data_ate, funcionario_id } = req.query;
     let query = supabase
       .from('rh_ferias_licencas')
       .select('*, rh_funcionarios(nome, cargo, area, foto_url)')
       .order('data_inicio', { ascending: false });
 
     if (status) query = query.eq('status', status);
+    if (funcionario_id) query = query.eq('funcionario_id', funcionario_id);
+    if (data_de) query = query.gte('data_inicio', data_de);
+    if (data_ate) query = query.lte('data_inicio', data_ate);
 
-    const { data, error } = await query;
+    let { data, error } = await query;
     if (error) return res.status(400).json({ error: error.message });
+
+    // Filter by area (post-query since it's a joined field)
+    if (area && data) {
+      data = data.filter(f => f.rh_funcionarios?.area === area);
+    }
+
     res.json(data);
   } catch (e) {
     console.error('[RH] Listar férias:', e.message);

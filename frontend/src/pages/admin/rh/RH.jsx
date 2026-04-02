@@ -300,7 +300,7 @@ export default function RH() {
       <FuncionarioFormModal open={!!modalFunc} data={modalFunc} onClose={() => setModalFunc(null)} onSave={saveFuncionario} />
       <TreinamentoFormModal open={!!modalTreino} data={modalTreino} onClose={() => setModalTreino(null)} onSave={saveTreinamento} />
       <FeriasFormModal open={!!modalFerias} funcs={funcs} onClose={() => setModalFerias(null)} onSave={saveFerias} />
-      <FuncionarioDetailModal
+      <FuncionarioDetailPanel
         open={!!modalDetail} data={modalDetail} onClose={() => setModalDetail(null)}
         onEdit={(f) => { setModalDetail(null); setModalFunc(f); }}
         onDelete={deleteFuncionario}
@@ -877,15 +877,26 @@ function FeriasTab({ funcs, onNew, onAprovar }) {
   const [ferias, setFerias] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filtroStatus, setFiltroStatus] = useState('');
+  const [filtroArea, setFiltroArea] = useState('');
+  const [filtroDe, setFiltroDe] = useState('');
+  const [filtroAte, setFiltroAte] = useState('');
+  const [filtroFunc, setFiltroFunc] = useState('');
+
+  const areas = [...new Set((funcs || []).map(f => f.area).filter(Boolean))];
 
   const loadFerias = useCallback(async () => {
     setLoading(true);
     try {
-      const params = filtroStatus ? { status: filtroStatus } : undefined;
-      setFerias(await rh.ferias.list(params) || []);
+      const params = {};
+      if (filtroStatus) params.status = filtroStatus;
+      if (filtroArea) params.area = filtroArea;
+      if (filtroDe) params.data_de = filtroDe;
+      if (filtroAte) params.data_ate = filtroAte;
+      if (filtroFunc) params.funcionario_id = filtroFunc;
+      setFerias(await rh.ferias.list(Object.keys(params).length ? params : undefined) || []);
     } catch (e) { console.error(e); }
     setLoading(false);
-  }, [filtroStatus]);
+  }, [filtroStatus, filtroArea, filtroDe, filtroAte, filtroFunc]);
 
   useEffect(() => { loadFerias(); }, [loadFerias]);
 
@@ -896,14 +907,29 @@ function FeriasTab({ funcs, onNew, onAprovar }) {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+      <div style={styles.filterRow}>
         <select style={styles.select} value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
           <option value="">Todos os status</option>
           <option value="pendente">Pendente</option>
           <option value="aprovado">Aprovado</option>
           <option value="rejeitado">Rejeitado</option>
         </select>
-        <button style={styles.btn('primary')} onClick={onNew}>+ Nova Solicitação</button>
+        <select style={styles.select} value={filtroArea} onChange={e => setFiltroArea(e.target.value)}>
+          <option value="">Todas as áreas</option>
+          {areas.map(a => <option key={a} value={a}>{a}</option>)}
+        </select>
+        <select style={styles.select} value={filtroFunc} onChange={e => setFiltroFunc(e.target.value)}>
+          <option value="">Todos os colaboradores</option>
+          {(funcs || []).filter(f => f.status === 'ativo').map(f => <option key={f.id} value={f.id}>{f.nome}</option>)}
+        </select>
+        <input style={{ ...styles.input, maxWidth: 140 }} type="date" value={filtroDe} onChange={e => setFiltroDe(e.target.value)} placeholder="De" title="Data início de" />
+        <input style={{ ...styles.input, maxWidth: 140 }} type="date" value={filtroAte} onChange={e => setFiltroAte(e.target.value)} placeholder="Até" title="Data início até" />
+        {(filtroStatus || filtroArea || filtroDe || filtroAte || filtroFunc) && (
+          <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => { setFiltroStatus(''); setFiltroArea(''); setFiltroDe(''); setFiltroAte(''); setFiltroFunc(''); }}>✕ Limpar</button>
+        )}
+        <div style={{ marginLeft: 'auto' }}>
+          <button style={styles.btn('primary')} onClick={onNew}>+ Nova Solicitação</button>
+        </div>
       </div>
 
       <div style={styles.card}>
@@ -1304,7 +1330,7 @@ function DocumentosSection({ data, onNewDoc, onDeleteDoc }) {
 const NIVEL_LABELS = { 1: 'Sem acesso', 2: 'Pessoal', 3: 'Área', 4: 'Setor', 5: 'Admin' };
 const NIVEL_COLORS = { 1: C.red, 2: C.amber, 3: C.blue, 4: C.green, 5: '#8b5cf6' };
 
-function FuncionarioDetailModal({ open, data, onClose, onEdit, onDelete, onNewDoc, onDeleteDoc }) {
+function FuncionarioDetailPanel({ open, data, onClose, onEdit, onDelete, onNewDoc, onDeleteDoc }) {
   const [showPerms, setShowPerms] = useState(false);
   const [permData, setPermData] = useState(null);
   const [estrutura, setEstrutura] = useState(null);
@@ -1376,11 +1402,24 @@ function FuncionarioDetailModal({ open, data, onClose, onEdit, onDelete, onNewDo
     setSaving(false);
   }
 
-  if (!data) return null;
+  if (!data || !open) return null;
   return (
-    <Modal open={open} onClose={onClose} title={`👤 ${data.nome}`}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex' }}>
+      {/* Overlay */}
+      <div style={{ flex: 1, background: 'rgba(0,0,0,0.5)' }} onClick={onClose} />
+      {/* Panel */}
+      <div style={{ width: '55%', minWidth: 500, maxWidth: 800, background: 'var(--cbrio-modal-bg)', overflowY: 'auto', boxShadow: '-8px 0 30px rgba(0,0,0,0.3)', animation: 'slideInRight 0.25s ease-out' }}>
+        {/* Header */}
+        <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--cbrio-modal-bg)', padding: '20px 28px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>👤 {data.nome}</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button style={styles.btn('secondary')} onClick={() => onEdit(data)}><Pencil style={{ width: 14, height: 14, display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Editar</button>
+            <button style={{ ...styles.btn('ghost'), fontSize: 18 }} onClick={onClose}>✕</button>
+          </div>
+        </div>
+        <div style={{ padding: '24px 28px' }}>
       {/* Avatar + Info principal */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
         {data.foto_url ? (
           <img src={data.foto_url} alt="" style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', border: `3px solid ${C.primary}`, flexShrink: 0 }} />
         ) : (
@@ -1539,11 +1578,12 @@ function FuncionarioDetailModal({ open, data, onClose, onEdit, onDelete, onNewDo
       </div>
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 12, borderTop: `1px solid ${C.border}` }}>
-        <button style={styles.btn('secondary')} onClick={() => onEdit(data)}><Pencil style={{ width: 14, height: 14, display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Editar</button>
-        <button style={styles.btn('danger')} onClick={() => onDelete(data.id)}><Trash2 style={{ width: 14, height: 14, display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Remover</button>
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 16, borderTop: `1px solid ${C.border}`, marginTop: 16 }}>
+        <button style={styles.btn('danger')} onClick={() => onDelete(data.id)}><Trash2 style={{ width: 14, height: 14, display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Remover Colaborador</button>
       </div>
-    </Modal>
+        </div>{/* end padding div */}
+      </div>{/* end panel */}
+    </div>
   );
 }
 
