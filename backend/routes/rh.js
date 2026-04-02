@@ -125,7 +125,12 @@ router.get('/funcionarios/:id', async (req, res) => {
 // POST /api/rh/funcionarios
 router.post('/funcionarios', async (req, res) => {
   try {
-    const { nome, cpf, email, telefone, cargo, area, tipo_contrato, data_admissao, salario, observacoes, foto_url } = req.body;
+    const { nome, cpf, email, telefone, cargo, area, tipo_contrato, data_admissao, salario, observacoes, foto_url,
+      complemento_salario, alimentacao, transporte, saude, seguro_vida, educacao, saldo_livre,
+      plano_saude, gratificacao, adicional_nivel, participacao_comite, veiculo,
+      adicional_pastores, adicional_lideranca, adicional_pulpito,
+      bonus_anual_50, bonus_anual_integral, ferias_integral,
+      remuneracao_bruta, remuneracao_liquida, fgts, ir, inss, custo_total_mensal } = req.body;
     if (!nome || !cargo || !data_admissao) {
       return res.status(400).json({ error: 'Nome, cargo e data de admissão são obrigatórios' });
     }
@@ -137,6 +142,11 @@ router.post('/funcionarios', async (req, res) => {
         cargo, area: area || null, tipo_contrato: tipo_contrato || 'clt',
         data_admissao, salario: salario || null, observacoes: observacoes || null,
         foto_url: foto_url || null,
+        complemento_salario, alimentacao, transporte, saude, seguro_vida, educacao, saldo_livre,
+        plano_saude, gratificacao, adicional_nivel, participacao_comite, veiculo,
+        adicional_pastores, adicional_lideranca, adicional_pulpito,
+        bonus_anual_50, bonus_anual_integral, ferias_integral,
+        remuneracao_bruta, remuneracao_liquida, fgts, ir, inss, custo_total_mensal,
         created_by: req.user.userId,
       })
       .select()
@@ -153,15 +163,10 @@ router.post('/funcionarios', async (req, res) => {
 // PUT /api/rh/funcionarios/:id
 router.put('/funcionarios/:id', async (req, res) => {
   try {
-    const { nome, cpf, email, telefone, cargo, area, tipo_contrato, data_admissao, data_demissao, salario, status, observacoes, foto_url } = req.body;
+    const { id: _id, created_at, created_by, updated_at: _ua, ...fields } = req.body;
     const { data, error } = await supabase
       .from('rh_funcionarios')
-      .update({
-        nome, cpf, email, telefone, cargo, area, tipo_contrato,
-        data_admissao, data_demissao: data_demissao || null,
-        salario, status, observacoes, foto_url: foto_url || null,
-        updated_at: new Date().toISOString(),
-      })
+      .update({ ...fields, updated_at: new Date().toISOString() })
       .eq('id', req.params.id)
       .select()
       .single();

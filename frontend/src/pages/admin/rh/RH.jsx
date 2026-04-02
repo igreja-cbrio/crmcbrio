@@ -1121,6 +1121,153 @@ function FeriasFormModal({ open, funcs, onClose, onSave }) {
   );
 }
 
+// ── Benefícios e Documentos sections ──
+const BENEFICIOS_FIELDS = [
+  { key: 'complemento_salario', label: 'Complemento Salário' },
+  { key: 'alimentacao', label: 'Alimentação' },
+  { key: 'transporte', label: 'Transporte' },
+  { key: 'saude', label: 'Saúde' },
+  { key: 'seguro_vida', label: 'Seguro de Vida' },
+  { key: 'educacao', label: 'Educação' },
+  { key: 'saldo_livre', label: 'Saldo Livre' },
+  { key: 'plano_saude', label: 'Plano de Saúde' },
+  { key: 'gratificacao', label: 'Gratificação' },
+  { key: 'adicional_nivel', label: 'Adicional de Nível' },
+  { key: 'participacao_comite', label: 'Comitê Estratégico' },
+  { key: 'veiculo', label: 'Veículo' },
+  { key: 'adicional_pastores', label: 'Adicional Pastores' },
+  { key: 'adicional_lideranca', label: 'Adicional Liderança' },
+  { key: 'adicional_pulpito', label: 'Adicional Púlpito' },
+];
+
+function BeneficiosSection({ data }) {
+  const [expanded, setExpanded] = useState(false);
+  const activeBenefits = BENEFICIOS_FIELDS.filter(b => Number(data[b.key]) > 0);
+  if (activeBenefits.length === 0 && !data.remuneracao_bruta) return null;
+
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <button onClick={() => setExpanded(!expanded)}
+        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: 8 }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: C.text2, textTransform: 'uppercase' }}>💰 Benefícios e Remuneração ({activeBenefits.length})</span>
+        <span style={{ fontSize: 12, color: C.text3, transition: 'transform 0.2s', transform: expanded ? 'rotate(180deg)' : '' }}>▼</span>
+      </button>
+      {expanded && (
+        <div style={{ background: 'var(--cbrio-input-bg)', borderRadius: 10, padding: 16 }}>
+          {/* Resumo financeiro */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: 12 }}>
+            {[
+              { label: 'Salário Base', value: data.salario, color: C.primary },
+              { label: 'Rem. Bruta', value: data.remuneracao_bruta, color: C.blue },
+              { label: 'Rem. Líquida', value: data.remuneracao_liquida, color: C.green },
+              { label: 'Custo Total', value: data.custo_total_mensal, color: C.amber },
+            ].map(item => (
+              <div key={item.label} style={{ padding: '10px 12px', borderRadius: 8, border: `1px solid ${C.border}`, borderLeft: `3px solid ${item.color}` }}>
+                <div style={{ fontSize: 10, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>{item.label}</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{fmtMoney(item.value)}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Benefícios ativos */}
+          {activeBenefits.length > 0 && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px' }}>
+              {activeBenefits.map(b => (
+                <div key={b.key} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: `1px solid ${C.border}` }}>
+                  <span style={{ fontSize: 12, color: C.text2 }}>{b.label}</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{fmtMoney(data[b.key])}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Descontos */}
+          {(Number(data.fgts) > 0 || Number(data.ir) > 0 || Number(data.inss) > 0) && (
+            <div style={{ marginTop: 10, paddingTop: 8, borderTop: `1px solid ${C.border}` }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 4 }}>Descontos</div>
+              <div style={{ display: 'flex', gap: 16 }}>
+                {Number(data.fgts) > 0 && <span style={{ fontSize: 12, color: C.red }}>FGTS: {fmtMoney(data.fgts)}</span>}
+                {Number(data.ir) > 0 && <span style={{ fontSize: 12, color: C.red }}>IR: {fmtMoney(data.ir)}</span>}
+                {Number(data.inss) > 0 && <span style={{ fontSize: 12, color: C.red }}>INSS: {fmtMoney(data.inss)}</span>}
+              </div>
+            </div>
+          )}
+
+          {/* Bônus anuais */}
+          {(Number(data.bonus_anual_50) > 0 || Number(data.bonus_anual_integral) > 0 || Number(data.ferias_integral) > 0) && (
+            <div style={{ marginTop: 10, paddingTop: 8, borderTop: `1px solid ${C.border}` }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 4 }}>Provisões Anuais</div>
+              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                {Number(data.bonus_anual_50) > 0 && <span style={{ fontSize: 12, color: C.text }}>Bônus 50%: {fmtMoney(data.bonus_anual_50)}</span>}
+                {Number(data.bonus_anual_integral) > 0 && <span style={{ fontSize: 12, color: C.text }}>Bônus Integral: {fmtMoney(data.bonus_anual_integral)}</span>}
+                {Number(data.ferias_integral) > 0 && <span style={{ fontSize: 12, color: C.text }}>Férias: {fmtMoney(data.ferias_integral)}</span>}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DocumentosSection({ data, onNewDoc, onDeleteDoc }) {
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef(null);
+
+  async function handleUploadDoc(file) {
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { alert('Arquivo deve ter no máximo 10MB'); return; }
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const filePath = `documentos/${data.id}/${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage.from('rh-fotos').upload(filePath, file, { upsert: true });
+      if (error) throw error;
+      const { data: { publicUrl } } = supabase.storage.from('rh-fotos').getPublicUrl(filePath);
+      // Create document record
+      const tipo = ext.toLowerCase() === 'pdf' ? 'contrato' : ext.toLowerCase();
+      await rh.documentos.create(data.id, { nome: file.name, tipo, storage_path: publicUrl });
+      alert('Documento enviado com sucesso!');
+      // Reload - parent should handle
+    } catch (e) {
+      console.error(e);
+      alert('Erro ao enviar documento: ' + e.message);
+    } finally { setUploading(false); }
+  }
+
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: C.text2, textTransform: 'uppercase' }}>📄 Documentos ({(data.documentos || []).length})</span>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <input ref={fileRef} type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xls,.xlsx" style={{ display: 'none' }}
+            onChange={e => { handleUploadDoc(e.target.files?.[0]); e.target.value = ''; }} />
+          <button style={{ ...styles.btn('secondary'), ...styles.btnSm }} onClick={() => fileRef.current?.click()} disabled={uploading}>
+            {uploading ? '⏳ Enviando...' : '📎 Upload'}
+          </button>
+          <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => onNewDoc(data.id)}>+ Manual</button>
+        </div>
+      </div>
+      {(data.documentos || []).map(d => (
+        <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: `1px solid ${C.border}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 16 }}>{d.storage_path ? '📄' : '📋'}</span>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{d.nome}</div>
+              <div style={{ fontSize: 11, color: C.text3 }}>{d.tipo}{d.data_expiracao ? ` • exp: ${fmtDate(d.data_expiracao)}` : ''}</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            {d.storage_path && <a href={d.storage_path} target="_blank" rel="noopener noreferrer" style={{ ...styles.btn('ghost'), ...styles.btnSm, color: C.primary, textDecoration: 'none' }}>⬇ Baixar</a>}
+            <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => onDeleteDoc(d.id, data.id)}>🗑</button>
+          </div>
+        </div>
+      ))}
+      {(data.documentos || []).length === 0 && <div style={{ fontSize: 13, color: C.text3, padding: '8px 0' }}>Nenhum documento — use o botão Upload para enviar</div>}
+    </div>
+  );
+}
+
 const NIVEL_LABELS = { 1: 'Sem acesso', 2: 'Pessoal', 3: 'Área', 4: 'Setor', 5: 'Admin' };
 const NIVEL_COLORS = { 1: C.red, 2: C.amber, 3: C.blue, 4: C.green, 5: '#8b5cf6' };
 
@@ -1230,22 +1377,11 @@ function FuncionarioDetailModal({ open, data, onClose, onEdit, onDelete, onNewDo
         <div style={{ padding: '8px 12px', background: 'var(--cbrio-input-bg)', borderRadius: 8, marginBottom: 16, fontSize: 13, color: C.text2 }}>{data.observacoes}</div>
       )}
 
-      {/* Documentos */}
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: C.text2, textTransform: 'uppercase' }}>📄 Documentos ({(data.documentos || []).length})</span>
-          <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => onNewDoc(data.id)}>+ Adicionar</button>
-        </div>
-        {(data.documentos || []).map(d => (
-          <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: `1px solid ${C.border}` }}>
-            <span style={{ fontSize: 13 }}>{d.nome} <span style={{ color: C.text3, fontSize: 11 }}>({d.tipo})</span></span>
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              {d.data_expiracao && <span style={{ fontSize: 11, color: C.text3 }}>exp: {fmtDate(d.data_expiracao)}</span>}
-              <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => onDeleteDoc(d.id, data.id)}>🗑</button>
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* Benefícios e Remuneração */}
+      <BeneficiosSection data={data} />
+
+      {/* Documentos com upload */}
+      <DocumentosSection data={data} onNewDoc={onNewDoc} onDeleteDoc={onDeleteDoc} onRefresh={() => onClose()} />
 
       {/* Treinamentos */}
       <div style={{ marginBottom: 16 }}>
