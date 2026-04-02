@@ -581,6 +581,7 @@ export default function Eventos() {
 
   // ── Kanban ──
   const [kanbanArea, setKanbanArea] = useState('');
+  const [kanbanExpanded, setKanbanExpanded] = useState(null);
 
   async function loadKanban(sourceFilter, areaFilter) {
     setKanbanLoading(true);
@@ -703,18 +704,27 @@ export default function Eventos() {
                 <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {colTasks.map(task => {
                     const sb = SOURCE_BADGE[task.source] || SOURCE_BADGE.evento;
+                    const cardKey = `${task.source}-${task.id}`;
+                    const isExpanded = kanbanExpanded === cardKey;
+                    const subs = task.subtasks || [];
+                    const subsDone = subs.filter(s => s.done).length;
                     return (
-                      <div key={`${task.source}-${task.id}`} draggable
+                      <div key={cardKey} draggable
                         onDragStart={e => e.dataTransfer.setData('kanbanTask', JSON.stringify({ id: task.id, source: task.source }))}
+                        onClick={() => setKanbanExpanded(isExpanded ? null : cardKey)}
                         style={{
                           background: 'var(--cbrio-card, #fff)', borderRadius: 10, padding: '12px 14px',
-                          border: '1px solid var(--cbrio-border, #e5e7eb)', cursor: 'grab',
-                          boxShadow: '0 1px 3px rgba(0,0,0,0.04)', transition: 'box-shadow 0.15s',
+                          border: isExpanded ? '1.5px solid var(--color-primary, #7c3aed)' : '1px solid var(--cbrio-border, #e5e7eb)',
+                          cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', transition: 'all 0.15s',
                         }}
                         onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'}
                         onMouseLeave={e => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)'}
                       >
-                        <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--cbrio-text, #1a1a2e)', marginBottom: 6 }}>{task.name}</div>
+                        {/* Resumo (sempre visível) */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                          <span style={{ color: 'var(--cbrio-text3)', fontSize: 11 }}>{isExpanded ? '▼' : '▶'}</span>
+                          <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--cbrio-text, #1a1a2e)', flex: 1 }}>{task.name}</div>
+                        </div>
                         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 4 }}>
                           <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 10, color: sb.color, background: sb.bg }}>{sb.label}</span>
                           {task.area && (
@@ -722,9 +732,9 @@ export default function Eventos() {
                               {task.area === 'marketing' ? 'MKT' : 'ADM'}
                             </span>
                           )}
-                          {task.priority && task.priority !== 'media' && task.priority !== 'normal' && (
-                            <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 10, color: PRIORITY_COLOR[task.priority], background: `${PRIORITY_COLOR[task.priority]}15` }}>
-                              {task.priority}
+                          {subs.length > 0 && (
+                            <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 10, color: 'var(--cbrio-text3)', background: 'var(--cbrio-bg, #f3f4f6)' }}>
+                              {subsDone}/{subs.length} subtarefas
                             </span>
                           )}
                         </div>
@@ -733,6 +743,28 @@ export default function Eventos() {
                           {task.responsible || 'Sem responsável'}
                         </div>
                         <TaskDeadline deadline={task.deadline} isDone={col.key === 'concluida'} />
+
+                        {/* Expandido: subtarefas + detalhes */}
+                        {isExpanded && (
+                          <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--cbrio-border, #e5e7eb)' }} onClick={e => e.stopPropagation()}>
+                            {task.observacoes && <div style={{ fontSize: 11, color: 'var(--cbrio-text3)', marginBottom: 6 }}>{task.observacoes}</div>}
+                            {subs.length > 0 && (
+                              <div>
+                                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--cbrio-text2)', marginBottom: 4 }}>Subtarefas ({subsDone}/{subs.length})</div>
+                                {subs.map(sub => (
+                                  <div key={sub.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '3px 0', color: 'var(--cbrio-text)' }}>
+                                    <input type="checkbox" checked={sub.done} onChange={async () => {
+                                      sub.done = !sub.done;
+                                      setKanbanTasks([...kanbanTasks]);
+                                    }} style={{ cursor: 'pointer' }} />
+                                    <span style={sub.done ? { textDecoration: 'line-through', color: 'var(--cbrio-text3)' } : {}}>{sub.name}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            {subs.length === 0 && <div style={{ fontSize: 11, color: 'var(--cbrio-text3)' }}>Sem subtarefas</div>}
+                          </div>
+                        )}
                       </div>
                     );
                   })}

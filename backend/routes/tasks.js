@@ -23,18 +23,29 @@ router.get('/all', async (req, res) => {
       }));
     }
 
-    // Tarefas do ciclo criativo
+    // Tarefas do ciclo criativo (com subtarefas)
     if (!source || source === 'ciclo') {
       let q = supabase.from('cycle_phase_tasks')
-        .select('id, titulo, responsavel_nome, area, prazo, status, prioridade, event_id, created_at, events(name), event_cycle_phases(nome_fase)')
+        .select('id, titulo, responsavel_nome, area, prazo, status, prioridade, event_id, observacoes, created_at, events(name), event_cycle_phases(nome_fase)')
         .order('prazo', { nullsFirst: false });
       if (area) q = q.eq('area', area);
       const { data } = await q;
+
+      // Buscar subtarefas de todas as tarefas do ciclo
+      const cycleTaskIds = (data || []).map(t => t.id);
+      const { data: allSubs } = cycleTaskIds.length > 0
+        ? await supabase.from('cycle_task_subtasks').select('*').in('task_id', cycleTaskIds).order('sort_order')
+        : { data: [] };
+      const subsMap = {};
+      (allSubs || []).forEach(s => { if (!subsMap[s.task_id]) subsMap[s.task_id] = []; subsMap[s.task_id].push(s); });
+
       (data || []).forEach(t => results.push({
         id: t.id, name: t.titulo, responsible: t.responsavel_nome, area: t.area,
         deadline: t.prazo, status: t.status === 'a_fazer' ? 'pendente' : t.status === 'em_andamento' ? 'em-andamento' : t.status,
         priority: t.prioridade, parent_name: (t.events?.name || '—') + ' → ' + (t.event_cycle_phases?.nome_fase || ''),
         parent_id: t.event_id, source: 'ciclo', created_at: t.created_at,
+        observacoes: t.observacoes,
+        subtasks: subsMap[t.id] || [],
       }));
     }
 
