@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Users, Pencil, Trash2, Palmtree } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { rh } from '../../../api';
+import { supabase } from '../../../supabaseClient';
 import TabExtras from './TabExtras';
 
 // ── Tema ────────────────────────────────────────────────────
@@ -604,13 +605,40 @@ function FeriasTab({ dash, funcs, onNew, onAprovar }) {
 
 function FuncionarioFormModal({ open, data, onClose, onSave }) {
   const [f, setF] = useState({});
+  const [uploading, setUploading] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const fileRef = useRef(null);
   useEffect(() => { if (data) setF({ ...data }); }, [data]);
   const upd = (k, v) => setF(p => ({ ...p, [k]: v }));
+
+  async function uploadFoto(file) {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { alert('Selecione um arquivo de imagem (JPG, PNG, etc.)'); return; }
+    if (file.size > 5 * 1024 * 1024) { alert('A imagem deve ter no máximo 5MB'); return; }
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const filePath = `colaboradores/${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage.from('rh-fotos').upload(filePath, file, { upsert: true });
+      if (error) throw error;
+      const { data: { publicUrl } } = supabase.storage.from('rh-fotos').getPublicUrl(filePath);
+      upd('foto_url', publicUrl);
+    } catch (err) {
+      console.error('Erro upload:', err);
+      alert('Erro ao enviar foto. Tente novamente.');
+    } finally { setUploading(false); }
+  }
+
+  function handleDrop(e) {
+    e.preventDefault(); setDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) uploadFoto(file);
+  }
 
   return (
     <Modal open={open} onClose={onClose}
       title={f?.id ? 'Editar Colaborador' : 'Novo Colaborador'}
-      footer={<button style={styles.btn('primary')} onClick={() => onSave(f)}>Salvar</button>}>
+      footer={<button style={styles.btn('primary')} onClick={() => onSave(f)} disabled={uploading}>Salvar</button>}>
       <Input label="Nome *" value={f.nome || ''} onChange={e => upd('nome', e.target.value)} />
       <div style={styles.formRow}>
         <Input label="CPF" value={f.cpf || ''} onChange={e => upd('cpf', e.target.value)} />
@@ -638,13 +666,49 @@ function FuncionarioFormModal({ open, data, onClose, onSave }) {
           <Input label="Data Demissão" type="date" value={f.data_demissao || ''} onChange={e => upd('data_demissao', e.target.value)} />
         </div>
       )}
-      {/* Foto */}
+      {/* Foto — upload + drag & drop */}
       <div style={styles.formGroup}>
         <label style={styles.label}>Foto do Colaborador</label>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <input style={{ ...styles.input, flex: 1 }} type="text" placeholder="URL da foto (ex: https://...)" value={f.foto_url || ''} onChange={e => upd('foto_url', e.target.value)} />
-          {f.foto_url && (
-            <img src={f.foto_url} alt="Foto" style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${C.primary}`, flexShrink: 0 }} onError={e => { e.target.style.display = 'none'; }} />
+        <div
+          onDragOver={e => { e.preventDefault(); setDragging(true); }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={handleDrop}
+          onClick={() => !uploading && fileRef.current?.click()}
+          style={{
+            border: `2px dashed ${dragging ? C.primary : '#444'}`,
+            borderRadius: 12, padding: 20, textAlign: 'center',
+            cursor: uploading ? 'wait' : 'pointer',
+            background: dragging ? `${C.primary}10` : 'transparent',
+            transition: 'all 0.2s',
+          }}
+        >
+          <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
+            onChange={e => { uploadFoto(e.target.files?.[0]); e.target.value = ''; }} />
+          {f.foto_url ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, justifyContent: 'center' }}>
+              <img src={f.foto_url} alt="Foto" style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${C.primary}` }}
+                onError={e => { e.target.style.display = 'none'; }} />
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ color: C.text, fontSize: 14, fontWeight: 600 }}>Foto enviada</div>
+                <div style={{ color: C.text2, fontSize: 12, marginTop: 4 }}>Clique ou arraste para trocar</div>
+                <button type="button" onClick={e => { e.stopPropagation(); upd('foto_url', ''); }}
+                  style={{ marginTop: 6, background: 'transparent', border: `1px solid #ef4444`, color: '#ef4444', borderRadius: 6, padding: '4px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                  Remover
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              {uploading ? (
+                <div style={{ color: C.primary, fontSize: 14, fontWeight: 600 }}>Enviando...</div>
+              ) : (
+                <>
+                  <div style={{ fontSize: 28, marginBottom: 6 }}>📷</div>
+                  <div style={{ color: C.text, fontSize: 14, fontWeight: 600 }}>Arraste uma foto aqui</div>
+                  <div style={{ color: C.text2, fontSize: 12, marginTop: 4 }}>ou clique para selecionar — JPG, PNG — máx. 5MB</div>
+                </>
+              )}
+            </div>
           )}
         </div>
       </div>
