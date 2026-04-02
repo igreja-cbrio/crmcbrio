@@ -511,11 +511,16 @@ export default function Eventos() {
     { label: 'Concluídos', value: counts['concluido'], color: C.blue },
   ];
 
-  // ── Kanban loader ──
-  async function loadKanban(filter) {
+  // ── Kanban ──
+  const [kanbanArea, setKanbanArea] = useState('');
+
+  async function loadKanban(sourceFilter, areaFilter) {
     setKanbanLoading(true);
     try {
-      const data = await tasksApi.all(filter || '');
+      const params = {};
+      if (sourceFilter) params.source = sourceFilter;
+      if (areaFilter) params.area = areaFilter;
+      const data = await tasksApi.all(params);
       setKanbanTasks(data);
     } catch (e) { console.error(e); }
     finally { setKanbanLoading(false); }
@@ -524,7 +529,7 @@ export default function Eventos() {
   async function kanbanChangeStatus(source, taskId, newStatus) {
     try {
       await tasksApi.updateStatus(source, taskId, newStatus);
-      loadKanban(kanbanFilter);
+      loadKanban(kanbanFilter, kanbanArea);
     } catch (e) { setError(e.message); }
   }
 
@@ -540,22 +545,39 @@ export default function Eventos() {
     ];
     const SOURCE_BADGE = {
       evento: { label: 'Evento', color: '#7c3aed', bg: '#ede9fe' },
+      ciclo: { label: 'Ciclo Criativo', color: '#00B39D', bg: '#d1fae5' },
       projeto: { label: 'Projeto', color: '#3b82f6', bg: '#dbeafe' },
       planejamento: { label: 'Estratégico', color: '#f59e0b', bg: '#fef3c7' },
     };
     const PRIORITY_COLOR = { urgente: '#ef4444', alta: '#f59e0b', media: '#3b82f6', baixa: '#9ca3af' };
 
+    function TaskDeadline({ deadline, isDone }) {
+      if (!deadline || isDone) return null;
+      const d = normDate(deadline);
+      if (!d) return null;
+      const diff = Math.ceil((new Date(d + 'T12:00:00') - new Date()) / 86400000);
+      const color = diff < 0 ? '#ef4444' : diff <= 7 ? '#f59e0b' : '#10b981';
+      const text = diff < 0 ? `${Math.abs(diff)}d atrás` : diff === 0 ? 'Hoje' : `${diff}d`;
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--cbrio-border, #e5e7eb)' }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color }}>{fmtDate(deadline)}</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color, padding: '2px 8px', borderRadius: 10, background: `${color}15` }}>{text}</span>
+        </div>
+      );
+    }
+
     return (
       <div style={{ margin: '0 -32px', padding: '0 16px' }}>
-        {/* Filtros */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
+        {/* Filtros de fonte */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
           {[
             { key: '', label: 'Todas as tarefas' },
-            { key: 'evento', label: 'Tarefas de evento' },
-            { key: 'projeto', label: 'Tarefas de projeto' },
-            { key: 'planejamento', label: 'Planejamento estratégico' },
+            { key: 'evento', label: 'Eventos' },
+            { key: 'ciclo', label: 'Ciclo Criativo' },
+            { key: 'projeto', label: 'Projetos' },
+            { key: 'planejamento', label: 'Planejamento' },
           ].map(f => (
-            <button key={f.key} onClick={() => { setKanbanFilter(f.key); loadKanban(f.key); }}
+            <button key={f.key} onClick={() => { setKanbanFilter(f.key); loadKanban(f.key, kanbanArea); }}
               style={{
                 padding: '6px 16px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer',
                 border: kanbanFilter === f.key ? '2px solid var(--color-primary, #7c3aed)' : '1px solid var(--cbrio-border, #e5e7eb)',
@@ -567,10 +589,30 @@ export default function Eventos() {
           ))}
         </div>
 
+        {/* Filtros de área */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--cbrio-text3, #9ca3af)', marginRight: 4 }}>Área:</span>
+          {[
+            { key: '', label: 'Todas' },
+            { key: 'marketing', label: 'Marketing' },
+            { key: 'adm', label: 'Administrativo' },
+          ].map(f => (
+            <button key={f.key} onClick={() => { setKanbanArea(f.key); loadKanban(kanbanFilter, f.key); }}
+              style={{
+                padding: '4px 12px', borderRadius: 16, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                border: kanbanArea === f.key ? '2px solid #00B39D' : '1px solid var(--cbrio-border, #e5e7eb)',
+                background: kanbanArea === f.key ? '#00B39D' : 'transparent',
+                color: kanbanArea === f.key ? '#fff' : 'var(--cbrio-text3, #6b7280)',
+              }}>
+              {f.label}
+            </button>
+          ))}
+        </div>
+
         {kanbanLoading && <div style={{ padding: 20, textAlign: 'center', color: 'var(--cbrio-text3, #9ca3af)' }}>Carregando...</div>}
 
         {/* 4 colunas */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, minHeight: 'calc(100vh - 220px)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, minHeight: 'calc(100vh - 260px)' }}>
           {COLUMNS.map(col => {
             const colTasks = kanbanTasks.filter(t => t.status === col.key);
             return (
@@ -584,14 +626,12 @@ export default function Eventos() {
                     kanbanChangeStatus(source, id, col.key);
                   }
                 }}>
-                {/* Header coluna */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, padding: '0 4px' }}>
                   <div style={{ width: 10, height: 10, borderRadius: '50%', background: col.color }} />
                   <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--cbrio-text, #1a1a2e)' }}>{col.label}</span>
                   <span style={{ fontSize: 11, color: 'var(--cbrio-text3, #9ca3af)', fontWeight: 600 }}>({colTasks.length})</span>
                 </div>
 
-                {/* Cards */}
                 <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {colTasks.map(task => {
                     const sb = SOURCE_BADGE[task.source] || SOURCE_BADGE.evento;
@@ -607,32 +647,29 @@ export default function Eventos() {
                         onMouseLeave={e => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)'}
                       >
                         <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--cbrio-text, #1a1a2e)', marginBottom: 6 }}>{task.name}</div>
-                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>
+                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 4 }}>
                           <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 10, color: sb.color, background: sb.bg }}>{sb.label}</span>
-                          {task.priority && task.priority !== 'media' && (
+                          {task.area && (
+                            <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 10, color: task.area === 'marketing' ? '#7c3aed' : '#f59e0b', background: task.area === 'marketing' ? '#ede9fe' : '#fef3c7' }}>
+                              {task.area === 'marketing' ? 'MKT' : 'ADM'}
+                            </span>
+                          )}
+                          {task.priority && task.priority !== 'media' && task.priority !== 'normal' && (
                             <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 10, color: PRIORITY_COLOR[task.priority], background: `${PRIORITY_COLOR[task.priority]}15` }}>
                               {task.priority}
                             </span>
                           )}
                         </div>
-                        <div style={{ fontSize: 11, color: 'var(--cbrio-text2, #6b7280)' }}>
-                          {task.parent_name}
+                        <div style={{ fontSize: 11, color: 'var(--cbrio-text2, #6b7280)' }}>{task.parent_name}</div>
+                        <div style={{ fontSize: 11, color: 'var(--cbrio-text3, #9ca3af)', marginTop: 4 }}>
+                          {task.responsible || 'Sem responsável'}
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
-                          <span style={{ fontSize: 11, color: 'var(--cbrio-text3, #9ca3af)' }}>
-                            {task.responsible || 'Sem responsável'}
-                          </span>
-                          {task.deadline && (
-                            <span style={{ fontSize: 10, color: new Date(task.deadline) < new Date() && col.key !== 'concluida' ? '#ef4444' : 'var(--cbrio-text3, #9ca3af)', fontWeight: 600 }}>
-                              {fmtDate(task.deadline)}
-                            </span>
-                          )}
-                        </div>
+                        <TaskDeadline deadline={task.deadline} isDone={col.key === 'concluida'} />
                       </div>
                     );
                   })}
                   {colTasks.length === 0 && (
-                    <div style={{ padding: 20, textAlign: 'center', fontSize: 12, color: 'var(--cbrio-text3, #9ca3af)', border: '2px dashed var(--cbrio-border, #e5e7eb)', borderRadius: 10, marginTop: 4 }}>
+                    <div style={{ padding: 20, textAlign: 'center', fontSize: 12, color: 'var(--cbrio-text3, #9ca3af)', border: '2px dashed var(--cbrio-border, #e5e7eb)', borderRadius: 10 }}>
                       Solte tarefas aqui
                     </div>
                   )}
@@ -1297,7 +1334,7 @@ export default function Eventos() {
       <div style={styles.tabs}>
         <button style={styles.tab(tab === 0)} onClick={() => setTab(0)}>Home</button>
         <button style={styles.tab(tab === 1)} onClick={() => setTab(1)}>Lista</button>
-        <button style={styles.tab(tab === 2)} onClick={() => { setTab(2); if (kanbanTasks.length === 0) loadKanban(kanbanFilter); }}>Kanban</button>
+        <button style={styles.tab(tab === 2)} onClick={() => { setTab(2); if (kanbanTasks.length === 0) loadKanban(kanbanFilter, kanbanArea); }}>Kanban</button>
         {selectedEvent && <button style={styles.tab(tab === 3)} onClick={() => setTab(3)}>Detalhes</button>}
       </div>
 

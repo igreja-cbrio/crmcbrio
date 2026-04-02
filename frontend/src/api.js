@@ -118,7 +118,13 @@ export const meetings = {
 };
 
 export const tasks = {
-  all: (source) => get('/tasks/all' + (source ? '?source=' + source : '')),
+  all: (params) => {
+    const q = new URLSearchParams();
+    if (params?.source) q.set('source', params.source);
+    if (params?.area) q.set('area', params.area);
+    const qs = q.toString();
+    return get('/tasks/all' + (qs ? '?' + qs : ''));
+  },
   updateStatus: (source, taskId, status) => patch(`/tasks/${source}/${taskId}/status`, { status }),
 };
 
