@@ -36,7 +36,50 @@ const FERIAS_STATUS = {
   rejeitado: { c: C.red, bg: C.redBg, label: 'Rejeitado' },
 };
 
-// ── Estilos ─────────────────────────────────────────────────
+// ── Tailwind class helpers ───────────────────────────────────
+const tw = {
+  page: 'max-w-[1200px] mx-auto',
+  header: 'flex justify-between items-center mb-6 flex-wrap gap-3',
+  title: 'text-[28px] font-extrabold text-[var(--cbrio-text)] tracking-tight',
+  subtitle: 'text-[13px] text-[var(--cbrio-text2)] mt-0.5',
+  tabs: 'flex border-b-2 border-[var(--cbrio-border)] mb-6',
+  tab: (active) => `px-5 py-2.5 text-[13px] font-semibold cursor-pointer border-none bg-transparent -mb-[2px] transition-all duration-150 ${active ? 'text-[#00B39D] border-b-2 border-[#00B39D]' : 'text-[var(--cbrio-text2)] border-b-2 border-transparent'}`,
+  kpiGrid: 'grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3 mb-6',
+  kpiValue: 'text-[28px] font-extrabold text-[var(--cbrio-text)]',
+  kpiLabel: 'text-[11px] font-semibold text-[var(--cbrio-text2)] uppercase tracking-wider mt-0.5',
+  card: 'bg-[var(--cbrio-card)] rounded-xl border border-[var(--cbrio-border)] shadow-sm overflow-hidden',
+  cardHeader: 'px-5 py-4 border-b border-[var(--cbrio-border)] flex justify-between items-center',
+  cardTitle: 'text-[15px] font-bold text-[var(--cbrio-text)]',
+  table: 'w-full border-collapse',
+  th: 'px-4 py-2.5 text-[11px] font-bold text-[var(--cbrio-text2)] uppercase tracking-wider text-left border-b border-[var(--cbrio-border)] bg-[var(--cbrio-table-header)]',
+  td: 'px-4 py-3 text-[13px] text-[var(--cbrio-text)] border-b border-[var(--cbrio-border)]',
+  filterRow: 'flex gap-2 mb-4 flex-wrap items-center',
+  empty: 'text-center py-10 text-[var(--cbrio-text3)] text-sm',
+  clickRow: 'cursor-pointer transition-colors duration-100',
+  formGroup: 'mb-3.5',
+  formRow: 'grid grid-cols-2 gap-3',
+  label: 'block text-[11px] font-semibold text-[var(--cbrio-text2)] mb-1 uppercase tracking-wider',
+  input: 'w-full px-3 py-2 rounded-lg border border-[var(--cbrio-border)] text-[13px] outline-none bg-[var(--cbrio-input-bg)] text-[var(--cbrio-text)] transition-[border] duration-150 focus:border-[#00B39D]',
+  select: 'px-3 py-2 rounded-lg border border-[var(--cbrio-border)] text-[13px] bg-[var(--cbrio-input-bg)] text-[var(--cbrio-text)] outline-none',
+};
+
+// Btn classes by variant
+const btnClass = (variant = 'primary') => {
+  const base = 'rounded-lg text-[13px] font-semibold cursor-pointer border-none transition-all duration-150';
+  const variants = {
+    primary: `${base} bg-[#00B39D] text-white px-4 py-2 hover:bg-[#009e8a] hover:shadow-[0_0_12px_rgba(0,179,157,0.3)]`,
+    secondary: `${base} bg-transparent text-[#00B39D] border border-[#00B39D] px-4 py-2 hover:bg-[#00B39D10]`,
+    danger: `${base} bg-[#ef4444] text-white px-4 py-2 hover:bg-[#dc2626]`,
+    ghost: `${base} bg-transparent text-[var(--cbrio-text2)] px-3 py-1.5 hover:bg-white/10`,
+    success: `${base} bg-[#10b981] text-white px-4 py-2 hover:bg-[#059669]`,
+  };
+  return variants[variant] || variants.primary;
+};
+const btnSmClass = 'px-2.5 py-1 text-[11px]';
+
+// Keep styles object as compatibility layer — points to tw classes
+// This allows gradual migration: new code uses tw/btnClass directly,
+// old code still works via style={styles.xxx}
 const styles = {
   page: { maxWidth: 1200, margin: '0 auto' },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 },
@@ -87,7 +130,6 @@ const styles = {
   label: { fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 4, display: 'block', textTransform: 'uppercase', letterSpacing: 0.5 },
   formGroup: { marginBottom: 14 },
   formRow: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 },
-  // Modal
   overlay: { position: 'fixed', inset: 0, background: 'var(--cbrio-overlay)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: 60, zIndex: 1000 },
   modal: { background: 'var(--cbrio-modal-bg)', borderRadius: 16, width: '95%', maxWidth: 560, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' },
   modalHeader: { padding: '20px 24px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
@@ -252,19 +294,19 @@ export default function RH() {
 
   // ── Render ──
   return (
-    <div style={styles.page}>
+    <div className={tw.page}>
       {/* Header */}
-      <div style={styles.header}>
+      <div className={tw.header}>
         <div>
-          <div style={{ ...styles.title, display: 'flex', alignItems: 'center', gap: 10 }}><Users className="h-7 w-7" style={{ color: '#00B39D' }} /> Recursos Humanos</div>
-          <div style={styles.subtitle}>Gestão de colaboradores, treinamentos e férias</div>
+          <div className={`${tw.title} flex items-center gap-2.5`}><Users className="h-7 w-7 text-[#00B39D]" /> Recursos Humanos</div>
+          <div className={tw.subtitle}>Gestão de colaboradores, treinamentos e férias</div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div style={styles.tabs}>
+      <div className={tw.tabs}>
         {TABS.map((t, i) => (
-          <button key={t} style={styles.tab(tab === i)} onClick={() => setTab(i)}>{t}</button>
+          <button key={t} className={tw.tab(tab === i)} onClick={() => setTab(i)}>{t}</button>
         ))}
       </div>
 
@@ -317,85 +359,80 @@ export default function RH() {
 // TAB: DASHBOARD
 // ═══════════════════════════════════════════════════════════
 function DashboardTab({ dash }) {
-  if (!dash) return <div style={styles.empty}>Carregando dashboard...</div>;
+  if (!dash) return <div className={tw.empty}>Carregando dashboard...</div>;
+
+  const kpis = [
+    { label: 'Total Colaboradores', value: dash.total, color: '#00B39D' },
+    { label: 'Ativos', value: dash.ativos, color: '#10b981' },
+    { label: 'Em Férias', value: dash.ferias, color: '#3b82f6' },
+    { label: 'Em Licença', value: dash.licenca, color: '#f59e0b' },
+    { label: 'Inativos', value: dash.inativos, color: '#737373' },
+  ];
+
   return (
     <>
       {/* KPIs */}
-      <div style={styles.kpiGrid}>
-        <div style={styles.kpi(C.primary)}>
-          <div style={styles.kpiValue}>{dash.total}</div>
-          <div style={styles.kpiLabel}>Total Colaboradores</div>
-        </div>
-        <div style={styles.kpi(C.green)}>
-          <div style={styles.kpiValue}>{dash.ativos}</div>
-          <div style={styles.kpiLabel}>Ativos</div>
-        </div>
-        <div style={styles.kpi(C.blue)}>
-          <div style={styles.kpiValue}>{dash.ferias}</div>
-          <div style={styles.kpiLabel}>Em Férias</div>
-        </div>
-        <div style={styles.kpi(C.amber)}>
-          <div style={styles.kpiValue}>{dash.licenca}</div>
-          <div style={styles.kpiLabel}>Em Licença</div>
-        </div>
-        <div style={styles.kpi(C.text3)}>
-          <div style={styles.kpiValue}>{dash.inativos}</div>
-          <div style={styles.kpiLabel}>Inativos</div>
-        </div>
+      <div className={tw.kpiGrid}>
+        {kpis.map(k => (
+          <div key={k.label} className="bg-[var(--cbrio-card)] rounded-xl p-4 border border-[var(--cbrio-border)] shadow-sm" style={{ borderLeft: `4px solid ${k.color}` }}>
+            <div className={tw.kpiValue}>{k.value}</div>
+            <div className={tw.kpiLabel}>{k.label}</div>
+          </div>
+        ))}
       </div>
 
-      {/* Por tipo de contrato */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
-        <div style={styles.card}>
-          <div style={styles.cardHeader}><div style={styles.cardTitle}>Por Tipo de Contrato</div></div>
-          <div style={{ padding: 16 }}>
+      {/* Por tipo de contrato + Por Área */}
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className={tw.card}>
+          <div className={tw.cardHeader}><div className={tw.cardTitle}>Por Tipo de Contrato</div></div>
+          <div className="p-4">
             {Object.entries(dash.porContrato || {}).map(([tipo, qtd]) => (
-              <div key={tipo} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: `1px solid ${C.border}` }}>
-                <span style={{ fontSize: 13, color: C.text }}>{TIPO_CONTRATO[tipo] || tipo}</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: C.primary }}>{qtd}</span>
+              <div key={tipo} className="flex justify-between py-1.5 border-b border-[var(--cbrio-border)]">
+                <span className="text-[13px] text-[var(--cbrio-text)]">{TIPO_CONTRATO[tipo] || tipo}</span>
+                <span className="text-[13px] font-bold text-[#00B39D]">{qtd}</span>
               </div>
             ))}
-            {Object.keys(dash.porContrato || {}).length === 0 && <div style={styles.empty}>Nenhum dado</div>}
+            {Object.keys(dash.porContrato || {}).length === 0 && <div className={tw.empty}>Nenhum dado</div>}
           </div>
         </div>
 
-        <div style={styles.card}>
-          <div style={styles.cardHeader}><div style={styles.cardTitle}>Por Área</div></div>
-          <div style={{ padding: 16 }}>
+        <div className={tw.card}>
+          <div className={tw.cardHeader}><div className={tw.cardTitle}>Por Área</div></div>
+          <div className="p-4">
             {Object.entries(dash.porArea || {}).map(([area, qtd]) => (
-              <div key={area} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: `1px solid ${C.border}` }}>
-                <span style={{ fontSize: 13, color: C.text }}>{area}</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: C.primary }}>{qtd}</span>
+              <div key={area} className="flex justify-between py-1.5 border-b border-[var(--cbrio-border)]">
+                <span className="text-[13px] text-[var(--cbrio-text)]">{area}</span>
+                <span className="text-[13px] font-bold text-[#00B39D]">{qtd}</span>
               </div>
             ))}
-            {Object.keys(dash.porArea || {}).length === 0 && <div style={styles.empty}>Nenhum dado</div>}
+            {Object.keys(dash.porArea || {}).length === 0 && <div className={tw.empty}>Nenhum dado</div>}
           </div>
         </div>
       </div>
 
       {/* Alertas */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        <div style={styles.card}>
-          <div style={styles.cardHeader}><div style={styles.cardTitle}>📅 Férias Próximas (30 dias)</div></div>
-          <div style={{ padding: 16 }}>
-            {(dash.feriasProximas || []).length === 0 && <div style={styles.empty}>Nenhuma férias agendada</div>}
+      <div className="grid grid-cols-2 gap-4">
+        <div className={tw.card}>
+          <div className={tw.cardHeader}><div className={tw.cardTitle}>📅 Férias Próximas (30 dias)</div></div>
+          <div className="p-4">
+            {(dash.feriasProximas || []).length === 0 && <div className={tw.empty}>Nenhuma férias agendada</div>}
             {(dash.feriasProximas || []).map(f => (
-              <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: `1px solid ${C.border}` }}>
-                <span style={{ fontSize: 13 }}>{f.rh_funcionarios?.nome || '—'}</span>
-                <span style={{ fontSize: 12, color: C.text2 }}>{fmtDate(f.data_inicio)} → {fmtDate(f.data_fim)}</span>
+              <div key={f.id} className="flex justify-between py-1.5 border-b border-[var(--cbrio-border)]">
+                <span className="text-[13px]">{f.rh_funcionarios?.nome || '—'}</span>
+                <span className="text-xs text-[var(--cbrio-text2)]">{fmtDate(f.data_inicio)} → {fmtDate(f.data_fim)}</span>
               </div>
             ))}
           </div>
         </div>
 
-        <div style={styles.card}>
-          <div style={styles.cardHeader}><div style={styles.cardTitle}>📄 Documentos Vencendo (60 dias)</div></div>
-          <div style={{ padding: 16 }}>
-            {(dash.docsVencendo || []).length === 0 && <div style={styles.empty}>Nenhum documento vencendo</div>}
+        <div className={tw.card}>
+          <div className={tw.cardHeader}><div className={tw.cardTitle}>📄 Documentos Vencendo (60 dias)</div></div>
+          <div className="p-4">
+            {(dash.docsVencendo || []).length === 0 && <div className={tw.empty}>Nenhum documento vencendo</div>}
             {(dash.docsVencendo || []).map(d => (
-              <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: `1px solid ${C.border}` }}>
-                <span style={{ fontSize: 13 }}>{d.rh_funcionarios?.nome} — {d.nome}</span>
-                <span style={{ fontSize: 12, color: C.red }}>{fmtDate(d.data_expiracao)}</span>
+              <div key={d.id} className="flex justify-between py-1.5 border-b border-[var(--cbrio-border)]">
+                <span className="text-[13px]">{d.rh_funcionarios?.nome} — {d.nome}</span>
+                <span className="text-xs text-[#ef4444]">{fmtDate(d.data_expiracao)}</span>
               </div>
             ))}
           </div>
@@ -413,66 +450,59 @@ function FuncionariosTab({ funcs, loading, busca, setBusca, filtroStatus, setFil
 
   return (
     <>
-      <div style={styles.filterRow}>
-        <input
-          style={{ ...styles.input, maxWidth: 280 }}
-          placeholder="🔍 Buscar por nome..." value={busca}
-          onChange={e => setBusca(e.target.value)}
-        />
-        <select style={styles.select} value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
+      <div className={tw.filterRow}>
+        <input className={`${tw.input} max-w-[280px]`} placeholder="🔍 Buscar por nome..." value={busca} onChange={e => setBusca(e.target.value)} />
+        <select className={tw.select} value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
           <option value="">Todos os status</option>
           {Object.entries(STATUS_COLORS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
         </select>
-        <select style={styles.select} value={filtroArea} onChange={e => setFiltroArea(e.target.value)}>
+        <select className={tw.select} value={filtroArea} onChange={e => setFiltroArea(e.target.value)}>
           <option value="">Todas as áreas</option>
           {areas.map(a => <option key={a} value={a}>{a}</option>)}
         </select>
-        <div style={{ marginLeft: 'auto' }}>
-          <button style={styles.btn('primary')} onClick={onNew}>+ Novo Colaborador</button>
+        <div className="ml-auto">
+          <button className={btnClass('primary')} onClick={onNew}>+ Novo Colaborador</button>
         </div>
       </div>
 
-      <div style={styles.card}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={styles.table}>
+      <div className={tw.card}>
+        <div className="overflow-x-auto">
+          <table className={tw.table}>
             <thead>
               <tr>
-                <th style={styles.th}>Nome</th>
-                <th style={styles.th}>Cargo</th>
-                <th style={styles.th}>Área</th>
-                <th style={styles.th}>Contrato</th>
-                <th style={styles.th}>Admissão</th>
-                <th style={styles.th}>Status</th>
-                <th style={styles.th}></th>
+                <th className={tw.th}>Nome</th>
+                <th className={tw.th}>Cargo</th>
+                <th className={tw.th}>Área</th>
+                <th className={tw.th}>Contrato</th>
+                <th className={tw.th}>Admissão</th>
+                <th className={tw.th}>Status</th>
+                <th className={tw.th}></th>
               </tr>
             </thead>
             <tbody>
-              {loading && <tr><td colSpan={7} style={{ ...styles.td, textAlign: 'center', color: C.text3 }}>Carregando...</td></tr>}
-              {!loading && funcs.length === 0 && <tr><td colSpan={7} style={{ ...styles.td, textAlign: 'center', color: C.text3 }}>Nenhum colaborador encontrado</td></tr>}
+              {loading && <tr><td colSpan={7} className={`${tw.td} text-center text-[var(--cbrio-text3)]`}>Carregando...</td></tr>}
+              {!loading && funcs.length === 0 && <tr><td colSpan={7} className={`${tw.td} text-center text-[var(--cbrio-text3)]`}>Nenhum colaborador encontrado</td></tr>}
               {funcs.map(f => (
-                <tr key={f.id} style={styles.clickRow}
-                  onMouseEnter={e => e.currentTarget.style.background = '#1e1e1e'}
-                  onMouseLeave={e => e.currentTarget.style.background = ''}
-                  onClick={() => onDetail(f.id)}>
-                  <td style={{ ...styles.td, fontWeight: 600 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <tr key={f.id} className={`${tw.clickRow} hover:bg-[#1e1e1e]`} onClick={() => onDetail(f.id)}>
+                  <td className={`${tw.td} font-semibold`}>
+                    <div className="flex items-center gap-2.5">
                       {f.foto_url ? (
-                        <img src={f.foto_url} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                        <img src={f.foto_url} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
                       ) : (
-                        <div style={{ width: 32, height: 32, borderRadius: '50%', background: C.primaryBg, color: C.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, flexShrink: 0 }}>
+                        <div className="w-8 h-8 rounded-full bg-[#00B39D18] text-[#00B39D] flex items-center justify-center text-sm font-bold shrink-0">
                           {(f.nome || '?')[0].toUpperCase()}
                         </div>
                       )}
                       {f.nome}
                     </div>
                   </td>
-                  <td style={styles.td}>{f.cargo}</td>
-                  <td style={styles.td}>{f.area || '—'}</td>
-                  <td style={styles.td}>{TIPO_CONTRATO[f.tipo_contrato] || f.tipo_contrato}</td>
-                  <td style={styles.td}>{fmtDate(f.data_admissao)}</td>
-                  <td style={styles.td}><Badge status={f.status} map={STATUS_COLORS} /></td>
-                  <td style={styles.td}>
-                    <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={e => { e.stopPropagation(); onDelete(f.id); }}>🗑</button>
+                  <td className={tw.td}>{f.cargo}</td>
+                  <td className={tw.td}>{f.area || '—'}</td>
+                  <td className={tw.td}>{TIPO_CONTRATO[f.tipo_contrato] || f.tipo_contrato}</td>
+                  <td className={tw.td}>{fmtDate(f.data_admissao)}</td>
+                  <td className={tw.td}><Badge status={f.status} map={STATUS_COLORS} /></td>
+                  <td className={tw.td}>
+                    <button className={`${btnClass('ghost')} ${btnSmClass}`} onClick={e => { e.stopPropagation(); onDelete(f.id); }}>🗑</button>
                   </td>
                 </tr>
               ))}
