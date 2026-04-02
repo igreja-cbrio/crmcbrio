@@ -14,7 +14,7 @@ const PORT = process.env.PORT || 3001;
 // ── Security middleware ──
 app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: process.env.FRONTEND_URL || (process.env.VERCEL ? true : 'http://localhost:5173'),
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -58,9 +58,12 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Erro interno do servidor' });
 });
 
-app.listen(PORT, () => {
-  console.log(`[CBRio PMO] Servidor rodando na porta ${PORT}`);
-  console.log(`[CBRio PMO] Ambiente: ${process.env.NODE_ENV || 'development'}`);
-});
+// Only listen when not running as Vercel serverless function
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`[CBRio PMO] Servidor rodando na porta ${PORT}`);
+    console.log(`[CBRio PMO] Ambiente: ${process.env.NODE_ENV || 'development'}`);
+  });
+}
 
 module.exports = app;

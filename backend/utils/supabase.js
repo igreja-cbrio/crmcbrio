@@ -15,16 +15,21 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 });
 
 // Pool pg direto no Supabase Postgres (para queries complexas com RLS bypassada)
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL, // postgres://postgres.[ref]:[password]@aws-0-*.pooler.supabase.com:6543/postgres
-  max: 10,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-});
+// Optional: only create pool if DATABASE_URL is set (not needed for Supabase-only routes)
+const pool = process.env.DATABASE_URL
+  ? new Pool({
+      connectionString: process.env.DATABASE_URL,
+      max: 10,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
+    })
+  : null;
 
-pool.on('error', (err) => {
-  console.error('[DB] Erro inesperado no pool:', err.message);
-});
+if (pool) {
+  pool.on('error', (err) => {
+    console.error('[DB] Erro inesperado no pool:', err.message);
+  });
+}
 
 const query = async (text, params) => {
   const start = Date.now();
