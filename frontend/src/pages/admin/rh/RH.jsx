@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Users, Pencil, Trash2, Palmtree } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { rh } from '../../../api';
 
@@ -253,7 +254,7 @@ export default function RH() {
       {/* Header */}
       <div style={styles.header}>
         <div>
-          <div style={styles.title}>👥 Recursos Humanos</div>
+          <div style={{ ...styles.title, display: 'flex', alignItems: 'center', gap: 10 }}><Users className="h-7 w-7" style={{ color: '#00B39D' }} /> Recursos Humanos</div>
           <div style={styles.subtitle}>Gestão de funcionários, treinamentos e férias</div>
         </div>
       </div>
@@ -493,8 +494,8 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever 
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 6 }}>
-                <button style={{ ...styles.btn('secondary'), ...styles.btnSm }} onClick={() => onEdit(t)}>✏️</button>
-                <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => onDelete(t.id)}>🗑</button>
+                <button style={{ ...styles.btn('secondary'), ...styles.btnSm }} onClick={() => onEdit(t)}><Pencil style={{ width: 14, height: 14 }} /></button>
+                <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => onDelete(t.id)}><Trash2 style={{ width: 14, height: 14 }} /></button>
               </div>
             </div>
             {t.descricao && <div style={{ padding: '8px 20px', fontSize: 13, color: C.text2 }}>{t.descricao}</div>}
@@ -602,7 +603,7 @@ function FuncionarioFormModal({ open, data, onClose, onSave }) {
 
   return (
     <Modal open={open} onClose={onClose}
-      title={f?.id ? '✏️ Editar Funcionário' : '➕ Novo Funcionário'}
+      title={f?.id ? 'Editar Funcionário' : 'Novo Funcionário'}
       footer={<button style={styles.btn('primary')} onClick={() => onSave(f)}>Salvar</button>}>
       <Input label="Nome *" value={f.nome || ''} onChange={e => upd('nome', e.target.value)} />
       <div style={styles.formRow}>
@@ -646,7 +647,7 @@ function TreinamentoFormModal({ open, data, onClose, onSave }) {
 
   return (
     <Modal open={open} onClose={onClose}
-      title={f?.id ? '✏️ Editar Treinamento' : '➕ Novo Treinamento'}
+      title={f?.id ? 'Editar Treinamento' : 'Novo Treinamento'}
       footer={<button style={styles.btn('primary')} onClick={() => onSave(f)}>Salvar</button>}>
       <Input label="Título *" value={f.titulo || ''} onChange={e => upd('titulo', e.target.value)} />
       <div style={styles.formRow}>
@@ -674,7 +675,7 @@ function FeriasFormModal({ open, funcs, onClose, onSave }) {
   const upd = (k, v) => setF(p => ({ ...p, [k]: v }));
 
   return (
-    <Modal open={open} onClose={onClose} title="➕ Nova Solicitação de Férias/Licença"
+    <Modal open={open} onClose={onClose} title="Nova Solicitação de Férias/Licença"
       footer={<button style={styles.btn('primary')} onClick={() => onSave(f)}>Solicitar</button>}>
       <Select label="Funcionário *" value={f.funcionario_id || ''} onChange={e => upd('funcionario_id', e.target.value)}>
         <option value="">Selecionar</option>
@@ -750,7 +751,7 @@ function FuncionarioDetailModal({ open, data, onClose, onEdit, onDelete, onNewDo
 
       {/* Férias */}
       <div style={{ marginBottom: 16 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: C.text2, textTransform: 'uppercase' }}>🏖️ Férias/Licenças ({(data.ferias_licencas || []).length})</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: C.text2, textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: 6 }}><Palmtree style={{ width: 14, height: 14, color: '#00B39D' }} /> Férias/Licenças ({(data.ferias_licencas || []).length})</span>
         {(data.ferias_licencas || []).map(f => (
           <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: `1px solid ${C.border}` }}>
             <span style={{ fontSize: 13 }}>{TIPO_FERIAS[f.tipo]} • {fmtDate(f.data_inicio)} → {fmtDate(f.data_fim)}</span>
@@ -761,8 +762,8 @@ function FuncionarioDetailModal({ open, data, onClose, onEdit, onDelete, onNewDo
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 12, borderTop: `1px solid ${C.border}` }}>
-        <button style={styles.btn('secondary')} onClick={() => onEdit(data)}>✏️ Editar</button>
-        <button style={styles.btn('danger')} onClick={() => onDelete(data.id)}>🗑 Remover</button>
+        <button style={styles.btn('secondary')} onClick={() => onEdit(data)}><Pencil style={{ width: 14, height: 14, display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Editar</button>
+        <button style={styles.btn('danger')} onClick={() => onDelete(data.id)}><Trash2 style={{ width: 14, height: 14, display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Remover</button>
       </div>
     </Modal>
   );

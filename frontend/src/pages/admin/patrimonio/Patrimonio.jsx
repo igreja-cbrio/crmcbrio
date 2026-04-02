@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Tag, ClipboardList, Trash2, Pencil, MapPin } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { patrimonio } from '../../../api';
 
@@ -138,7 +139,7 @@ export default function Patrimonio() {
   return (
     <div style={styles.page}>
       <div style={styles.header}>
-        <div><div style={styles.title}>🏷️ Patrimônio</div><div style={styles.subtitle}>Gestão de bens, localizações e inventários</div></div>
+        <div><div style={{ ...styles.title, display: 'flex', alignItems: 'center', gap: 10 }}><Tag className="h-7 w-7" style={{ color: '#00B39D' }} /> Patrimônio</div><div style={styles.subtitle}>Gestão de bens, localizações e inventários</div></div>
       </div>
       <div style={styles.tabs}>{TABS.map((t, i) => <button key={t} style={styles.tab(tab === i)} onClick={() => setTab(i)}>{t}</button>)}</div>
 
@@ -200,7 +201,7 @@ function DashboardTab({ dash }) {
       </div>
       {dash.inventariosAbertos > 0 && (
         <div style={{ ...styles.card, borderLeft: `4px solid ${C.amber}`, padding: 16, fontSize: 13, color: C.text }}>
-          📋 {dash.inventariosAbertos} inventário(s) em andamento
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><ClipboardList style={{ width: 16, height: 16, color: '#00B39D' }} /> {dash.inventariosAbertos} inventário(s) em andamento</span>
         </div>
       )}
     </>
@@ -246,7 +247,7 @@ function BensTab({ bens, loading, busca, setBusca, filtroStatus, setFiltroStatus
                   <td style={styles.td}>{[b.marca, b.modelo].filter(Boolean).join(' ') || '—'}</td>
                   <td style={styles.td}>{fmtMoney(b.valor_aquisicao)}</td>
                   <td style={styles.td}><Badge status={b.status} map={STATUS_BEM} /></td>
-                  {isDiretor && <td style={styles.td}><button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={e => { e.stopPropagation(); onDelete(b.id); }}>🗑</button></td>}
+                  {isDiretor && <td style={styles.td}><button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={e => { e.stopPropagation(); onDelete(b.id); }}><Trash2 style={{ width: 14, height: 14 }} /></button></td>}
                 </tr>
               ))}
             </tbody>
@@ -273,7 +274,7 @@ function CatLocTab({ categorias, localizacoes, newCat, setNewCat, addCat, remove
           {categorias.map(c => (
             <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: `1px solid ${C.border}` }}>
               <span style={{ fontSize: 13 }}>{c.icone && `${c.icone} `}{c.nome}</span>
-              {isDiretor && <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => removeCat(c.id)}>🗑</button>}
+              {isDiretor && <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => removeCat(c.id)}><Trash2 style={{ width: 14, height: 14 }} /></button>}
             </div>
           ))}
         </div>
@@ -290,8 +291,8 @@ function CatLocTab({ categorias, localizacoes, newCat, setNewCat, addCat, remove
           {localizacoes.length === 0 && <div style={styles.empty}>Nenhuma localização</div>}
           {localizacoes.map(l => (
             <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: `1px solid ${C.border}` }}>
-              <span style={{ fontSize: 13 }}>📍 {l.nome}</span>
-              {isDiretor && <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => removeLoc(l.id)}>🗑</button>}
+              <span style={{ fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 4 }}><MapPin style={{ width: 14, height: 14, color: '#00B39D' }} /> {l.nome}</span>
+              {isDiretor && <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => removeLoc(l.id)}><Trash2 style={{ width: 14, height: 14 }} /></button>}
             </div>
           ))}
         </div>
@@ -345,7 +346,7 @@ function BemFormModal({ open, data, categorias, localizacoes, onClose, onSave })
   useEffect(() => { if (data) setF({ ...data }); }, [data]);
   const upd = (k, v) => setF(p => ({ ...p, [k]: v }));
   return (
-    <Modal open={open} onClose={onClose} title={f?.id ? '✏️ Editar Bem' : '➕ Novo Bem'}
+    <Modal open={open} onClose={onClose} title={f?.id ? 'Editar Bem' : 'Novo Bem'}
       footer={<button style={styles.btn('primary')} onClick={() => onSave(f)}>Salvar</button>}>
       <div style={styles.formRow}>
         <Input label="Código de Barras *" value={f.codigo_barras || ''} onChange={e => upd('codigo_barras', e.target.value)} />
@@ -390,7 +391,7 @@ function BemFormModal({ open, data, categorias, localizacoes, onClose, onSave })
 function BemDetailModal({ open, data, onClose, onEdit, onDelete, onMov, isDiretor }) {
   if (!data) return null;
   return (
-    <Modal open={open} onClose={onClose} title={`🏷️ ${data.nome}`}>
+    <Modal open={open} onClose={onClose} title={data.nome}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', marginBottom: 20 }}>
         <div><span style={{ fontSize: 11, color: C.text2 }}>Código:</span><div style={{ fontSize: 14, fontFamily: 'monospace' }}>{data.codigo_barras}</div></div>
         <div><span style={{ fontSize: 11, color: C.text2 }}>Status:</span><div><Badge status={data.status} map={STATUS_BEM} /></div></div>
@@ -406,7 +407,7 @@ function BemDetailModal({ open, data, onClose, onEdit, onDelete, onMov, isDireto
 
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: C.text2, textTransform: 'uppercase' }}>📋 Movimentações ({(data.movimentacoes || []).length})</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: C.text2, textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: 6 }}><ClipboardList style={{ width: 14, height: 14, color: '#00B39D' }} /> Movimentações ({(data.movimentacoes || []).length})</span>
           {isDiretor && <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => onMov(data.id)}>+ Registrar</button>}
         </div>
         {(data.movimentacoes || []).length === 0 && <div style={{ fontSize: 13, color: C.text3 }}>Nenhuma movimentação registrada</div>}
@@ -420,8 +421,8 @@ function BemDetailModal({ open, data, onClose, onEdit, onDelete, onMov, isDireto
 
       {isDiretor && (
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 12, borderTop: `1px solid ${C.border}` }}>
-          <button style={styles.btn('secondary')} onClick={() => onEdit(data)}>✏️ Editar</button>
-          <button style={styles.btn('danger')} onClick={() => onDelete(data.id)}>🗑 Remover</button>
+          <button style={styles.btn('secondary')} onClick={() => onEdit(data)}><Pencil style={{ width: 14, height: 14, display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Editar</button>
+          <button style={styles.btn('danger')} onClick={() => onDelete(data.id)}><Trash2 style={{ width: 14, height: 14, display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Remover</button>
         </div>
       )}
     </Modal>
@@ -433,7 +434,7 @@ function MovFormModal({ open, data, localizacoes, onClose, onSave }) {
   useEffect(() => { if (open) setF({ tipo: 'transferencia' }); }, [open]);
   const upd = (k, v) => setF(p => ({ ...p, [k]: v }));
   return (
-    <Modal open={open} onClose={onClose} title="📋 Registrar Movimentação"
+    <Modal open={open} onClose={onClose} title="Registrar Movimentação"
       footer={<button style={styles.btn('primary')} onClick={() => onSave(data?.bem_id, f)}>Registrar</button>}>
       <Select label="Tipo *" value={f.tipo} onChange={e => upd('tipo', e.target.value)}>
         {Object.entries(TIPO_MOV).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
@@ -463,7 +464,7 @@ function InvFormModal({ open, onClose, onSave }) {
   useEffect(() => { if (open) setF({}); }, [open]);
   const upd = (k, v) => setF(p => ({ ...p, [k]: v }));
   return (
-    <Modal open={open} onClose={onClose} title="➕ Novo Inventário"
+    <Modal open={open} onClose={onClose} title="Novo Inventário"
       footer={<button style={styles.btn('primary')} onClick={() => onSave(f)}>Criar</button>}>
       <Input label="Nome *" value={f.nome || ''} onChange={e => upd('nome', e.target.value)} />
       <Input label="Data Início *" type="date" value={f.data_inicio || ''} onChange={e => upd('data_inicio', e.target.value)} />
