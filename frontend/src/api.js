@@ -326,6 +326,7 @@ export const rh = {
     atualizarStatus: (id, data) => patch(`/rh/materiais-funcionarios/${id}`, data),
   },
   ferias: {
+    list: (params) => get('/rh/ferias' + (params ? '?' + new URLSearchParams(params) : '')),
     create: (funcId, data) => post(`/rh/funcionarios/${funcId}/ferias`, data),
     update: (id, data) => patch(`/rh/ferias/${id}`, data),
     remove: (id) => del(`/rh/ferias/${id}`),

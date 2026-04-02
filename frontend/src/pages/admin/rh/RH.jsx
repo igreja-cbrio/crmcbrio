@@ -889,17 +889,44 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
 // ═══════════════════════════════════════════════════════════
 // TAB: FÉRIAS/LICENÇAS
 // ═══════════════════════════════════════════════════════════
-function FeriasTab({ dash, funcs, onNew, onAprovar }) {
-  const ferias = dash?.feriasProximas || [];
-  // Mostrar todas as férias (precisaria de endpoint separado, por ora usa dashboard)
+function FeriasTab({ funcs, onNew, onAprovar }) {
+  const [ferias, setFerias] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filtroStatus, setFiltroStatus] = useState('');
+
+  const loadFerias = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = filtroStatus ? { status: filtroStatus } : undefined;
+      setFerias(await rh.ferias.list(params) || []);
+    } catch (e) { console.error(e); }
+    setLoading(false);
+  }, [filtroStatus]);
+
+  useEffect(() => { loadFerias(); }, [loadFerias]);
+
+  async function handleAprovar(id, status) {
+    await onAprovar(id, status);
+    loadFerias();
+  }
+
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+        <select style={styles.select} value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
+          <option value="">Todos os status</option>
+          <option value="pendente">Pendente</option>
+          <option value="aprovado">Aprovado</option>
+          <option value="rejeitado">Rejeitado</option>
+        </select>
         <button style={styles.btn('primary')} onClick={onNew}>+ Nova Solicitação</button>
       </div>
 
       <div style={styles.card}>
-        <div style={styles.cardHeader}><div style={styles.cardTitle}>Férias e Licenças</div></div>
+        <div style={styles.cardHeader}>
+          <div style={styles.cardTitle}>Férias e Licenças ({ferias.length})</div>
+          <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={loadFerias}>🔄</button>
+        </div>
         <div style={{ overflowX: 'auto' }}>
           <table style={styles.table}>
             <thead>
@@ -908,29 +935,51 @@ function FeriasTab({ dash, funcs, onNew, onAprovar }) {
                 <th style={styles.th}>Tipo</th>
                 <th style={styles.th}>Início</th>
                 <th style={styles.th}>Fim</th>
+                <th style={styles.th}>Dias</th>
                 <th style={styles.th}>Status</th>
+                <th style={styles.th}>Obs.</th>
                 <th style={styles.th}>Ações</th>
               </tr>
             </thead>
             <tbody>
-              {ferias.length === 0 && <tr><td colSpan={6} style={{ ...styles.td, textAlign: 'center', color: C.text3 }}>Nenhuma solicitação</td></tr>}
-              {ferias.map(f => (
-                <tr key={f.id}>
-                  <td style={{ ...styles.td, fontWeight: 600 }}>{f.rh_funcionarios?.nome || '—'}</td>
-                  <td style={styles.td}>{TIPO_FERIAS[f.tipo] || f.tipo}</td>
-                  <td style={styles.td}>{fmtDate(f.data_inicio)}</td>
-                  <td style={styles.td}>{fmtDate(f.data_fim)}</td>
-                  <td style={styles.td}><Badge status={f.status} map={FERIAS_STATUS} /></td>
-                  <td style={styles.td}>
-                    {f.status === 'pendente' && (
-                      <div style={{ display: 'flex', gap: 4 }}>
-                        <button style={{ ...styles.btn('primary'), ...styles.btnSm }} onClick={() => onAprovar(f.id, 'aprovado')}>✓</button>
-                        <button style={{ ...styles.btn('danger'), ...styles.btnSm }} onClick={() => onAprovar(f.id, 'rejeitado')}>✕</button>
+              {loading && <tr><td colSpan={8} style={{ ...styles.td, textAlign: 'center', color: C.text3 }}>Carregando...</td></tr>}
+              {!loading && ferias.length === 0 && <tr><td colSpan={8} style={{ ...styles.td, textAlign: 'center', color: C.text3 }}>Nenhuma solicitação</td></tr>}
+              {ferias.map(f => {
+                const dias = f.data_inicio && f.data_fim ? Math.ceil((new Date(f.data_fim) - new Date(f.data_inicio)) / 86400000) : '—';
+                return (
+                  <tr key={f.id}>
+                    <td style={styles.td}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        {f.rh_funcionarios?.foto_url ? (
+                          <img src={f.rh_funcionarios.foto_url} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                        ) : (
+                          <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#00B39D18', color: '#00B39D', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, flexShrink: 0 }}>
+                            {(f.rh_funcionarios?.nome || '?')[0].toUpperCase()}
+                          </div>
+                        )}
+                        <div>
+                          <div style={{ fontWeight: 600 }}>{f.rh_funcionarios?.nome}</div>
+                          <div style={{ fontSize: 12, color: C.text3 }}>{f.rh_funcionarios?.cargo}</div>
+                        </div>
                       </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td style={styles.td}>{TIPO_FERIAS[f.tipo] || f.tipo}</td>
+                    <td style={styles.td}>{fmtDate(f.data_inicio)}</td>
+                    <td style={styles.td}>{fmtDate(f.data_fim)}</td>
+                    <td style={{ ...styles.td, fontWeight: 600 }}>{dias}</td>
+                    <td style={styles.td}><Badge status={f.status} map={FERIAS_STATUS} /></td>
+                    <td style={{ ...styles.td, fontSize: 12, color: C.text3, maxWidth: 150 }}>{f.observacoes || '—'}</td>
+                    <td style={styles.td}>
+                      {f.status === 'pendente' && (
+                        <div style={{ display: 'flex', gap: 4 }}>
+                          <button style={{ ...styles.btn('primary'), ...styles.btnSm }} onClick={() => handleAprovar(f.id, 'aprovado')}>✓</button>
+                          <button style={{ ...styles.btn('danger'), ...styles.btnSm }} onClick={() => handleAprovar(f.id, 'rejeitado')}>✕</button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
