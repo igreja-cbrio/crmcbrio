@@ -1,7 +1,7 @@
 # CLAUDE.md — CBRio ERP
 
 Guia para Claude Code e agentes de IA trabalhando neste repositório.
-Atualizado em: 2026-04-01
+Atualizado em: 2026-04-02
 
 ---
 
@@ -139,45 +139,94 @@ Migrations em `supabase/migrations/`:
 
 ## Workflow Git — REGRAS OBRIGATÓRIAS
 
+> **⚠️ ATENÇÃO CLAUDE CODE: leia esta seção INTEIRA antes de executar qualquer comando git.**
+
+### Regra #1: NUNCA commitar direto na `main`
+Sempre criar branch primeiro. A `main` só recebe código via Pull Request.
+
+### Regra #2: NUNCA editar arquivos de outro dev
+Cada dev tem pastas exclusivas. Editar arquivos fora da sua área **quebra o trabalho do outro**.
+
 ### Nomenclatura de Branches
 ```
 {dev}/modulo-{nome}
 ```
 
-### Branches Ativas
+---
 
-**Matheus:**
-- `matheus/modulo-rh` — Módulo RH (frontend + backend)
-- `matheus/modulo-financeiro` — Módulo Financeiro
-- `matheus/modulo-logistica` — Módulo Logística
-- `matheus/modulo-patrimonio` — Módulo Patrimônio
-- `matheus/modulo-projetos` — Módulo Projetos
-- `matheus/modulo-expansao` — Módulo Expansão
+### 🔒 DIVISÃO DE ARQUIVOS POR DEV — RESPEITAR SEMPRE
 
-**Marcos Paulo:**
-- `marcos/modulo-eventos` — Módulo Eventos (frontend + backend)
-- `marcos/modulo-ministerial` — Módulo Ministerial (Integração, Grupos, Cuidados, Voluntariado, Membresia)
-- `marcos/modulo-geracional` — Módulo Geracional (AMI, Kids)
-- `marcos/modulo-criativo` — Módulo Criativo (Marketing)
+#### MATHEUS — só pode editar:
+```
+frontend/src/pages/admin/rh/          ✅ Pode editar
+frontend/src/pages/admin/financeiro/  ✅ Pode editar
+frontend/src/pages/admin/logistica/   ✅ Pode editar
+frontend/src/pages/admin/patrimonio/  ✅ Pode editar
+frontend/src/pages/Projetos.jsx       ✅ Pode editar
+frontend/src/pages/Expansao.jsx       ✅ Pode editar
+backend/routes/rh.js                  ✅ Pode editar
+backend/routes/financeiro.js          ✅ Pode editar
+backend/routes/logistica.js           ✅ Pode editar
+backend/routes/patrimonio.js          ✅ Pode editar
+backend/routes/projects.js            ✅ Pode editar
+backend/routes/expansion.js           ✅ Pode editar
+```
 
-**Nunca commitar direto na `main`.**
+#### MATHEUS — NÃO pode editar (pertence ao Marcos Paulo):
+```
+frontend/src/pages/eventos/           ❌ PROIBIDO
+frontend/src/pages/eventos/Eventos.jsx          ❌ PROIBIDO
+frontend/src/pages/eventos/EventDetail.jsx      ❌ PROIBIDO
+frontend/src/pages/eventos/components/          ❌ PROIBIDO (todos os arquivos)
+backend/routes/events.js              ❌ PROIBIDO
+backend/routes/meetings.js            ❌ PROIBIDO
+backend/routes/cycles.js              ❌ PROIBIDO
+backend/routes/occurrences.js         ❌ PROIBIDO
+```
 
-### Arquivos Compartilhados — SEMPRE via PR
+#### MARCOS PAULO — só pode editar:
+```
+frontend/src/pages/eventos/           ✅ Pode editar (toda a pasta)
+backend/routes/events.js              ✅ Pode editar
+backend/routes/meetings.js            ✅ Pode editar
+backend/routes/cycles.js              ✅ Pode editar
+backend/routes/occurrences.js         ✅ Pode editar
+docs/eventos/                         ✅ Pode editar
+```
 
-Estes arquivos afetam o sistema inteiro. Qualquer alteração deve ser feita via Pull Request:
+#### MARCOS PAULO — NÃO pode editar (pertence ao Matheus):
+```
+frontend/src/pages/admin/             ❌ PROIBIDO (toda a pasta)
+backend/routes/rh.js                  ❌ PROIBIDO
+backend/routes/financeiro.js          ❌ PROIBIDO
+backend/routes/logistica.js           ❌ PROIBIDO
+backend/routes/patrimonio.js          ❌ PROIBIDO
+```
 
-- `CLAUDE.md` / `README.md`
-- `frontend/src/App.jsx` — rotas
-- `frontend/src/components/ui/modern-side-bar.tsx` — sidebar (navegação)
-- `frontend/src/components/layout/AppShell.jsx` — layout
+---
+
+### Arquivos Compartilhados — SEMPRE via PR e comunicação
+
+Estes arquivos afetam o sistema inteiro. **Qualquer alteração deve ser feita via Pull Request** com descrição clara:
+
+- `CLAUDE.md` — este arquivo
+- `frontend/src/App.jsx` — rotas do React
+- `frontend/src/components/ui/` — componentes compartilhados
+- `frontend/src/components/layout/` — layout (AppShell, Sidebar)
 - `frontend/src/contexts/AuthContext.jsx` — autenticação
 - `frontend/src/api.js` — client HTTP
 - `frontend/src/index.css` — tema global Tailwind
 - `supabase/migrations/` — schema do banco
 - `backend/server.js` — registro de rotas
 - `backend/middleware/auth.js` — autenticação
-- `backend/utils/supabase.js` — conexão Supabase
+- `backend/utils/` — utilitários compartilhados
 - `vercel.json` — configuração de deploy
+
+**Se precisar alterar um arquivo compartilhado:**
+1. Criar branch específica (ex: `matheus/fix-sidebar`)
+2. Fazer a alteração mínima necessária
+3. Abrir PR descrevendo o que mudou
+4. O outro dev revisa antes de mergear
 
 ### Integrações via Pull Request
 1. Abrir PR da branch do módulo para `main`
@@ -305,11 +354,12 @@ O backend roda separadamente (configurar conforme infraestrutura).
 **Project ref:** `hhntwfawfnxvuobhdfkb`
 **URL:** `https://hhntwfawfnxvuobhdfkb.supabase.co`
 
-Migrations aplicadas (001-008) em 2026-04-01 via `supabase db push`.
+Migrations aplicadas (001-009) via `supabase db push`.
 - 001-005: core, RH, financeiro, logística, patrimônio
 - 006: módulo eventos (10 tabelas + view v_events_dashboard)
 - 007: fix trigger handle_new_user (search_path)
 - 008: ciclo criativo (8 tabelas + 2 views + seed 11 fases)
+- 009: occurrence_tasks, occurrence_meetings, occurrence_meeting_pendencies
 
 Para adicionar novas migrations:
 ```bash
