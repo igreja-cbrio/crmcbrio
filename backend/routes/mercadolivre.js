@@ -92,7 +92,7 @@ router.post('/config', authenticate, authorize('admin', 'diretor'), async (req, 
     }
 
     // Generate auth URL
-    const redirectUri = `${req.protocol}://${req.get('host')}/api/ml/callback`;
+    const redirectUri = `https://${req.get('host')}/api/ml/callback`;
     const authUrl = `${ML_AUTH}/authorization?response_type=code&client_id=${client_id}&redirect_uri=${encodeURIComponent(redirectUri)}`;
     res.json({ auth_url: authUrl });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -103,7 +103,7 @@ router.get('/auth-url', authenticate, authorize('admin', 'diretor'), async (req,
   try {
     const config = await getMLConfig();
     if (!config) return res.status(400).json({ error: 'Configure client_id e client_secret primeiro' });
-    const redirectUri = `${req.protocol}://${req.get('host')}/api/ml/callback`;
+    const redirectUri = `https://${req.get('host')}/api/ml/callback`;
     const authUrl = `${ML_AUTH}/authorization?response_type=code&client_id=${config.client_id}&redirect_uri=${encodeURIComponent(redirectUri)}`;
     res.json({ auth_url: authUrl });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -118,7 +118,7 @@ router.get('/callback', async (req, res) => {
     const config = await getMLConfig();
     if (!config) return res.status(400).send('Configuração ML não encontrada');
 
-    const redirectUri = `${req.protocol}://${req.get('host')}/api/ml/callback`;
+    const redirectUri = `https://${req.get('host')}/api/ml/callback`;
 
     // Exchange code for token
     const tokenRes = await fetch(`${ML_API}/oauth/token`, {
