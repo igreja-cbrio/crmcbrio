@@ -1,5 +1,5 @@
-import { Outlet, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { notificacoes as notifApi } from '../../api';
@@ -76,6 +76,7 @@ export default function AppShell() {
   const { profile, role, signOut } = useAuth();
   const { isDark, setIsDark } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const initials = (profile?.name || '??')
     .split(' ')
@@ -264,9 +265,13 @@ export default function AppShell() {
         </div>
       </header>
 
-      {/* Main content */}
+      {/* Main content with page transition */}
       <main className="flex-1 overflow-y-auto p-8">
-        <Outlet />
+        <div key={location.pathname} style={{
+          animation: 'fadeInUp 0.25s ease-out',
+        }}>
+          <Outlet />
+        </div>
       </main>
     </div>
   );

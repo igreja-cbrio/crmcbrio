@@ -76,7 +76,7 @@ export default function TabExtras({ funcionarios, onRefresh }) {
   }
 
   return (
-    <div>
+    <div style={{ minHeight: 200 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 13, color: C.text2 }}>Valor padrão: <strong style={{ color: C.primary }}>R$ {Number(valorPadrao).toFixed(2)}</strong></span>
