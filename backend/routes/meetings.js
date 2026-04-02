@@ -1,23 +1,27 @@
 const router = require('express').Router();
-const { authenticate, authorize } = require('../middleware/auth');
-const db = require('../utils/db');
-const { sanitizeObj, isValidUUID } = require('../utils/sanitize');
+const { authenticate } = require('../middleware/auth');
+const { supabase } = require('../utils/supabase');
 
 router.use(authenticate);
 
-// GET /api/meetings?eventId=x&projectId=y
+// GET /api/meetings
 router.get('/', async (req, res) => {
   try {
     const { eventId, projectId } = req.query;
-    let q = 'SELECT * FROM meetings WHERE 1=1';
-    const params = [];
-    if (eventId) { params.push(eventId); q += ` AND event_id = $${params.length}`; }
-    if (projectId) { params.push(projectId); q += ` AND project_id = $${params.length}`; }
-    q += ' ORDER BY date DESC';
-    const meetings = await db.query(q, params);
-    const result = await Promise.all(meetings.rows.map(async m => {
-      const pends = await db.query('SELECT * FROM pendencies WHERE meeting_id = $1 ORDER BY created_at', [m.id]);
-      return { ...m, pendencies: pends.rows };
+    let query = supabase.from('meetings').select('*').order('date', { ascending: false });
+    if (eventId) query = query.eq('event_id', eventId);
+    if (projectId) query = query.eq('project_id', projectId);
+    const { data: meetings, error } = await query;
+    if (error) throw error;
+
+    const meetingIds = meetings.map(m => m.id);
+    const { data: allPends } = meetingIds.length > 0
+      ? await supabase.from('pendencies').select('*').in('meeting_id', meetingIds).order('created_at')
+      : { data: [] };
+
+    const result = meetings.map(m => ({
+      ...m,
+      pendencies: (allPends || []).filter(p => p.meeting_id === m.id),
     }));
     res.json(result);
   } catch (e) { res.status(500).json({ error: 'Erro ao buscar reuniões' }); }
@@ -26,48 +30,45 @@ router.get('/', async (req, res) => {
 // POST /api/meetings
 router.post('/', async (req, res) => {
   try {
-    const d = sanitizeObj(req.body);
-    const r = await db.query(
-      `INSERT INTO meetings (event_id, occurrence_id, project_id, title, date, occurrence_date, participants, decisions, notes, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
-      [d.event_id||null, d.occurrence_id||null, d.project_id||null, d.title||'Reunião',
-       d.date, d.occurrence_date||null,
-       d.participants ? `{${d.participants.join(',')}}` : null,
-       d.decisions||'', d.notes||'', req.user.userId]
-    );
+    const d = req.body;
+    const { data: meeting, error } = await supabase.from('meetings').insert({
+      event_id: d.event_id || null, occurrence_id: d.occurrence_id || null,
+      project_id: d.project_id || null, title: d.title || 'Reunião', date: d.date,
+      occurrence_date: d.occurrence_date || null,
+      participants: d.participants || [], decisions: d.decisions || '',
+      notes: d.notes || '', created_by: req.user.userId,
+    }).select().single();
+    if (error) throw error;
 
-    // Criar pendências se enviadas
     if (d.pendencies && Array.isArray(d.pendencies)) {
-      for (const p of d.pendencies) {
-        await db.query(
-          `INSERT INTO pendencies (event_id, meeting_id, project_id, description, responsible, area, deadline)
-           VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-          [d.event_id||null, r.rows[0].id, d.project_id||null, p.description, p.responsible||'', p.area||'', p.deadline||null]
-        );
-      }
+      const pends = d.pendencies.filter(p => p.description).map(p => ({
+        event_id: d.event_id || null, meeting_id: meeting.id, project_id: d.project_id || null,
+        description: p.description, responsible: p.responsible || '', area: p.area || '',
+        deadline: p.deadline || null,
+      }));
+      if (pends.length > 0) await supabase.from('pendencies').insert(pends);
     }
-    res.json(r.rows[0]);
+    res.json(meeting);
   } catch (e) { console.error(e); res.status(500).json({ error: 'Erro ao criar reunião' }); }
 });
 
 // PUT /api/meetings/:id
 router.put('/:id', async (req, res) => {
   try {
-    const d = sanitizeObj(req.body);
-    const r = await db.query(
-      `UPDATE meetings SET title=$1, date=$2, participants=$3, decisions=$4, notes=$5
-       WHERE id=$6 RETURNING *`,
-      [d.title, d.date, d.participants ? `{${d.participants.join(',')}}` : null,
-       d.decisions||'', d.notes||'', req.params.id]
-    );
-    res.json(r.rows[0]);
+    const d = req.body;
+    const { data, error } = await supabase.from('meetings').update({
+      title: d.title, date: d.date, participants: d.participants || [],
+      decisions: d.decisions || '', notes: d.notes || '',
+    }).eq('id', req.params.id).select().single();
+    if (error) throw error;
+    res.json(data);
   } catch (e) { res.status(500).json({ error: 'Erro' }); }
 });
 
 // DELETE /api/meetings/:id
 router.delete('/:id', async (req, res) => {
   try {
-    await db.query('DELETE FROM meetings WHERE id = $1', [req.params.id]);
+    await supabase.from('meetings').delete().eq('id', req.params.id);
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: 'Erro' }); }
 });
@@ -75,18 +76,17 @@ router.delete('/:id', async (req, res) => {
 // ── PENDENCIES ──
 router.patch('/pendencies/:id', async (req, res) => {
   try {
-    const done = req.body.done;
-    const r = await db.query(
-      'UPDATE pendencies SET done=$1, done_at=$2 WHERE id=$3 RETURNING *',
-      [done, done ? new Date() : null, req.params.id]
-    );
-    res.json(r.rows[0]);
+    const { data, error } = await supabase.from('pendencies').update({
+      done: req.body.done, done_at: req.body.done ? new Date().toISOString() : null,
+    }).eq('id', req.params.id).select().single();
+    if (error) throw error;
+    res.json(data);
   } catch (e) { res.status(500).json({ error: 'Erro' }); }
 });
 
 router.delete('/pendencies/:id', async (req, res) => {
   try {
-    await db.query('DELETE FROM pendencies WHERE id = $1', [req.params.id]);
+    await supabase.from('pendencies').delete().eq('id', req.params.id);
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: 'Erro' }); }
 });
