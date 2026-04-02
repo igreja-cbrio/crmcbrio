@@ -454,7 +454,18 @@ function FuncionariosTab({ funcs, loading, busca, setBusca, filtroStatus, setFil
                   onMouseEnter={e => e.currentTarget.style.background = '#1e1e1e'}
                   onMouseLeave={e => e.currentTarget.style.background = ''}
                   onClick={() => onDetail(f.id)}>
-                  <td style={{ ...styles.td, fontWeight: 600 }}>{f.nome}</td>
+                  <td style={{ ...styles.td, fontWeight: 600 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      {f.foto_url ? (
+                        <img src={f.foto_url} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                      ) : (
+                        <div style={{ width: 32, height: 32, borderRadius: '50%', background: C.primaryBg, color: C.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, flexShrink: 0 }}>
+                          {(f.nome || '?')[0].toUpperCase()}
+                        </div>
+                      )}
+                      {f.nome}
+                    </div>
+                  </td>
                   <td style={styles.td}>{f.cargo}</td>
                   <td style={styles.td}>{f.area || '—'}</td>
                   <td style={styles.td}>{TIPO_CONTRATO[f.tipo_contrato] || f.tipo_contrato}</td>
@@ -780,7 +791,21 @@ function FuncionarioDetailModal({ open, data, onClose, onEdit, onDelete, onNewDo
   if (!data) return null;
   return (
     <Modal open={open} onClose={onClose} title={`👤 ${data.nome}`}>
-      {/* Info principal */}
+      {/* Avatar + Info principal */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+        {data.foto_url ? (
+          <img src={data.foto_url} alt="" style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', border: `3px solid ${C.primary}`, flexShrink: 0 }} />
+        ) : (
+          <div style={{ width: 72, height: 72, borderRadius: '50%', background: C.primaryBg, color: C.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 700, flexShrink: 0 }}>
+            {(data.nome || '?')[0].toUpperCase()}
+          </div>
+        )}
+        <div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: C.text }}>{data.nome}</div>
+          <div style={{ fontSize: 14, color: C.text2 }}>{data.cargo}{data.area ? ` · ${data.area}` : ''}</div>
+          <Badge status={data.status} map={STATUS_COLORS} />
+        </div>
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', marginBottom: 20 }}>
         <div><span style={{ fontSize: 11, color: C.text2 }}>Cargo:</span><div style={{ fontSize: 14, fontWeight: 600 }}>{data.cargo}</div></div>
         <div><span style={{ fontSize: 11, color: C.text2 }}>Área:</span><div style={{ fontSize: 14 }}>{data.area || '—'}</div></div>

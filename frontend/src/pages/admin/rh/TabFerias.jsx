@@ -140,7 +140,21 @@ export default function TabFerias() {
               const dias = Math.ceil((new Date(f.data_fim) - new Date(f.data_inicio)) / 86400000);
               return (
                 <tr key={f.id}>
-                  <td style={s.td}><div style={{ fontWeight: 600 }}>{f.rh_funcionarios?.nome}</div><div style={{ fontSize: 12, color: 'var(--cbrio-text3)' }}>{f.rh_funcionarios?.cargo}</div></td>
+                  <td style={s.td}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      {f.rh_funcionarios?.foto_url ? (
+                        <img src={f.rh_funcionarios.foto_url} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                      ) : (
+                        <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#00B39D18', color: '#00B39D', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, flexShrink: 0 }}>
+                          {(f.rh_funcionarios?.nome || '?')[0].toUpperCase()}
+                        </div>
+                      )}
+                      <div>
+                        <div style={{ fontWeight: 600 }}>{f.rh_funcionarios?.nome}</div>
+                        <div style={{ fontSize: 12, color: 'var(--cbrio-text3)' }}>{f.rh_funcionarios?.cargo}</div>
+                      </div>
+                    </div>
+                  </td>
                   <td style={s.td}>{TIPO_LABEL[f.tipo] ?? f.tipo}</td>
                   <td style={s.td}>{new Date(f.data_inicio).toLocaleDateString('pt-BR')}</td>
                   <td style={s.td}>{new Date(f.data_fim).toLocaleDateString('pt-BR')}</td>

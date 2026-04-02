@@ -362,7 +362,7 @@ router.get('/ferias', async (req, res) => {
     const { status } = req.query;
     let query = supabase
       .from('rh_ferias_licencas')
-      .select('*, rh_funcionarios(nome, cargo, area)')
+      .select('*, rh_funcionarios(nome, cargo, area, foto_url)')
       .order('data_inicio', { ascending: false });
 
     if (status) query = query.eq('status', status);

@@ -127,7 +127,18 @@ export default function TabExtras({ funcionarios, onRefresh }) {
                       {new Date(ex.data + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })}
                     </div>
                   </td>
-                  <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 500, color: C.text, borderBottom: `1px solid ${C.border}` }}>{ex.funcionario?.nome || '—'}</td>
+                  <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 500, color: C.text, borderBottom: `1px solid ${C.border}` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {ex.funcionario?.foto_url ? (
+                        <img src={ex.funcionario.foto_url} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                      ) : (
+                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#00B39D18', color: '#00B39D', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+                          {(ex.funcionario?.nome || '?')[0].toUpperCase()}
+                        </div>
+                      )}
+                      {ex.funcionario?.nome || '—'}
+                    </div>
+                  </td>
                   <td style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}` }}>
                     <div style={{ fontSize: 13, color: C.text }}>{ex.titulo}</div>
                     {ex.descricao && <div style={{ fontSize: 11, color: C.text3, marginTop: 2 }}>{ex.descricao}</div>}
