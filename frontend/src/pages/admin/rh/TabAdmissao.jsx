@@ -299,26 +299,28 @@ export default function TabAdmissao() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// MODAL: Formulário de Admissão
+// PAINEL LATERAL: Formulário de Admissão
 // ═══════════════════════════════════════════════════════════
 function AdmissaoFormModal({ data, onClose, onSave, saving }) {
   const [f, setF] = useState({ ...data });
   const upd = (k, v) => setF(p => ({ ...p, [k]: v }));
 
   return (
-    <div style={styles.overlay} onClick={onClose}>
-      <div style={styles.modal} onClick={e => e.stopPropagation()}>
-        <div style={styles.modalHeader}>
-          <div style={styles.modalTitle}>{f.id ? 'Editar Admissão' : 'Nova Admissão'}</div>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex' }}>
+      <div style={{ flex: 1, background: 'rgba(0,0,0,0.5)' }} onClick={onClose} />
+      <div style={{ width: '55%', minWidth: 500, maxWidth: 700, background: 'var(--cbrio-modal-bg)', overflowY: 'auto', boxShadow: '-8px 0 30px rgba(0,0,0,0.3)', animation: 'slideInRight 0.25s ease-out', display: 'flex', flexDirection: 'column' }}>
+        {/* Header sticky */}
+        <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--cbrio-modal-bg)', padding: '20px 28px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>{f.id ? 'Editar Admissão' : 'Nova Admissão'}</div>
           <button style={{ ...styles.btn('ghost'), fontSize: 18 }} onClick={onClose}>✕</button>
         </div>
-        <div style={styles.modalBody}>
-          {/* Tipo de contrato */}
+
+        {/* Body */}
+        <div style={{ flex: 1, padding: '24px 28px', overflowY: 'auto' }}>
           <Select label="Tipo de Contrato *" value={f.tipo_contrato || 'pj'} onChange={e => upd('tipo_contrato', e.target.value)}>
             {Object.entries(TIPO_CONTRATO).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </Select>
 
-          {/* Dados pessoais */}
           <div style={styles.section}>
             <div style={styles.sectionTitle}>Dados Pessoais</div>
             <Input label="Nome Completo *" value={f.nome || ''} onChange={e => upd('nome', e.target.value)} />
@@ -334,7 +336,6 @@ function AdmissaoFormModal({ data, onClose, onSave, saving }) {
             <Input label="Endereço Completo" value={f.endereco || ''} onChange={e => upd('endereco', e.target.value)} />
           </div>
 
-          {/* Dados PJ (condicional) */}
           {f.tipo_contrato === 'pj' && (
             <div style={styles.section}>
               <div style={styles.sectionTitle}>Dados da Empresa (PJ)</div>
@@ -358,7 +359,6 @@ function AdmissaoFormModal({ data, onClose, onSave, saving }) {
             </div>
           )}
 
-          {/* Dados do cargo */}
           <div style={styles.section}>
             <div style={styles.sectionTitle}>Cargo e Remuneração</div>
             <div style={styles.formRow}>
@@ -376,7 +376,9 @@ function AdmissaoFormModal({ data, onClose, onSave, saving }) {
             <textarea style={{ ...styles.input, minHeight: 60, resize: 'vertical' }} value={f.observacoes || ''} onChange={e => upd('observacoes', e.target.value)} />
           </div>
         </div>
-        <div style={styles.modalFooter}>
+
+        {/* Footer sticky */}
+        <div style={{ position: 'sticky', bottom: 0, background: 'var(--cbrio-modal-bg)', padding: '16px 28px', borderTop: `1px solid ${C.border}`, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <button style={styles.btn('ghost')} onClick={onClose}>Cancelar</button>
           <button style={styles.btn('primary')} onClick={() => onSave(f)} disabled={saving}>
             {saving ? 'Salvando...' : f.id ? 'Salvar' : 'Criar Admissão'}
@@ -388,7 +390,7 @@ function AdmissaoFormModal({ data, onClose, onSave, saving }) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// MODAL: Editor de Contrato (contentEditable)
+// PAINEL LATERAL: Editor de Contrato (contentEditable)
 // ═══════════════════════════════════════════════════════════
 function ContratoEditorModal({ data, onClose, onSave, saving }) {
   const editorRef = useRef(null);
@@ -418,35 +420,43 @@ function ContratoEditorModal({ data, onClose, onSave, saving }) {
   }
 
   return (
-    <div style={styles.overlay} onClick={onClose}>
-      <div style={{ ...styles.modal, maxWidth: 900, maxHeight: '95vh' }} onClick={e => e.stopPropagation()}>
-        <div style={styles.modalHeader}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex' }}>
+      <div style={{ flex: 1, background: 'rgba(0,0,0,0.5)' }} onClick={onClose} />
+      <div style={{ width: '65%', minWidth: 600, maxWidth: 900, background: 'var(--cbrio-modal-bg)', boxShadow: '-8px 0 30px rgba(0,0,0,0.3)', animation: 'slideInRight 0.25s ease-out', display: 'flex', flexDirection: 'column' }}>
+        {/* Header */}
+        <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--cbrio-modal-bg)', padding: '20px 28px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={styles.modalTitle}>Contrato — {adm.nome}</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>Contrato — {adm.nome}</div>
             <div style={{ fontSize: 12, color: C.text2, marginTop: 2 }}>Edite o texto abaixo. O contrato é totalmente editável.</div>
           </div>
           <button style={{ ...styles.btn('ghost'), fontSize: 18 }} onClick={onClose}>✕</button>
         </div>
-        <div style={{ padding: '16px 24px', borderBottom: `1px solid ${C.border}`, display: 'flex', gap: 8 }}>
+
+        {/* Toolbar */}
+        <div style={{ padding: '12px 28px', borderBottom: `1px solid ${C.border}`, display: 'flex', gap: 8 }}>
           <button style={styles.btn('secondary')} onClick={() => document.execCommand('bold')}>Negrito</button>
           <button style={styles.btn('secondary')} onClick={() => document.execCommand('italic')}>Itálico</button>
           <button style={styles.btn('secondary')} onClick={() => document.execCommand('underline')}>Sublinhado</button>
           <div style={{ flex: 1 }} />
           <button style={styles.btn('ghost')} onClick={handlePrint}>Imprimir / PDF</button>
         </div>
+
+        {/* Editor */}
         <div
           ref={editorRef}
           contentEditable
           suppressContentEditableWarning
           dangerouslySetInnerHTML={{ __html: adm.contrato_editado || '' }}
           style={{
-            padding: '32px 48px', minHeight: 400, maxHeight: 'calc(95vh - 220px)', overflowY: 'auto',
+            flex: 1, padding: '32px 48px', overflowY: 'auto',
             outline: 'none', fontSize: 14, lineHeight: 1.7, color: C.text,
             fontFamily: "'Times New Roman', serif",
             background: 'var(--cbrio-input-bg)',
           }}
         />
-        <div style={styles.modalFooter}>
+
+        {/* Footer */}
+        <div style={{ position: 'sticky', bottom: 0, background: 'var(--cbrio-modal-bg)', padding: '16px 28px', borderTop: `1px solid ${C.border}`, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <button style={styles.btn('ghost')} onClick={onClose}>Fechar</button>
           <button style={styles.btn('primary')} onClick={handleSave} disabled={saving}>
             {saving ? 'Salvando...' : 'Salvar Contrato'}
