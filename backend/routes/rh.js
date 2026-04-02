@@ -125,7 +125,7 @@ router.get('/funcionarios/:id', async (req, res) => {
 // POST /api/rh/funcionarios
 router.post('/funcionarios', async (req, res) => {
   try {
-    const { nome, cpf, email, telefone, cargo, area, tipo_contrato, data_admissao, salario, observacoes } = req.body;
+    const { nome, cpf, email, telefone, cargo, area, tipo_contrato, data_admissao, salario, observacoes, foto_url } = req.body;
     if (!nome || !cargo || !data_admissao) {
       return res.status(400).json({ error: 'Nome, cargo e data de admissão são obrigatórios' });
     }
@@ -136,6 +136,7 @@ router.post('/funcionarios', async (req, res) => {
         nome, cpf: cpf || null, email: email || null, telefone: telefone || null,
         cargo, area: area || null, tipo_contrato: tipo_contrato || 'clt',
         data_admissao, salario: salario || null, observacoes: observacoes || null,
+        foto_url: foto_url || null,
         created_by: req.user.userId,
       })
       .select()
@@ -152,13 +153,13 @@ router.post('/funcionarios', async (req, res) => {
 // PUT /api/rh/funcionarios/:id
 router.put('/funcionarios/:id', async (req, res) => {
   try {
-    const { nome, cpf, email, telefone, cargo, area, tipo_contrato, data_admissao, data_demissao, salario, status, observacoes } = req.body;
+    const { nome, cpf, email, telefone, cargo, area, tipo_contrato, data_admissao, data_demissao, salario, status, observacoes, foto_url } = req.body;
     const { data, error } = await supabase
       .from('rh_funcionarios')
       .update({
         nome, cpf, email, telefone, cargo, area, tipo_contrato,
         data_admissao, data_demissao: data_demissao || null,
-        salario, status, observacoes,
+        salario, status, observacoes, foto_url: foto_url || null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', req.params.id)

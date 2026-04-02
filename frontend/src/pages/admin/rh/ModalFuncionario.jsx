@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { supabase } from '../../../supabaseClient';
 
 const s = {
   overlay:  { position: 'fixed', inset: 0, background: 'var(--cbrio-overlay)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' },
@@ -33,8 +34,57 @@ export default function ModalFuncionario({ funcionario, onSalvar, onFechar }) {
     ...funcionario,
   });
   const [salvando, setSalvando] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(funcionario?.foto_url || '');
+  const fileRef = useRef(null);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  async function handleUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type and size
+    if (!file.type.startsWith('image/')) {
+      alert('Selecione um arquivo de imagem (JPG, PNG, etc.)');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert('A imagem deve ter no máximo 5MB');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const fileName = `${crypto.randomUUID()}.${ext}`;
+      const filePath = `colaboradores/${fileName}`;
+
+      const { error } = await supabase.storage
+        .from('rh-fotos')
+        .upload(filePath, file, { upsert: true });
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('rh-fotos')
+        .getPublicUrl(filePath);
+
+      setForm((f) => ({ ...f, foto_url: publicUrl }));
+      setPreviewUrl(publicUrl);
+    } catch (err) {
+      console.error('Erro ao fazer upload:', err);
+      alert('Erro ao fazer upload da foto. Tente novamente.');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function handleRemoveFoto() {
+    setForm((f) => ({ ...f, foto_url: '' }));
+    setPreviewUrl('');
+    if (fileRef.current) fileRef.current.value = '';
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -66,23 +116,55 @@ export default function ModalFuncionario({ funcionario, onSalvar, onFechar }) {
             ))}
 
             <div style={s.fullCol}>
-              <label style={s.label}>URL da Foto</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <input
-                  style={{ ...s.input, flex: 1 }}
-                  type="text"
-                  value={form.foto_url ?? ''}
-                  onChange={set('foto_url')}
-                  placeholder="https://exemplo.com/foto.jpg"
-                />
-                {form.foto_url && (
+              <label style={s.label}>Foto do colaborador</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                {previewUrl && (
                   <img
-                    src={form.foto_url}
+                    src={previewUrl}
                     alt="Foto"
-                    style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: '1.5px solid #333', flexShrink: 0 }}
-                    onError={e => { e.target.style.display = 'none'; }}
+                    style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--cbrio-border)', flexShrink: 0 }}
+                    onError={() => setPreviewUrl('')}
                   />
                 )}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleUpload}
+                    disabled={uploading}
+                    style={{ display: 'none' }}
+                  />
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      type="button"
+                      onClick={() => fileRef.current?.click()}
+                      disabled={uploading}
+                      style={{
+                        background: 'var(--cbrio-border)', color: 'var(--cbrio-text)',
+                        border: 'none', borderRadius: 8, padding: '8px 16px',
+                        fontSize: 13, fontWeight: 600, cursor: uploading ? 'wait' : 'pointer',
+                        opacity: uploading ? 0.6 : 1,
+                      }}
+                    >
+                      {uploading ? 'Enviando...' : previewUrl ? 'Trocar foto' : 'Escolher foto'}
+                    </button>
+                    {previewUrl && (
+                      <button
+                        type="button"
+                        onClick={handleRemoveFoto}
+                        style={{
+                          background: 'transparent', color: '#ef4444',
+                          border: '1px solid #ef4444', borderRadius: 8, padding: '8px 12px',
+                          fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                        }}
+                      >
+                        Remover
+                      </button>
+                    )}
+                  </div>
+                  <span style={{ fontSize: 11, color: 'var(--cbrio-text2)' }}>JPG, PNG — máx. 5MB</span>
+                </div>
               </div>
             </div>
 
@@ -118,7 +200,7 @@ export default function ModalFuncionario({ funcionario, onSalvar, onFechar }) {
 
           <div style={s.footer}>
             <button type="button" style={s.btnCancel} onClick={onFechar}>Cancelar</button>
-            <button type="submit" style={s.btnSave} disabled={salvando}>
+            <button type="submit" style={s.btnSave} disabled={salvando || uploading}>
               {salvando ? 'Salvando...' : 'Salvar'}
             </button>
           </div>
