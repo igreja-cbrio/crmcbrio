@@ -117,6 +117,11 @@ export const meetings = {
   removePendency: (id) => del(`/meetings/pendencies/${id}`),
 };
 
+export const tasks = {
+  all: (source) => get('/tasks/all' + (source ? '?source=' + source : '')),
+  updateStatus: (source, taskId, status) => patch(`/tasks/${source}/${taskId}/status`, { status }),
+};
+
 export const occurrences = {
   get: (occId) => get(`/occurrences/${occId}`),
   list: (eventId) => get(`/occurrences/${eventId}`),
