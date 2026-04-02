@@ -334,6 +334,8 @@ export default function Eventos() {
       const ev = await events.get(id);
       setSelectedEvent(ev);
       setTab(4);
+      setExpandedOcc(null);
+      setExpandedCard(null);
       // Carregar riscos, retrospectiva, histórico
       risksApi.list(id).then(d => setEventRisks(d)).catch(() => setEventRisks([]));
       retroApi.get(id).then(d => setRetroData(d)).catch(() => setRetroData(null));
@@ -369,10 +371,20 @@ export default function Eventos() {
   // ── Event CRUD ──
   async function saveEvent(data) {
     try {
+      const ativarCiclo = data.ativar_ciclo === 'true';
+      delete data.ativar_ciclo;
+
       if (data.id) {
         await events.update(data.id, data);
+        // Ativar ciclo no editar se marcado e evento ainda não tem
+        if (ativarCiclo && !hasCycle) {
+          try { await cyclesApi.activate(data.id); setHasCycle(true); } catch(e) { console.error('Erro ao ativar ciclo:', e.message); }
+        }
       } else {
-        await events.create(data);
+        const created = await events.create(data);
+        if (ativarCiclo && created?.id) {
+          try { await cyclesApi.activate(created.id); } catch(e) { console.error('Erro ao ativar ciclo:', e.message); }
+        }
       }
       setModalEvent(null);
       loadEvents();
@@ -1159,8 +1171,8 @@ export default function Eventos() {
               </div>
             )}
 
-            {/* Ocorrências como pills dentro do card */}
-            {occurrences.length > 0 && (
+            {/* Ocorrências como pills dentro do card (só recorrentes) */}
+            {occurrences.length > 1 && ev.recurrence !== 'unico' && (
               <div style={{ marginTop: 16, paddingTop: 12, borderTop: `1px solid ${C.border}` }}>
                 <span style={styles.label}>Ocorrências ({occurrences.length})</span>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
@@ -1192,8 +1204,8 @@ export default function Eventos() {
           </div>
         </div>
 
-        {/* Contexto: ocorrência selecionada ou evento */}
-        {expandedOcc && (
+        {/* Contexto: ocorrência selecionada (só recorrentes) */}
+        {expandedOcc && ev.recurrence !== 'unico' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, padding: '8px 14px', background: 'var(--cbrio-bg, #f3f4f6)', borderRadius: 8, border: `1px solid ${C.border}` }}>
             <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Visualizando: {fmtDate(expandedOcc.date)}</span>
             <span style={styles.badge(expandedOcc.status === 'concluido' ? C.green : C.text3, expandedOcc.status === 'concluido' ? `${C.green}15` : '#f3f4f6')}>
@@ -1740,6 +1752,21 @@ export default function Eventos() {
           <Textarea label="Descrição" name="description" defaultValue={modalEvent?.description || ''} />
           <Textarea label="Observações" name="notes" defaultValue={modalEvent?.notes || ''} />
           {isEdit && <Textarea label="Lições Aprendidas" name="lessons_learned" defaultValue={modalEvent?.lessons_learned || ''} />}
+
+          {/* Ciclo Criativo */}
+          {hasCycle ? (
+            <div style={{ padding: '10px 12px', background: '#d1fae5', borderRadius: 8, border: '1px solid #a7f3d0', display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#10b981' }}>✓ Ciclo Criativo ativado</span>
+            </div>
+          ) : (
+            <div style={{ padding: '10px 12px', background: '#f3e8ff', borderRadius: 8, border: '1px solid #e9d5ff', display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+              <input type="checkbox" name="ativar_ciclo" id="ciclo-modal" value="true" />
+              <label htmlFor="ciclo-modal" style={{ fontSize: 13, color: '#7c3aed', fontWeight: 600, cursor: 'pointer' }}>
+                Ativar Ciclo Criativo
+              </label>
+              <span style={{ fontSize: 11, color: C.text3 }}>— 11 fases de produção + trilha administrativa</span>
+            </div>
+          )}
         </form>
       </Modal>
     );
