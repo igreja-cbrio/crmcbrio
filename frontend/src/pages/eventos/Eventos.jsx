@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { events, cycles as cyclesApi, occurrences as occApi, tasks as tasksApi, dashboard as dashApi, risks as risksApi, retrospective as retroApi, history as historyApi } from '../../api';
+import { events, meetings, cycles as cyclesApi, occurrences as occApi, tasks as tasksApi, dashboard as dashApi, risks as risksApi, retrospective as retroApi, history as historyApi } from '../../api';
 import CycleView from './components/CycleView';
 import BudgetPanel from './components/BudgetPanel';
 
@@ -1070,7 +1070,7 @@ export default function Eventos() {
                   <td style={styles.td}>{fmtMoney(ev.budget_planned)}</td>
                   <td style={{ ...styles.td, display: 'flex', alignItems: 'center', gap: 4 }}>
                     <Badge status={ev.status} map={STATUS_MAP} />
-                    <DaysCounter date={ev.date} status={ev.status} />
+                    <DaysCounter date={ev.next_occurrence_date || ev.date} status={ev.status} />
                   </td>
                 </tr>
               ));
@@ -1330,42 +1330,44 @@ export default function Eventos() {
         </div>
         </>}
 
-        {/* ── ABA: Reuniões (evento) — movida para aba própria ── */}
+        {/* ── ABA: Reuniões (evento) ── */}
         {detailTab === 'reunioes' && !expandedOcc && (
           <div style={{ padding: '20px 0' }}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--cbrio-text, #1a1a2e)', marginBottom: 16 }}>Reuniões do Evento ({meetingsList.length})</div>
-            {meetingsList.length === 0 && <div style={styles.empty}>Nenhuma reunião</div>}
-            {meetingsList.length > 0 && (
-              <div style={styles.card}>
-                <table style={styles.table}>
-                  <thead><tr>
-                    <th style={styles.th}>Data</th>
-                    <th style={styles.th}>Título</th>
-                    <th style={styles.th}>Pendências</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {meetingsList.map(m => (
-                    <tr key={m.id}>
-                      <td style={styles.td}>{fmtDate(m.date)}</td>
-                      <td style={styles.td}>{m.title || '—'}</td>
-                      <td style={styles.td}>
-                        {(m.pendencies || []).length === 0 ? '—' : (
-                          <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12 }}>
-                            {m.pendencies.map(p => (
-                              <li key={p.id} style={p.done ? { textDecoration: 'line-through', color: C.text3 } : {}}>
-                                {p.text} {p.responsible ? `(${p.responsible})` : ''}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--cbrio-text, #1a1a2e)' }}>Reuniões do Evento ({meetingsList.length})</div>
+              <button style={{ ...styles.btn('primary'), ...styles.btnSm }} onClick={() => setModalTask(null)}>+ Reunião</button>
             </div>
-          )}
+            {meetingsList.length === 0 && <div style={styles.empty}>Nenhuma reunião cadastrada</div>}
+            {meetingsList.map(m => (
+              <div key={m.id} style={styles.taskCard}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{m.title || 'Reunião'}</div>
+                    <div style={{ fontSize: 12, color: C.text2, marginTop: 2 }}>
+                      {fmtDate(m.date)}
+                      {m.participants?.length > 0 && ` · ${m.participants.join(', ')}`}
+                    </div>
+                    {m.decisions && <div style={{ fontSize: 12, color: C.text2, marginTop: 6 }}><strong>Decisões:</strong> {m.decisions}</div>}
+                    {m.notes && <div style={{ fontSize: 12, color: C.text3, marginTop: 4 }}>{m.notes}</div>}
+                  </div>
+                  <button style={{ ...styles.btn('ghost'), ...styles.btnSm, color: C.red }}
+                    onClick={async () => { if (window.confirm('Excluir reunião?')) { try { await meetings.remove(m.id); refreshDetail(); } catch(err) { setError(err.message); } } }}>✕</button>
+                </div>
+                {(m.pendencies || []).length > 0 && (
+                  <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${C.border}` }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 4 }}>Pendências</div>
+                    {m.pendencies.map(p => (
+                      <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '3px 0' }}>
+                        <input type="checkbox" checked={p.done}
+                          onChange={async () => { try { await meetings.togglePendency(p.id, !p.done); refreshDetail(); } catch(err) { setError(err.message); } }} />
+                        <span style={p.done ? { textDecoration: 'line-through', color: C.text3 } : { color: C.text }}>{p.description || p.text}</span>
+                        {p.responsible && <span style={{ fontSize: 10, color: C.text3 }}>({p.responsible})</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         )}
 
@@ -1446,19 +1448,29 @@ export default function Eventos() {
             {eventRisks.map(risk => {
               const scoreColor = risk.score >= 15 ? C.red : risk.score >= 9 ? C.amber : C.green;
               return (
-                <div key={risk.id} style={{ ...styles.taskCard, borderLeft: `4px solid ${scoreColor}` }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <span style={{ fontWeight: 600, fontSize: 13 }}>{risk.title}</span>
-                      <span style={styles.badge(scoreColor, `${scoreColor}15`)}> P{risk.probability}×I{risk.impact}={risk.score}</span>
+                <div key={risk.id} style={styles.taskCard}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <div style={{ width: 10, height: 10, borderRadius: '50%', background: scoreColor, flexShrink: 0 }} />
+                        <span style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{risk.title}</span>
+                        <span style={styles.badge(scoreColor, `${scoreColor}15`)}>Score: {risk.score}</span>
+                      </div>
+                      <div style={{ fontSize: 12, color: C.text2 }}>
+                        Probabilidade: {risk.probability}/5 · Impacto: {risk.impact}/5 · {risk.category}
+                      </div>
+                      {risk.mitigation && <div style={{ fontSize: 12, color: C.text2, marginTop: 6 }}><strong>Mitigação:</strong> {risk.mitigation}</div>}
+                      {risk.owner_name && <div style={{ fontSize: 12, color: C.text3, marginTop: 2 }}>Responsável: {risk.owner_name}{risk.target_date ? ` · Prazo: ${fmtDate(risk.target_date)}` : ''}</div>}
                     </div>
-                    <select value={risk.status} onChange={async e => { await risksApi.update(risk.id, { status: e.target.value }); risksApi.list(ev.id).then(setEventRisks); }}
-                      style={{ ...styles.select, padding: '2px 6px', fontSize: 11 }}>
-                      {['aberto','mitigando','mitigado','aceito','fechado'].map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
+                    <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}>
+                      <select value={risk.status} onChange={async e => { await risksApi.update(risk.id, { status: e.target.value }); risksApi.list(ev.id).then(setEventRisks); }}
+                        style={{ ...styles.select, padding: '2px 6px', fontSize: 11 }}>
+                        {['aberto','mitigando','mitigado','aceito','fechado'].map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                      <button style={{ ...styles.btn('ghost'), ...styles.btnSm, color: C.red }}
+                        onClick={async () => { if (window.confirm('Excluir risco?')) { await risksApi.remove(risk.id); risksApi.list(ev.id).then(setEventRisks); } }}>✕</button>
+                    </div>
                   </div>
-                  {risk.mitigation && <div style={{ fontSize: 11, color: C.text2, marginTop: 4 }}>Mitigação: {risk.mitigation}</div>}
-                  {risk.owner_name && <div style={{ fontSize: 11, color: C.text3 }}>Responsável: {risk.owner_name}</div>}
                 </div>
               );
             })}

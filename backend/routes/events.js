@@ -36,12 +36,17 @@ router.get('/', async (req, res) => {
 
     // Buscar ocorrências para cada evento
     const ids = events.map(e => e.id);
-    const { data: allOccs } = await supabase.from('event_occurrences').select('event_id, date').in('event_id', ids.length > 0 ? ids : ['_']).order('date');
+    const { data: allOccs } = await supabase.from('event_occurrences').select('event_id, date, status').in('event_id', ids.length > 0 ? ids : ['_']).order('date');
 
     const occMap = {};
+    const nextOccMap = {};
     (allOccs || []).forEach(o => {
       if (!occMap[o.event_id]) occMap[o.event_id] = [];
       occMap[o.event_id].push(o.date);
+      // Próxima ocorrência pendente
+      if (o.status === 'pendente' && !nextOccMap[o.event_id]) {
+        nextOccMap[o.event_id] = o.date;
+      }
     });
 
     const result = events.map(e => ({
@@ -49,6 +54,7 @@ router.get('/', async (req, res) => {
       category_name: e.event_categories?.name || null,
       category_color: e.event_categories?.color || null,
       occurrence_dates: occMap[e.id] || [],
+      next_occurrence_date: nextOccMap[e.id] || null,
     }));
 
     res.json(result);
