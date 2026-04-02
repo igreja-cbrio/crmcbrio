@@ -315,22 +315,43 @@ export default function RH() {
 // ═══════════════════════════════════════════════════════════
 // TAB: DASHBOARD
 // ═══════════════════════════════════════════════════════════
+// Stat Card com visual moderno (inspirado em reui/statistics-card)
+function StatCard({ label, value, bg, svg }) {
+  return (
+    <div style={{ position: 'relative', overflow: 'hidden', background: bg, borderRadius: 12, padding: '20px 24px', color: '#fff', minHeight: 100 }}>
+      {svg}
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <div style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.8)', marginBottom: 8 }}>{label}</div>
+        <div style={{ fontSize: 32, fontWeight: 700, letterSpacing: -1 }}>{value}</div>
+      </div>
+    </div>
+  );
+}
+
+const kpiSvgs = [
+  <svg key="s1" style={{ position: 'absolute', right: 0, top: 0, height: '100%', width: '67%', pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 300 200" fill="none"><circle cx="220" cy="100" r="90" fill="#fff" fillOpacity="0.08" /><circle cx="260" cy="60" r="60" fill="#fff" fillOpacity="0.10" /><circle cx="200" cy="160" r="50" fill="#fff" fillOpacity="0.07" /><circle cx="270" cy="150" r="30" fill="#fff" fillOpacity="0.12" /></svg>,
+  <svg key="s2" style={{ position: 'absolute', right: 0, top: 0, width: 192, height: 192, pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 200 200" fill="none"><ellipse cx="170" cy="60" rx="40" ry="18" fill="#fff" fillOpacity="0.13" /><rect x="120" y="20" width="60" height="20" rx="8" fill="#fff" fillOpacity="0.10" /><polygon points="150,0 200,0 200,50" fill="#fff" fillOpacity="0.07" /><circle cx="180" cy="100" r="14" fill="#fff" fillOpacity="0.16" /></svg>,
+  <svg key="s3" style={{ position: 'absolute', right: 0, top: 0, width: 192, height: 192, pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 200 200" fill="none"><rect x="120" y="0" width="70" height="70" rx="35" fill="#fff" fillOpacity="0.09" /><ellipse cx="170" cy="80" rx="28" ry="12" fill="#fff" fillOpacity="0.12" /><polygon points="200,0 200,60 140,0" fill="#fff" fillOpacity="0.07" /><circle cx="150" cy="30" r="10" fill="#fff" fillOpacity="0.15" /></svg>,
+  <svg key="s4" style={{ position: 'absolute', right: 0, top: 0, width: 192, height: 192, pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 200 200" fill="none"><polygon points="200,0 200,100 100,0" fill="#fff" fillOpacity="0.09" /><ellipse cx="170" cy="40" rx="30" ry="18" fill="#fff" fillOpacity="0.13" /><rect x="140" y="60" width="40" height="18" rx="8" fill="#fff" fillOpacity="0.10" /><circle cx="150" cy="30" r="14" fill="#fff" fillOpacity="0.18" /></svg>,
+  <svg key="s5" style={{ position: 'absolute', right: 0, top: 0, width: 192, height: 192, pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 200 200" fill="none"><circle cx="160" cy="50" r="40" fill="#fff" fillOpacity="0.10" /><rect x="130" y="80" width="50" height="16" rx="8" fill="#fff" fillOpacity="0.08" /><polygon points="180,0 200,0 200,40" fill="#fff" fillOpacity="0.12" /></svg>,
+];
+
 function DashboardTab({ dash }) {
   if (!dash) return <div style={styles.empty}>Carregando dashboard...</div>;
+
+  const kpis = [
+    { label: 'Total Colaboradores', value: dash.total, bg: '#0a0a0a' },
+    { label: 'Ativos', value: dash.ativos, bg: '#00B39D' },
+    { label: 'Em Férias', value: dash.ferias, bg: '#3b82f6' },
+    { label: 'Em Licença', value: dash.licenca, bg: '#f59e0b' },
+    { label: 'Inativos', value: dash.inativos, bg: '#6b7280' },
+  ];
+
   return (
     <>
       <div style={styles.kpiGrid}>
-        {[
-          { label: 'Total Colaboradores', value: dash.total, color: C.primary },
-          { label: 'Ativos', value: dash.ativos, color: C.green },
-          { label: 'Em Férias', value: dash.ferias, color: C.blue },
-          { label: 'Em Licença', value: dash.licenca, color: C.amber },
-          { label: 'Inativos', value: dash.inativos, color: C.text3 },
-        ].map(k => (
-          <div key={k.label} style={styles.kpi(k.color)}>
-            <div style={styles.kpiValue}>{k.value}</div>
-            <div style={styles.kpiLabel}>{k.label}</div>
-          </div>
+        {kpis.map((k, i) => (
+          <StatCard key={k.label} label={k.label} value={k.value} bg={k.bg} svg={kpiSvgs[i]} />
         ))}
       </div>
 
