@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { motion, AnimatePresence } from "framer-motion";
 import {
+  Bell,
   CalendarDays,
   ChevronRight,
   ChevronsUpDown,
@@ -27,7 +28,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -120,6 +121,7 @@ export function Sidebar() {
   const navigate = useNavigate();
   const { profile, role, signOut } = useAuth();
   const { isDark, setIsDark } = useTheme();
+  const [notificationCount] = useState(3); // TODO: fetch from Supabase notifications table
 
   const pathname = location.pathname;
 
@@ -265,16 +267,40 @@ export function Sidebar() {
           </div>
         </div>
 
+        {/* Notifications */}
+        <div className="px-3 pb-1">
+          <button className="flex h-9 w-full items-center gap-2.5 rounded-lg px-3.5 transition-colors hover:bg-[#1e1e1e] text-[#737373] hover:text-[#a3a3a3]">
+            <div className="relative shrink-0">
+              <Bell className="h-4 w-4 text-[#525252]" />
+              {notificationCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#00B39D] px-1 text-[9px] font-bold text-[#0a0a0a]">
+                  {notificationCount > 9 ? '9+' : notificationCount}
+                </span>
+              )}
+            </div>
+            <motion.span variants={labelVariants} transition={transitionProps} className="text-[13px] whitespace-nowrap">
+              Notificações
+            </motion.span>
+          </button>
+        </div>
+
         {/* User footer */}
         <div className="border-t border-[#262626] p-2">
           <DropdownMenu modal={false}>
             <DropdownMenuTrigger className="w-full outline-none">
               <div className="flex h-10 w-full items-center gap-2.5 rounded-lg px-2 transition-colors hover:bg-[#1e1e1e]">
-                <Avatar className="h-7 w-7 shrink-0">
-                  <AvatarFallback className="bg-[#00B39D] text-[#0a0a0a] text-[11px] font-semibold">
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
+                <div className="relative shrink-0">
+                  <Avatar className="h-7 w-7">
+                    <AvatarFallback className="bg-[#00B39D] text-[#0a0a0a] text-[11px] font-semibold">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  {notificationCount > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-bold text-white border-2 border-[#111111]">
+                      {notificationCount > 9 ? '9+' : notificationCount}
+                    </span>
+                  )}
+                </div>
                 <motion.div
                   variants={labelVariants}
                   transition={transitionProps}
