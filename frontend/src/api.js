@@ -341,6 +341,14 @@ export const rh = {
     get: () => get('/rh/config'),
     set: (chave, valor) => put(`/rh/config/${chave}`, { valor }),
   },
+  admissoes: {
+    list: (params) => get('/rh/admissoes' + (params ? '?' + new URLSearchParams(params) : '')),
+    get: (id) => get(`/rh/admissoes/${id}`),
+    create: (data) => post('/rh/admissoes', data),
+    update: (id, data) => patch(`/rh/admissoes/${id}`, data),
+    remove: (id) => del(`/rh/admissoes/${id}`),
+    concluir: (id) => post(`/rh/admissoes/${id}/concluir`),
+  },
 };
 
 export const notificacoes = {

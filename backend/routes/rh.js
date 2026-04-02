@@ -731,4 +731,112 @@ router.patch('/materiais-funcionarios/:id', async (req, res) => {
   }
 });
 
+// ═══════════════════════════════════════════════════════════
+// ADMISSÕES
+// ═══════════════════════════════════════════════════════════
+
+// GET /api/rh/admissoes
+router.get('/admissoes', async (req, res) => {
+  try {
+    let query = supabase.from('rh_admissoes').select('*').order('created_at', { ascending: false });
+    if (req.query.status) query = query.eq('status', req.query.status);
+    if (req.query.tipo_contrato) query = query.eq('tipo_contrato', req.query.tipo_contrato);
+    const { data, error } = await query;
+    if (error) throw error;
+    res.json(data);
+  } catch (e) {
+    console.error('[RH] Listar admissões:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/rh/admissoes/:id
+router.get('/admissoes/:id', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('rh_admissoes').select('*').eq('id', req.params.id).single();
+    if (error) throw error;
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/rh/admissoes
+router.post('/admissoes', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('rh_admissoes')
+      .insert({ ...req.body, created_by: req.user.id })
+      .select().single();
+    if (error) throw error;
+    res.json(data);
+  } catch (e) {
+    console.error('[RH] Criar admissão:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// PATCH /api/rh/admissoes/:id
+router.patch('/admissoes/:id', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('rh_admissoes')
+      .update(req.body)
+      .eq('id', req.params.id)
+      .select().single();
+    if (error) throw error;
+    res.json(data);
+  } catch (e) {
+    console.error('[RH] Atualizar admissão:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// DELETE /api/rh/admissoes/:id
+router.delete('/admissoes/:id', async (req, res) => {
+  try {
+    const { error } = await supabase.from('rh_admissoes').delete().eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/rh/admissoes/:id/concluir — finaliza admissão e cria funcionário
+router.post('/admissoes/:id/concluir', async (req, res) => {
+  try {
+    const { data: adm, error: admErr } = await supabase.from('rh_admissoes').select('*').eq('id', req.params.id).single();
+    if (admErr) throw admErr;
+
+    // Cria funcionário a partir da admissão
+    const funcData = {
+      nome: adm.nome,
+      cpf: adm.cpf,
+      email: adm.email,
+      telefone: adm.telefone,
+      cargo: adm.cargo,
+      area: adm.area,
+      tipo_contrato: adm.tipo_contrato,
+      data_admissao: adm.data_inicio || new Date().toISOString().slice(0, 10),
+      salario: adm.salario,
+      status: 'ativo',
+      observacoes: adm.observacoes,
+      created_by: req.user.id,
+    };
+
+    const { data: func, error: funcErr } = await supabase.from('rh_funcionarios')
+      .insert(funcData).select().single();
+    if (funcErr) throw funcErr;
+
+    // Atualiza admissão como concluída
+    await supabase.from('rh_admissoes')
+      .update({ status: 'concluido', funcionario_id: func.id })
+      .eq('id', req.params.id);
+
+    res.json({ admissao: adm, funcionario: func });
+  } catch (e) {
+    console.error('[RH] Concluir admissão:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 module.exports = router;

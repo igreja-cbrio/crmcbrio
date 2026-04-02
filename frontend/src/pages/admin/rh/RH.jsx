@@ -3,6 +3,7 @@ import { Users, Pencil, Trash2, Palmtree } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { rh, permissoes } from '../../../api';
 import { supabase } from '../../../supabaseClient';
+import TabAdmissao from './TabAdmissao';
 import TabExtras from './TabExtras';
 
 // ── Tema ────────────────────────────────────────────────────
@@ -142,7 +143,7 @@ function Badge({ status, map }) {
 }
 
 // ── TABS ────────────────────────────────────────────────────
-const TABS = ['Dashboard', 'Colaboradores', 'Treinamentos', 'Férias/Licenças', 'Extras'];
+const TABS = ['Dashboard', 'Colaboradores', 'Admissão', 'Treinamentos', 'Férias/Licenças', 'Extras'];
 
 // ═══════════════════════════════════════════════════════════
 // COMPONENTE PRINCIPAL
@@ -279,18 +280,19 @@ export default function RH() {
           onNew={() => setModalFunc({})} onEdit={(f) => setModalFunc(f)} onDetail={openDetail} onDelete={deleteFuncionario}
         />
       )}
-      {tab === 2 && (
+      {tab === 2 && <TabAdmissao />}
+      {tab === 3 && (
         <TreinamentosTab treinos={treinos} funcs={funcs}
           onNew={() => setModalTreino({})} onEdit={(t) => setModalTreino(t)} onDelete={deleteTreinamento}
           onInscrever={async (treinoId, funcId) => { await rh.treinamentos.inscrever(treinoId, { funcionario_id: funcId }); loadTreinos(); }}
         />
       )}
-      {tab === 3 && (
+      {tab === 4 && (
         <FeriasTab dash={dash} funcs={funcs}
           onNew={() => setModalFerias({})} onAprovar={aprovarFerias}
         />
       )}
-      {tab === 4 && (
+      {tab === 5 && (
         <div style={{ minHeight: 200, padding: '4px 0' }}>
           <TabExtras funcionarios={funcs} onRefresh={() => { loadDash(); loadFuncs(); }} />
         </div>
@@ -350,8 +352,8 @@ function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
   const kpis = [
     { label: 'Total Colaboradores', value: dash.total, bg: '#0a0a0a', onClick: () => goTo(1) },
     { label: 'Ativos', value: dash.ativos, bg: '#00B39D', onClick: () => goTo(1, 'ativo') },
-    { label: 'Em Férias', value: dash.ferias, bg: '#3b82f6', onClick: () => goTo(3) },
-    { label: 'Em Licença', value: dash.licenca, bg: '#f59e0b', onClick: () => goTo(3) },
+    { label: 'Em Férias', value: dash.ferias, bg: '#3b82f6', onClick: () => goTo(4) },
+    { label: 'Em Licença', value: dash.licenca, bg: '#f59e0b', onClick: () => goTo(4) },
     { label: 'Inativos', value: dash.inativos, bg: '#6b7280', onClick: () => goTo(1, 'inativo') },
   ];
 
