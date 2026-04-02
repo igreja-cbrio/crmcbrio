@@ -36,7 +36,6 @@ const NAV_ITEMS = [
         title: 'Módulos',
         items: [
           { label: 'Eventos', description: 'Gestão de eventos da igreja', icon: CalendarDays, path: '/eventos' },
-          { label: 'Calendário', description: 'Agenda e cronograma', icon: CalendarDays, path: '/calendario' },
           { label: 'Projetos', description: 'Acompanhamento de projetos', icon: FolderKanban, path: '/projetos' },
           { label: 'Expansão', description: 'Metas de expansão', icon: Map, path: '/expansao' },
         ],

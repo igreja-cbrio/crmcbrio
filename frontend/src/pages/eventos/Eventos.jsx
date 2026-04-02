@@ -21,7 +21,7 @@ const STATUS_MAP = {
 };
 
 const TASK_STATUS_MAP = {
-  'pendente': { c: C.text3, bg: '#f3f4f6', label: 'Pendente' },
+  'pendente': { c: C.text3, bg: 'var(--cbrio-bg)', label: 'Pendente' },
   'em-andamento': { c: C.blue, bg: C.blueBg, label: 'Em Andamento' },
   'concluida': { c: C.green, bg: C.greenBg, label: 'Concluída' },
   'atrasada': { c: C.red, bg: C.redBg, label: 'Atrasada' },
@@ -60,7 +60,7 @@ const styles = {
   cardHeader: { padding: '16px 20px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   cardTitle: { fontSize: 15, fontWeight: 700, color: C.text },
   table: { width: '100%', borderCollapse: 'collapse' },
-  th: { padding: '10px 16px', fontSize: 11, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'left', borderBottom: `1px solid ${C.border}`, background: '#fafafa' },
+  th: { padding: '10px 16px', fontSize: 11, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'left', borderBottom: `1px solid ${C.border}`, background: 'var(--cbrio-card)' },
   td: { padding: '12px 16px', fontSize: 13, color: C.text, borderBottom: `1px solid ${C.border}` },
   badge: (color, bg) => ({
     display: 'inline-block', padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600,
@@ -78,14 +78,14 @@ const styles = {
   filterRow: { display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' },
   input: {
     padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13,
-    outline: 'none', width: '100%', transition: 'border 0.15s', background: '#fff',
+    outline: 'none', width: '100%', transition: 'border 0.15s', background: 'var(--cbrio-card)',
   },
-  select: { padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: '#fff', outline: 'none' },
+  select: { padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: 'var(--cbrio-card)', outline: 'none' },
   label: { fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 4, display: 'block', textTransform: 'uppercase', letterSpacing: 0.5 },
   formGroup: { marginBottom: 14 },
   formRow: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 },
   overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: 60, zIndex: 1000 },
-  modal: { background: '#fff', borderRadius: 16, width: '95%', maxWidth: 560, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' },
+  modal: { background: 'var(--cbrio-card)', borderRadius: 16, width: '95%', maxWidth: 560, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' },
   modalHeader: { padding: '20px 24px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   modalTitle: { fontSize: 18, fontWeight: 700, color: C.text },
   modalBody: { padding: '16px 24px 24px' },
@@ -98,7 +98,7 @@ const styles = {
     marginBottom: 10, boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
   },
   subtaskRow: { display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', fontSize: 13, color: C.text },
-  commentBox: { background: '#fafafa', borderRadius: 8, padding: '8px 12px', marginTop: 6, fontSize: 12, color: C.text2 },
+  commentBox: { background: 'var(--cbrio-card)', borderRadius: 8, padding: '8px 12px', marginTop: 6, fontSize: 12, color: C.text2 },
   dot: (color) => ({ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: color, marginRight: 6 }),
   backBtn: { background: 'none', border: 'none', cursor: 'pointer', color: C.primary, fontWeight: 600, fontSize: 13, padding: 0, marginBottom: 16 },
   inlineInput: { padding: '4px 8px', borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, outline: 'none', flex: 1 },
@@ -164,7 +164,7 @@ function Textarea({ label, ...props }) {
 }
 
 function Badge({ status, map }) {
-  const s = map[status] || { c: C.text3, bg: '#f3f4f6', label: status || '—' };
+  const s = map[status] || { c: C.text3, bg: 'var(--cbrio-bg)', label: status || '—' };
   return <span style={styles.badge(s.c, s.bg)}>{s.label}</span>;
 }
 
@@ -188,7 +188,7 @@ function BigCalendar({ eventsByDate, onSelectDate, selectedDate }) {
   for (let d = 1; d <= daysInMonth; d++) days.push(d);
 
   return (
-    <div style={{ background: '#fff', borderRadius: 12, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
+    <div style={{ background: 'var(--cbrio-card)', borderRadius: 12, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: `1px solid ${C.border}` }}>
         <button onClick={() => setViewMonth(new Date(year, month - 1, 1))} style={{ ...styles.btn('ghost'), fontSize: 16 }}>‹</button>
@@ -212,7 +212,7 @@ function BigCalendar({ eventsByDate, onSelectDate, selectedDate }) {
           return (
             <div key={d} onClick={() => onSelectDate(ds)} style={{
               minHeight: 80, padding: '4px 6px', cursor: 'pointer', borderRight: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`,
-              background: isSelected ? C.primaryBg : isToday ? '#fafafa' : '#fff',
+              background: isSelected ? C.primaryBg : isToday ? 'var(--cbrio-table-header)' : '#fff',
               transition: 'background 0.1s',
             }}>
               <div style={{
@@ -626,8 +626,8 @@ export default function Eventos() {
               {eventList.map(ev => (
                 <tr key={ev.id} style={styles.clickRow}
                   onClick={() => loadDetail(ev.id)}
-                  onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
-                  onMouseLeave={e => e.currentTarget.style.background = ''}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--cbrio-border)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
                   <td style={{ ...styles.td, fontWeight: 600 }}>{ev.name}</td>
                   <td style={styles.td}>{fmtDate(ev.date)}</td>
