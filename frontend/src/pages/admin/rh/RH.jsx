@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Users, Pencil, Trash2, Palmtree } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
-import { rh } from '../../../api';
+import { rh, permissoes } from '../../../api';
 import { supabase } from '../../../supabaseClient';
 import TabExtras from './TabExtras';
 
@@ -1116,7 +1116,81 @@ function FeriasFormModal({ open, funcs, onClose, onSave }) {
   );
 }
 
+const NIVEL_LABELS = { 1: 'Sem acesso', 2: 'Pessoal', 3: 'Área', 4: 'Setor', 5: 'Admin' };
+const NIVEL_COLORS = { 1: C.red, 2: C.amber, 3: C.blue, 4: C.green, 5: '#8b5cf6' };
+
 function FuncionarioDetailModal({ open, data, onClose, onEdit, onDelete, onNewDoc, onDeleteDoc }) {
+  const [showPerms, setShowPerms] = useState(false);
+  const [permData, setPermData] = useState(null);
+  const [estrutura, setEstrutura] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { if (data && open) { setShowPerms(false); setPermData(null); } }, [data, open]);
+
+  async function loadPermissions() {
+    if (!estrutura) {
+      try { setEstrutura(await permissoes.estrutura()); } catch (e) { console.error(e); }
+    }
+    // Find or create user in permissions system by email or name
+    try {
+      let permUser = null;
+      if (data.email) {
+        permUser = await permissoes.usuarioPorEmail(data.email);
+      }
+      if (!permUser) {
+        // Create user in permissions system
+        const result = await permissoes.criarUsuario({ nome: data.nome, email: data.email || null, cargo_id: 2 });
+        permUser = { id: result.id };
+      }
+      const perms = await permissoes.usuario(permUser.id);
+      setPermData(perms);
+    } catch (e) { console.error(e); }
+    setShowPerms(true);
+  }
+
+  async function handleCargoChange(cargoId) {
+    if (!permData?.usuario) return;
+    setSaving(true);
+    try {
+      await permissoes.setCargo(permData.usuario.id, cargoId);
+      const perms = await permissoes.usuario(permData.usuario.id);
+      setPermData(perms);
+    } catch (e) { alert(e.message); }
+    setSaving(false);
+  }
+
+  async function handleAreaToggle(areaId) {
+    if (!permData?.usuario) return;
+    const currentIds = (permData.areas || []).map(a => a.area_id);
+    const newIds = currentIds.includes(areaId) ? currentIds.filter(id => id !== areaId) : [...currentIds, areaId];
+    setSaving(true);
+    try {
+      await permissoes.setAreas(permData.usuario.id, newIds);
+      const perms = await permissoes.usuario(permData.usuario.id);
+      setPermData(perms);
+    } catch (e) { alert(e.message); }
+    setSaving(false);
+  }
+
+  async function handleModuloChange(moduloId, tipo, nivel) {
+    if (!permData?.usuario) return;
+    const existing = (permData.overrides || []).find(o => o.modulo_id === moduloId);
+    const cargoDefault = permData.usuario.cargos || {};
+    const currentLeitura = existing?.nivel_leitura ?? cargoDefault.nivel_padrao_leitura ?? 1;
+    const currentEscrita = existing?.nivel_escrita ?? cargoDefault.nivel_padrao_escrita ?? 1;
+    setSaving(true);
+    try {
+      await permissoes.setModulo(permData.usuario.id, {
+        modulo_id: moduloId,
+        nivel_leitura: tipo === 'leitura' ? nivel : currentLeitura,
+        nivel_escrita: tipo === 'escrita' ? nivel : currentEscrita,
+      });
+      const perms = await permissoes.usuario(permData.usuario.id);
+      setPermData(perms);
+    } catch (e) { alert(e.message); }
+    setSaving(false);
+  }
+
   if (!data) return null;
   return (
     <Modal open={open} onClose={onClose} title={`👤 ${data.nome}`}>
@@ -1192,6 +1266,102 @@ function FuncionarioDetailModal({ open, data, onClose, onEdit, onDelete, onNewDo
             <Badge status={f.status} map={FERIAS_STATUS} />
           </div>
         ))}
+      </div>
+
+      {/* Permissões */}
+      <div style={{ marginBottom: 16, borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: C.text2, textTransform: 'uppercase' }}>🔐 Permissões do Sistema</span>
+          {!showPerms && <button style={{ ...styles.btn('secondary'), ...styles.btnSm }} onClick={loadPermissions}>Configurar</button>}
+        </div>
+
+        {showPerms && permData && estrutura && (
+          <div style={{ background: 'var(--cbrio-input-bg)', borderRadius: 10, padding: 16 }}>
+            {/* Cargo / Nível base */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: C.text2, textTransform: 'uppercase', marginBottom: 6, display: 'block' }}>Nível de acesso base</label>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {(estrutura.cargos || []).map(c => (
+                  <button key={c.id} onClick={() => handleCargoChange(c.id)} disabled={saving}
+                    style={{
+                      padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                      border: `2px solid ${permData.usuario?.cargo_id === c.id ? NIVEL_COLORS[c.nivel_padrao_leitura] : C.border}`,
+                      background: permData.usuario?.cargo_id === c.id ? `${NIVEL_COLORS[c.nivel_padrao_leitura]}18` : 'transparent',
+                      color: permData.usuario?.cargo_id === c.id ? NIVEL_COLORS[c.nivel_padrao_leitura] : C.text2,
+                    }}>
+                    {c.nome}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Áreas vinculadas */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: C.text2, textTransform: 'uppercase', marginBottom: 6, display: 'block' }}>Áreas vinculadas</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+                {(estrutura.areas || []).map(a => {
+                  const isLinked = (permData.areas || []).some(ua => ua.area_id === a.id);
+                  return (
+                    <label key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.text, cursor: 'pointer', padding: '3px 0' }}>
+                      <input type="checkbox" checked={isLinked} onChange={() => handleAreaToggle(a.id)} disabled={saving} />
+                      {a.nome} <span style={{ fontSize: 10, color: C.text3 }}>({a.setores?.nome})</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Permissões por módulo */}
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 600, color: C.text2, textTransform: 'uppercase', marginBottom: 8, display: 'block' }}>Permissões por módulo</label>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                  <thead>
+                    <tr>
+                      <th style={{ textAlign: 'left', padding: '6px 8px', color: C.text2, fontWeight: 600, borderBottom: `1px solid ${C.border}` }}>Módulo</th>
+                      <th style={{ textAlign: 'center', padding: '6px 8px', color: C.text2, fontWeight: 600, borderBottom: `1px solid ${C.border}` }}>Leitura</th>
+                      <th style={{ textAlign: 'center', padding: '6px 8px', color: C.text2, fontWeight: 600, borderBottom: `1px solid ${C.border}` }}>Escrita</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(estrutura.modulos || []).map(mod => {
+                      const override = (permData.overrides || []).find(o => o.modulo_id === mod.id);
+                      const cargoDefault = permData.usuario?.cargos || {};
+                      const leitura = override?.nivel_leitura ?? cargoDefault.nivel_padrao_leitura ?? 1;
+                      const escrita = override?.nivel_escrita ?? cargoDefault.nivel_padrao_escrita ?? 1;
+                      const isOverridden = !!override;
+                      return (
+                        <tr key={mod.id}>
+                          <td style={{ padding: '6px 8px', borderBottom: `1px solid ${C.border}`, fontWeight: 500, color: C.text }}>
+                            {mod.nome}
+                            {isOverridden && <span style={{ fontSize: 9, color: C.amber, marginLeft: 4 }}>override</span>}
+                          </td>
+                          <td style={{ padding: '4px 8px', borderBottom: `1px solid ${C.border}`, textAlign: 'center' }}>
+                            <select value={leitura} onChange={e => handleModuloChange(mod.id, 'leitura', parseInt(e.target.value))}
+                              disabled={saving}
+                              style={{ padding: '3px 6px', borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 11, background: 'var(--cbrio-card)', color: NIVEL_COLORS[leitura], fontWeight: 600, cursor: 'pointer' }}>
+                              {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n} — {NIVEL_LABELS[n]}</option>)}
+                            </select>
+                          </td>
+                          <td style={{ padding: '4px 8px', borderBottom: `1px solid ${C.border}`, textAlign: 'center' }}>
+                            <select value={escrita} onChange={e => handleModuloChange(mod.id, 'escrita', parseInt(e.target.value))}
+                              disabled={saving}
+                              style={{ padding: '3px 6px', borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 11, background: 'var(--cbrio-card)', color: NIVEL_COLORS[escrita], fontWeight: 600, cursor: 'pointer' }}>
+                              {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n} — {NIVEL_LABELS[n]}</option>)}
+                            </select>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div style={{ fontSize: 10, color: C.text3, marginTop: 8 }}>
+                Níveis: 1=Sem acesso | 2=Pessoal | 3=Área | 4=Setor | 5=Admin
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Actions */}

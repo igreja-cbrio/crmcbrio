@@ -49,6 +49,7 @@ app.use('/api/arquivei', require('./routes/arquivei'));
 app.use('/api/patrimonio', require('./routes/patrimonio'));
 app.use('/api/membresia', require('./routes/membresia'));
 app.use('/api/notificacoes', require('./routes/notificacoes'));
+app.use('/api/permissoes', require('./routes/permissoes'));
 
 // ── Health check ──
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
