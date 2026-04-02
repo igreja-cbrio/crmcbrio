@@ -313,7 +313,7 @@ export default function Eventos() {
       setLoading(true);
       const ev = await events.get(id);
       setSelectedEvent(ev);
-      setTab(3);
+      setTab(4);
       // Verificar se tem ciclo criativo
       try {
         const cycleData = await cyclesApi.get(id);
@@ -677,6 +677,154 @@ export default function Eventos() {
               </div>
             );
           })}
+        </div>
+      </div>
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // RENDER — GANTT
+  // ═══════════════════════════════════════════════════════════
+  function renderGantt() {
+    const SOURCE_COLORS = {
+      evento: '#00B39D', ciclo: '#3b82f6', projeto: '#8b5cf6', planejamento: '#f59e0b',
+    };
+    const AREA_COLORS = { marketing: '#00B39D', adm: '#f59e0b' };
+    const MONTHS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+    // Agrupar tarefas por parent_name
+    const groups = {};
+    kanbanTasks.forEach(t => {
+      const key = t.parent_name || 'Sem projeto';
+      if (!groups[key]) groups[key] = { name: key, source: t.source, tasks: [] };
+      groups[key].tasks.push(t);
+    });
+    const groupList = Object.values(groups);
+
+    // Calcular range de datas (min/max de todas as tarefas)
+    const allDates = kanbanTasks.filter(t => t.deadline).map(t => new Date(normDate(t.deadline)));
+    const today = new Date();
+    const rangeStart = allDates.length > 0 ? new Date(Math.min(...allDates, today) - 30 * 86400000) : new Date(today.getFullYear(), 0, 1);
+    const rangeEnd = allDates.length > 0 ? new Date(Math.max(...allDates, today) + 30 * 86400000) : new Date(today.getFullYear(), 11, 31);
+    rangeStart.setDate(1); // inicio do mês
+    rangeEnd.setDate(1); rangeEnd.setMonth(rangeEnd.getMonth() + 1); // fim do mês seguinte
+
+    const totalDays = Math.ceil((rangeEnd - rangeStart) / 86400000);
+    const dayToPercent = (date) => {
+      const d = new Date(date);
+      return Math.max(0, Math.min(100, ((d - rangeStart) / (rangeEnd - rangeStart)) * 100));
+    };
+    const todayPct = dayToPercent(today);
+
+    // Gerar labels de meses
+    const monthLabels = [];
+    const cursor = new Date(rangeStart);
+    while (cursor < rangeEnd) {
+      const pct = dayToPercent(cursor);
+      monthLabels.push({ label: MONTHS[cursor.getMonth()] + (cursor.getMonth() === 0 ? ' ' + cursor.getFullYear() : ''), pct });
+      cursor.setMonth(cursor.getMonth() + 1);
+    }
+
+    return (
+      <div style={{ margin: '0 -32px', padding: '0 16px' }}>
+        {/* Filtros (mesmos do kanban) */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
+          {[
+            { key: '', label: 'Todas' },
+            { key: 'evento', label: 'Eventos' },
+            { key: 'ciclo', label: 'Ciclo Criativo' },
+            { key: 'projeto', label: 'Projetos' },
+            { key: 'planejamento', label: 'Planejamento' },
+          ].map(f => (
+            <button key={f.key} onClick={() => { setKanbanFilter(f.key); loadKanban(f.key, kanbanArea); }}
+              style={{
+                padding: '6px 16px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                border: kanbanFilter === f.key ? '2px solid var(--color-primary, #7c3aed)' : '1px solid var(--cbrio-border, #e5e7eb)',
+                background: kanbanFilter === f.key ? 'var(--color-primary, #7c3aed)' : 'transparent',
+                color: kanbanFilter === f.key ? '#fff' : 'var(--cbrio-text2, #6b7280)',
+              }}>{f.label}</button>
+          ))}
+          <span style={{ marginLeft: 12, fontSize: 11, fontWeight: 600, color: 'var(--cbrio-text3)', alignSelf: 'center' }}>Área:</span>
+          {[{ key: '', label: 'Todas' }, { key: 'marketing', label: 'MKT' }, { key: 'adm', label: 'ADM' }].map(f => (
+            <button key={f.key} onClick={() => { setKanbanArea(f.key); loadKanban(kanbanFilter, f.key); }}
+              style={{
+                padding: '4px 12px', borderRadius: 16, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                border: kanbanArea === f.key ? '2px solid #00B39D' : '1px solid var(--cbrio-border, #e5e7eb)',
+                background: kanbanArea === f.key ? '#00B39D' : 'transparent',
+                color: kanbanArea === f.key ? '#fff' : 'var(--cbrio-text3)',
+              }}>{f.label}</button>
+          ))}
+        </div>
+
+        {kanbanLoading && <div style={{ padding: 20, textAlign: 'center', color: 'var(--cbrio-text3)' }}>Carregando...</div>}
+
+        {/* Gantt chart */}
+        <div style={{ background: 'var(--cbrio-card, #fff)', borderRadius: 12, border: '1px solid var(--cbrio-border, #e5e7eb)', overflow: 'hidden' }}>
+          {/* Header com meses */}
+          <div style={{ position: 'relative', height: 36, borderBottom: '1px solid var(--cbrio-border, #e5e7eb)', background: 'var(--cbrio-table-header, #fafafa)' }}>
+            {monthLabels.map((m, i) => (
+              <div key={i} style={{
+                position: 'absolute', left: `${m.pct}%`, top: 0, height: '100%',
+                borderLeft: '1px solid var(--cbrio-border, #e5e7eb)',
+                padding: '8px 8px', fontSize: 12, fontWeight: 600, color: 'var(--cbrio-text2, #6b7280)',
+                whiteSpace: 'nowrap',
+              }}>{m.label}</div>
+            ))}
+            {/* Linha de hoje */}
+            <div style={{ position: 'absolute', left: `${todayPct}%`, top: 0, width: 2, height: '100%', background: '#ef4444', zIndex: 2 }} />
+            <div style={{ position: 'absolute', left: `${todayPct}%`, top: 0, transform: 'translateX(-50%)', fontSize: 9, fontWeight: 700, color: '#ef4444', background: 'var(--cbrio-card, #fff)', padding: '0 4px', borderRadius: 4, zIndex: 3 }}>hoje</div>
+          </div>
+
+          {/* Rows por grupo */}
+          {groupList.length === 0 && <div style={{ padding: 40, textAlign: 'center', color: 'var(--cbrio-text3)', fontSize: 13 }}>Nenhuma tarefa com prazo definido</div>}
+          {groupList.map((group, gi) => (
+            <div key={gi}>
+              {/* Nome do grupo */}
+              <div style={{ padding: '10px 16px', fontWeight: 700, fontSize: 13, color: 'var(--cbrio-text, #1a1a2e)', borderBottom: '1px solid var(--cbrio-border, #e5e7eb)', background: 'var(--cbrio-bg, #f9fafb)' }}>
+                {group.name}
+              </div>
+              {/* Barras das tarefas */}
+              {group.tasks.map(task => {
+                const dl = normDate(task.deadline);
+                if (!dl) return null;
+                const deadlineDate = new Date(dl + 'T12:00:00');
+                const startDate = task.start_date ? new Date(normDate(task.start_date) + 'T12:00:00') : new Date(deadlineDate.getTime() - 14 * 86400000);
+                const leftPct = dayToPercent(startDate);
+                const rightPct = dayToPercent(deadlineDate);
+                const widthPct = Math.max(rightPct - leftPct, 1);
+                const barColor = task.area ? (AREA_COLORS[task.area] || SOURCE_COLORS[task.source]) : SOURCE_COLORS[task.source] || '#9ca3af';
+                const isPast = deadlineDate < today && task.status !== 'concluida';
+                const isDone = task.status === 'concluida';
+
+                return (
+                  <div key={`${task.source}-${task.id}`} style={{
+                    position: 'relative', height: 40, borderBottom: '1px solid var(--cbrio-border, #e5e7eb)',
+                  }}>
+                    {/* Grid lines dos meses */}
+                    {monthLabels.map((m, i) => (
+                      <div key={i} style={{ position: 'absolute', left: `${m.pct}%`, top: 0, width: 1, height: '100%', background: 'var(--cbrio-border, #e5e7eb)', opacity: 0.4 }} />
+                    ))}
+                    {/* Linha de hoje */}
+                    <div style={{ position: 'absolute', left: `${todayPct}%`, top: 0, width: 2, height: '100%', background: '#ef4444', zIndex: 2, opacity: 0.6 }} />
+                    {/* Barra da tarefa */}
+                    <div title={`${task.name}\n${task.responsible || ''}\n${fmtDate(task.deadline)}`}
+                      style={{
+                        position: 'absolute', top: 8, height: 24, borderRadius: 6,
+                        left: `${leftPct}%`, width: `${widthPct}%`, minWidth: 40,
+                        background: isDone ? '#d1d5db' : isPast ? '#ef4444' : barColor,
+                        opacity: isDone ? 0.5 : 0.85,
+                        display: 'flex', alignItems: 'center', padding: '0 8px', overflow: 'hidden',
+                        cursor: 'default',
+                      }}>
+                      <span style={{ fontSize: 10, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {task.area === 'marketing' ? 'MKT' : task.area === 'adm' ? 'ADM' : ''} {task.name}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -1317,7 +1465,7 @@ export default function Eventos() {
           <div style={styles.title}>Eventos</div>
           <div style={styles.subtitle}>Gestão de eventos da igreja</div>
         </div>
-        {(tab === 0 || tab === 1 || tab === 2) && (
+        {(tab <= 3) && (
           <button style={styles.btn('primary')} onClick={() => setModalEvent({})}>+ Novo Evento</button>
         )}
       </div>
@@ -1335,14 +1483,16 @@ export default function Eventos() {
         <button style={styles.tab(tab === 0)} onClick={() => setTab(0)}>Home</button>
         <button style={styles.tab(tab === 1)} onClick={() => setTab(1)}>Lista</button>
         <button style={styles.tab(tab === 2)} onClick={() => { setTab(2); if (kanbanTasks.length === 0) loadKanban(kanbanFilter, kanbanArea); }}>Kanban</button>
-        {selectedEvent && <button style={styles.tab(tab === 3)} onClick={() => setTab(3)}>Detalhes</button>}
+        <button style={styles.tab(tab === 3)} onClick={() => { setTab(3); if (kanbanTasks.length === 0) loadKanban(kanbanFilter, kanbanArea); }}>Gantt</button>
+        {selectedEvent && <button style={styles.tab(tab === 4)} onClick={() => setTab(4)}>Detalhes</button>}
       </div>
 
       {/* Content */}
       {tab === 0 && renderHome()}
       {tab === 1 && renderList()}
       {tab === 2 && renderKanban()}
-      {tab === 3 && renderDetail()}
+      {tab === 3 && renderGantt()}
+      {tab === 4 && renderDetail()}
 
       {/* Modals */}
       {renderEventModal()}
