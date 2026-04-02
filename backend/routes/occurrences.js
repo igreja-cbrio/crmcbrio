@@ -1,110 +1,104 @@
 const router = require('express').Router();
 const { authenticate } = require('../middleware/auth');
-const db = require('../utils/db');
-const { isValidUUID } = require('../utils/sanitize');
+const { supabase } = require('../utils/supabase');
 
 router.use(authenticate);
 
-// GET /api/occurrences/:occId — detalhe da ocorrência com tarefas e reuniões
+// GET /api/occurrences/:occId
 router.get('/:occId', async (req, res) => {
   try {
-    if (!isValidUUID(req.params.occId)) return res.status(400).json({ error: 'ID inválido' });
-    const occ = await db.query('SELECT * FROM event_occurrences WHERE id = $1', [req.params.occId]);
-    if (!occ.rows[0]) return res.status(404).json({ error: 'Ocorrência não encontrada' });
+    const { data: occ, error } = await supabase.from('event_occurrences').select('*').eq('id', req.params.occId).single();
+    if (error || !occ) return res.status(404).json({ error: 'Ocorrência não encontrada' });
 
-    const [tasks, meetings] = await Promise.all([
-      db.query('SELECT * FROM occurrence_tasks WHERE occurrence_id = $1 ORDER BY created_at', [req.params.occId]),
-      db.query('SELECT * FROM occurrence_meetings WHERE occurrence_id = $1 ORDER BY date DESC', [req.params.occId]),
+    const [tasksRes, meetingsRes] = await Promise.all([
+      supabase.from('occurrence_tasks').select('*').eq('occurrence_id', req.params.occId).order('created_at'),
+      supabase.from('occurrence_meetings').select('*').eq('occurrence_id', req.params.occId).order('date', { ascending: false }),
     ]);
 
-    const meetingsWithPends = await Promise.all(meetings.rows.map(async m => {
-      const pends = await db.query('SELECT * FROM occurrence_meeting_pendencies WHERE meeting_id = $1 ORDER BY created_at', [m.id]);
-      return { ...m, pendencies: pends.rows };
+    const meetingIds = (meetingsRes.data || []).map(m => m.id);
+    const { data: allPends } = meetingIds.length > 0
+      ? await supabase.from('occurrence_meeting_pendencies').select('*').in('meeting_id', meetingIds).order('created_at')
+      : { data: [] };
+
+    const meetings = (meetingsRes.data || []).map(m => ({
+      ...m,
+      pendencies: (allPends || []).filter(p => p.meeting_id === m.id),
     }));
 
-    res.json({ ...occ.rows[0], tasks: tasks.rows, meetings: meetingsWithPends });
+    res.json({ ...occ, tasks: tasksRes.data || [], meetings });
   } catch (e) { console.error(e); res.status(500).json({ error: 'Erro ao buscar ocorrência' }); }
 });
 
 // ── TASKS ──
-
-// POST /api/occurrences/:occId/tasks
 router.post('/:occId/tasks', async (req, res) => {
   try {
-    const { name, responsible, area, deadline, status, priority, description } = req.body;
-    const occ = await db.query('SELECT event_id FROM event_occurrences WHERE id = $1', [req.params.occId]);
-    if (!occ.rows[0]) return res.status(404).json({ error: 'Ocorrência não encontrada' });
-    const r = await db.query(
-      `INSERT INTO occurrence_tasks (occurrence_id, event_id, name, responsible, area, deadline, status, priority, description, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
-      [req.params.occId, occ.rows[0].event_id, name, responsible || null, area || null,
-       deadline || null, status || 'pendente', priority || 'media', description || null, req.user.userId]
-    );
-    res.json(r.rows[0]);
+    const { data: occ } = await supabase.from('event_occurrences').select('event_id').eq('id', req.params.occId).single();
+    if (!occ) return res.status(404).json({ error: 'Ocorrência não encontrada' });
+    const d = req.body;
+    const { data, error } = await supabase.from('occurrence_tasks').insert({
+      occurrence_id: req.params.occId, event_id: occ.event_id, name: d.name,
+      responsible: d.responsible || null, area: d.area || null, deadline: d.deadline || null,
+      status: d.status || 'pendente', priority: d.priority || 'media',
+      description: d.description || null, created_by: req.user.userId,
+    }).select().single();
+    if (error) throw error;
+    res.json(data);
   } catch (e) { console.error(e); res.status(500).json({ error: 'Erro ao criar tarefa' }); }
 });
 
-// PATCH /api/occurrences/tasks/:taskId/status
 router.patch('/tasks/:taskId/status', async (req, res) => {
   try {
-    const r = await db.query('UPDATE occurrence_tasks SET status=$1 WHERE id=$2 RETURNING *', [req.body.status, req.params.taskId]);
-    if (!r.rows[0]) return res.status(404).json({ error: 'Tarefa não encontrada' });
-    res.json(r.rows[0]);
+    const { data, error } = await supabase.from('occurrence_tasks').update({ status: req.body.status }).eq('id', req.params.taskId).select().single();
+    if (error) throw error;
+    res.json(data);
   } catch (e) { res.status(500).json({ error: 'Erro ao atualizar tarefa' }); }
 });
 
-// DELETE /api/occurrences/tasks/:taskId
 router.delete('/tasks/:taskId', async (req, res) => {
   try {
-    await db.query('DELETE FROM occurrence_tasks WHERE id = $1', [req.params.taskId]);
+    await supabase.from('occurrence_tasks').delete().eq('id', req.params.taskId);
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: 'Erro ao excluir tarefa' }); }
 });
 
 // ── MEETINGS ──
-
-// POST /api/occurrences/:occId/meetings
 router.post('/:occId/meetings', async (req, res) => {
   try {
+    const { data: occ } = await supabase.from('event_occurrences').select('event_id').eq('id', req.params.occId).single();
+    if (!occ) return res.status(404).json({ error: 'Ocorrência não encontrada' });
     const d = req.body;
-    const occ = await db.query('SELECT event_id FROM event_occurrences WHERE id = $1', [req.params.occId]);
-    if (!occ.rows[0]) return res.status(404).json({ error: 'Ocorrência não encontrada' });
-    const r = await db.query(
-      `INSERT INTO occurrence_meetings (occurrence_id, event_id, title, date, participants, decisions, notes, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
-      [req.params.occId, occ.rows[0].event_id, d.title || 'Reunião', d.date,
-       d.participants ? `{${d.participants.join(',')}}` : null,
-       d.decisions || '', d.notes || '', req.user.userId]
-    );
+    const { data: meeting, error } = await supabase.from('occurrence_meetings').insert({
+      occurrence_id: req.params.occId, event_id: occ.event_id,
+      title: d.title || 'Reunião', date: d.date,
+      participants: d.participants || [], decisions: d.decisions || '',
+      notes: d.notes || '', created_by: req.user.userId,
+    }).select().single();
+    if (error) throw error;
 
     if (d.pendencies && Array.isArray(d.pendencies)) {
-      for (const p of d.pendencies) {
-        await db.query(
-          `INSERT INTO occurrence_meeting_pendencies (meeting_id, occurrence_id, description, responsible, deadline)
-           VALUES ($1,$2,$3,$4,$5)`,
-          [r.rows[0].id, req.params.occId, p.description, p.responsible || null, p.deadline || null]
-        );
-      }
+      const pends = d.pendencies.filter(p => p.description).map(p => ({
+        meeting_id: meeting.id, occurrence_id: req.params.occId,
+        description: p.description, responsible: p.responsible || null, deadline: p.deadline || null,
+      }));
+      if (pends.length > 0) await supabase.from('occurrence_meeting_pendencies').insert(pends);
     }
-    res.json(r.rows[0]);
+    res.json(meeting);
   } catch (e) { console.error(e); res.status(500).json({ error: 'Erro ao criar reunião' }); }
 });
 
-// PATCH /api/occurrences/pendencies/:id
 router.patch('/pendencies/:id', async (req, res) => {
   try {
-    const r = await db.query(
-      'UPDATE occurrence_meeting_pendencies SET done=$1, done_at=$2 WHERE id=$3 RETURNING *',
-      [req.body.done, req.body.done ? new Date() : null, req.params.id]
-    );
-    res.json(r.rows[0]);
+    const { data, error } = await supabase.from('occurrence_meeting_pendencies').update({
+      done: req.body.done, done_at: req.body.done ? new Date().toISOString() : null,
+    }).eq('id', req.params.id).select().single();
+    if (error) throw error;
+    res.json(data);
   } catch (e) { res.status(500).json({ error: 'Erro' }); }
 });
 
-// DELETE /api/occurrences/meetings/:id
 router.delete('/meetings/:id', async (req, res) => {
   try {
-    await db.query('DELETE FROM occurrence_meetings WHERE id = $1', [req.params.id]);
+    await supabase.from('occurrence_meetings').delete().eq('id', req.params.id);
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: 'Erro' }); }
 });
