@@ -140,12 +140,15 @@ export function Sidebar() {
       onMouseEnter={() => setIsCollapsed(false)}
       onMouseLeave={() => setIsCollapsed(true)}
     >
-      <div className="flex h-full flex-col bg-[#111111] border-r border-[#262626]">
+      <div className="flex h-full flex-col border-r" style={{ background: 'var(--cbrio-sidebar)', borderColor: 'var(--cbrio-border)' }}>
         {/* Logo */}
-        <div className="flex h-14 items-center gap-2.5 px-4 border-b border-[#262626]">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#00B39D] shadow-sm shadow-[#00B39D]/20">
-            <Church className="h-4 w-4 text-[#0a0a0a]" />
-          </div>
+        <div className="flex h-14 items-center gap-2.5 px-4 border-b" style={{ borderColor: 'var(--cbrio-border)' }}>
+          <img
+            src="/images/logo-cbrio.svg"
+            alt="CBRio"
+            className="h-7 w-7 shrink-0"
+            style={{ filter: 'invert(56%) sepia(30%) saturate(600%) hue-rotate(140deg) brightness(85%)' }}
+          />
           <motion.span
             variants={labelVariants}
             transition={transitionProps}
@@ -174,15 +177,17 @@ export function Sidebar() {
                   >
                     <ChevronRight
                       className={cn(
-                        "h-3 w-3 shrink-0 text-[#525252] transition-transform duration-200",
+                        "h-3 w-3 shrink-0 transition-transform duration-200",
                         isExpanded && "rotate-90",
                         isCollapsed && "opacity-0 w-0"
                       )}
+                      style={{ color: 'var(--cbrio-text3)' }}
                     />
                     <motion.span
                       variants={labelVariants}
                       transition={transitionProps}
-                      className="text-[10px] font-semibold uppercase tracking-widest text-[#525252] whitespace-nowrap"
+                      className="text-[10px] font-semibold uppercase tracking-widest whitespace-nowrap"
+                      style={{ color: 'var(--cbrio-text3)' }}
                     >
                       {group.label}
                     </motion.span>
@@ -213,17 +218,18 @@ export function Sidebar() {
                                 isCollapsed ? "justify-center px-0" : "pl-6 pr-3",
                                 isActive
                                   ? "bg-[#00B39D]/10 text-[#00B39D]"
-                                  : "text-[#737373] hover:bg-[#1e1e1e] hover:text-[#a3a3a3]"
+                                  : "hover:bg-[#1e1e1e]"
                               )}
                             >
                               <Icon className={cn(
                                 "h-4 w-4 shrink-0",
-                                isActive ? "text-[#00B39D]" : "text-[#525252]"
-                              )} />
+                                isActive ? "text-[#00B39D]" : ""
+                              )} style={!isActive ? { color: 'var(--cbrio-text3)' } : undefined} />
                               <motion.span
                                 variants={labelVariants}
                                 transition={transitionProps}
                                 className={cn("text-[13px] whitespace-nowrap", isActive && "font-medium")}
+                              style={!isActive ? { color: 'var(--cbrio-text3)' } : undefined}
                               >
                                 {item.label}
                               </motion.span>
@@ -242,11 +248,11 @@ export function Sidebar() {
         {/* Notifications */}
         <div className="px-2.5 pb-1">
           <button className={cn(
-            "flex h-9 w-full items-center gap-2.5 rounded-lg transition-colors hover:bg-[#1e1e1e] text-[#737373] hover:text-[#a3a3a3]",
+            "flex h-9 w-full items-center gap-2.5 rounded-lg transition-colors hover:bg-[#1e1e1e]",
             isCollapsed ? "justify-center px-0" : "pl-6 pr-3"
-          )}>
+          )} style={{ color: 'var(--cbrio-text3)' }}>
             <div className="relative shrink-0">
-              <Bell className="h-4 w-4 text-[#525252]" />
+              <Bell className="h-4 w-4" style={{ color: 'var(--cbrio-text3)' }} />
               {notificationCount > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#00B39D] px-1 text-[9px] font-bold text-[#0a0a0a]">
                   {notificationCount > 9 ? '9+' : notificationCount}
@@ -260,7 +266,7 @@ export function Sidebar() {
         </div>
 
         {/* User footer */}
-        <div className="border-t border-[#262626] px-2.5 py-3 space-y-2">
+        <div className="border-t px-2.5 py-3 space-y-2" style={{ borderColor: 'var(--cbrio-border)' }}>
           {/* User info */}
           <div className="flex items-center gap-2.5 rounded-lg px-2">
             <div className="relative shrink-0">
@@ -270,7 +276,7 @@ export function Sidebar() {
                 </AvatarFallback>
               </Avatar>
               {notificationCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-bold text-white border-2 border-[#111111]">
+                <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-bold text-white border-2" style={{ borderColor: 'var(--cbrio-sidebar)' }}>
                   {notificationCount > 9 ? '9+' : notificationCount}
                 </span>
               )}
@@ -280,8 +286,8 @@ export function Sidebar() {
                   transition={transitionProps}
                   className="flex-1 text-left min-w-0"
                 >
-                  <p className="text-sm font-medium text-[#e5e5e5] truncate">{profile?.name || "—"}</p>
-                  <p className="text-[10px] text-[#525252] capitalize">{profile?.role || ""}</p>
+                  <p className="text-sm font-medium truncate" style={{ color: 'var(--cbrio-text)' }}>{profile?.name || "—"}</p>
+                  <p className="text-[10px] capitalize" style={{ color: 'var(--cbrio-text3)' }}>{profile?.role || ""}</p>
                 </motion.div>
             </div>
 
@@ -289,9 +295,10 @@ export function Sidebar() {
           <button
             onClick={handleSignOut}
             className={cn(
-              "flex w-full items-center gap-2.5 rounded-lg h-9 transition-colors text-[#737373] hover:bg-red-500/10 hover:text-red-400",
+              "flex w-full items-center gap-2.5 rounded-lg h-9 transition-colors hover:bg-red-500/10 hover:text-red-400",
               isCollapsed ? "justify-center px-0" : "pl-6 pr-3"
             )}
+            style={{ color: 'var(--cbrio-text3)' }}
           >
             <LogOut className="h-4 w-4 shrink-0" />
             <motion.span variants={labelVariants} transition={transitionProps} className="text-[13px] whitespace-nowrap">

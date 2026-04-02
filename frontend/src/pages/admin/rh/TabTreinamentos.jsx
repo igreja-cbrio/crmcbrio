@@ -6,11 +6,11 @@ const s = {
   toolbar:  { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   btnPrim:  { background: '#00B39D', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', fontWeight: 600, fontSize: 13, cursor: 'pointer' },
   grid:     { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 },
-  card:     { background: '#161616', borderRadius: 12, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.2)' },
-  cardTitle:{ fontWeight: 700, fontSize: 15, color: '#e5e5e5', marginBottom: 6 },
-  cardMeta: { fontSize: 12, color: '#a3a3a3', marginBottom: 4 },
+  card:     { background: 'var(--cbrio-card)', borderRadius: 12, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.2)' },
+  cardTitle:{ fontWeight: 700, fontSize: 15, color: 'var(--cbrio-text)', marginBottom: 6 },
+  cardMeta: { fontSize: 12, color: 'var(--cbrio-text2)', marginBottom: 4 },
   badge:    { display: 'inline-block', background: '#f59e0b18', color: '#f59e0b', borderRadius: 20, padding: '2px 10px', fontSize: 11, fontWeight: 600 },
-  empty:    { textAlign: 'center', padding: '48px 0', color: '#737373', fontSize: 14 },
+  empty:    { textAlign: 'center', padding: '48px 0', color: 'var(--cbrio-text3)', fontSize: 14 },
 };
 
 async function getToken() {
@@ -53,14 +53,14 @@ export default function TabTreinamentos() {
   return (
     <div>
       <div style={s.toolbar}>
-        <span style={{ fontSize: 14, color: '#a3a3a3' }}>{treinamentos.length} treinamento(s)</span>
+        <span style={{ fontSize: 14, color: 'var(--cbrio-text2)' }}>{treinamentos.length} treinamento(s)</span>
         <button style={s.btnPrim} onClick={() => setMostrarForm(!mostrarForm)}>
           {mostrarForm ? 'Cancelar' : '+ Novo Treinamento'}
         </button>
       </div>
 
       {mostrarForm && (
-        <form onSubmit={handleSalvar} style={{ background: '#161616', borderRadius: 12, padding: 20, marginBottom: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>
+        <form onSubmit={handleSalvar} style={{ background: 'var(--cbrio-card)', borderRadius: 12, padding: 20, marginBottom: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
             <div style={{ gridColumn: '1/-1' }}>
               <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 5 }}>Título *</label>
@@ -100,7 +100,7 @@ export default function TabTreinamentos() {
                 </div>
                 <div style={s.cardMeta}>📅 {new Date(t.data_inicio).toLocaleDateString('pt-BR')}{t.data_fim ? ` – ${new Date(t.data_fim).toLocaleDateString('pt-BR')}` : ''}</div>
                 {t.instrutor && <div style={s.cardMeta}>👤 {t.instrutor}</div>}
-                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #262626', fontSize: 13, color: '#e5e5e5' }}>
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--cbrio-border)', fontSize: 13, color: 'var(--cbrio-text)' }}>
                   <span>{inscritos} inscritos</span> · <span style={{ color: '#16a34a' }}>{concluidos} concluídos</span>
                 </div>
               </div>

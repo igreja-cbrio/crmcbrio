@@ -8,7 +8,7 @@ import CycleView from './components/CycleView';
 import BudgetPanel from './components/BudgetPanel';
 
 const C = {
-  dark: '#e5e5e5', t2: '#a3a3a3', t3: '#737373', border: '#262626',
+  dark: 'var(--cbrio-text)', t2: 'var(--cbrio-text2)', t3: 'var(--cbrio-text3)', border: 'var(--cbrio-border)',
   accent: '#00B39D', accentBg: '#00B39D18',
 };
 
@@ -16,11 +16,11 @@ const STATUS = {
   'no-prazo':  { label: 'No prazo',   color: '#10b981', bg: '#10b98118' },
   'em-risco':  { label: 'Em risco',   color: '#f59e0b', bg: '#f59e0b18' },
   'atrasado':  { label: 'Atrasado',   color: '#ef4444', bg: '#ef444418' },
-  'concluido': { label: 'Concluído',  color: '#a3a3a3', bg: '#73737318' },
+  'concluido': { label: 'Concluído',  color: 'var(--cbrio-text2)', bg: '#73737318' },
 };
 
 const TASK_STATUS = {
-  'pendente':      { label: 'Pendente',      color: '#737373', bg: '#73737318' },
+  'pendente':      { label: 'Pendente',      color: 'var(--cbrio-text3)', bg: '#73737318' },
   'em-andamento':  { label: 'Em andamento',  color: '#3b82f6', bg: '#3b82f618' },
   'concluida':     { label: 'Concluída',     color: '#10b981', bg: '#10b98118' },
   'bloqueada':     { label: 'Bloqueada',     color: '#ef4444', bg: '#ef444418' },
@@ -192,7 +192,7 @@ export default function EventDetail() {
       </div>
 
       {/* Info */}
-      <div style={{ background: '#161616', borderRadius: 10, padding: 16, border: `1px solid ${C.border}`, marginBottom: 16 }}>
+      <div style={{ background: 'var(--cbrio-card)', borderRadius: 10, padding: 16, border: `1px solid ${C.border}`, marginBottom: 16 }}>
         <div className="info-grid">
           <InfoRow label="Data" value={event.date && new Date(event.date + 'T12:00:00').toLocaleDateString('pt-BR')} />
           <InfoRow label="Responsável" value={event.responsible} />
@@ -249,7 +249,7 @@ export default function EventDetail() {
               const colTasks = tasks.filter(t => t.status === col);
               const ts = TASK_STATUS[col];
               return (
-                <div key={col} style={{ background: '#1e1e1e', borderRadius: 10, padding: 10 }}
+                <div key={col} style={{ background: 'var(--cbrio-input-bg)', borderRadius: 10, padding: 10 }}
                   onDragOver={e => e.preventDefault()}
                   onDrop={e => { const taskId = e.dataTransfer.getData('taskId'); if (taskId) handleTaskStatusChange(taskId, col); }}
                 >
@@ -258,7 +258,7 @@ export default function EventDetail() {
                   </div>
                   {colTasks.map(task => (
                     <div key={task.id} draggable onDragStart={e => e.dataTransfer.setData('taskId', task.id)}
-                      style={{ background: '#161616', borderRadius: 8, padding: 10, marginBottom: 6, border: `1px solid ${C.border}`, cursor: 'grab' }}>
+                      style={{ background: 'var(--cbrio-card)', borderRadius: 8, padding: 10, marginBottom: 6, border: `1px solid ${C.border}`, cursor: 'grab' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <div style={{ fontWeight: 600, fontSize: 13, color: C.dark }}>{task.name}</div>
                         {isDiretor && (
@@ -335,7 +335,7 @@ export default function EventDetail() {
           )}
           {eventMeetings.length === 0 && <div style={{ color: C.t3, fontSize: 13, padding: 16 }}>Nenhuma reunião registrada</div>}
           {eventMeetings.map(m => (
-            <div key={m.id} style={{ background: '#161616', borderRadius: 10, padding: 14, border: `1px solid ${C.border}`, marginBottom: 8 }}>
+            <div key={m.id} style={{ background: 'var(--cbrio-card)', borderRadius: 10, padding: 14, border: `1px solid ${C.border}`, marginBottom: 8 }}>
               <div style={{ fontWeight: 600, fontSize: 14, color: C.dark }}>{m.title}</div>
               <div style={{ fontSize: 11, color: C.t2, marginTop: 2 }}>
                 {m.date && new Date(m.date + 'T12:00:00').toLocaleDateString('pt-BR')}
@@ -369,7 +369,7 @@ export default function EventDetail() {
         <div>
           {occurrences.length === 0 && <div style={{ color: C.t3, fontSize: 13, padding: 16 }}>Evento único — sem ocorrências</div>}
           {occurrences.map(occ => (
-            <div key={occ.id} style={{ background: '#161616', borderRadius: 10, padding: 12, border: `1px solid ${C.border}`, marginBottom: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div key={occ.id} style={{ background: 'var(--cbrio-card)', borderRadius: 10, padding: 12, border: `1px solid ${C.border}`, marginBottom: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <span style={{ fontSize: 13, fontWeight: 600, color: C.dark }}>
                   {occ.date && new Date(occ.date + 'T12:00:00').toLocaleDateString('pt-BR')}
@@ -410,8 +410,8 @@ const primaryBtn = {
   background: '#00B39D', color: '#fff', fontWeight: 600, fontSize: 13,
 };
 const secondaryBtn = {
-  padding: '6px 14px', borderRadius: 8, border: '1px solid #262626', cursor: 'pointer',
-  background: '#161616', color: '#a3a3a3', fontWeight: 600, fontSize: 12,
+  padding: '6px 14px', borderRadius: 8, border: '1px solid var(--cbrio-border)', cursor: 'pointer',
+  background: 'var(--cbrio-card)', color: 'var(--cbrio-text2)', fontWeight: 600, fontSize: 12,
 };
 const linkBtn = {
   background: 'none', border: 'none', color: '#00B39D', cursor: 'pointer',
@@ -419,5 +419,5 @@ const linkBtn = {
 };
 const iconBtn = {
   background: 'none', border: 'none', cursor: 'pointer', fontSize: 14,
-  color: '#737373', padding: '0 2px',
+  color: 'var(--cbrio-text3)', padding: '0 2px',
 };

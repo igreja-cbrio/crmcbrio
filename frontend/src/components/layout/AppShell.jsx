@@ -7,14 +7,15 @@ export default function AppShell() {
   const { isDark, setIsDark } = useTheme();
 
   return (
-    <div className="flex h-screen bg-[#0a0a0a]">
+    <div className="flex h-screen" style={{ background: 'var(--cbrio-bg)', color: 'var(--cbrio-text)' }}>
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden ml-14 transition-all">
         {/* Top bar */}
         <div className="flex items-center justify-end h-12 px-6 shrink-0">
           <button
             onClick={() => setIsDark(!isDark)}
-            className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-[#737373] hover:text-[#e5e5e5] hover:bg-[#1e1e1e] transition-colors"
+            className="flex items-center gap-2 rounded-lg px-3 py-1.5 transition-colors"
+            style={{ color: 'var(--cbrio-text3)' }}
             aria-label="Alternar tema"
           >
             {isDark ? (

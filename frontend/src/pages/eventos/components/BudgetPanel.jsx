@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { cycles as api } from '../../../api';
 
-const C = { dark: '#e5e5e5', t2: '#a3a3a3', border: '#262626', accent: '#00B39D' };
+const C = { dark: 'var(--cbrio-text)', t2: 'var(--cbrio-text2)', border: 'var(--cbrio-border)', accent: '#00B39D' };
 
 export default function BudgetPanel({ eventId, budget, onReload }) {
   const [showExpenseForm, setShowExpenseForm] = useState(false);
@@ -37,7 +37,7 @@ export default function BudgetPanel({ eventId, budget, onReload }) {
   };
 
   return (
-    <div style={{ background: '#161616', borderRadius: 10, padding: 14, border: `1px solid ${C.border}`, marginBottom: 12 }}>
+    <div style={{ background: 'var(--cbrio-card)', borderRadius: 10, padding: 14, border: `1px solid ${C.border}`, marginBottom: 12 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: C.dark }}>Orçamento</span>
         <button onClick={() => setShowExpenseForm(!showExpenseForm)}
@@ -50,7 +50,7 @@ export default function BudgetPanel({ eventId, budget, onReload }) {
         <span>R$ {gasto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
         <span>R$ {orcamento.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
       </div>
-      <div style={{ height: 8, background: '#262626', borderRadius: 4 }}>
+      <div style={{ height: 8, background: 'var(--cbrio-border)', borderRadius: 4 }}>
         <div style={{ height: '100%', width: `${Math.min(pct, 100)}%`, borderRadius: 4, transition: 'width 0.3s',
           background: excedido ? '#ef4444' : pct > 80 ? '#f59e0b' : '#10b981' }} />
       </div>
@@ -61,7 +61,7 @@ export default function BudgetPanel({ eventId, budget, onReload }) {
       )}
 
       {showExpenseForm && (
-        <form onSubmit={handleSubmitExpense} style={{ marginTop: 10, padding: 10, background: '#1e1e1e', borderRadius: 8, border: `1px solid ${C.border}` }}>
+        <form onSubmit={handleSubmitExpense} style={{ marginTop: 10, padding: 10, background: 'var(--cbrio-input-bg)', borderRadius: 8, border: `1px solid ${C.border}` }}>
           <input placeholder="Descrição" value={expense.descricao} onChange={e => setExpense(p => ({ ...p, descricao: e.target.value }))}
             style={inputStyle} />
           <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
@@ -86,5 +86,5 @@ export default function BudgetPanel({ eventId, budget, onReload }) {
   );
 }
 
-const inputStyle = { width: '100%', padding: '6px 10px', borderRadius: 6, border: '1px solid #333', fontSize: 12, color: '#e5e5e5', background: '#1e1e1e', outline: 'none' };
+const inputStyle = { width: '100%', padding: '6px 10px', borderRadius: 6, border: '1px solid var(--cbrio-border)', fontSize: 12, color: 'var(--cbrio-text)', background: 'var(--cbrio-input-bg)', outline: 'none' };
 const btnSave = { width: '100%', padding: '8px', borderRadius: 6, border: 'none', background: '#00B39D', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 12 };

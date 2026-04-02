@@ -8,13 +8,13 @@ const STATUS_COLOR = { pendente: '#d97706', aprovado: '#16a34a', rejeitado: '#dc
 const s = {
   toolbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   btnPrim: { background: '#00B39D', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', fontWeight: 600, fontSize: 13, cursor: 'pointer' },
-  table:   { width: '100%', background: '#161616', borderRadius: 12, boxShadow: '0 1px 4px rgba(0,0,0,0.2)', borderCollapse: 'collapse', overflow: 'hidden' },
-  th:      { textAlign: 'left', padding: '12px 16px', fontSize: 12, fontWeight: 600, color: '#a3a3a3', textTransform: 'uppercase', background: '#1e1e1e', borderBottom: '1px solid #262626' },
-  td:      { padding: '12px 16px', fontSize: 14, color: '#e5e5e5', borderBottom: '1px solid #262626' },
+  table:   { width: '100%', background: 'var(--cbrio-card)', borderRadius: 12, boxShadow: '0 1px 4px rgba(0,0,0,0.2)', borderCollapse: 'collapse', overflow: 'hidden' },
+  th:      { textAlign: 'left', padding: '12px 16px', fontSize: 12, fontWeight: 600, color: 'var(--cbrio-text2)', textTransform: 'uppercase', background: 'var(--cbrio-table-header)', borderBottom: '1px solid var(--cbrio-border)' },
+  td:      { padding: '12px 16px', fontSize: 14, color: 'var(--cbrio-text)', borderBottom: '1px solid var(--cbrio-border)' },
   badge:   { display: 'inline-block', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600 },
   btnAprv: { background: '#10b98118', color: '#10b981', border: 'none', borderRadius: 6, padding: '4px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600, marginRight: 6 },
   btnRej:  { background: '#ef444418', color: '#ef4444', border: 'none', borderRadius: 6, padding: '4px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600 },
-  empty:   { textAlign: 'center', padding: '48px 0', color: '#737373', fontSize: 14 },
+  empty:   { textAlign: 'center', padding: '48px 0', color: 'var(--cbrio-text3)', fontSize: 14 },
 };
 
 async function getToken() {
@@ -84,9 +84,9 @@ export default function TabFerias() {
               key={st || 'todos'}
               onClick={() => setFiltroStatus(st)}
               style={{ padding: '6px 14px', borderRadius: 20, border: '1.5px solid', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                background: filtroStatus === st ? '#00B39D' : '#1e1e1e',
-                color: filtroStatus === st ? '#fff' : '#a3a3a3',
-                borderColor: filtroStatus === st ? '#00B39D' : '#262626' }}
+                background: filtroStatus === st ? '#00B39D' : 'var(--cbrio-input-bg)',
+                color: filtroStatus === st ? '#fff' : 'var(--cbrio-text2)',
+                borderColor: filtroStatus === st ? '#00B39D' : 'var(--cbrio-border)' }}
             >
               {st || 'Todos'}
             </button>
@@ -98,7 +98,7 @@ export default function TabFerias() {
       </div>
 
       {mostrarForm && (
-        <form onSubmit={handleSalvar} style={{ background: '#161616', borderRadius: 12, padding: 20, marginBottom: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>
+        <form onSubmit={handleSalvar} style={{ background: 'var(--cbrio-card)', borderRadius: 12, padding: 20, marginBottom: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
             <div style={{ gridColumn: '1/-1' }}>
               <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 5 }}>Funcionário *</label>
@@ -140,7 +140,7 @@ export default function TabFerias() {
               const dias = Math.ceil((new Date(f.data_fim) - new Date(f.data_inicio)) / 86400000);
               return (
                 <tr key={f.id}>
-                  <td style={s.td}><div style={{ fontWeight: 600 }}>{f.rh_funcionarios?.nome}</div><div style={{ fontSize: 12, color: '#737373' }}>{f.rh_funcionarios?.cargo}</div></td>
+                  <td style={s.td}><div style={{ fontWeight: 600 }}>{f.rh_funcionarios?.nome}</div><div style={{ fontSize: 12, color: 'var(--cbrio-text3)' }}>{f.rh_funcionarios?.cargo}</div></td>
                   <td style={s.td}>{TIPO_LABEL[f.tipo] ?? f.tipo}</td>
                   <td style={s.td}>{new Date(f.data_inicio).toLocaleDateString('pt-BR')}</td>
                   <td style={s.td}>{new Date(f.data_fim).toLocaleDateString('pt-BR')}</td>

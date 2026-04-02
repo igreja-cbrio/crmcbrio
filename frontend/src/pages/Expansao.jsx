@@ -4,9 +4,9 @@ import { expansion } from '../api';
 
 // ── Tema ────────────────────────────────────────────────────
 const C = {
-  bg: '#0a0a0a', card: '#161616', primary: '#00B39D', primaryBg: '#00B39D18',
-  text: '#e5e5e5', text2: '#a3a3a3', text3: '#737373',
-  border: '#262626', green: '#10b981', greenBg: '#10b98118',
+  bg: 'var(--cbrio-bg)', card: 'var(--cbrio-card)', primary: '#00B39D', primaryBg: '#00B39D18',
+  text: 'var(--cbrio-text)', text2: 'var(--cbrio-text2)', text3: 'var(--cbrio-text3)',
+  border: 'var(--cbrio-border)', green: '#10b981', greenBg: '#10b98118',
   red: '#ef4444', redBg: '#ef444418', amber: '#f59e0b', amberBg: '#f59e0b18',
   blue: '#3b82f6', blueBg: '#3b82f618',
 };
@@ -62,27 +62,27 @@ const styles = {
   }),
   input: {
     padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13,
-    color: C.text, outline: 'none', width: '100%', boxSizing: 'border-box', background: '#1e1e1e',
+    color: C.text, outline: 'none', width: '100%', boxSizing: 'border-box', background: 'var(--cbrio-input-bg)',
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
   },
   select: {
     padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13,
-    color: C.text, outline: 'none', width: '100%', boxSizing: 'border-box', background: '#1e1e1e',
+    color: C.text, outline: 'none', width: '100%', boxSizing: 'border-box', background: 'var(--cbrio-input-bg)',
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
   },
   textarea: {
     padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13,
-    color: C.text, outline: 'none', width: '100%', boxSizing: 'border-box', minHeight: 60, resize: 'vertical', background: '#1e1e1e',
+    color: C.text, outline: 'none', width: '100%', boxSizing: 'border-box', minHeight: 60, resize: 'vertical', background: 'var(--cbrio-input-bg)',
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
   },
   label: { fontSize: 12, fontWeight: 600, color: C.text2, marginBottom: 4, display: 'block' },
   formGroup: { marginBottom: 14 },
   overlay: {
-    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center',
+    position: 'fixed', inset: 0, background: 'var(--cbrio-overlay)', display: 'flex', alignItems: 'center',
     justifyContent: 'center', zIndex: 1000,
   },
   modal: {
-    background: '#1a1a1a', borderRadius: 16, padding: 28, width: '90%', maxWidth: 500,
+    background: 'var(--cbrio-modal-bg)', borderRadius: 16, padding: 28, width: '90%', maxWidth: 500,
     boxShadow: '0 20px 60px rgba(0,0,0,0.15)', maxHeight: '85vh', overflowY: 'auto',
   },
   modalTitle: { fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 20 },
@@ -92,7 +92,7 @@ const styles = {
     padding: '12px 20px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
   },
   subtaskRow: {
-    padding: '8px 20px 8px 44px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 10, background: '#1e1e1e',
+    padding: '8px 20px 8px 44px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 10, background: 'var(--cbrio-input-bg)',
   },
   iconBtn: {
     background: 'none', border: 'none', cursor: 'pointer', padding: 4, fontSize: 14, color: C.text3, lineHeight: 1,
