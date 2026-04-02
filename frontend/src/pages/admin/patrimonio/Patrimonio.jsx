@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Tag, ClipboardList, Trash2, Pencil, MapPin } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { patrimonio } from '../../../api';
@@ -87,7 +87,9 @@ function Input({ label, ...props }) { return (<div style={styles.formGroup}>{lab
 function Select({ label, children, ...props }) { return (<div style={styles.formGroup}>{label && <label style={styles.label}>{label}</label>}<select style={{ ...styles.select, width: '100%' }} {...props}>{children}</select></div>); }
 function Badge({ status, map }) { const s = map[status] || { c: C.text3, bg: '#73737318', label: status }; return <span style={styles.badge(s.c, s.bg)}>{s.label}</span>; }
 
-const TABS = ['Dashboard', 'Bens', 'Categorias / Localizações', 'Inventários'];
+const TABS = ['Dashboard', 'Bens', 'Scanner', 'Categorias / Localizações', 'Inventários'];
+
+const fmtDateTime = (d) => d ? new Date(d).toLocaleString('pt-BR') : '—';
 
 export default function Patrimonio() {
   const { isDiretor } = useAuth();
@@ -152,8 +154,9 @@ export default function Patrimonio() {
           onNew={() => setModalBem({})} onDetail={openDetail} onDelete={deleteBem} isDiretor={isDiretor}
         />
       )}
-      {tab === 2 && <CatLocTab categorias={categorias} localizacoes={localizacoes} newCat={newCat} setNewCat={setNewCat} addCat={addCat} removeCat={removeCat} newLoc={newLoc} setNewLoc={setNewLoc} addLoc={addLoc} removeLoc={removeLoc} isDiretor={isDiretor} />}
-      {tab === 3 && <InventariosTab inventarios={inventarios} onNew={() => setModalInv({})} onUpdate={updateInvStatus} isDiretor={isDiretor} />}
+      {tab === 2 && <ScannerTab localizacoes={localizacoes} onMov={saveMov} onDetail={openDetail} />}
+      {tab === 3 && <CatLocTab categorias={categorias} localizacoes={localizacoes} newCat={newCat} setNewCat={setNewCat} addCat={addCat} removeCat={removeCat} newLoc={newLoc} setNewLoc={setNewLoc} addLoc={addLoc} removeLoc={removeLoc} isDiretor={isDiretor} />}
+      {tab === 4 && <InventariosTab inventarios={inventarios} onNew={() => setModalInv({})} onUpdate={updateInvStatus} isDiretor={isDiretor} />}
 
       <BemFormModal open={!!modalBem} data={modalBem} categorias={categorias} localizacoes={localizacoes} onClose={() => setModalBem(null)} onSave={saveBem} />
       <BemDetailModal open={!!modalDetail} data={modalDetail} onClose={() => setModalDetail(null)} onEdit={(b) => { setModalDetail(null); setModalBem(b); }} onDelete={deleteBem} onMov={(bemId) => setModalMov({ bem_id: bemId })} isDiretor={isDiretor} />
@@ -473,5 +476,280 @@ function InvFormModal({ open, onClose, onSave }) {
         <textarea style={{ ...styles.input, minHeight: 60, resize: 'vertical' }} value={f.observacoes || ''} onChange={e => upd('observacoes', e.target.value)} />
       </div>
     </Modal>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// TAB: Scanner de Código de Barras
+// ═══════════════════════════════════════════════════════════
+const MOV_TIPO_COLORS = {
+  entrada: { c: C.green, bg: C.greenBg, label: 'Entrada', icon: '📥' },
+  saida: { c: C.red, bg: C.redBg, label: 'Saída', icon: '📤' },
+  transferencia: { c: C.blue, bg: C.blueBg, label: 'Transferência', icon: '🔄' },
+  manutencao: { c: C.amber, bg: C.amberBg, label: 'Manutenção', icon: '🔧' },
+  baixa: { c: '#737373', bg: '#73737318', label: 'Baixa', icon: '❌' },
+};
+
+function ScannerTab({ localizacoes, onMov, onDetail }) {
+  const [scanning, setScanning] = useState(false);
+  const [codigo, setCodigo] = useState('');
+  const [bem, setBem] = useState(null);
+  const [notFound, setNotFound] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [showMov, setShowMov] = useState(false);
+  const [movForm, setMovForm] = useState({ tipo: 'transferencia', localizacao_origem_id: '', localizacao_destino_id: '', motivo: '' });
+  const [saving, setSaving] = useState(false);
+  const [recentScans, setRecentScans] = useState([]);
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+  const inputRef = useRef(null);
+
+  async function buscarPorCodigo(code) {
+    if (!code) return;
+    setLoading(true); setNotFound(false); setBem(null);
+    try {
+      const data = await patrimonio.bens.porCodigo(code);
+      setBem(data);
+      setRecentScans(prev => [{ codigo: code, nome: data.nome, status: data.status, time: new Date() }, ...prev.slice(0, 9)]);
+    } catch (e) {
+      setNotFound(true);
+    }
+    setLoading(false);
+  }
+
+  async function startScan() {
+    setScanning(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      streamRef.current = stream;
+      if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.play(); }
+      if ('BarcodeDetector' in window) {
+        const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'qr_code', 'upc_a', 'upc_e', 'codabar', 'itf'] });
+        const detectLoop = async () => {
+          if (!videoRef.current || !streamRef.current) return;
+          try {
+            const barcodes = await detector.detect(videoRef.current);
+            if (barcodes.length > 0) {
+              const code = barcodes[0].rawValue;
+              setCodigo(code);
+              stopScan();
+              buscarPorCodigo(code);
+              return;
+            }
+          } catch (e) { /* continue */ }
+          requestAnimationFrame(detectLoop);
+        };
+        requestAnimationFrame(detectLoop);
+      }
+    } catch (e) {
+      alert('Não foi possível acessar a câmera. Verifique as permissões do navegador.');
+      setScanning(false);
+    }
+  }
+
+  function stopScan() {
+    setScanning(false);
+    if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
+  }
+
+  function handleKeyDown(e) {
+    if (e.key === 'Enter' && codigo.trim()) {
+      buscarPorCodigo(codigo.trim());
+    }
+  }
+
+  async function handleRegistrarMov() {
+    if (!bem) return;
+    setSaving(true);
+    try {
+      await onMov(bem.id, movForm);
+      setShowMov(false);
+      setMovForm({ tipo: 'transferencia', localizacao_origem_id: '', localizacao_destino_id: '', motivo: '' });
+      // Recarregar o bem para ver movimentação atualizada
+      buscarPorCodigo(codigo);
+    } catch (e) { alert(e.message); }
+    setSaving(false);
+  }
+
+  return (
+    <>
+      {/* Barra de busca + botão scanner */}
+      <div style={{ ...styles.card, marginBottom: 16, padding: 20 }}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: scanning ? 16 : 0 }}>
+          <span style={{ fontSize: 24 }}>🏷️</span>
+          <input
+            ref={inputRef}
+            style={{ ...styles.input, flex: 1, fontSize: 16, fontFamily: 'monospace', fontWeight: 700, padding: '12px 16px' }}
+            placeholder="Digite o código de barras e pressione Enter"
+            value={codigo}
+            onChange={e => setCodigo(e.target.value)}
+            onKeyDown={handleKeyDown}
+            autoFocus
+          />
+          <button style={styles.btn(scanning ? 'danger' : 'primary')} onClick={scanning ? stopScan : startScan}>
+            {scanning ? '⏹ Parar' : '📷 Escanear'}
+          </button>
+        </div>
+
+        {/* Camera preview */}
+        {scanning && (
+          <div style={{ textAlign: 'center' }}>
+            <video ref={videoRef} style={{ width: '100%', maxWidth: 400, borderRadius: 12, background: '#000', border: `3px solid ${C.primary}` }} autoPlay playsInline muted />
+            <div style={{ fontSize: 13, color: C.text2, marginTop: 8 }}>Aponte a câmera para o código de barras do patrimônio</div>
+            {!('BarcodeDetector' in window) && (
+              <div style={{ fontSize: 12, color: C.amber, marginTop: 8 }}>
+                Scanner automático não disponível neste navegador. Use o campo acima para digitar manualmente.
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Loading */}
+      {loading && <div style={{ ...styles.card, padding: 40, textAlign: 'center', marginBottom: 16 }}><div style={{ color: C.text2, fontSize: 14 }}>Buscando patrimônio...</div></div>}
+
+      {/* Not found */}
+      {notFound && (
+        <div style={{ ...styles.card, padding: 24, marginBottom: 16, borderLeft: `4px solid ${C.red}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 28 }}>❌</span>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: C.text }}>Patrimônio não encontrado</div>
+              <div style={{ fontSize: 13, color: C.text2 }}>Código <strong style={{ fontFamily: 'monospace' }}>{codigo}</strong> não está cadastrado no sistema.</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Resultado — ficha do bem */}
+      {bem && (
+        <div style={{ ...styles.card, marginBottom: 16 }}>
+          <div style={{ padding: 20, borderBottom: `1px solid ${C.border}` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+              <div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>{bem.nome}</div>
+                <div style={{ fontSize: 13, color: C.text2, fontFamily: 'monospace', marginTop: 4 }}>Cód: {bem.codigo_barras}</div>
+              </div>
+              <Badge status={bem.status} map={STATUS_BEM} />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px 20px', marginTop: 16 }}>
+              <div><div style={{ fontSize: 11, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>Categoria</div><div style={{ fontSize: 14, fontWeight: 500, color: C.text }}>{bem.pat_categorias?.nome || '—'}</div></div>
+              <div><div style={{ fontSize: 11, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>Localização</div><div style={{ fontSize: 14, fontWeight: 500, color: C.text }}>{bem.pat_localizacoes?.nome || '—'}</div></div>
+              <div><div style={{ fontSize: 11, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>Marca/Modelo</div><div style={{ fontSize: 14, fontWeight: 500, color: C.text }}>{[bem.marca, bem.modelo].filter(Boolean).join(' ') || '—'}</div></div>
+              <div><div style={{ fontSize: 11, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>N° Série</div><div style={{ fontSize: 14, fontWeight: 500, color: C.text }}>{bem.numero_serie || '—'}</div></div>
+              <div><div style={{ fontSize: 11, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>Valor Aquisição</div><div style={{ fontSize: 14, fontWeight: 500, color: C.text }}>{fmtMoney(bem.valor_aquisicao)}</div></div>
+              <div><div style={{ fontSize: 11, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>Data Aquisição</div><div style={{ fontSize: 14, fontWeight: 500, color: C.text }}>{fmtDate(bem.data_aquisicao)}</div></div>
+            </div>
+
+            {/* Ações */}
+            <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
+              <button style={styles.btn('primary')} onClick={() => { setShowMov(true); setMovForm({ tipo: 'transferencia', localizacao_origem_id: bem.localizacao_id || '', localizacao_destino_id: '', motivo: '' }); }}>
+                🔄 Registrar Movimentação
+              </button>
+              <button style={styles.btn('secondary')} onClick={() => onDetail(bem.id)}>
+                📋 Ver Detalhes Completos
+              </button>
+            </div>
+          </div>
+
+          {/* Form de movimentação inline */}
+          {showMov && (
+            <div style={{ padding: 20, background: 'var(--cbrio-input-bg)', borderBottom: `1px solid ${C.border}` }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 12 }}>Nova Movimentação</div>
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Tipo de Movimentação *</label>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {Object.entries(MOV_TIPO_COLORS).map(([k, v]) => (
+                    <button key={k} onClick={() => setMovForm(f => ({ ...f, tipo: k }))}
+                      style={{ padding: '8px 14px', borderRadius: 8, border: `2px solid ${movForm.tipo === k ? v.c : C.border}`,
+                        background: movForm.tipo === k ? v.bg : 'transparent', color: movForm.tipo === k ? v.c : C.text2,
+                        fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }}>
+                      {v.icon} {v.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {['transferencia'].includes(movForm.tipo) && (
+                <div style={styles.formRow}>
+                  <Select label="Origem" value={movForm.localizacao_origem_id || ''} onChange={e => setMovForm(f => ({ ...f, localizacao_origem_id: e.target.value }))}>
+                    <option value="">Local atual ({bem.pat_localizacoes?.nome || '—'})</option>
+                    {localizacoes.map(l => <option key={l.id} value={l.id}>{l.nome}</option>)}
+                  </Select>
+                  <Select label="Destino *" value={movForm.localizacao_destino_id || ''} onChange={e => setMovForm(f => ({ ...f, localizacao_destino_id: e.target.value }))}>
+                    <option value="">Selecione...</option>
+                    {localizacoes.map(l => <option key={l.id} value={l.id}>{l.nome}</option>)}
+                  </Select>
+                </div>
+              )}
+              {['entrada', 'saida'].includes(movForm.tipo) && (
+                <Select label="Localização" value={movForm.localizacao_destino_id || ''} onChange={e => setMovForm(f => ({ ...f, localizacao_destino_id: e.target.value }))}>
+                  <option value="">Selecione...</option>
+                  {localizacoes.map(l => <option key={l.id} value={l.id}>{l.nome}</option>)}
+                </Select>
+              )}
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Motivo / Observação</label>
+                <textarea style={{ ...styles.input, minHeight: 60, resize: 'vertical' }}
+                  value={movForm.motivo || ''} onChange={e => setMovForm(f => ({ ...f, motivo: e.target.value }))} />
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button style={styles.btn('primary')} onClick={handleRegistrarMov} disabled={saving}>
+                  {saving ? 'Registrando...' : 'Confirmar Movimentação'}
+                </button>
+                <button style={styles.btn('ghost')} onClick={() => setShowMov(false)}>Cancelar</button>
+              </div>
+            </div>
+          )}
+
+          {/* Histórico de movimentações */}
+          {(bem.movimentacoes || []).length > 0 && (
+            <div style={{ padding: '0' }}>
+              <div style={{ padding: '12px 20px', fontSize: 11, fontWeight: 700, color: C.text2, textTransform: 'uppercase', borderBottom: `1px solid ${C.border}` }}>
+                Histórico de Movimentações ({bem.movimentacoes.length})
+              </div>
+              {bem.movimentacoes.map(m => (
+                <div key={m.id} style={{ padding: '10px 20px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 18 }}>{MOV_TIPO_COLORS[m.tipo]?.icon || '📋'}</span>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
+                        <Badge status={m.tipo} map={MOV_TIPO_COLORS} />
+                        {m.origem?.nome && m.destino?.nome && <span style={{ fontSize: 12, color: C.text2, marginLeft: 8 }}>{m.origem.nome} → {m.destino.nome}</span>}
+                      </div>
+                      {m.motivo && <div style={{ fontSize: 12, color: C.text3, marginTop: 2 }}>{m.motivo}</div>}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 12, color: C.text2 }}>{fmtDateTime(m.data_movimentacao)}</div>
+                    <div style={{ fontSize: 11, color: C.text3 }}>{m.profiles?.name || '—'}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Leituras recentes */}
+      {recentScans.length > 0 && !bem && (
+        <div style={styles.card}>
+          <div style={styles.cardHeader}><div style={styles.cardTitle}>Leituras Recentes</div></div>
+          {recentScans.map((s, i) => (
+            <div key={i} style={{ padding: '10px 20px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+              onClick={() => { setCodigo(s.codigo); buscarPorCodigo(s.codigo); }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 600, color: C.primary }}>{s.codigo}</span>
+                <span style={{ fontSize: 13, color: C.text }}>{s.nome}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Badge status={s.status} map={STATUS_BEM} />
+                <span style={{ fontSize: 11, color: C.text3 }}>{s.time.toLocaleTimeString('pt-BR')}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
   );
 }

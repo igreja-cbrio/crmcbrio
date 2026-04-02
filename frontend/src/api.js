@@ -237,6 +237,7 @@ export const patrimonio = {
     update: (id, data) => put(`/patrimonio/bens/${id}`, data),
     remove: (id) => del(`/patrimonio/bens/${id}`),
     movimentar: (id, data) => post(`/patrimonio/bens/${id}/movimentacoes`, data),
+    porCodigo: (codigo) => get(`/patrimonio/bens/barcode/${encodeURIComponent(codigo)}`),
   },
   inventarios: {
     list: () => get('/patrimonio/inventarios'),
