@@ -15,7 +15,7 @@ const s = {
 };
 
 const CAMPOS = [
-  { key: 'nome',          label: 'Nome completo *',  type: 'text',   required: true },
+  { key: 'nome',          label: 'Nome completo *',  type: 'text',   required: true, fullRow: true },
   { key: 'cargo',         label: 'Cargo *',           type: 'text',   required: true },
   { key: 'email',         label: 'E-mail',            type: 'email' },
   { key: 'telefone',      label: 'Telefone',          type: 'text' },
@@ -29,7 +29,7 @@ export default function ModalFuncionario({ funcionario, onSalvar, onFechar }) {
   const [form, setForm] = useState({
     nome: '', cargo: '', email: '', telefone: '', cpf: '', area: '',
     data_admissao: '', salario: '', tipo_contrato: 'clt', status: 'ativo',
-    observacoes: '',
+    observacoes: '', foto_url: '',
     ...funcionario,
   });
   const [salvando, setSalvando] = useState(false);
@@ -48,11 +48,11 @@ export default function ModalFuncionario({ funcionario, onSalvar, onFechar }) {
   return (
     <div style={s.overlay} onClick={(e) => e.target === e.currentTarget && onFechar()}>
       <div style={s.modal}>
-        <div style={s.title}>{funcionario?.id ? 'Editar Funcionário' : 'Admitir Funcionário'}</div>
+        <div style={s.title}>{funcionario?.id ? 'Editar Colaborador' : 'Admitir Colaborador'}</div>
         <form onSubmit={handleSubmit}>
           <div style={s.grid}>
-            {CAMPOS.map(({ key, label, type, required }) => (
-              <div key={key}>
+            {CAMPOS.map(({ key, label, type, required, fullRow }) => (
+              <div key={key} style={fullRow ? s.fullCol : undefined}>
                 <label style={s.label}>{label}</label>
                 <input
                   style={s.input}
@@ -64,6 +64,27 @@ export default function ModalFuncionario({ funcionario, onSalvar, onFechar }) {
                 />
               </div>
             ))}
+
+            <div style={s.fullCol}>
+              <label style={s.label}>URL da Foto</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <input
+                  style={{ ...s.input, flex: 1 }}
+                  type="text"
+                  value={form.foto_url ?? ''}
+                  onChange={set('foto_url')}
+                  placeholder="https://exemplo.com/foto.jpg"
+                />
+                {form.foto_url && (
+                  <img
+                    src={form.foto_url}
+                    alt="Foto"
+                    style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: '1.5px solid #333', flexShrink: 0 }}
+                    onError={e => { e.target.style.display = 'none'; }}
+                  />
+                )}
+              </div>
+            </div>
 
             <div>
               <label style={s.label}>Tipo de contrato</label>

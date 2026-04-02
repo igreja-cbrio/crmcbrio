@@ -21,6 +21,7 @@ const STATUS_MAP = {
 export default function TabExtras({ funcionarios, onRefresh }) {
   const [extras, setExtras] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [valorPadrao, setValorPadrao] = useState('150.00');
   const [showConfig, setShowConfig] = useState(false);
@@ -33,16 +34,21 @@ export default function TabExtras({ funcionarios, onRefresh }) {
 
   async function load() {
     try {
+      setError('');
       const data = await rh.extras.list();
       setExtras(data);
-    } catch { } finally { setLoading(false); }
+    } catch (e) {
+      setError(e.message || 'Erro ao buscar extras');
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function loadConfig() {
     try {
       const cfg = await rh.config.get();
       if (cfg.valor_extra_padrao) setValorPadrao(cfg.valor_extra_padrao);
-    } catch { }
+    } catch { /* config is optional */ }
   }
 
   async function handleSubmit(e) {
@@ -91,11 +97,17 @@ export default function TabExtras({ funcionarios, onRefresh }) {
         </div>
       )}
 
+      {error && (
+        <div style={{ color: C.red, background: C.redBg, border: `1px solid ${C.red}`, borderRadius: 8, padding: '10px 16px', marginBottom: 16, fontSize: 13, fontWeight: 500 }}>
+          {error}
+        </div>
+      )}
+
       <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
           <thead>
             <tr>
-              {['Data', 'Funcionário', 'Serviço', 'Horário', 'Valor', 'Status', ''].map((h, i) => (
+              {['Data', 'Colaborador', 'Serviço', 'Horário', 'Valor', 'Status', ''].map((h, i) => (
                 <th key={i} style={{ textAlign: 'left', padding: '12px 16px', fontSize: 11, fontWeight: 600, color: C.text3, textTransform: 'uppercase', letterSpacing: 0.5, background: 'var(--cbrio-table-header)', borderBottom: `1px solid ${C.border}` }}>{h}</th>
               ))}
             </tr>
@@ -149,7 +161,7 @@ export default function TabExtras({ funcionarios, onRefresh }) {
             </div>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: C.text2, display: 'block', marginBottom: 4 }}>Funcionário *</label>
+                <label style={{ fontSize: 12, fontWeight: 600, color: C.text2, display: 'block', marginBottom: 4 }}>Colaborador *</label>
                 <select required value={form.funcionario_id} onChange={e => setForm(f => ({ ...f, funcionario_id: e.target.value }))}
                   style={{ width: '100%', padding: '10px 12px', background: 'var(--cbrio-input-bg)', border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13 }}>
                   <option value="">Selecione...</option>
@@ -189,9 +201,9 @@ export default function TabExtras({ funcionarios, onRefresh }) {
                   style={{ width: '100%', padding: '10px 12px', background: 'var(--cbrio-input-bg)', border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13 }} />
               </div>
               <button type="submit" style={{ width: '100%', padding: '12px', background: C.primary, color: '#0a0a0a', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', marginTop: 4 }}>
-                Escalar Funcionário
+                Escalar Colaborador
               </button>
-              <p style={{ fontSize: 11, color: C.text3, textAlign: 'center', margin: 0 }}>O funcionário receberá uma notificação com os detalhes.</p>
+              <p style={{ fontSize: 11, color: C.text3, textAlign: 'center', margin: 0 }}>O colaborador receberá uma notificação com os detalhes.</p>
             </form>
           </div>
         </div>

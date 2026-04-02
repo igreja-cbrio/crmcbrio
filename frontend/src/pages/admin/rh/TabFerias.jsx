@@ -101,7 +101,7 @@ export default function TabFerias() {
         <form onSubmit={handleSalvar} style={{ background: 'var(--cbrio-card)', borderRadius: 12, padding: 20, marginBottom: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
             <div style={{ gridColumn: '1/-1' }}>
-              <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 5 }}>Funcionário *</label>
+              <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 5 }}>Colaborador *</label>
               <select required value={form.funcionario_id} onChange={set('funcionario_id')} style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #333', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }}>
                 <option value="">Selecione...</option>
                 {funcionarios.map((f) => <option key={f.id} value={f.id}>{f.nome} — {f.cargo}</option>)}
@@ -133,7 +133,7 @@ export default function TabFerias() {
       ) : (
         <table style={s.table}>
           <thead>
-            <tr>{['Funcionário', 'Tipo', 'Início', 'Fim', 'Dias', 'Status', ''].map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
+            <tr>{['Colaborador', 'Tipo', 'Início', 'Fim', 'Dias', 'Status', ''].map(h => <th key={h} style={s.th}>{h}</th>)}</tr>
           </thead>
           <tbody>
             {ferias.map((f) => {

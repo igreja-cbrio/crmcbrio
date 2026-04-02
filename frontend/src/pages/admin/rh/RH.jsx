@@ -142,7 +142,7 @@ function Badge({ status, map }) {
 }
 
 // ── TABS ────────────────────────────────────────────────────
-const TABS = ['Dashboard', 'Funcionários', 'Treinamentos', 'Férias/Licenças', 'Extras'];
+const TABS = ['Dashboard', 'Colaboradores', 'Treinamentos', 'Férias/Licenças', 'Extras'];
 
 // ═══════════════════════════════════════════════════════════
 // COMPONENTE PRINCIPAL
@@ -156,7 +156,7 @@ export default function RH() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Filtros funcionários
+  // Filtros colaboradores
   const [filtroStatus, setFiltroStatus] = useState('');
   const [filtroArea, setFiltroArea] = useState('');
   const [busca, setBusca] = useState('');
@@ -203,7 +203,7 @@ export default function RH() {
   }
 
   async function deleteFuncionario(id) {
-    if (!confirm('Remover este funcionário?')) return;
+    if (!confirm('Remover este colaborador?')) return;
     try { await rh.funcionarios.remove(id); loadFuncs(); loadDash(); setModalDetail(null); }
     catch (e) { alert(e.message); }
   }
@@ -256,7 +256,7 @@ export default function RH() {
       <div style={styles.header}>
         <div>
           <div style={{ ...styles.title, display: 'flex', alignItems: 'center', gap: 10 }}><Users className="h-7 w-7" style={{ color: '#00B39D' }} /> Recursos Humanos</div>
-          <div style={styles.subtitle}>Gestão de funcionários, treinamentos e férias</div>
+          <div style={styles.subtitle}>Gestão de colaboradores, treinamentos e férias</div>
         </div>
       </div>
 
@@ -321,7 +321,7 @@ function DashboardTab({ dash }) {
       <div style={styles.kpiGrid}>
         <div style={styles.kpi(C.primary)}>
           <div style={styles.kpiValue}>{dash.total}</div>
-          <div style={styles.kpiLabel}>Total Funcionários</div>
+          <div style={styles.kpiLabel}>Total Colaboradores</div>
         </div>
         <div style={styles.kpi(C.green)}>
           <div style={styles.kpiValue}>{dash.ativos}</div>
@@ -425,7 +425,7 @@ function FuncionariosTab({ funcs, loading, busca, setBusca, filtroStatus, setFil
           {areas.map(a => <option key={a} value={a}>{a}</option>)}
         </select>
         <div style={{ marginLeft: 'auto' }}>
-          <button style={styles.btn('primary')} onClick={onNew}>+ Novo Funcionário</button>
+          <button style={styles.btn('primary')} onClick={onNew}>+ Novo Colaborador</button>
         </div>
       </div>
 
@@ -445,7 +445,7 @@ function FuncionariosTab({ funcs, loading, busca, setBusca, filtroStatus, setFil
             </thead>
             <tbody>
               {loading && <tr><td colSpan={7} style={{ ...styles.td, textAlign: 'center', color: C.text3 }}>Carregando...</td></tr>}
-              {!loading && funcs.length === 0 && <tr><td colSpan={7} style={{ ...styles.td, textAlign: 'center', color: C.text3 }}>Nenhum funcionário encontrado</td></tr>}
+              {!loading && funcs.length === 0 && <tr><td colSpan={7} style={{ ...styles.td, textAlign: 'center', color: C.text3 }}>Nenhum colaborador encontrado</td></tr>}
               {funcs.map(f => (
                 <tr key={f.id} style={styles.clickRow}
                   onMouseEnter={e => e.currentTarget.style.background = '#1e1e1e'}
@@ -519,11 +519,11 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever 
                   }} />
                 </div>
               ))}
-              {/* Inscrever funcionário */}
+              {/* Inscrever colaborador */}
               {inscrevendo === t.id ? (
                 <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }}>
                   <select style={{ ...styles.select, flex: 1 }} value={funcSel} onChange={e => setFuncSel(e.target.value)}>
-                    <option value="">Selecionar funcionário</option>
+                    <option value="">Selecionar colaborador</option>
                     {funcs.filter(f => f.status === 'ativo').map(f => <option key={f.id} value={f.id}>{f.nome}</option>)}
                   </select>
                   <button style={{ ...styles.btn('primary'), ...styles.btnSm }}
@@ -533,7 +533,7 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever 
                   <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => setInscrevendo(null)}>✕</button>
                 </div>
               ) : (
-                <button style={{ ...styles.btn('ghost'), marginTop: 6, fontSize: 12 }} onClick={() => setInscrevendo(t.id)}>+ Inscrever funcionário</button>
+                <button style={{ ...styles.btn('ghost'), marginTop: 6, fontSize: 12 }} onClick={() => setInscrevendo(t.id)}>+ Inscrever colaborador</button>
               )}
             </div>
           </div>
@@ -561,7 +561,7 @@ function FeriasTab({ dash, funcs, onNew, onAprovar }) {
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={styles.th}>Funcionário</th>
+                <th style={styles.th}>Colaborador</th>
                 <th style={styles.th}>Tipo</th>
                 <th style={styles.th}>Início</th>
                 <th style={styles.th}>Fim</th>
@@ -607,7 +607,7 @@ function FuncionarioFormModal({ open, data, onClose, onSave }) {
 
   return (
     <Modal open={open} onClose={onClose}
-      title={f?.id ? 'Editar Funcionário' : 'Novo Funcionário'}
+      title={f?.id ? 'Editar Colaborador' : 'Novo Colaborador'}
       footer={<button style={styles.btn('primary')} onClick={() => onSave(f)}>Salvar</button>}>
       <Input label="Nome *" value={f.nome || ''} onChange={e => upd('nome', e.target.value)} />
       <div style={styles.formRow}>
@@ -681,7 +681,7 @@ function FeriasFormModal({ open, funcs, onClose, onSave }) {
   return (
     <Modal open={open} onClose={onClose} title="Nova Solicitação de Férias/Licença"
       footer={<button style={styles.btn('primary')} onClick={() => onSave(f)}>Solicitar</button>}>
-      <Select label="Funcionário *" value={f.funcionario_id || ''} onChange={e => upd('funcionario_id', e.target.value)}>
+      <Select label="Colaborador *" value={f.funcionario_id || ''} onChange={e => upd('funcionario_id', e.target.value)}>
         <option value="">Selecionar</option>
         {(funcs || []).filter(fn => fn.status === 'ativo').map(fn => <option key={fn.id} value={fn.id}>{fn.nome}</option>)}
       </Select>
