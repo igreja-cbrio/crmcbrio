@@ -223,6 +223,17 @@ export const logistica = {
   },
 };
 
+export const ml = {
+  status: () => get('/ml/status'),
+  config: (data) => post('/ml/config', data),
+  authUrl: () => get('/ml/auth-url'),
+  disconnect: () => post('/ml/disconnect'),
+  orders: (params) => get('/ml/orders' + (params ? '?' + new URLSearchParams(params) : '')),
+  order: (id) => get(`/ml/orders/${id}`),
+  shipments: () => get('/ml/shipments'),
+  shipment: (id) => get(`/ml/shipments/${id}`),
+};
+
 export const patrimonio = {
   dashboard: () => get('/patrimonio/dashboard'),
   categorias: {
