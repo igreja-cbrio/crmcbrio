@@ -291,7 +291,9 @@ export default function RH() {
         />
       )}
       {tab === 4 && (
-        <TabExtras funcionarios={funcs} onRefresh={loadData} />
+        <div style={{ minHeight: 200, padding: '4px 0' }}>
+          <TabExtras funcionarios={funcs} onRefresh={loadData} />
+        </div>
       )}
 
       {/* Modais */}
@@ -636,6 +638,16 @@ function FuncionarioFormModal({ open, data, onClose, onSave }) {
           <Input label="Data Demissão" type="date" value={f.data_demissao || ''} onChange={e => upd('data_demissao', e.target.value)} />
         </div>
       )}
+      {/* Foto */}
+      <div style={styles.formGroup}>
+        <label style={styles.label}>Foto do Colaborador</label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <input style={{ ...styles.input, flex: 1 }} type="text" placeholder="URL da foto (ex: https://...)" value={f.foto_url || ''} onChange={e => upd('foto_url', e.target.value)} />
+          {f.foto_url && (
+            <img src={f.foto_url} alt="Foto" style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${C.primary}`, flexShrink: 0 }} onError={e => { e.target.style.display = 'none'; }} />
+          )}
+        </div>
+      </div>
       <div style={styles.formGroup}>
         <label style={styles.label}>Observações</label>
         <textarea style={{ ...styles.input, minHeight: 60, resize: 'vertical' }} value={f.observacoes || ''} onChange={e => upd('observacoes', e.target.value)} />
