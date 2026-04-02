@@ -122,7 +122,7 @@ export default function EventFormModal({ event, categories, onSave, onClose }) {
               <div style={{ fontSize: 10, fontWeight: 700, color: C.t2, marginBottom: 4 }}>OCORRÊNCIAS ({occurrences.length})</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                 {occurrences.map(d => (
-                  <span key={d} style={{ fontSize: 10, padding: '2px 8px', borderRadius: 6, background: '#73737318', border: `1px solid ${C.border}` }}>
+                  <span key={d} style={{ fontSize: 10, padding: '2px 8px', borderRadius: 6, background: 'var(--cbrio-bg)', border: `1px solid ${C.border}` }}>
                     {new Date(d + 'T12:00:00').toLocaleDateString('pt-BR')}
                   </span>
                 ))}
@@ -148,12 +148,12 @@ export default function EventFormModal({ event, categories, onSave, onClose }) {
           </div>
 
           {!event && (
-            <div style={{ marginBottom: 12, padding: '10px 12px', background: '#00B39D18', borderRadius: 8, border: '1px solid #00B39D30', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ marginBottom: 12, padding: '10px 12px', background: '#f3e8ff', borderRadius: 8, border: '1px solid #e9d5ff', display: 'flex', alignItems: 'center', gap: 8 }}>
               <input type="checkbox" checked={f.ativar_ciclo} onChange={e => upd('ativar_ciclo', e.target.checked)} id="ciclo" />
               <label htmlFor="ciclo" style={{ fontSize: 13, color: '#00B39D', fontWeight: 600, cursor: 'pointer' }}>
                 Ativar Ciclo Criativo
               </label>
-              <span style={{ fontSize: 11, color: '#a3a3a3' }}>— ativa as 11 fases de produção + trilha administrativa</span>
+              <span style={{ fontSize: 11, color: 'var(--cbrio-text2)' }}>— ativa as 11 fases de produção + trilha administrativa</span>
             </div>
           )}
 
@@ -179,25 +179,25 @@ function Field({ label, value, onChange, type = 'text', style = {} }) {
 }
 
 const overlay = {
-  position: 'fixed', inset: 0, background: 'var(--cbrio-overlay)', display: 'flex',
+  position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex',
   alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16,
 };
 const modal = {
-  background: 'var(--cbrio-modal-bg)', borderRadius: 12, padding: '24px 28px', width: '100%',
+  background: 'var(--cbrio-card)', borderRadius: 12, padding: '24px 28px', width: '100%',
   maxWidth: 560, maxHeight: '90vh', overflowY: 'auto',
 };
 const labelStyle = { fontSize: 12, fontWeight: 600, color: 'var(--cbrio-text2)', display: 'block', marginBottom: 4 };
 const inputStyle = {
   width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--cbrio-border)',
-  fontSize: 13, color: 'var(--cbrio-text)', background: 'var(--cbrio-input-bg)', outline: 'none',
+  fontSize: 13, color: 'var(--cbrio-text)', outline: 'none',
 };
 const errBox = {
-  background: '#ef444418', border: '1px solid #ef444440', color: '#ef4444',
+  background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626',
   padding: '8px 12px', borderRadius: 8, fontSize: 12, marginBottom: 12,
 };
 const cancelBtn = {
   padding: '8px 16px', borderRadius: 8, border: '1px solid var(--cbrio-border)',
-  background: 'var(--cbrio-input-bg)', color: 'var(--cbrio-text2)', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+  background: 'var(--cbrio-card)', color: 'var(--cbrio-text2)', cursor: 'pointer', fontSize: 13, fontWeight: 600,
 };
 const saveBtn = {
   padding: '8px 18px', borderRadius: 8, border: 'none',

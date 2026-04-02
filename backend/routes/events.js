@@ -85,7 +85,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/events — só diretor
-router.post('/', authorize('diretor'), async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const d = sanitizeObj(req.body);
     const r = await db.query(
@@ -112,8 +112,8 @@ router.post('/', authorize('diretor'), async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ error: 'Erro ao criar evento' }); }
 });
 
-// PUT /api/events/:id — só diretor
-router.put('/:id', authorize('diretor'), async (req, res) => {
+// PUT /api/events/:id
+router.put('/:id', async (req, res) => {
   try {
     if (!isValidUUID(req.params.id)) return res.status(400).json({ error: 'ID inválido' });
     const d = sanitizeObj(req.body);
@@ -133,8 +133,34 @@ router.put('/:id', authorize('diretor'), async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ error: 'Erro ao atualizar evento' }); }
 });
 
-// DELETE /api/events/:id — só diretor
-router.delete('/:id', authorize('diretor'), async (req, res) => {
+// PATCH /api/events/:id/status — atualizar status (com cálculo automático ao reabrir)
+router.patch('/:id/status', async (req, res) => {
+  try {
+    if (!isValidUUID(req.params.id)) return res.status(400).json({ error: 'ID inválido' });
+    let { status } = req.body;
+    if (!status) return res.status(400).json({ error: 'Status obrigatório' });
+
+    // Se estiver reabrindo (saindo de concluido), calcular status correto pela data
+    if (status === 'reabrir') {
+      const ev = await db.query('SELECT date FROM events WHERE id=$1', [req.params.id]);
+      if (!ev.rows[0]) return res.status(404).json({ error: 'Evento não encontrado' });
+      const evDate = new Date(ev.rows[0].date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const diffDays = Math.ceil((evDate - today) / 86400000);
+      if (diffDays < 0) status = 'atrasado';
+      else if (diffDays <= 7) status = 'em-risco';
+      else status = 'no-prazo';
+    }
+
+    const r = await db.query('UPDATE events SET status=$1 WHERE id=$2 RETURNING *', [status, req.params.id]);
+    if (!r.rows[0]) return res.status(404).json({ error: 'Evento não encontrado' });
+    res.json(r.rows[0]);
+  } catch (e) { console.error(e); res.status(500).json({ error: 'Erro ao atualizar status' }); }
+});
+
+// DELETE /api/events/:id
+router.delete('/:id', async (req, res) => {
   try {
     if (!isValidUUID(req.params.id)) return res.status(400).json({ error: 'ID inválido' });
     await db.query('DELETE FROM events WHERE id = $1', [req.params.id]);
@@ -145,7 +171,7 @@ router.delete('/:id', authorize('diretor'), async (req, res) => {
 // ── OCCURRENCES ──
 
 // PATCH /api/events/:id/occurrences/:occId — atualizar status/notas de ocorrência
-router.patch('/:id/occurrences/:occId', authorize('diretor'), async (req, res) => {
+router.patch('/:id/occurrences/:occId', async (req, res) => {
   try {
     const d = sanitizeObj(req.body);
     const r = await db.query(
@@ -162,7 +188,7 @@ router.patch('/:id/occurrences/:occId', authorize('diretor'), async (req, res) =
 // ── TASKS ──
 
 // POST /api/events/:id/tasks
-router.post('/:id/tasks', authorize('diretor'), async (req, res) => {
+router.post('/:id/tasks', async (req, res) => {
   try {
     if (!isValidUUID(req.params.id)) return res.status(400).json({ error: 'ID inválido' });
     const d = sanitizeObj(req.body);
@@ -177,7 +203,7 @@ router.post('/:id/tasks', authorize('diretor'), async (req, res) => {
 });
 
 // PUT /api/events/tasks/:taskId
-router.put('/tasks/:taskId', authorize('diretor'), async (req, res) => {
+router.put('/tasks/:taskId', async (req, res) => {
   try {
     if (!isValidUUID(req.params.taskId)) return res.status(400).json({ error: 'ID inválido' });
     const d = sanitizeObj(req.body);
@@ -193,7 +219,7 @@ router.put('/tasks/:taskId', authorize('diretor'), async (req, res) => {
 });
 
 // PATCH /api/events/tasks/:taskId/status — mudança rápida de status (kanban drag)
-router.patch('/tasks/:taskId/status', authorize('diretor'), async (req, res) => {
+router.patch('/tasks/:taskId/status', async (req, res) => {
   try {
     const { status } = req.body;
     const r = await db.query('UPDATE event_tasks SET status=$1 WHERE id=$2 RETURNING *', [status, req.params.taskId]);
@@ -203,7 +229,7 @@ router.patch('/tasks/:taskId/status', authorize('diretor'), async (req, res) => 
 });
 
 // DELETE /api/events/tasks/:taskId
-router.delete('/tasks/:taskId', authorize('diretor'), async (req, res) => {
+router.delete('/tasks/:taskId', async (req, res) => {
   try {
     await db.query('DELETE FROM event_tasks WHERE id = $1', [req.params.taskId]);
     res.json({ success: true });
@@ -211,7 +237,7 @@ router.delete('/tasks/:taskId', authorize('diretor'), async (req, res) => {
 });
 
 // ── SUBTASKS ──
-router.post('/tasks/:taskId/subtasks', authorize('diretor'), async (req, res) => {
+router.post('/tasks/:taskId/subtasks', async (req, res) => {
   try {
     const d = sanitizeObj(req.body);
     const r = await db.query(
@@ -222,14 +248,14 @@ router.post('/tasks/:taskId/subtasks', authorize('diretor'), async (req, res) =>
   } catch (e) { res.status(500).json({ error: 'Erro' }); }
 });
 
-router.patch('/subtasks/:subId', authorize('diretor'), async (req, res) => {
+router.patch('/subtasks/:subId', async (req, res) => {
   try {
     const r = await db.query('UPDATE event_task_subtasks SET done=$1 WHERE id=$2 RETURNING *', [req.body.done, req.params.subId]);
     res.json(r.rows[0]);
   } catch (e) { res.status(500).json({ error: 'Erro' }); }
 });
 
-router.delete('/subtasks/:subId', authorize('diretor'), async (req, res) => {
+router.delete('/subtasks/:subId', async (req, res) => {
   try {
     await db.query('DELETE FROM event_task_subtasks WHERE id = $1', [req.params.subId]);
     res.json({ success: true });

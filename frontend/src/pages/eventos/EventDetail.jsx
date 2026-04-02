@@ -9,28 +9,28 @@ import BudgetPanel from './components/BudgetPanel';
 
 const C = {
   dark: 'var(--cbrio-text)', t2: 'var(--cbrio-text2)', t3: 'var(--cbrio-text3)', border: 'var(--cbrio-border)',
-  accent: '#00B39D', accentBg: '#00B39D18',
+  accent: '#00B39D', accentBg: '#f3e8ff',
 };
 
 const STATUS = {
-  'no-prazo':  { label: 'No prazo',   color: '#10b981', bg: '#10b98118' },
-  'em-risco':  { label: 'Em risco',   color: '#f59e0b', bg: '#f59e0b18' },
-  'atrasado':  { label: 'Atrasado',   color: '#ef4444', bg: '#ef444418' },
-  'concluido': { label: 'Concluído',  color: 'var(--cbrio-text2)', bg: '#73737318' },
+  'no-prazo':  { label: 'No prazo',   color: '#10b981', bg: '#ecfdf5' },
+  'em-risco':  { label: 'Em risco',   color: '#f59e0b', bg: '#fffbeb' },
+  'atrasado':  { label: 'Atrasado',   color: '#ef4444', bg: '#fef2f2' },
+  'concluido': { label: 'Concluído',  color: 'var(--cbrio-text2)', bg: 'var(--cbrio-bg)' },
 };
 
 const TASK_STATUS = {
-  'pendente':      { label: 'Pendente',      color: 'var(--cbrio-text3)', bg: '#73737318' },
-  'em-andamento':  { label: 'Em andamento',  color: '#3b82f6', bg: '#3b82f618' },
-  'concluida':     { label: 'Concluída',     color: '#10b981', bg: '#10b98118' },
-  'bloqueada':     { label: 'Bloqueada',     color: '#ef4444', bg: '#ef444418' },
+  'pendente':      { label: 'Pendente',      color: 'var(--cbrio-text3)', bg: 'var(--cbrio-bg)' },
+  'em-andamento':  { label: 'Em andamento',  color: '#3b82f6', bg: '#eff6ff' },
+  'concluida':     { label: 'Concluída',     color: '#10b981', bg: '#ecfdf5' },
+  'bloqueada':     { label: 'Bloqueada',     color: '#ef4444', bg: '#fef2f2' },
 };
 
 const PRIORITY = {
   'urgente': { label: 'Urgente', color: '#ef4444' },
   'alta':    { label: 'Alta',    color: '#f59e0b' },
   'media':   { label: 'Média',   color: '#3b82f6' },
-  'baixa':   { label: 'Baixa',   color: '#737373' },
+  'baixa':   { label: 'Baixa',   color: 'var(--cbrio-text3)' },
 };
 
 function Badge({ text, color, bg }) {
@@ -178,7 +178,7 @@ export default function EventDetail() {
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6 }}>
             <Badge text={st.label} color={st.color} bg={st.bg} />
             {event.category_name && <Badge text={event.category_name} color={C.accent} bg={C.accentBg} />}
-            {event.recurrence !== 'unico' && <Badge text={event.recurrence} color="#a3a3a3" bg="#73737318" />}
+            {event.recurrence !== 'unico' && <Badge text={event.recurrence} color="var(--cbrio-text2)" bg="var(--cbrio-bg)" />}
           </div>
         </div>
         {isDiretor && (
@@ -186,7 +186,7 @@ export default function EventDetail() {
             {event.status !== 'concluido' && (
               <button onClick={handleFinalize} style={secondaryBtn}>Finalizar</button>
             )}
-            <button onClick={handleDeleteEvent} style={{ ...secondaryBtn, color: '#ef4444', borderColor: '#ef444440' }}>Excluir</button>
+            <button onClick={handleDeleteEvent} style={{ ...secondaryBtn, color: '#ef4444', borderColor: '#fecaca' }}>Excluir</button>
           </div>
         )}
       </div>
@@ -210,7 +210,7 @@ export default function EventDetail() {
               <span>Progresso</span>
               <span>{tasksDone}/{tasks.length} tarefas ({progress}%)</span>
             </div>
-            <div style={{ height: 6, background: '#262626', borderRadius: 3 }}>
+            <div style={{ height: 6, background: 'var(--cbrio-border)', borderRadius: 3 }}>
               <div style={{ height: '100%', width: `${progress}%`, background: '#10b981', borderRadius: 3, transition: 'width 0.3s' }} />
             </div>
           </div>
@@ -249,7 +249,7 @@ export default function EventDetail() {
               const colTasks = tasks.filter(t => t.status === col);
               const ts = TASK_STATUS[col];
               return (
-                <div key={col} style={{ background: 'var(--cbrio-input-bg)', borderRadius: 10, padding: 10 }}
+                <div key={col} style={{ background: 'var(--cbrio-table-header)', borderRadius: 10, padding: 10 }}
                   onDragOver={e => e.preventDefault()}
                   onDrop={e => { const taskId = e.dataTransfer.getData('taskId'); if (taskId) handleTaskStatusChange(taskId, col); }}
                 >
@@ -270,7 +270,7 @@ export default function EventDetail() {
                       </div>
                       {task.responsible && <div style={{ fontSize: 11, color: C.t2, marginTop: 2 }}>{task.responsible}</div>}
                       <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
-                        {task.priority && <Badge text={PRIORITY[task.priority]?.label || task.priority} color={PRIORITY[task.priority]?.color || C.t3} bg="#73737318" />}
+                        {task.priority && <Badge text={PRIORITY[task.priority]?.label || task.priority} color={PRIORITY[task.priority]?.color || C.t3} bg="var(--cbrio-bg)" />}
                         {task.deadline && <span style={{ fontSize: 10, color: C.t3 }}>{new Date(task.deadline + 'T12:00:00').toLocaleDateString('pt-BR')}</span>}
                       </div>
 
@@ -379,8 +379,8 @@ export default function EventDetail() {
               </div>
               <Badge
                 text={occ.status === 'concluido' ? 'Concluído' : 'Pendente'}
-                color={occ.status === 'concluido' ? '#10b981' : '#737373'}
-                bg={occ.status === 'concluido' ? '#10b98118' : '#73737318'}
+                color={occ.status === 'concluido' ? '#10b981' : 'var(--cbrio-text3)'}
+                bg={occ.status === 'concluido' ? '#ecfdf5' : 'var(--cbrio-bg)'}
               />
             </div>
           ))}

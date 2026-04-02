@@ -106,10 +106,10 @@ function Field({ label, value, onChange, type = 'text', style = {} }) {
   );
 }
 
-const overlay = { position: 'fixed', inset: 0, background: 'var(--cbrio-overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 };
-const modal = { background: 'var(--cbrio-modal-bg)', borderRadius: 12, padding: '24px 28px', width: '100%', maxWidth: 500, maxHeight: '90vh', overflowY: 'auto' };
+const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 };
+const modal = { background: 'var(--cbrio-card)', borderRadius: 12, padding: '24px 28px', width: '100%', maxWidth: 500, maxHeight: '90vh', overflowY: 'auto' };
 const labelStyle = { fontSize: 12, fontWeight: 600, color: 'var(--cbrio-text2)', display: 'block', marginBottom: 4 };
-const inputStyle = { width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--cbrio-border)', fontSize: 13, color: 'var(--cbrio-text)', background: 'var(--cbrio-input-bg)', outline: 'none' };
-const errBox = { background: '#ef444418', border: '1px solid #ef444440', color: '#ef4444', padding: '8px 12px', borderRadius: 8, fontSize: 12, marginBottom: 12 };
-const cancelBtn = { padding: '8px 16px', borderRadius: 8, border: '1px solid var(--cbrio-border)', background: 'var(--cbrio-input-bg)', color: 'var(--cbrio-text2)', cursor: 'pointer', fontSize: 13, fontWeight: 600 };
+const inputStyle = { width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--cbrio-border)', fontSize: 13, color: 'var(--cbrio-text)', outline: 'none' };
+const errBox = { background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', padding: '8px 12px', borderRadius: 8, fontSize: 12, marginBottom: 12 };
+const cancelBtn = { padding: '8px 16px', borderRadius: 8, border: '1px solid var(--cbrio-border)', background: 'var(--cbrio-card)', color: 'var(--cbrio-text2)', cursor: 'pointer', fontSize: 13, fontWeight: 600 };
 const saveBtn = { padding: '8px 18px', borderRadius: 8, border: 'none', background: '#00B39D', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600 };

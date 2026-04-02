@@ -116,6 +116,17 @@ export const meetings = {
   removePendency: (id) => del(`/meetings/pendencies/${id}`),
 };
 
+export const occurrences = {
+  list: (eventId) => get(`/occurrences/${eventId}`),
+  create: (eventId, data) => post(`/occurrences/${eventId}`, data),
+  update: (id, data) => patch(`/occurrences/${id}`, data),
+  remove: (id) => del(`/occurrences/${id}`),
+  createTask: (occId, data) => post(`/occurrences/${occId}/tasks`, data),
+  updateTask: (taskId, data) => patch(`/occurrences/tasks/${taskId}`, data),
+  removeTask: (taskId) => del(`/occurrences/tasks/${taskId}`),
+  createMeeting: (occId, data) => post(`/occurrences/${occId}/meetings`, data),
+};
+
 export const cycles = {
   activate: (eventId) => post(`/cycles/activate/${eventId}`, {}),
   get: (eventId) => get(`/cycles/${eventId}`),

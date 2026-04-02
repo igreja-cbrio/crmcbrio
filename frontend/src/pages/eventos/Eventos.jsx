@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { events, cycles as cyclesApi } from '../../api';
+import { events, cycles as cyclesApi, occurrences as occApi } from '../../api';
+import CycleView from './components/CycleView';
+import BudgetPanel from './components/BudgetPanel';
 
 // ── Tema ────────────────────────────────────────────────────
 const C = {
@@ -19,7 +21,7 @@ const STATUS_MAP = {
 };
 
 const TASK_STATUS_MAP = {
-  'pendente': { c: C.text3, bg: '#73737318', label: 'Pendente' },
+  'pendente': { c: C.text3, bg: '#f3f4f6', label: 'Pendente' },
   'em-andamento': { c: C.blue, bg: C.blueBg, label: 'Em Andamento' },
   'concluida': { c: C.green, bg: C.greenBg, label: 'Concluída' },
   'atrasada': { c: C.red, bg: C.redBg, label: 'Atrasada' },
@@ -58,8 +60,7 @@ const styles = {
   cardHeader: { padding: '16px 20px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   cardTitle: { fontSize: 15, fontWeight: 700, color: C.text },
   table: { width: '100%', borderCollapse: 'collapse' },
-  th: { padding: '10px 16px', fontSize: 11, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'left', borderBottom: `1px solid ${C.border}`, background: 'var(--cbrio-table-header)' },
-
+  th: { padding: '10px 16px', fontSize: 11, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'left', borderBottom: `1px solid ${C.border}`, background: '#fafafa' },
   td: { padding: '12px 16px', fontSize: 13, color: C.text, borderBottom: `1px solid ${C.border}` },
   badge: (color, bg) => ({
     display: 'inline-block', padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600,
@@ -77,14 +78,14 @@ const styles = {
   filterRow: { display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' },
   input: {
     padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13,
-    outline: 'none', width: '100%', transition: 'border 0.15s', background: 'var(--cbrio-input-bg)', color: 'var(--cbrio-text)',
+    outline: 'none', width: '100%', transition: 'border 0.15s', background: '#fff',
   },
-  select: { padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: 'var(--cbrio-input-bg)', color: 'var(--cbrio-text)', outline: 'none' },
+  select: { padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: '#fff', outline: 'none' },
   label: { fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 4, display: 'block', textTransform: 'uppercase', letterSpacing: 0.5 },
   formGroup: { marginBottom: 14 },
   formRow: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 },
-  overlay: { position: 'fixed', inset: 0, background: 'var(--cbrio-overlay)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: 60, zIndex: 1000 },
-  modal: { background: 'var(--cbrio-modal-bg)', borderRadius: 16, width: '95%', maxWidth: 560, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' },
+  overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: 60, zIndex: 1000 },
+  modal: { background: '#fff', borderRadius: 16, width: '95%', maxWidth: 560, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' },
   modalHeader: { padding: '20px 24px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   modalTitle: { fontSize: 18, fontWeight: 700, color: C.text },
   modalBody: { padding: '16px 24px 24px' },
@@ -97,7 +98,7 @@ const styles = {
     marginBottom: 10, boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
   },
   subtaskRow: { display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', fontSize: 13, color: C.text },
-  commentBox: { background: 'var(--cbrio-input-bg)', borderRadius: 8, padding: '8px 12px', marginTop: 6, fontSize: 12, color: C.text2 },
+  commentBox: { background: '#fafafa', borderRadius: 8, padding: '8px 12px', marginTop: 6, fontSize: 12, color: C.text2 },
   dot: (color) => ({ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: color, marginRight: 6 }),
   backBtn: { background: 'none', border: 'none', cursor: 'pointer', color: C.primary, fontWeight: 600, fontSize: 13, padding: 0, marginBottom: 16 },
   inlineInput: { padding: '4px 8px', borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, outline: 'none', flex: 1 },
@@ -105,8 +106,18 @@ const styles = {
 };
 
 // ── Helpers ─────────────────────────────────────────────────
-const fmtDate = (d) => d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
+function normDate(d) { return d ? (typeof d === 'string' ? d.slice(0, 10) : '') : ''; }
+const fmtDate = (d) => { const s = normDate(d); if (!s) return '—'; const [y, m, day] = s.split('-'); return `${day}/${m}/${y}`; };
 const fmtMoney = (v) => v != null ? `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '—';
+
+function DaysCounter({ date, status }) {
+  const s = normDate(date);
+  if (!s || status === 'concluido') return null;
+  const diff = Math.ceil((new Date(s + 'T12:00:00') - new Date()) / 86400000);
+  const color = diff < 0 ? C.red : diff <= 7 ? C.amber : C.green;
+  const text = diff < 0 ? `${Math.abs(diff)}d atrás` : diff === 0 ? 'Hoje' : `${diff}d`;
+  return <span style={{ fontSize: 11, fontWeight: 700, color, marginLeft: 6 }}>{text}</span>;
+}
 
 // ── Componentes auxiliares ──────────────────────────────────
 function Modal({ open, onClose, title, children, footer }) {
@@ -153,18 +164,92 @@ function Textarea({ label, ...props }) {
 }
 
 function Badge({ status, map }) {
-  const s = map[status] || { c: C.text3, bg: '#73737318', label: status || '—' };
+  const s = map[status] || { c: C.text3, bg: '#f3f4f6', label: status || '—' };
   return <span style={styles.badge(s.c, s.bg)}>{s.label}</span>;
 }
 
-// ── TABS ────────────────────────────────────────────────────
-const TABS = ['Lista', 'Detalhes'];
+// ── Calendário interativo ───────────────────────────────────
+const MONTH_NAMES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const WEEK_DAYS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+function BigCalendar({ eventsByDate, onSelectDate, selectedDate }) {
+  const [viewMonth, setViewMonth] = useState(() => {
+    const d = selectedDate ? new Date(selectedDate + 'T12:00:00') : new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  });
+  const year = viewMonth.getFullYear();
+  const month = viewMonth.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = new Date().toISOString().slice(0, 10);
+
+  const days = [];
+  for (let i = 0; i < firstDay; i++) days.push(null);
+  for (let d = 1; d <= daysInMonth; d++) days.push(d);
+
+  return (
+    <div style={{ background: '#fff', borderRadius: 12, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: `1px solid ${C.border}` }}>
+        <button onClick={() => setViewMonth(new Date(year, month - 1, 1))} style={{ ...styles.btn('ghost'), fontSize: 16 }}>‹</button>
+        <span style={{ fontWeight: 700, fontSize: 16, color: C.text }}>{MONTH_NAMES[month]} {year}</span>
+        <button onClick={() => setViewMonth(new Date(year, month + 1, 1))} style={{ ...styles.btn('ghost'), fontSize: 16 }}>›</button>
+      </div>
+      {/* Weekday headers */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: `1px solid ${C.border}` }}>
+        {WEEK_DAYS.map(d => (
+          <div key={d} style={{ padding: '8px 0', textAlign: 'center', fontSize: 11, fontWeight: 700, color: C.text3, textTransform: 'uppercase' }}>{d}</div>
+        ))}
+      </div>
+      {/* Day cells */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
+        {days.map((d, i) => {
+          if (!d) return <div key={`e${i}`} style={{ minHeight: 80, borderRight: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}` }} />;
+          const ds = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+          const evs = eventsByDate[ds] || [];
+          const isToday = ds === today;
+          const isSelected = ds === selectedDate;
+          return (
+            <div key={d} onClick={() => onSelectDate(ds)} style={{
+              minHeight: 80, padding: '4px 6px', cursor: 'pointer', borderRight: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`,
+              background: isSelected ? C.primaryBg : isToday ? '#fafafa' : '#fff',
+              transition: 'background 0.1s',
+            }}>
+              <div style={{
+                fontSize: 12, fontWeight: isToday ? 800 : 400, marginBottom: 4,
+                color: isToday ? '#fff' : C.text,
+                ...(isToday ? { background: C.primary, borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center' } : {}),
+              }}>
+                {d}
+              </div>
+              {evs.slice(0, 3).map((ev, j) => {
+                const st = STATUS_MAP[ev.status];
+                return (
+                  <div key={j} style={{
+                    fontSize: 10, padding: '1px 4px', marginBottom: 2, borderRadius: 4, overflow: 'hidden',
+                    whiteSpace: 'nowrap', textOverflow: 'ellipsis',
+                    background: ev.category_color ? `${ev.category_color}20` : C.primaryBg,
+                    color: ev.category_color || C.primary,
+                    borderLeft: `3px solid ${st?.c || C.text3}`,
+                  }}>
+                    {ev.name}
+                  </div>
+                );
+              })}
+              {evs.length > 3 && <div style={{ fontSize: 9, color: C.text3, fontWeight: 600 }}>+{evs.length - 3} mais</div>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 // ═══════════════════════════════════════════════════════════
 // COMPONENTE PRINCIPAL
 // ═══════════════════════════════════════════════════════════
 export default function Eventos() {
-  const { isDiretor } = useAuth();
+  const { profile } = useAuth();
   const [tab, setTab] = useState(0);
   const [eventList, setEventList] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -176,6 +261,19 @@ export default function Eventos() {
   // Filtros
   const [filtroStatus, setFiltroStatus] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState('');
+
+  // Home / Calendário
+  const [selectedDate, setSelectedDate] = useState(null);
+
+  // Ocorrência expandida
+  const [expandedOcc, setExpandedOcc] = useState(null);  // { ...occurrence, tasks, meetings }
+  const [occTaskName, setOccTaskName] = useState('');
+  const [occMeetingTitle, setOccMeetingTitle] = useState('');
+  const [occMeetingDate, setOccMeetingDate] = useState('');
+
+  // Ciclo criativo
+  const [hasCycle, setHasCycle] = useState(false);
+  const [detailTab, setDetailTab] = useState('info');
 
   // Modais
   const [modalEvent, setModalEvent] = useState(null);
@@ -210,7 +308,16 @@ export default function Eventos() {
       setLoading(true);
       const ev = await events.get(id);
       setSelectedEvent(ev);
-      setTab(1);
+      setTab(2);
+      // Verificar se tem ciclo criativo
+      try {
+        const cycleData = await cyclesApi.get(id);
+        setHasCycle(!!cycleData?.cycle);
+        setDetailTab(cycleData?.cycle ? 'ciclo' : 'info');
+      } catch {
+        setHasCycle(false);
+        setDetailTab('info');
+      }
     } catch (e) { setError(e.message); }
     finally { setLoading(false); }
   }, []);
@@ -241,12 +348,23 @@ export default function Eventos() {
     } catch (e) { setError(e.message); }
   }
 
+  async function toggleEventStatus(id, currentStatus) {
+    const newStatus = currentStatus === 'concluido' ? 'reabrir' : 'concluido';
+    const label = newStatus === 'concluido' ? 'finalizar' : 'reabrir';
+    if (!window.confirm(`Deseja ${label} este evento?`)) return;
+    try {
+      await events.updateStatus(id, newStatus);
+      loadEvents();
+      if (selectedEvent?.id === id) refreshDetail();
+    } catch (e) { setError(e.message); }
+  }
+
   async function deleteEvent(id) {
     if (!window.confirm('Excluir este evento?')) return;
     try {
       await events.remove(id);
       setSelectedEvent(null);
-      setTab(0);
+      setTab(1);
       loadEvents();
       loadDash();
     } catch (e) { setError(e.message); }
@@ -316,20 +434,141 @@ export default function Eventos() {
     } catch (e) { setError(e.message); }
   }
 
+  // ── Occurrence helpers ──
+  async function loadOccurrence(occId) {
+    try {
+      const data = await occApi.get(occId);
+      setExpandedOcc(data);
+    } catch (e) { console.error(e); }
+  }
+
+  async function addOccTask(occId) {
+    if (!occTaskName.trim()) return;
+    try {
+      await occApi.createTask(occId, { name: occTaskName });
+      setOccTaskName('');
+      loadOccurrence(occId);
+    } catch (e) { setError(e.message); }
+  }
+
+  async function changeOccTaskStatus(taskId, status, occId) {
+    try { await occApi.updateTaskStatus(taskId, status); loadOccurrence(occId); }
+    catch (e) { setError(e.message); }
+  }
+
+  async function deleteOccTask(taskId, occId) {
+    try { await occApi.removeTask(taskId); loadOccurrence(occId); }
+    catch (e) { setError(e.message); }
+  }
+
+  async function addOccMeeting(occId) {
+    if (!occMeetingTitle.trim() || !occMeetingDate) return;
+    try {
+      await occApi.createMeeting(occId, { title: occMeetingTitle, date: occMeetingDate });
+      setOccMeetingTitle(''); setOccMeetingDate('');
+      loadOccurrence(occId);
+    } catch (e) { setError(e.message); }
+  }
+
+  async function toggleOccPendency(pId, done, occId) {
+    try { await occApi.togglePendency(pId, !done); loadOccurrence(occId); }
+    catch (e) { setError(e.message); }
+  }
+
   // ── Category helpers ──
   const catMap = {};
   categories.forEach(c => { catMap[c.id] = c; });
   const getCatColor = (catId) => catMap[catId]?.color || C.text3;
   const getCatName = (catId) => catMap[catId]?.name || '—';
 
-  // ── Dashboard KPIs ──
-  const kpis = dash ? [
-    { label: 'Total', value: dash.total || 0, color: C.primary },
-    { label: 'No Prazo', value: dash.no_prazo || 0, color: C.green },
-    { label: 'Atenção', value: dash.atencao || 0, color: C.amber },
-    { label: 'Atrasados', value: dash.atrasado || 0, color: C.red },
-    { label: 'Concluídos', value: dash.concluido || 0, color: C.blue },
-  ] : [];
+  // ── EventsByDate (para calendário) ──
+  const eventsByDate = {};
+  eventList.forEach(ev => {
+    const d = normDate(ev.date);
+    if (d) { if (!eventsByDate[d]) eventsByDate[d] = []; eventsByDate[d].push(ev); }
+    (ev.occurrence_dates || []).forEach(od => {
+      const odn = normDate(od);
+      if (odn && odn !== d) { if (!eventsByDate[odn]) eventsByDate[odn] = []; eventsByDate[odn].push(ev); }
+    });
+  });
+
+  // ── Eventos do dia selecionado ──
+  const selectedDayEvents = selectedDate ? (eventsByDate[selectedDate] || []) : [];
+
+  // ── Dashboard KPIs (calculados a partir da lista de eventos) ──
+  const counts = { total: eventList.length, 'no-prazo': 0, 'em-risco': 0, 'atrasado': 0, 'concluido': 0 };
+  eventList.forEach(e => { if (counts[e.status] !== undefined) counts[e.status]++; });
+  const kpis = [
+    { label: 'Total', value: counts.total, color: C.primary },
+    { label: 'No Prazo', value: counts['no-prazo'], color: C.green },
+    { label: 'Em Risco', value: counts['em-risco'], color: C.amber },
+    { label: 'Atrasados', value: counts['atrasado'], color: C.red },
+    { label: 'Concluídos', value: counts['concluido'], color: C.blue },
+  ];
+
+  // ═══════════════════════════════════════════════════════════
+  // RENDER — HOME (calendário)
+  // ═══════════════════════════════════════════════════════════
+  function renderHome() {
+    return (
+      <>
+        {/* KPIs */}
+        {kpis.length > 0 && (
+          <div style={styles.kpiGrid}>
+            {kpis.map(k => (
+              <div key={k.label} style={styles.kpi(k.color)}>
+                <div style={styles.kpiValue}>{k.value}</div>
+                <div style={styles.kpiLabel}>{k.label}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Calendário */}
+        <BigCalendar
+          eventsByDate={eventsByDate}
+          selectedDate={selectedDate}
+          onSelectDate={(date) => setSelectedDate(date === selectedDate ? null : date)}
+        />
+
+        {/* Eventos do dia selecionado */}
+        {selectedDate && (
+          <div style={{ marginTop: 16 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 10 }}>
+              {fmtDate(selectedDate)} — {selectedDayEvents.length} evento{selectedDayEvents.length !== 1 ? 's' : ''}
+            </div>
+            {selectedDayEvents.length === 0 && (
+              <div style={styles.empty}>Nenhum evento neste dia</div>
+            )}
+            {selectedDayEvents.map(ev => {
+              const st = STATUS_MAP[ev.status] || {};
+              return (
+                <div key={ev.id} onClick={() => loadDetail(ev.id)} style={{
+                  ...styles.taskCard, cursor: 'pointer', borderLeft: `4px solid ${getCatColor(ev.category_id)}`,
+                  transition: 'box-shadow 0.15s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'}
+                onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{ev.name}</div>
+                      <div style={{ fontSize: 12, color: C.text2, marginTop: 2 }}>
+                        {getCatName(ev.category_id)}
+                        {ev.responsible && ` · ${ev.responsible}`}
+                        {ev.location && ` · ${ev.location}`}
+                      </div>
+                    </div>
+                    <Badge status={ev.status} map={STATUS_MAP} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </>
+    );
+  }
 
   // ═══════════════════════════════════════════════════════════
   // RENDER — LISTA
@@ -387,7 +626,7 @@ export default function Eventos() {
               {eventList.map(ev => (
                 <tr key={ev.id} style={styles.clickRow}
                   onClick={() => loadDetail(ev.id)}
-                  onMouseEnter={e => e.currentTarget.style.background = '#1e1e1e'}
+                  onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
                   onMouseLeave={e => e.currentTarget.style.background = ''}
                 >
                   <td style={{ ...styles.td, fontWeight: 600 }}>{ev.name}</td>
@@ -398,7 +637,10 @@ export default function Eventos() {
                   </td>
                   <td style={styles.td}>{ev.responsible || '—'}</td>
                   <td style={styles.td}>{fmtMoney(ev.budget_planned)}</td>
-                  <td style={styles.td}><Badge status={ev.status} map={STATUS_MAP} /></td>
+                  <td style={{ ...styles.td, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Badge status={ev.status} map={STATUS_MAP} />
+                    <DaysCounter date={ev.date} status={ev.status} />
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -420,7 +662,7 @@ export default function Eventos() {
 
     return (
       <>
-        <button style={styles.backBtn} onClick={() => { setTab(0); setSelectedEvent(null); }}>
+        <button style={styles.backBtn} onClick={() => { setTab(1); setSelectedEvent(null); }}>
           ← Voltar para lista
         </button>
 
@@ -436,12 +678,16 @@ export default function Eventos() {
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <Badge status={ev.status} map={STATUS_MAP} />
-              {isDiretor && (
-                <>
+                              <>
+                  <button
+                    style={{ ...styles.btn(ev.status === 'concluido' ? 'secondary' : 'primary'), ...styles.btnSm }}
+                    onClick={() => toggleEventStatus(ev.id, ev.status)}
+                  >
+                    {ev.status === 'concluido' ? 'Reabrir' : 'Finalizar'}
+                  </button>
                   <button style={{ ...styles.btn('secondary'), ...styles.btnSm }} onClick={() => setModalEvent(ev)}>Editar</button>
                   <button style={{ ...styles.btn('danger'), ...styles.btnSm }} onClick={() => deleteEvent(ev.id)}>Excluir</button>
                 </>
-              )}
             </div>
           </div>
           <div style={{ padding: '16px 20px' }}>
@@ -475,42 +721,146 @@ export default function Eventos() {
                 <div style={{ fontSize: 13, marginTop: 2, color: C.text2 }}>{ev.lessons_learned}</div>
               </div>
             )}
+
+            {/* Ocorrências como pills dentro do card */}
+            {occurrences.length > 0 && (
+              <div style={{ marginTop: 16, paddingTop: 12, borderTop: `1px solid ${C.border}` }}>
+                <span style={styles.label}>Ocorrências ({occurrences.length})</span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                  {occurrences.map(occ => {
+                    const occDate = normDate(occ.date);
+                    const today = new Date().toISOString().slice(0, 10);
+                    const isPast = occDate < today;
+                    const isToday = occDate === today;
+                    const statusColor = occ.status === 'concluido' ? C.green : isPast ? C.red : isToday ? C.amber : C.text3;
+                    const isSelected = expandedOcc?.id === occ.id;
+                    return (
+                      <button key={occ.id}
+                        onClick={() => { if (isSelected) { setExpandedOcc(null); } else { loadOccurrence(occ.id); } }}
+                        style={{
+                          padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                          border: isSelected ? `2px solid ${C.primary}` : `1.5px solid ${statusColor}`,
+                          background: isSelected ? C.primaryBg : `${statusColor}10`,
+                          color: isSelected ? C.primary : statusColor,
+                          transition: 'all 0.15s',
+                        }}>
+                        {fmtDate(occ.date)}
+                        {occ.status === 'concluido' && ' ✓'}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Ocorrências */}
-        {occurrences.length > 0 && (
-          <>
-            <div style={styles.sectionTitle}>Ocorrências ({occurrences.length})</div>
-            <div style={styles.card}>
-              <table style={styles.table}>
-                <thead>
-                  <tr>
-                    <th style={styles.th}>Data</th>
-                    <th style={styles.th}>Público Real</th>
-                    <th style={styles.th}>Observações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {occurrences.map(occ => (
-                    <tr key={occ.id}>
-                      <td style={styles.td}>{fmtDate(occ.date)}</td>
-                      <td style={styles.td}>{occ.actual_attendance ?? '—'}</td>
-                      <td style={styles.td}>{occ.notes || '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        {/* Área expandida da ocorrência selecionada */}
+        {expandedOcc && (
+          <div style={{ ...styles.card, marginBottom: 20, borderTop: `3px solid ${C.primary}` }}>
+            <div style={{ ...styles.cardHeader }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={styles.cardTitle}>Ocorrência: {fmtDate(expandedOcc.date)}</div>
+                <select value={expandedOcc.status}
+                  onChange={async (e) => {
+                    try { await events.updateOccurrence(ev.id, expandedOcc.id, { status: e.target.value }); refreshDetail(); loadOccurrence(expandedOcc.id); }
+                    catch (err) { setError(err.message); }
+                  }}
+                  style={{ ...styles.select, padding: '4px 8px', fontSize: 11 }}>
+                  <option value="pendente">Pendente</option>
+                  <option value="concluido">Concluído</option>
+                </select>
+              </div>
+              <button style={{ ...styles.btn('ghost'), fontSize: 16 }} onClick={() => setExpandedOcc(null)}>✕</button>
             </div>
-          </>
+            <div style={{ padding: '16px 20px' }}>
+              {/* Tarefas da ocorrência */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>Tarefas ({expandedOcc.tasks?.length || 0})</div>
+              </div>
+              {(expandedOcc.tasks || []).map(task => (
+                <div key={task.id} style={{ ...styles.taskCard, padding: '10px 14px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <span style={{ fontWeight: 600, fontSize: 13, color: C.text }}>{task.name}</span>
+                      {task.responsible && <span style={{ fontSize: 11, color: C.text2, marginLeft: 8 }}>{task.responsible}</span>}
+                      {task.deadline && <span style={{ fontSize: 11, color: C.text3, marginLeft: 8 }}>Prazo: {fmtDate(task.deadline)}</span>}
+                    </div>
+                    <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                      <select value={task.status} onChange={e => changeOccTaskStatus(task.id, e.target.value, expandedOcc.id)}
+                        style={{ ...styles.select, padding: '2px 6px', fontSize: 11 }}>
+                        <option value="pendente">Pendente</option>
+                        <option value="em-andamento">Em andamento</option>
+                        <option value="concluida">Concluída</option>
+                      </select>
+                      <button style={{ ...styles.btn('ghost'), ...styles.btnSm, color: C.red }} onClick={() => deleteOccTask(task.id, expandedOcc.id)}>✕</button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <div style={{ display: 'flex', gap: 6, marginBottom: 20 }}>
+                <input style={styles.inlineInput} placeholder="Nova tarefa..." value={occTaskName}
+                  onChange={e => setOccTaskName(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && addOccTask(expandedOcc.id)} />
+                <button style={styles.inlineBtn} onClick={() => addOccTask(expandedOcc.id)}>+</button>
+              </div>
+
+              {/* Reuniões da ocorrência */}
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 10 }}>Reuniões ({expandedOcc.meetings?.length || 0})</div>
+              {(expandedOcc.meetings || []).map(m => (
+                <div key={m.id} style={{ ...styles.taskCard, padding: '10px 14px' }}>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: C.text }}>{m.title}</div>
+                  <div style={{ fontSize: 11, color: C.text2, marginTop: 2 }}>
+                    {fmtDate(m.date)}
+                    {m.participants?.length > 0 && ` · ${m.participants.join(', ')}`}
+                  </div>
+                  {m.decisions && <div style={{ fontSize: 12, color: C.text2, marginTop: 4 }}><strong>Decisões:</strong> {m.decisions}</div>}
+                  {(m.pendencies || []).length > 0 && (
+                    <div style={{ marginTop: 6 }}>
+                      {m.pendencies.map(p => (
+                        <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '2px 0' }}>
+                          <input type="checkbox" checked={p.done} onChange={() => toggleOccPendency(p.id, p.done, expandedOcc.id)} />
+                          <span style={p.done ? { textDecoration: 'line-through', color: C.text3 } : { color: C.text }}>{p.description}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input style={{ ...styles.inlineInput, flex: 2 }} placeholder="Título da reunião..." value={occMeetingTitle}
+                  onChange={e => setOccMeetingTitle(e.target.value)} />
+                <input type="date" style={{ ...styles.inlineInput, flex: 1 }} value={occMeetingDate}
+                  onChange={e => setOccMeetingDate(e.target.value)} />
+                <button style={styles.inlineBtn} onClick={() => addOccMeeting(expandedOcc.id)}>+</button>
+              </div>
+            </div>
+          </div>
         )}
 
-        {/* Tarefas */}
+        {/* Sub-tabs do detalhe */}
+        <div style={{ ...styles.tabs, marginTop: 20, marginBottom: 16 }}>
+          {(hasCycle
+            ? [{ key: 'ciclo', label: 'Ciclo Criativo' }]
+            : [{ key: 'info', label: 'Tarefas e Reuniões' }, { key: 'ciclo', label: 'Ciclo Criativo' }]
+          ).map(t => (
+            <button key={t.key} style={styles.tab(detailTab === t.key)} onClick={() => setDetailTab(t.key)}>{t.label}</button>
+          ))}
+        </div>
+
+        {/* Sub-tab: Ciclo Criativo */}
+        {detailTab === 'ciclo' && (
+          <div>
+            <BudgetPanel eventId={ev.id} budget={null} onReload={() => refreshDetail()} />
+            <CycleView eventId={ev.id} />
+          </div>
+        )}
+
+        {/* Sub-tab: Tarefas e Reuniões (só quando não tem ciclo) */}
+        {detailTab === 'info' && <>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 24, marginBottom: 12 }}>
           <div style={{ ...styles.sectionTitle, margin: 0 }}>Tarefas ({taskList.length})</div>
-          {isDiretor && (
-            <button style={{ ...styles.btn('primary'), ...styles.btnSm }} onClick={() => setModalTask({})}>+ Tarefa</button>
-          )}
+          <button style={{ ...styles.btn('primary'), ...styles.btnSm }} onClick={() => setModalTask({})}>+ Tarefa</button>
         </div>
 
         {taskList.length === 0 && <div style={styles.empty}>Nenhuma tarefa cadastrada.</div>}
@@ -532,8 +882,6 @@ export default function Eventos() {
               <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
                 {task.priority && <Badge status={task.priority} map={PRIORITY_MAP} />}
                 <Badge status={task.status} map={TASK_STATUS_MAP} />
-                {isDiretor && (
-                  <>
                     <select
                       style={{ ...styles.select, padding: '2px 6px', fontSize: 11 }}
                       value={task.status}
@@ -545,8 +893,6 @@ export default function Eventos() {
                     </select>
                     <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => setModalTask(task)}>Editar</button>
                     <button style={{ ...styles.btn('ghost'), ...styles.btnSm, color: C.red }} onClick={() => deleteTask(task.id)}>✕</button>
-                  </>
-                )}
               </div>
             </div>
 
@@ -568,12 +914,10 @@ export default function Eventos() {
                     <span style={sub.done ? { textDecoration: 'line-through', color: C.text3 } : {}}>
                       {sub.name}
                     </span>
-                    {isDiretor && (
-                      <button
-                        style={{ background: 'none', border: 'none', color: C.text3, cursor: 'pointer', fontSize: 11, padding: '0 4px' }}
-                        onClick={() => deleteSubtask(sub.id)}
-                      >✕</button>
-                    )}
+                    <button
+                      style={{ background: 'none', border: 'none', color: C.text3, cursor: 'pointer', fontSize: 11, padding: '0 4px' }}
+                      onClick={() => deleteSubtask(sub.id)}
+                    >✕</button>
                   </div>
                 ))}
               </div>
@@ -655,6 +999,7 @@ export default function Eventos() {
             </div>
           </>
         )}
+        </>}
       </>
     );
   }
@@ -796,7 +1141,7 @@ export default function Eventos() {
           <div style={styles.title}>Eventos</div>
           <div style={styles.subtitle}>Gestão de eventos da igreja</div>
         </div>
-        {isDiretor && tab === 0 && (
+        {(tab === 0 || tab === 1) && (
           <button style={styles.btn('primary')} onClick={() => setModalEvent({})}>+ Novo Evento</button>
         )}
       </div>
@@ -811,13 +1156,15 @@ export default function Eventos() {
 
       {/* Tabs */}
       <div style={styles.tabs}>
-        <button style={styles.tab(tab === 0)} onClick={() => setTab(0)}>Lista</button>
-        {selectedEvent && <button style={styles.tab(tab === 1)} onClick={() => setTab(1)}>Detalhes</button>}
+        <button style={styles.tab(tab === 0)} onClick={() => setTab(0)}>Home</button>
+        <button style={styles.tab(tab === 1)} onClick={() => setTab(1)}>Lista</button>
+        {selectedEvent && <button style={styles.tab(tab === 2)} onClick={() => setTab(2)}>Detalhes</button>}
       </div>
 
       {/* Content */}
-      {tab === 0 && renderList()}
-      {tab === 1 && renderDetail()}
+      {tab === 0 && renderHome()}
+      {tab === 1 && renderList()}
+      {tab === 2 && renderDetail()}
 
       {/* Modals */}
       {renderEventModal()}

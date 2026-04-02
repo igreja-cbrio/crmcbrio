@@ -55,13 +55,13 @@ export default function BudgetPanel({ eventId, budget, onReload }) {
           background: excedido ? '#ef4444' : pct > 80 ? '#f59e0b' : '#10b981' }} />
       </div>
       {excedido && (
-        <div style={{ marginTop: 6, padding: '6px 10px', borderRadius: 6, background: '#ef444418', border: '1px solid #ef444440', fontSize: 11, color: '#ef4444', fontWeight: 600 }}>
+        <div style={{ marginTop: 6, padding: '6px 10px', borderRadius: 6, background: '#fef2f2', border: '1px solid #fecaca', fontSize: 11, color: '#ef4444', fontWeight: 600 }}>
           Orçamento excedido em R$ {(gasto - orcamento).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
         </div>
       )}
 
       {showExpenseForm && (
-        <form onSubmit={handleSubmitExpense} style={{ marginTop: 10, padding: 10, background: 'var(--cbrio-input-bg)', borderRadius: 8, border: `1px solid ${C.border}` }}>
+        <form onSubmit={handleSubmitExpense} style={{ marginTop: 10, padding: 10, background: 'var(--cbrio-table-header)', borderRadius: 8, border: `1px solid ${C.border}` }}>
           <input placeholder="Descrição" value={expense.descricao} onChange={e => setExpense(p => ({ ...p, descricao: e.target.value }))}
             style={inputStyle} />
           <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
@@ -86,5 +86,5 @@ export default function BudgetPanel({ eventId, budget, onReload }) {
   );
 }
 
-const inputStyle = { width: '100%', padding: '6px 10px', borderRadius: 6, border: '1px solid var(--cbrio-border)', fontSize: 12, color: 'var(--cbrio-text)', background: 'var(--cbrio-input-bg)', outline: 'none' };
+const inputStyle = { width: '100%', padding: '6px 10px', borderRadius: 6, border: '1px solid var(--cbrio-border)', fontSize: 12, color: 'var(--cbrio-text)', outline: 'none' };
 const btnSave = { width: '100%', padding: '8px', borderRadius: 6, border: 'none', background: '#00B39D', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 12 };
