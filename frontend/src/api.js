@@ -344,10 +344,16 @@ export const rh = {
 };
 
 export const notificacoes = {
-  list: () => get('/notificacoes'),
+  list: (params) => get('/notificacoes' + (params ? '?' + new URLSearchParams(params) : '')),
   count: () => get('/notificacoes/count'),
   ler: (id) => patch(`/notificacoes/${id}/ler`),
   lerTodas: () => patch('/notificacoes/ler-todas'),
+  gerar: () => post('/notificacoes/gerar'),
+  regras: {
+    list: () => get('/notificacoes/regras'),
+    create: (data) => post('/notificacoes/regras', data),
+    remove: (id) => del(`/notificacoes/regras/${id}`),
+  },
 };
 
 export const permissoes = {

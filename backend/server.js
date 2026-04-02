@@ -71,6 +71,11 @@ if (!process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`[CBRio PMO] Servidor rodando na porta ${PORT}`);
     console.log(`[CBRio PMO] Ambiente: ${process.env.NODE_ENV || 'development'}`);
+
+    // Cron: gerar notificações automáticas a cada 6 horas
+    const { gerarTodasNotificacoes } = require('./services/notificacaoGenerator');
+    setTimeout(() => gerarTodasNotificacoes(), 30000);
+    setInterval(() => gerarTodasNotificacoes(), 6 * 60 * 60 * 1000);
   });
 }
 
