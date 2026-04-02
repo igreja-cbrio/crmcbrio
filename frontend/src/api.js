@@ -202,6 +202,19 @@ export const logistica = {
     update: (id, data) => put(`/logistica/pedidos/${id}`, data),
     remove: (id) => del(`/logistica/pedidos/${id}`),
     receber: (id, data) => post(`/logistica/pedidos/${id}/recebimento`, data),
+    itens: (pedidoId) => get(`/logistica/pedidos/${pedidoId}/itens`),
+    addItem: (pedidoId, data) => post(`/logistica/pedidos/${pedidoId}/itens`, data),
+    removeItem: (id) => del(`/logistica/itens/${id}`),
+  },
+  notas: {
+    list: () => get('/logistica/notas'),
+    create: (data) => post('/logistica/notas', data),
+    remove: (id) => del(`/logistica/notas/${id}`),
+  },
+  movimentacoes: {
+    list: (params) => get('/logistica/movimentacoes' + (params ? '?' + new URLSearchParams(params) : '')),
+    create: (data) => post('/logistica/movimentacoes', data),
+    historico: (codigo) => get(`/logistica/movimentacoes/historico/${encodeURIComponent(codigo)}`),
   },
 };
 
