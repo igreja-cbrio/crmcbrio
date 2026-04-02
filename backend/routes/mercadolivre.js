@@ -176,9 +176,10 @@ router.get('/orders', async (req, res) => {
     const config = await getMLConfig();
     if (!config?.connected) return res.status(400).json({ error: 'Mercado Livre não conectado' });
 
-    const { offset = 0, limit = 20, status } = req.query;
+    const { offset = 0, limit = 20, status, q } = req.query;
     let path = `/orders/search?buyer=${config.user_id}&offset=${offset}&limit=${limit}&sort=date_desc`;
     if (status) path += `&order.status=${status}`;
+    if (q) path += `&q=${encodeURIComponent(q)}`;
 
     const data = await mlFetch(path, config);
     res.json(data);

@@ -723,7 +723,11 @@ function NotasFiscaisTab({ data, loading, onNew, onDelete, onReload }) {
           <td style={{ ...styles.td, fontWeight: 600 }}>{fmtMoney(n.valor)}</td>
           <td style={styles.td}>{fmtDate(n.data_emissao)}</td>
           <td style={styles.td}><Badge status={n.origem || 'manual'} map={NF_ORIGEM} /></td>
-          <td style={styles.td}>{n.storage_path ? <a href={n.storage_path} target="_blank" rel="noopener noreferrer" style={{ color: C.primary }}>📄 Ver</a> : '—'}</td>
+          <td style={styles.td}>
+            {n.storage_path ? <a href={n.storage_path} target="_blank" rel="noopener noreferrer" style={{ color: C.primary }}>📄 Ver</a>
+            : n.origem === 'mercadolivre' && n.ml_order_id ? <a href={`https://www.mercadolivre.com.br/purchases/${n.ml_order_id}`} target="_blank" rel="noopener noreferrer" style={{ color: C.primary, fontSize: 12 }}>🛒 Ver no ML</a>
+            : '—'}
+          </td>
           <td style={styles.td}><button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => onDelete(n.id)}>🗑</button></td>
         </tr>
       ))}
@@ -1134,6 +1138,9 @@ function ComprasMLTab() {
   const [configForm, setConfigForm] = useState({ client_id: '', client_secret: '' });
   const [configuring, setConfiguring] = useState(false);
   const [filtroStatus, setFiltroStatus] = useState('');
+  const [busca, setBusca] = useState('');
+  const [expanded, setExpanded] = useState(null);
+  const [shipDetail, setShipDetail] = useState(null);
 
   useEffect(() => { checkStatus(); }, []);
 
@@ -1152,6 +1159,7 @@ function ComprasMLTab() {
     try {
       const params = { offset, limit: 20 };
       if (filtroStatus) params.status = filtroStatus;
+      if (busca) params.q = busca;
       const data = await ml.orders(params);
       setOrders(data.results || []);
       setPaging({ total: data.paging?.total || 0, offset });
@@ -1160,6 +1168,19 @@ function ComprasMLTab() {
   }
 
   useEffect(() => { if (mlStatus?.connected) loadOrders(0); }, [filtroStatus]);
+
+  function handleSearch(e) {
+    if (e.key === 'Enter') loadOrders(0);
+  }
+
+  async function toggleExpand(order) {
+    if (expanded === order.id) { setExpanded(null); setShipDetail(null); return; }
+    setExpanded(order.id);
+    setShipDetail(null);
+    if (order.shipping?.id) {
+      try { setShipDetail(await ml.shipment(order.shipping.id)); } catch (e) { console.error(e); }
+    }
+  }
 
   async function handleConfig() {
     setConfiguring(true);
@@ -1170,27 +1191,17 @@ function ComprasMLTab() {
     setConfiguring(false);
   }
 
-  async function handleReconnect() {
-    try {
-      const data = await ml.authUrl();
-      if (data.auth_url) window.location.href = data.auth_url;
-    } catch (e) { alert(e.message); }
-  }
-
   async function handleDisconnect() {
     if (!confirm('Desconectar do Mercado Livre?')) return;
     try { await ml.disconnect(); checkStatus(); } catch (e) { alert(e.message); }
   }
 
-  // Tela de configuração se não conectado
   if (mlStatus && !mlStatus.connected) {
     return (
       <div style={{ ...styles.card, padding: 32, textAlign: 'center', maxWidth: 500, margin: '0 auto' }}>
         <div style={{ fontSize: 48, marginBottom: 12 }}>🛒</div>
         <div style={{ fontSize: 20, fontWeight: 700, color: C.text, marginBottom: 8 }}>Conectar ao Mercado Livre</div>
-        <div style={{ fontSize: 13, color: C.text2, marginBottom: 24 }}>
-          Configure as credenciais do seu app do Mercado Livre para importar compras automaticamente.
-        </div>
+        <div style={{ fontSize: 13, color: C.text2, marginBottom: 24 }}>Configure as credenciais do seu app do Mercado Livre para importar compras automaticamente.</div>
         <div style={{ textAlign: 'left' }}>
           <Input label="Client ID (App ID)" value={configForm.client_id} onChange={e => setConfigForm(f => ({ ...f, client_id: e.target.value }))} />
           <Input label="Client Secret" type="password" value={configForm.client_secret} onChange={e => setConfigForm(f => ({ ...f, client_secret: e.target.value }))} />
@@ -1207,7 +1218,7 @@ function ComprasMLTab() {
   }
 
   return (<>
-    {/* Header com status da conexão */}
+    {/* Header */}
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <span style={{ fontSize: 20 }}>🛒</span>
@@ -1217,68 +1228,149 @@ function ComprasMLTab() {
           <span style={{ ...styles.badge(C.green, C.greenBg), marginLeft: 8 }}>Conectado</span>
         </div>
       </div>
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <input style={{ ...styles.input, width: 200 }} placeholder="Buscar por produto, ID..." value={busca}
+          onChange={e => setBusca(e.target.value)} onKeyDown={handleSearch} />
         <select style={styles.select} value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
           <option value="">Todos os status</option>
           <option value="paid">Pagos</option>
           <option value="confirmed">Confirmados</option>
           <option value="cancelled">Cancelados</option>
         </select>
-        <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => loadOrders(0)}>🔄 Atualizar</button>
+        <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => loadOrders(0)}>🔄</button>
         <button style={{ ...styles.btn('ghost'), ...styles.btnSm, color: C.red }} onClick={handleDisconnect}>Desconectar</button>
       </div>
     </div>
 
-    {/* Tabela de pedidos */}
-    <div style={styles.card}>
-      <table style={styles.table}><thead><tr>
-        <th style={styles.th}>Pedido</th>
-        <th style={styles.th}>Produto(s)</th>
-        <th style={styles.th}>Vendedor</th>
-        <th style={styles.th}>Valor</th>
-        <th style={styles.th}>Data</th>
-        <th style={styles.th}>Status</th>
-        <th style={styles.th}>Envio</th>
-      </tr></thead><tbody>
-        {loading ? <tr><td style={styles.td} colSpan={7}><div style={styles.empty}>Carregando compras...</div></td></tr>
-        : orders.length === 0 ? <tr><td style={styles.td} colSpan={7}><div style={styles.empty}>Nenhuma compra encontrada</div></td></tr>
-        : orders.map(o => (
-          <tr key={o.id}>
-            <td style={{ ...styles.td, fontFamily: 'monospace', fontSize: 12 }}>#{o.id}</td>
-            <td style={styles.td}>
-              {(o.order_items || []).map((item, i) => (
-                <div key={i} style={{ fontSize: 13 }}>
-                  <div style={{ fontWeight: 600 }}>{item.item?.title}</div>
-                  <div style={{ fontSize: 11, color: C.text3 }}>Qtd: {item.quantity} • {fmtMoney(item.unit_price)}</div>
+    {/* Cards de compras */}
+    {loading ? <div style={styles.empty}>Carregando compras...</div>
+    : orders.length === 0 ? <div style={styles.empty}>Nenhuma compra encontrada</div>
+    : <div style={{ display: 'grid', gap: 12 }}>
+      {orders.map(o => {
+        const isExpanded = expanded === o.id;
+        const statusInfo = ML_ORDER_STATUS[o.status] || { c: C.text3, bg: '#73737318', label: o.status };
+        return (
+          <div key={o.id} style={{ ...styles.card, borderLeft: `4px solid ${statusInfo.c}`, cursor: 'pointer' }}
+            onClick={() => toggleExpand(o)}>
+            <div style={{ padding: '16px 20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                <div style={{ flex: 1 }}>
+                  {(o.order_items || []).map((item, i) => (
+                    <div key={i} style={{ marginBottom: i < o.order_items.length - 1 ? 6 : 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{item.item?.title}</div>
+                      <div style={{ fontSize: 12, color: C.text3 }}>Qtd: {item.quantity} • Unit: {fmtMoney(item.unit_price)}</div>
+                    </div>
+                  ))}
+                  <div style={{ fontSize: 12, color: C.text2, marginTop: 6 }}>
+                    <span style={{ fontFamily: 'monospace' }}>#{o.id}</span>
+                    <span style={{ marginLeft: 10 }}>Vendedor: <strong>{o.seller?.nickname || '—'}</strong></span>
+                    <span style={{ marginLeft: 10 }}>{o.date_created ? new Date(o.date_created).toLocaleDateString('pt-BR') : ''}</span>
+                  </div>
                 </div>
-              ))}
-            </td>
-            <td style={styles.td}>
-              <div style={{ fontSize: 13 }}>{o.seller?.nickname || '—'}</div>
-            </td>
-            <td style={{ ...styles.td, fontWeight: 600 }}>{fmtMoney(o.total_amount)}</td>
-            <td style={styles.td}>{o.date_created ? new Date(o.date_created).toLocaleDateString('pt-BR') : '—'}</td>
-            <td style={styles.td}><Badge status={o.status} map={ML_ORDER_STATUS} /></td>
-            <td style={styles.td}>
-              {o.shipping?.id ? (
-                <span style={{ fontSize: 12, color: C.primary }}>#{o.shipping.id}</span>
-              ) : '—'}
-            </td>
-          </tr>
-        ))}
-      </tbody></table>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: C.text }}>{fmtMoney(o.total_amount)}</div>
+                  <Badge status={o.status} map={ML_ORDER_STATUS} />
+                  <div style={{ fontSize: 14, color: C.text3, marginTop: 4, transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : '' }}>▼</div>
+                </div>
+              </div>
+            </div>
 
-      {/* Paginação */}
-      {paging.total > 20 && (
-        <div style={{ padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: `1px solid ${C.border}` }}>
-          <span style={{ fontSize: 12, color: C.text2 }}>Mostrando {paging.offset + 1}–{Math.min(paging.offset + 20, paging.total)} de {paging.total}</span>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} disabled={paging.offset === 0} onClick={() => loadOrders(paging.offset - 20)}>← Anterior</button>
-            <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} disabled={paging.offset + 20 >= paging.total} onClick={() => loadOrders(paging.offset + 20)}>Próximo →</button>
+            {/* Detalhes expandidos */}
+            {isExpanded && (
+              <div style={{ padding: '0 20px 16px', borderTop: `1px solid ${C.border}` }} onClick={e => e.stopPropagation()}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px 20px', paddingTop: 16 }}>
+                  <div>
+                    <div style={{ fontSize: 11, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>Pagamento</div>
+                    <div style={{ fontSize: 14, color: C.text }}>{o.payments?.[0]?.payment_type === 'credit_card' ? '💳 Cartão' : o.payments?.[0]?.payment_type || '—'}</div>
+                    {o.payments?.[0]?.installments > 1 && <div style={{ fontSize: 12, color: C.text2 }}>{o.payments[0].installments}x de {fmtMoney(o.payments[0].installment_amount)}</div>}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>Data da Compra</div>
+                    <div style={{ fontSize: 14, color: C.text }}>{o.date_created ? fmtDateTime(o.date_created) : '—'}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>Envio</div>
+                    {o.shipping?.id ? (
+                      <div style={{ fontSize: 14, color: C.text }}>#{o.shipping.id}</div>
+                    ) : <div style={{ fontSize: 14, color: C.text3 }}>Sem envio</div>}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>Ver no ML</div>
+                    <a href={`https://www.mercadolivre.com.br/purchases/${o.id}`} target="_blank" rel="noopener noreferrer"
+                      style={{ fontSize: 13, color: C.primary, textDecoration: 'none' }}>Abrir compra ↗</a>
+                  </div>
+                </div>
+
+                {/* Info de envio/rastreio */}
+                {shipDetail && (
+                  <div style={{ marginTop: 16, padding: 16, background: 'var(--cbrio-input-bg)', borderRadius: 10 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 10 }}>📦 Informações de Envio</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px 16px' }}>
+                      <div>
+                        <div style={{ fontSize: 11, color: C.text3, fontWeight: 600 }}>STATUS</div>
+                        <Badge status={shipDetail.status} map={ML_SHIP_STATUS} />
+                        {shipDetail.substatus && <div style={{ fontSize: 11, color: C.text2, marginTop: 2 }}>{shipDetail.substatus}</div>}
+                      </div>
+                      {shipDetail.tracking_number && <div>
+                        <div style={{ fontSize: 11, color: C.text3, fontWeight: 600 }}>RASTREIO</div>
+                        <div style={{ fontSize: 14, fontFamily: 'monospace', fontWeight: 600, color: C.text }}>{shipDetail.tracking_number}</div>
+                      </div>}
+                      {shipDetail.tracking_method && <div>
+                        <div style={{ fontSize: 11, color: C.text3, fontWeight: 600 }}>TRANSPORTADORA</div>
+                        <div style={{ fontSize: 14, color: C.text }}>{shipDetail.tracking_method}</div>
+                      </div>}
+                      {shipDetail.date_created && <div>
+                        <div style={{ fontSize: 11, color: C.text3, fontWeight: 600 }}>CRIADO EM</div>
+                        <div style={{ fontSize: 14, color: C.text }}>{fmtDateTime(shipDetail.date_created)}</div>
+                      </div>}
+                      {shipDetail.last_updated && <div>
+                        <div style={{ fontSize: 11, color: C.text3, fontWeight: 600 }}>ATUALIZADO</div>
+                        <div style={{ fontSize: 14, color: C.text }}>{fmtDateTime(shipDetail.last_updated)}</div>
+                      </div>}
+                      {shipDetail.receiver_address && <div style={{ gridColumn: '1 / -1' }}>
+                        <div style={{ fontSize: 11, color: C.text3, fontWeight: 600 }}>ENDEREÇO DE ENTREGA</div>
+                        <div style={{ fontSize: 13, color: C.text }}>
+                          {[shipDetail.receiver_address.street_name, shipDetail.receiver_address.street_number].filter(Boolean).join(', ')}
+                          {shipDetail.receiver_address.city?.name && ` — ${shipDetail.receiver_address.city.name}`}
+                          {shipDetail.receiver_address.state?.name && ` / ${shipDetail.receiver_address.state.name}`}
+                          {shipDetail.receiver_address.zip_code && ` — CEP: ${shipDetail.receiver_address.zip_code}`}
+                        </div>
+                      </div>}
+                    </div>
+
+                    {/* Barra de progresso */}
+                    <div style={{ display: 'flex', gap: 4, marginTop: 12 }}>
+                      {['pending', 'handling', 'ready_to_ship', 'shipped', 'delivered'].map((step, i) => {
+                        const steps = ['pending', 'handling', 'ready_to_ship', 'shipped', 'delivered'];
+                        const currentIdx = steps.indexOf(shipDetail.status);
+                        const active = i <= currentIdx;
+                        const shipColor = (ML_SHIP_STATUS[shipDetail.status] || {}).c || C.text3;
+                        return <div key={step} style={{ flex: 1, height: 4, borderRadius: 2, background: active ? shipColor : C.border }} />;
+                      })}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+                      {['Pendente', 'Preparando', 'Pronto', 'Enviado', 'Entregue'].map(l => <span key={l} style={{ fontSize: 9, color: C.text3 }}>{l}</span>)}
+                    </div>
+                  </div>
+                )}
+                {o.shipping?.id && !shipDetail && <div style={{ marginTop: 12, fontSize: 13, color: C.text3 }}>Carregando envio...</div>}
+              </div>
+            )}
           </div>
+        );
+      })}
+    </div>}
+
+    {/* Paginação */}
+    {paging.total > 20 && (
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
+        <span style={{ fontSize: 12, color: C.text2 }}>Mostrando {paging.offset + 1}–{Math.min(paging.offset + 20, paging.total)} de {paging.total}</span>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} disabled={paging.offset === 0} onClick={() => loadOrders(paging.offset - 20)}>← Anterior</button>
+          <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} disabled={paging.offset + 20 >= paging.total} onClick={() => loadOrders(paging.offset + 20)}>Próximo →</button>
         </div>
-      )}
-    </div>
+      </div>
+    )}
   </>);
 }
 
