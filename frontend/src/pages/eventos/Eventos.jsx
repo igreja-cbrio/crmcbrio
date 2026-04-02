@@ -204,7 +204,7 @@ function BigCalendar({ eventsByDate, onSelectDate, selectedDate }) {
       {/* Day cells */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
         {days.map((d, i) => {
-          if (!d) return <div key={`e${i}`} style={{ minHeight: 80, borderRight: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}` }} />;
+          if (!d) return <div key={`e${i}`} style={{ minHeight: 80, borderRight: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`, background: 'var(--cbrio-card)', opacity: 0.5 }} />;
           const ds = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
           const evs = eventsByDate[ds] || [];
           const isToday = ds === today;
@@ -212,7 +212,7 @@ function BigCalendar({ eventsByDate, onSelectDate, selectedDate }) {
           return (
             <div key={d} onClick={() => onSelectDate(ds)} style={{
               minHeight: 80, padding: '4px 6px', cursor: 'pointer', borderRight: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`,
-              background: isSelected ? C.primaryBg : isToday ? 'var(--cbrio-table-header)' : '#fff',
+              background: isSelected ? C.primaryBg : isToday ? 'var(--cbrio-table-header)' : 'var(--cbrio-card)',
               transition: 'background 0.1s',
             }}>
               <div style={{
