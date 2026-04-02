@@ -179,37 +179,102 @@ Migrations em `supabase/migrations/`:
 
 ---
 
-## Workflow Git
+## Workflow Git — REGRAS OBRIGATÓRIAS
+
+> **⚠️ ATENÇÃO CLAUDE CODE: leia esta seção INTEIRA antes de fazer qualquer alteração.**
+> **Estas regras existem para evitar conflitos entre os dois devs.**
+> **Violá-las causa perda de trabalho e bugs em produção.**
+
+### Regra #1: NUNCA commitar direto na `main`
+Sempre criar branch primeiro. A `main` só recebe código via Pull Request.
+
+### Regra #2: NUNCA editar arquivos de outro dev
+Cada dev tem pastas e arquivos exclusivos. **Editar fora da sua área quebra o trabalho do outro.**
 
 ### Nomenclatura de Branches
 ```
 {dev}/modulo-{nome}
 ```
 
-### Branches Ativas
+---
 
-**Matheus:**
-- Módulos Admin (RH, Financeiro, Logística, Patrimônio)
-- Projetos, Expansão, Calendário
-- Layout/tema do sistema
+### 🔒 DIVISÃO DE ARQUIVOS POR DEV — RESPEITAR SEMPRE
 
-**Marcos Paulo:**
-- Módulo Eventos (frontend + backend)
-- Módulo Ministerial, Geracional, Criativo
+#### MATHEUS (Toscano) — pode editar APENAS:
+```
+frontend/src/pages/admin/rh/           ✅
+frontend/src/pages/admin/financeiro/   ✅
+frontend/src/pages/admin/logistica/    ✅
+frontend/src/pages/admin/patrimonio/   ✅
+frontend/src/pages/Projetos.jsx        ✅
+frontend/src/pages/Expansao.jsx        ✅
+frontend/src/pages/ministerial/        ✅
+frontend/src/components/ui/            ✅ (componentes compartilhados)
+frontend/src/components/layout/        ✅ (layout, sidebar, mega-menu)
+frontend/src/contexts/                 ✅ (auth, tema)
+frontend/src/index.css                 ✅ (tema global)
+backend/routes/rh.js                   ✅
+backend/routes/financeiro.js           ✅
+backend/routes/logistica.js            ✅
+backend/routes/patrimonio.js           ✅
+backend/routes/projects.js             ✅
+backend/routes/expansion.js            ✅
+backend/routes/membresia.js            ✅
+backend/routes/notificacoes.js         ✅
+```
 
-**Nunca commitar direto na `main`.** Usar PR para merge.
+#### MATHEUS — NÃO PODE editar (pertence ao Marcos Paulo):
+```
+frontend/src/pages/eventos/            ❌ PROIBIDO — toda a pasta
+  Eventos.jsx                          ❌ PROIBIDO
+  EventDetail.jsx                      ❌ PROIBIDO
+  components/CycleView.jsx             ❌ PROIBIDO
+  components/BudgetPanel.jsx           ❌ PROIBIDO
+  components/EventFormModal.jsx        ❌ PROIBIDO
+  components/TaskFormModal.jsx         ❌ PROIBIDO
+  components/MeetingFormModal.jsx      ❌ PROIBIDO
+backend/routes/events.js               ❌ PROIBIDO
+backend/routes/meetings.js             ❌ PROIBIDO
+backend/routes/cycles.js               ❌ PROIBIDO
+backend/routes/occurrences.js          ❌ PROIBIDO
+```
 
-### Arquivos Compartilhados — SEMPRE via PR
+> **Se precisar ajustar tema/dark mode em páginas de Eventos:**
+> Comunicar ao Marcos Paulo para ele aplicar. NÃO editar diretamente.
+
+#### MARCOS PAULO — pode editar APENAS:
+```
+frontend/src/pages/eventos/            ✅ toda a pasta
+backend/routes/events.js               ✅
+backend/routes/meetings.js             ✅
+backend/routes/cycles.js               ✅
+backend/routes/occurrences.js          ✅
+docs/eventos/                          ✅
+```
+
+#### MARCOS PAULO — NÃO PODE editar (pertence ao Matheus):
+```
+frontend/src/pages/admin/              ❌ PROIBIDO — toda a pasta
+backend/routes/rh.js                   ❌ PROIBIDO
+backend/routes/financeiro.js           ❌ PROIBIDO
+backend/routes/logistica.js            ❌ PROIBIDO
+backend/routes/patrimonio.js           ❌ PROIBIDO
+```
+
+---
+
+### Arquivos Compartilhados — via PR com comunicação
+Estes arquivos afetam o sistema inteiro. Alterações devem ser feitas via **Pull Request**:
 - `CLAUDE.md`, `README.md`
 - `frontend/src/App.jsx` — rotas
-- `frontend/src/components/layout/AppShell.jsx` — layout + mega menu
-- `frontend/src/components/ui/mega-menu.tsx` — navegação
-- `frontend/src/contexts/` — auth e tema
 - `frontend/src/api.js` — client HTTP
+- `frontend/src/components/layout/AppShell.jsx`
+- `frontend/src/components/ui/mega-menu.tsx`
+- `frontend/src/contexts/` — auth e tema
 - `frontend/src/index.css` — tema global
-- `supabase/migrations/` — schema
-- `backend/server.js` — registro de rotas
-- `vercel.json` — deploy
+- `supabase/migrations/`
+- `backend/server.js`
+- `vercel.json`
 
 ---
 
