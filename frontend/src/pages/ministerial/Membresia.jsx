@@ -1,0 +1,351 @@
+import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { membresia } from '../../api';
+import {
+  Users, Search, Plus, ChevronRight, X,
+  Phone, Mail, MapPin, Heart, Calendar, Star,
+  CheckCircle2, Circle, UserPlus, Home,
+} from 'lucide-react';
+
+const C = {
+  bg: 'var(--cbrio-bg)', card: 'var(--cbrio-card)', primary: '#00B39D', primaryBg: '#00B39D18',
+  text: 'var(--cbrio-text)', text2: 'var(--cbrio-text2)', text3: 'var(--cbrio-text3)',
+  border: 'var(--cbrio-border)', green: '#10b981', greenBg: '#10b98118',
+  red: '#ef4444', redBg: '#ef444418', amber: '#f59e0b', amberBg: '#f59e0b18',
+  blue: '#3b82f6', blueBg: '#3b82f618',
+};
+
+const STATUS_MAP = {
+  visitante: { c: C.text3, bg: '#52525218', label: 'Visitante' },
+  frequentador: { c: C.blue, bg: C.blueBg, label: 'Frequentador' },
+  membro: { c: C.green, bg: C.greenBg, label: 'Membro' },
+  membro_ativo: { c: C.primary, bg: C.primaryBg, label: 'Membro Ativo' },
+  inativo: { c: C.red, bg: C.redBg, label: 'Inativo' },
+  transferido: { c: C.amber, bg: C.amberBg, label: 'Transferido' },
+};
+
+const TRILHA_ETAPAS = [
+  { key: 'primeiro_contato', label: 'Primeiro Contato', icon: Star },
+  { key: 'cafe_boas_vindas', label: 'Café de Boas-Vindas', icon: Heart },
+  { key: 'classe_batismo', label: 'Classe de Batismo', icon: Calendar },
+  { key: 'batismo', label: 'Batismo', icon: CheckCircle2 },
+  { key: 'classe_membresia', label: 'Classe de Membresia', icon: Users },
+  { key: 'membresia', label: 'Membresia', icon: CheckCircle2 },
+  { key: 'classe_valores', label: 'Classe dos Valores', icon: Star },
+  { key: 'grupo_vida', label: 'Grupo de Vida', icon: Home },
+  { key: 'escola_lideres', label: 'Escola de Líderes', icon: Users },
+  { key: 'lider_grupo', label: 'Líder de Grupo', icon: Star },
+  { key: 'ministerio', label: 'Ministério', icon: Heart },
+];
+
+const Badge = ({ status }) => {
+  const s = STATUS_MAP[status] || STATUS_MAP.visitante;
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, color: s.c, background: s.bg }}>
+      {s.label}
+    </span>
+  );
+};
+
+export default function Membresia() {
+  const { isDiretor } = useAuth();
+  const [membros, setMembros] = useState([]);
+  const [kpis, setKpis] = useState({ total: 0, byStatus: {}, familias: 0 });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [busca, setBusca] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [selectedMembro, setSelectedMembro] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+
+  const fetchData = useCallback(async () => {
+    try {
+      setError('');
+      const params = {};
+      if (busca) params.busca = busca;
+      if (filterStatus) params.status = filterStatus;
+      const [m, k] = await Promise.all([
+        membresia.membros.list(Object.keys(params).length ? params : null),
+        membresia.kpis(),
+      ]);
+      setMembros(m);
+      setKpis(k);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [busca, filterStatus]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const openDetail = async (id) => {
+    try {
+      const data = await membresia.membros.get(id);
+      setSelectedMembro(data);
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
+  return (
+    <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Users style={{ width: 28, height: 28, color: C.primary }} />
+            <h1 style={{ fontSize: 28, fontWeight: 800, color: C.text, margin: 0 }}>Membresia</h1>
+          </div>
+          <p style={{ fontSize: 13, color: C.text2, marginTop: 4 }}>Cadastro de membros, famílias e trilha dos valores</p>
+        </div>
+        {isDiretor && (
+          <button
+            onClick={() => setShowForm(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: C.primary, color: '#0a0a0a', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+          >
+            <UserPlus style={{ width: 16, height: 16 }} /> Novo Membro
+          </button>
+        )}
+      </div>
+
+      {error && (
+        <div style={{ background: C.redBg, border: `1px solid ${C.red}30`, color: C.red, borderRadius: 10, padding: '10px 14px', fontSize: 13, marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
+          {error}
+          <X style={{ width: 16, height: 16, cursor: 'pointer' }} onClick={() => setError('')} />
+        </div>
+      )}
+
+      {/* KPIs */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 14, marginBottom: 28 }}>
+        {[
+          { label: 'Total Membros', value: kpis.total, color: C.primary },
+          { label: 'Membros Ativos', value: kpis.byStatus?.membro_ativo || 0, color: C.green },
+          { label: 'Visitantes', value: kpis.byStatus?.visitante || 0, color: C.blue },
+          { label: 'Famílias', value: kpis.familias, color: C.amber },
+        ].map((k, i) => (
+          <div key={i} style={{ background: C.card, borderRadius: 12, padding: '18px 22px', border: `1px solid ${C.border}`, borderLeft: `4px solid ${k.color}` }}>
+            <div style={{ fontSize: 28, fontWeight: 800, color: C.text }}>{k.value}</div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>{k.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+          <Search style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: C.text3 }} />
+          <input
+            placeholder="Buscar membro..."
+            value={busca}
+            onChange={e => setBusca(e.target.value)}
+            style={{ width: '100%', padding: '10px 14px 10px 36px', background: 'var(--cbrio-input-bg)', border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 14, color: C.text, outline: 'none' }}
+          />
+        </div>
+        <select
+          value={filterStatus}
+          onChange={e => setFilterStatus(e.target.value)}
+          style={{ padding: '10px 14px', background: 'var(--cbrio-input-bg)', border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 14, color: C.text }}
+        >
+          <option value="">Todos os status</option>
+          {Object.entries(STATUS_MAP).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+        </select>
+      </div>
+
+      {/* Table */}
+      <div style={{ background: C.card, borderRadius: 14, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
+        <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
+          <thead>
+            <tr>
+              {['Nome', 'Família', 'Status', 'Telefone', 'Ministério', ''].map((h, i) => (
+                <th key={i} style={{ textAlign: 'left', padding: '14px 18px', fontSize: 11, fontWeight: 600, color: C.text3, textTransform: 'uppercase', letterSpacing: 0.5, background: 'var(--cbrio-table-header)', borderBottom: `1px solid ${C.border}` }}>
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={6} style={{ padding: 40, textAlign: 'center', color: C.text3 }}>Carregando...</td></tr>
+            ) : membros.length === 0 ? (
+              <tr><td colSpan={6} style={{ padding: 40, textAlign: 'center', color: C.text3 }}>Nenhum membro encontrado.</td></tr>
+            ) : membros.map((m) => (
+              <tr key={m.id} style={{ cursor: 'pointer', transition: 'background 0.1s' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--cbrio-border)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                onClick={() => openDetail(m.id)}
+              >
+                <td style={{ padding: '14px 18px', borderBottom: `1px solid ${C.border}` }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: '50%', background: C.primaryBg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.primary, fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
+                      {m.nome?.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 500, color: C.text }}>{m.nome}</div>
+                      {m.email && <div style={{ fontSize: 12, color: C.text3 }}>{m.email}</div>}
+                    </div>
+                  </div>
+                </td>
+                <td style={{ padding: '14px 18px', borderBottom: `1px solid ${C.border}` }}>
+                  {m.familia ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Home style={{ width: 14, height: 14, color: C.text3 }} />
+                      <span style={{ fontSize: 13, color: C.text2 }}>{m.familia.nome}</span>
+                    </div>
+                  ) : (
+                    <span style={{ fontSize: 13, color: C.text3 }}>—</span>
+                  )}
+                </td>
+                <td style={{ padding: '14px 18px', borderBottom: `1px solid ${C.border}` }}>
+                  <Badge status={m.status} />
+                </td>
+                <td style={{ padding: '14px 18px', fontSize: 13, color: C.text2, borderBottom: `1px solid ${C.border}` }}>
+                  {m.telefone || '—'}
+                </td>
+                <td style={{ padding: '14px 18px', fontSize: 13, color: C.text2, borderBottom: `1px solid ${C.border}` }}>
+                  {m.ministerio || '—'}
+                </td>
+                <td style={{ padding: '14px 18px', borderBottom: `1px solid ${C.border}` }}>
+                  <ChevronRight style={{ width: 16, height: 16, color: C.text3 }} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Member Detail Modal */}
+      {selectedMembro && (
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--cbrio-overlay)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => setSelectedMembro(null)}>
+          <div style={{ background: 'var(--cbrio-modal-bg)', borderRadius: 20, width: '100%', maxWidth: 700, maxHeight: '90vh', overflow: 'auto', border: `1px solid ${C.border}` }} onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div style={{ padding: '28px 32px 20px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+              <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                <div style={{ width: 56, height: 56, borderRadius: '50%', background: C.primaryBg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.primary, fontWeight: 700, fontSize: 20 }}>
+                  {selectedMembro.nome?.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
+                </div>
+                <div>
+                  <h2 style={{ fontSize: 22, fontWeight: 700, color: C.text, margin: 0 }}>{selectedMembro.nome}</h2>
+                  <Badge status={selectedMembro.status} />
+                </div>
+              </div>
+              <button onClick={() => setSelectedMembro(null)} style={{ background: 'none', border: 'none', color: C.text3, cursor: 'pointer', fontSize: 20 }}>
+                <X style={{ width: 20, height: 20 }} />
+              </button>
+            </div>
+
+            <div style={{ padding: '24px 32px' }}>
+              {/* Info grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 28 }}>
+                {[
+                  { icon: Mail, label: 'Email', value: selectedMembro.email },
+                  { icon: Phone, label: 'Telefone', value: selectedMembro.telefone },
+                  { icon: MapPin, label: 'Endereço', value: [selectedMembro.endereco, selectedMembro.bairro, selectedMembro.cidade].filter(Boolean).join(', ') },
+                  { icon: Calendar, label: 'Nascimento', value: selectedMembro.data_nascimento ? new Date(selectedMembro.data_nascimento).toLocaleDateString('pt-BR') : null },
+                  { icon: Heart, label: 'Estado Civil', value: selectedMembro.estado_civil },
+                  { icon: Home, label: 'Família', value: selectedMembro.familia?.nome },
+                  { icon: Users, label: 'Ministério', value: selectedMembro.ministerio },
+                  { icon: Star, label: 'Grupo', value: selectedMembro.grupo },
+                ].map((item, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'start' }}>
+                    <item.icon style={{ width: 16, height: 16, color: C.text3, marginTop: 2, flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontSize: 11, color: C.text3, textTransform: 'uppercase', letterSpacing: 0.5 }}>{item.label}</div>
+                      <div style={{ fontSize: 14, color: item.value ? C.text : C.text3, marginTop: 2 }}>{item.value || '—'}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Familiares */}
+              {selectedMembro.familiares?.length > 0 && (
+                <div style={{ marginBottom: 28 }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 600, color: C.text, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Home style={{ width: 16, height: 16, color: C.primary }} /> Familiares
+                  </h3>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    {selectedMembro.familiares.map(f => (
+                      <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: C.primaryBg, borderRadius: 10 }}>
+                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: C.primary, color: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>
+                          {f.nome?.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
+                        </div>
+                        <span style={{ fontSize: 13, color: C.text, fontWeight: 500 }}>{f.nome}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Trilha dos Valores */}
+              <div style={{ marginBottom: 28 }}>
+                <h3 style={{ fontSize: 14, fontWeight: 600, color: C.text, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Star style={{ width: 16, height: 16, color: C.primary }} /> Trilha dos Valores
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                  {TRILHA_ETAPAS.map((etapa, i) => {
+                    const registro = selectedMembro.trilha?.find(t => t.etapa === etapa.key);
+                    const concluida = registro?.concluida;
+                    const Icon = etapa.icon;
+                    return (
+                      <div key={etapa.key} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                        {/* Timeline line */}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 24 }}>
+                          <div style={{
+                            width: 24, height: 24, borderRadius: '50%',
+                            background: concluida ? C.primary : 'transparent',
+                            border: `2px solid ${concluida ? C.primary : C.border}`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}>
+                            {concluida ? (
+                              <CheckCircle2 style={{ width: 14, height: 14, color: '#0a0a0a' }} />
+                            ) : (
+                              <Circle style={{ width: 10, height: 10, color: C.text3 }} />
+                            )}
+                          </div>
+                          {i < TRILHA_ETAPAS.length - 1 && (
+                            <div style={{ width: 2, height: 28, background: concluida ? C.primary : C.border }} />
+                          )}
+                        </div>
+                        {/* Content */}
+                        <div style={{ padding: '6px 0', flex: 1 }}>
+                          <div style={{ fontSize: 13, fontWeight: concluida ? 600 : 400, color: concluida ? C.text : C.text3 }}>
+                            {etapa.label}
+                          </div>
+                          {registro?.data_conclusao && (
+                            <div style={{ fontSize: 11, color: C.text3, marginTop: 2 }}>
+                              {new Date(registro.data_conclusao).toLocaleDateString('pt-BR')}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Histórico */}
+              {selectedMembro.historico?.length > 0 && (
+                <div>
+                  <h3 style={{ fontSize: 14, fontWeight: 600, color: C.text, marginBottom: 12 }}>Histórico</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {selectedMembro.historico.map(h => (
+                      <div key={h.id} style={{ padding: '10px 14px', background: 'var(--cbrio-input-bg)', borderRadius: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                        <div>
+                          <div style={{ fontSize: 13, color: C.text }}>{h.descricao}</div>
+                          <div style={{ fontSize: 11, color: C.text3, marginTop: 2 }}>{h.registrado?.name || ''}</div>
+                        </div>
+                        <div style={{ fontSize: 11, color: C.text3, flexShrink: 0 }}>
+                          {new Date(h.data).toLocaleDateString('pt-BR')}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

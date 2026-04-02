@@ -18,6 +18,13 @@ const headers = async () => {
 async function request(path, opts = {}) {
   const h = await headers();
   const res = await fetch(`${API}${path}`, { ...opts, headers: { ...h, ...opts.headers } });
+
+  // Detect HTML response (backend not available — e.g., Vercel static deploy)
+  const contentType = res.headers.get('content-type') || '';
+  if (contentType.includes('text/html')) {
+    throw new Error('Backend não disponível. Os módulos funcionam apenas com o servidor rodando localmente.');
+  }
+
   if (res.status === 401) {
     await supabase.auth.signOut();
     window.location.href = '/login';
@@ -112,7 +119,12 @@ export const meetings = {
 
 export const occurrences = {
   get: (occId) => get(`/occurrences/${occId}`),
+  list: (eventId) => get(`/occurrences/${eventId}`),
+  create: (eventId, data) => post(`/occurrences/${eventId}`, data),
+  update: (id, data) => patch(`/occurrences/${id}`, data),
+  remove: (id) => del(`/occurrences/${id}`),
   createTask: (occId, data) => post(`/occurrences/${occId}/tasks`, data),
+  updateTask: (taskId, data) => patch(`/occurrences/tasks/${taskId}`, data),
   updateTaskStatus: (taskId, status) => patch(`/occurrences/tasks/${taskId}/status`, { status }),
   removeTask: (taskId) => del(`/occurrences/tasks/${taskId}`),
   createMeeting: (occId, data) => post(`/occurrences/${occId}/meetings`, data),
@@ -241,9 +253,55 @@ export const rh = {
     inscrever: (id, data) => post(`/rh/treinamentos/${id}/inscrever`, data),
     atualizarInscricao: (id, data) => patch(`/rh/treinamentos-funcionarios/${id}`, data),
   },
+  materiais: {
+    list: (params) => get('/rh/materiais' + (params ? '?' + new URLSearchParams(params) : '')),
+    create: (data) => post('/rh/materiais', data),
+    remove: (id) => del(`/rh/materiais/${id}`),
+    enviar: (id, data) => post(`/rh/materiais/${id}/enviar`, data),
+    atualizarStatus: (id, data) => patch(`/rh/materiais-funcionarios/${id}`, data),
+  },
   ferias: {
     create: (funcId, data) => post(`/rh/funcionarios/${funcId}/ferias`, data),
     update: (id, data) => patch(`/rh/ferias/${id}`, data),
     remove: (id) => del(`/rh/ferias/${id}`),
+  },
+  extras: {
+    list: (params) => get('/rh/extras' + (params ? '?' + new URLSearchParams(params) : '')),
+    create: (data) => post('/rh/extras', data),
+    update: (id, data) => patch(`/rh/extras/${id}`, data),
+    remove: (id) => del(`/rh/extras/${id}`),
+  },
+  config: {
+    get: () => get('/rh/config'),
+    set: (chave, valor) => put(`/rh/config/${chave}`, { valor }),
+  },
+};
+
+export const notificacoes = {
+  list: () => get('/notificacoes'),
+  count: () => get('/notificacoes/count'),
+  ler: (id) => patch(`/notificacoes/${id}/ler`),
+  lerTodas: () => patch('/notificacoes/ler-todas'),
+};
+
+export const membresia = {
+  kpis: () => get('/membresia/kpis'),
+  membros: {
+    list: (params) => get('/membresia/membros' + (params ? '?' + new URLSearchParams(params) : '')),
+    get: (id) => get(`/membresia/membros/${id}`),
+    create: (data) => post('/membresia/membros', data),
+    update: (id, data) => put(`/membresia/membros/${id}`, data),
+    remove: (id) => del(`/membresia/membros/${id}`),
+  },
+  trilha: {
+    create: (data) => post('/membresia/trilha', data),
+    update: (id, data) => patch(`/membresia/trilha/${id}`, data),
+  },
+  familias: {
+    list: () => get('/membresia/familias'),
+    create: (data) => post('/membresia/familias', data),
+  },
+  historico: {
+    create: (data) => post('/membresia/historico', data),
   },
 };

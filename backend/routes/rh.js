@@ -69,14 +69,15 @@ router.get('/dashboard', async (req, res) => {
 // GET /api/rh/funcionarios
 router.get('/funcionarios', async (req, res) => {
   try {
-    const { status, area, busca } = req.query;
+    const { status, area, busca, tipo_contrato } = req.query;
     let query = supabase
       .from('rh_funcionarios')
-      .select('*')
+      .select('*, rh_ferias_licencas(tipo, data_inicio, data_fim, status)')
       .order('nome');
 
     if (status) query = query.eq('status', status);
     if (area) query = query.eq('area', area);
+    if (tipo_contrato) query = query.eq('tipo_contrato', tipo_contrato);
     if (busca) query = query.ilike('nome', `%${busca}%`);
 
     const { data, error } = await query;
@@ -124,7 +125,7 @@ router.get('/funcionarios/:id', async (req, res) => {
 // POST /api/rh/funcionarios
 router.post('/funcionarios', async (req, res) => {
   try {
-    const { nome, cpf, email, telefone, cargo, area, tipo_contrato, data_admissao, salario, observacoes } = req.body;
+    const { nome, cpf, email, telefone, cargo, area, tipo_contrato, data_admissao, salario, observacoes, foto_url } = req.body;
     if (!nome || !cargo || !data_admissao) {
       return res.status(400).json({ error: 'Nome, cargo e data de admissão são obrigatórios' });
     }
@@ -135,13 +136,14 @@ router.post('/funcionarios', async (req, res) => {
         nome, cpf: cpf || null, email: email || null, telefone: telefone || null,
         cargo, area: area || null, tipo_contrato: tipo_contrato || 'clt',
         data_admissao, salario: salario || null, observacoes: observacoes || null,
+        foto_url: foto_url || null,
         created_by: req.user.userId,
       })
       .select()
       .single();
 
     if (error) return res.status(400).json({ error: error.message });
-    res.json(data);
+    res.status(201).json(data);
   } catch (e) {
     console.error('[RH] Criar funcionário:', e.message);
     res.status(500).json({ error: 'Erro ao criar funcionário' });
@@ -151,13 +153,14 @@ router.post('/funcionarios', async (req, res) => {
 // PUT /api/rh/funcionarios/:id
 router.put('/funcionarios/:id', async (req, res) => {
   try {
-    const { nome, cpf, email, telefone, cargo, area, tipo_contrato, data_admissao, data_demissao, salario, status, observacoes } = req.body;
+    const { nome, cpf, email, telefone, cargo, area, tipo_contrato, data_admissao, data_demissao, salario, status, observacoes, foto_url } = req.body;
     const { data, error } = await supabase
       .from('rh_funcionarios')
       .update({
         nome, cpf, email, telefone, cargo, area, tipo_contrato,
         data_admissao, data_demissao: data_demissao || null,
-        salario, status, observacoes,
+        salario, status, observacoes, foto_url: foto_url || null,
+        updated_at: new Date().toISOString(),
       })
       .eq('id', req.params.id)
       .select()
@@ -171,19 +174,19 @@ router.put('/funcionarios/:id', async (req, res) => {
   }
 });
 
-// DELETE /api/rh/funcionarios/:id
+// DELETE /api/rh/funcionarios/:id (desativação lógica)
 router.delete('/funcionarios/:id', async (req, res) => {
   try {
     const { error } = await supabase
       .from('rh_funcionarios')
-      .delete()
+      .update({ status: 'inativo', data_demissao: new Date().toISOString().split('T')[0] })
       .eq('id', req.params.id);
 
     if (error) return res.status(400).json({ error: error.message });
     res.json({ success: true });
   } catch (e) {
-    console.error('[RH] Remover funcionário:', e.message);
-    res.status(500).json({ error: 'Erro ao remover funcionário' });
+    console.error('[RH] Desativar funcionário:', e.message);
+    res.status(500).json({ error: 'Erro ao desativar funcionário' });
   }
 });
 
@@ -235,7 +238,7 @@ router.get('/treinamentos', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('rh_treinamentos')
-      .select('*, rh_treinamentos_funcionarios(*, rh_funcionarios(id, nome))')
+      .select('*, rh_treinamentos_funcionarios(*, rh_funcionarios(id, nome, cargo, foto_url))')
       .order('data_inicio', { ascending: false });
 
     if (error) return res.status(400).json({ error: error.message });
@@ -259,7 +262,7 @@ router.post('/treinamentos', async (req, res) => {
       .single();
 
     if (error) return res.status(400).json({ error: error.message });
-    res.json(data);
+    res.status(201).json(data);
   } catch (e) {
     console.error('[RH] Criar treinamento:', e.message);
     res.status(500).json({ error: 'Erro ao criar treinamento' });
@@ -297,17 +300,29 @@ router.delete('/treinamentos/:id', async (req, res) => {
   }
 });
 
-// POST /api/rh/treinamentos/:id/inscrever — inscrever funcionário
+// POST /api/rh/treinamentos/:id/inscrever — inscrever funcionários
 router.post('/treinamentos/:id/inscrever', async (req, res) => {
   try {
-    const { funcionario_id } = req.body;
-    if (!funcionario_id) return res.status(400).json({ error: 'funcionario_id é obrigatório' });
+    const { funcionario_id, funcionario_ids } = req.body;
+
+    // Suporta tanto inscrição única quanto em lote
+    let insercoes;
+    if (funcionario_ids && Array.isArray(funcionario_ids)) {
+      insercoes = funcionario_ids.map((fid) => ({
+        treinamento_id: req.params.id,
+        funcionario_id: fid,
+        status: 'inscrito',
+      }));
+    } else if (funcionario_id) {
+      insercoes = [{ treinamento_id: req.params.id, funcionario_id, status: 'inscrito' }];
+    } else {
+      return res.status(400).json({ error: 'funcionario_id ou funcionario_ids é obrigatório' });
+    }
 
     const { data, error } = await supabase
       .from('rh_treinamentos_funcionarios')
-      .insert({ treinamento_id: req.params.id, funcionario_id })
-      .select()
-      .single();
+      .upsert(insercoes)
+      .select();
 
     if (error) return res.status(400).json({ error: error.message });
     res.json(data);
@@ -341,6 +356,26 @@ router.patch('/treinamentos-funcionarios/:id', async (req, res) => {
 });
 
 // ── FÉRIAS E LICENÇAS ──────────────────────────────────────
+// GET /api/rh/ferias
+router.get('/ferias', async (req, res) => {
+  try {
+    const { status } = req.query;
+    let query = supabase
+      .from('rh_ferias_licencas')
+      .select('*, rh_funcionarios(nome, cargo, area, foto_url)')
+      .order('data_inicio', { ascending: false });
+
+    if (status) query = query.eq('status', status);
+
+    const { data, error } = await query;
+    if (error) return res.status(400).json({ error: error.message });
+    res.json(data);
+  } catch (e) {
+    console.error('[RH] Listar férias:', e.message);
+    res.status(500).json({ error: 'Erro ao listar férias' });
+  }
+});
+
 // POST /api/rh/funcionarios/:id/ferias
 router.post('/funcionarios/:id/ferias', async (req, res) => {
   try {
@@ -383,6 +418,13 @@ router.patch('/ferias/:id', async (req, res) => {
       .single();
 
     if (error) return res.status(400).json({ error: error.message });
+
+    // Atualiza status do funcionário se aprovado
+    if (status === 'aprovado') {
+      const tipo = data.tipo === 'ferias' ? 'ferias' : 'licenca';
+      await supabase.from('rh_funcionarios').update({ status: tipo }).eq('id', data.funcionario_id);
+    }
+
     res.json(data);
   } catch (e) {
     console.error('[RH] Aprovar/rejeitar férias:', e.message);
@@ -399,6 +441,279 @@ router.delete('/ferias/:id', async (req, res) => {
   } catch (e) {
     console.error('[RH] Remover férias:', e.message);
     res.status(500).json({ error: 'Erro ao remover férias/licença' });
+  }
+});
+
+// ── KPIs ──────────────────────────────────────────────────────
+// GET /api/rh/kpis
+router.get('/kpis', async (req, res) => {
+  try {
+    const [{ count: total }, { count: ativos }, { count: ferias }, admissoes] = await Promise.all([
+      supabase.from('rh_funcionarios').select('*', { count: 'exact', head: true }),
+      supabase.from('rh_funcionarios').select('*', { count: 'exact', head: true }).eq('status', 'ativo'),
+      supabase.from('rh_funcionarios').select('*', { count: 'exact', head: true }).in('status', ['ferias', 'licenca']),
+      supabase.from('rh_funcionarios')
+        .select('id, nome, cargo, data_admissao')
+        .gte('data_admissao', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0])
+        .order('data_admissao', { ascending: false }),
+    ]);
+
+    res.json({
+      total_funcionarios: total ?? 0,
+      ativos: ativos ?? 0,
+      em_ferias_licenca: ferias ?? 0,
+      admissoes_mes: admissoes.data ?? [],
+    });
+  } catch (e) {
+    console.error('[RH] KPIs:', e.message);
+    res.status(500).json({ error: 'Erro ao carregar KPIs' });
+  }
+});
+
+// ══════════════════════════════════════════════════════════
+// ESCALAS DE EXTRAS
+// ══════════════════════════════════════════════════════════
+
+// GET /api/rh/extras
+router.get('/extras', async (req, res) => {
+  try {
+    const { status, mes } = req.query;
+    let query = supabase
+      .from('rh_escalas_extras')
+      .select('*, funcionario:rh_funcionarios(id, nome, cpf, cargo, foto_url)')
+      .order('data', { ascending: true });
+
+    if (status) query = query.eq('status', status);
+    if (mes) {
+      const [year, month] = mes.split('-');
+      const start = `${year}-${month}-01`;
+      const end = new Date(year, month, 0).toISOString().split('T')[0];
+      query = query.gte('data', start).lte('data', end);
+    }
+
+    const { data, error } = await query;
+    if (error) return res.status(400).json({ error: error.message });
+    res.json(data);
+  } catch (e) {
+    console.error('[RH] Listar extras:', e.message);
+    res.status(500).json({ error: 'Erro ao buscar escalas de extras' });
+  }
+});
+
+// POST /api/rh/extras — escalar funcionário + enviar notificação
+router.post('/extras', async (req, res) => {
+  try {
+    const { funcionario_id, titulo, descricao, data, horario_inicio, horario_fim, valor, observacoes } = req.body;
+
+    // Criar escala
+    const { data: escala, error } = await supabase
+      .from('rh_escalas_extras')
+      .insert({
+        funcionario_id, titulo, descricao, data,
+        horario_inicio, horario_fim, valor,
+        escalado_por: req.user.id, observacoes,
+      })
+      .select('*, funcionario:rh_funcionarios(nome, email)')
+      .single();
+
+    if (error) return res.status(400).json({ error: error.message });
+
+    // Buscar profile_id do funcionário pelo email (se tiver conta no sistema)
+    if (escala.funcionario?.email) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', escala.funcionario.email)
+        .single();
+
+      if (profile) {
+        // Criar notificação
+        await supabase.from('notificacoes').insert({
+          usuario_id: profile.id,
+          titulo: '📋 Escala de Extra',
+          mensagem: `Você foi escalado para "${titulo}" em ${new Date(data).toLocaleDateString('pt-BR')} das ${horario_inicio} às ${horario_fim}. Valor: R$ ${Number(valor).toFixed(2)}${descricao ? '. ' + descricao : ''}`,
+          tipo: 'extra',
+          link: '/admin/rh?tab=extras',
+          dados: { escala_id: escala.id, data, horario_inicio, horario_fim, valor },
+        });
+      }
+    }
+
+    res.status(201).json(escala);
+  } catch (e) {
+    console.error('[RH] Criar extra:', e.message);
+    res.status(500).json({ error: 'Erro ao criar escala de extra' });
+  }
+});
+
+// PATCH /api/rh/extras/:id
+router.patch('/extras/:id', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('rh_escalas_extras')
+      .update(req.body)
+      .eq('id', req.params.id)
+      .select()
+      .single();
+    if (error) return res.status(400).json({ error: error.message });
+    res.json(data);
+  } catch (e) {
+    console.error('[RH] Atualizar extra:', e.message);
+    res.status(500).json({ error: 'Erro ao atualizar extra' });
+  }
+});
+
+// DELETE /api/rh/extras/:id
+router.delete('/extras/:id', async (req, res) => {
+  try {
+    const { error } = await supabase.from('rh_escalas_extras').delete().eq('id', req.params.id);
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ success: true });
+  } catch (e) {
+    console.error('[RH] Remover extra:', e.message);
+    res.status(500).json({ error: 'Erro ao remover extra' });
+  }
+});
+
+// GET /api/rh/config (valor padrão de extra, etc.)
+router.get('/config', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('rh_config').select('*');
+    if (error) return res.status(400).json({ error: error.message });
+    const config = {};
+    (data || []).forEach(r => { config[r.chave] = r.valor; });
+    res.json(config);
+  } catch (e) {
+    res.status(500).json({ error: 'Erro ao buscar configurações' });
+  }
+});
+
+// PUT /api/rh/config/:chave
+router.put('/config/:chave', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('rh_config')
+      .upsert({ chave: req.params.chave, valor: req.body.valor })
+      .select()
+      .single();
+    if (error) return res.status(400).json({ error: error.message });
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: 'Erro ao salvar configuração' });
+  }
+});
+
+// ── MATERIAIS DE TREINAMENTO ──────────────────────────────
+
+// GET /api/rh/materiais?treinamento_id=xxx
+router.get('/materiais', async (req, res) => {
+  try {
+    let query = supabase
+      .from('rh_materiais')
+      .select('*, rh_materiais_funcionarios(*, funcionario:rh_funcionarios(id, nome, cargo, foto_url))')
+      .order('created_at', { ascending: false });
+
+    if (req.query.treinamento_id) {
+      query = query.eq('treinamento_id', req.query.treinamento_id);
+    }
+
+    const { data, error } = await query;
+    if (error) return res.status(400).json({ error: error.message });
+    res.json(data);
+  } catch (e) {
+    console.error('[RH] Listar materiais:', e.message);
+    res.status(500).json({ error: 'Erro ao listar materiais' });
+  }
+});
+
+// POST /api/rh/materiais
+router.post('/materiais', async (req, res) => {
+  try {
+    const { treinamento_id, titulo, descricao, tipo, arquivo_url, arquivo_nome, arquivo_tipo, obrigatorio } = req.body;
+    if (!titulo) return res.status(400).json({ error: 'Título é obrigatório' });
+
+    const { data, error } = await supabase
+      .from('rh_materiais')
+      .insert({
+        treinamento_id: treinamento_id || null,
+        titulo, descricao: descricao || null,
+        tipo: tipo || 'material',
+        arquivo_url: arquivo_url || null,
+        arquivo_nome: arquivo_nome || null,
+        arquivo_tipo: arquivo_tipo || null,
+        obrigatorio: obrigatorio || false,
+        created_by: req.user.userId,
+      })
+      .select()
+      .single();
+
+    if (error) return res.status(400).json({ error: error.message });
+    res.status(201).json(data);
+  } catch (e) {
+    console.error('[RH] Criar material:', e.message);
+    res.status(500).json({ error: 'Erro ao criar material' });
+  }
+});
+
+// DELETE /api/rh/materiais/:id
+router.delete('/materiais/:id', async (req, res) => {
+  try {
+    const { error } = await supabase.from('rh_materiais').delete().eq('id', req.params.id);
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ success: true });
+  } catch (e) {
+    console.error('[RH] Remover material:', e.message);
+    res.status(500).json({ error: 'Erro ao remover material' });
+  }
+});
+
+// POST /api/rh/materiais/:id/enviar — envia material para colaboradores
+router.post('/materiais/:id/enviar', async (req, res) => {
+  try {
+    const { funcionario_ids } = req.body;
+    if (!funcionario_ids || !funcionario_ids.length) {
+      return res.status(400).json({ error: 'Selecione ao menos um colaborador' });
+    }
+
+    const rows = funcionario_ids.map(fid => ({
+      material_id: req.params.id,
+      funcionario_id: fid,
+      status: 'pendente',
+    }));
+
+    const { data, error } = await supabase
+      .from('rh_materiais_funcionarios')
+      .upsert(rows, { onConflict: 'material_id,funcionario_id' })
+      .select('*, funcionario:rh_funcionarios(id, nome, cargo, foto_url)');
+
+    if (error) return res.status(400).json({ error: error.message });
+    res.status(201).json(data);
+  } catch (e) {
+    console.error('[RH] Enviar material:', e.message);
+    res.status(500).json({ error: 'Erro ao enviar material' });
+  }
+});
+
+// PATCH /api/rh/materiais-funcionarios/:id — atualiza status (visualizado/concluido)
+router.patch('/materiais-funcionarios/:id', async (req, res) => {
+  try {
+    const { status } = req.body;
+    const update = { status };
+    if (status === 'visualizado') update.data_visualizacao = new Date().toISOString();
+    if (status === 'concluido') update.data_conclusao = new Date().toISOString();
+
+    const { data, error } = await supabase
+      .from('rh_materiais_funcionarios')
+      .update(update)
+      .eq('id', req.params.id)
+      .select('*, funcionario:rh_funcionarios(id, nome, cargo, foto_url)')
+      .single();
+
+    if (error) return res.status(400).json({ error: error.message });
+    res.json(data);
+  } catch (e) {
+    console.error('[RH] Atualizar status material:', e.message);
+    res.status(500).json({ error: 'Erro ao atualizar status' });
   }
 });
 

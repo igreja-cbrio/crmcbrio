@@ -1,19 +1,22 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Users, Pencil, Trash2, Palmtree } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { rh } from '../../../api';
+import { supabase } from '../../../supabaseClient';
+import TabExtras from './TabExtras';
 
 // ── Tema ────────────────────────────────────────────────────
 const C = {
-  bg: '#f3f4f6', card: '#fff', primary: '#7c3aed', primaryBg: '#ede9fe',
-  text: '#1a1a2e', text2: '#6b7280', text3: '#9ca3af',
-  border: '#e5e7eb', green: '#10b981', greenBg: '#d1fae5',
-  red: '#ef4444', redBg: '#fee2e2', amber: '#f59e0b', amberBg: '#fef3c7',
-  blue: '#3b82f6', blueBg: '#dbeafe', sidebar: '#1a1a2e',
+  bg: 'var(--cbrio-bg)', card: 'var(--cbrio-card)', primary: '#00B39D', primaryBg: '#00B39D18',
+  text: 'var(--cbrio-text)', text2: 'var(--cbrio-text2)', text3: 'var(--cbrio-text3)',
+  border: 'var(--cbrio-border)', green: '#10b981', greenBg: '#10b98118',
+  red: '#ef4444', redBg: '#ef444418', amber: '#f59e0b', amberBg: '#f59e0b18',
+  blue: '#3b82f6', blueBg: '#3b82f618',
 };
 
 const STATUS_COLORS = {
   ativo: { c: C.green, bg: C.greenBg, label: 'Ativo' },
-  inativo: { c: C.text3, bg: '#f3f4f6', label: 'Inativo' },
+  inativo: { c: C.text3, bg: '#73737318', label: 'Inativo' },
   ferias: { c: C.blue, bg: C.blueBg, label: 'Férias' },
   licenca: { c: C.amber, bg: C.amberBg, label: 'Licença' },
 };
@@ -60,7 +63,7 @@ const styles = {
   cardHeader: { padding: '16px 20px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   cardTitle: { fontSize: 15, fontWeight: 700, color: C.text },
   table: { width: '100%', borderCollapse: 'collapse' },
-  th: { padding: '10px 16px', fontSize: 11, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'left', borderBottom: `1px solid ${C.border}`, background: '#fafafa' },
+  th: { padding: '10px 16px', fontSize: 11, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'left', borderBottom: `1px solid ${C.border}`, background: 'var(--cbrio-table-header)' },
   td: { padding: '12px 16px', fontSize: 13, color: C.text, borderBottom: `1px solid ${C.border}` },
   badge: (color, bg) => ({
     display: 'inline-block', padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600,
@@ -78,15 +81,15 @@ const styles = {
   filterRow: { display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' },
   input: {
     padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13,
-    outline: 'none', width: '100%', transition: 'border 0.15s', background: '#fff',
+    outline: 'none', width: '100%', transition: 'border 0.15s', background: 'var(--cbrio-input-bg)', color: 'var(--cbrio-text)',
   },
-  select: { padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: '#fff', outline: 'none' },
+  select: { padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: 'var(--cbrio-input-bg)', color: 'var(--cbrio-text)', outline: 'none' },
   label: { fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 4, display: 'block', textTransform: 'uppercase', letterSpacing: 0.5 },
   formGroup: { marginBottom: 14 },
   formRow: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 },
   // Modal
-  overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: 60, zIndex: 1000 },
-  modal: { background: '#fff', borderRadius: 16, width: '95%', maxWidth: 560, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' },
+  overlay: { position: 'fixed', inset: 0, background: 'var(--cbrio-overlay)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: 60, zIndex: 1000 },
+  modal: { background: 'var(--cbrio-modal-bg)', borderRadius: 16, width: '95%', maxWidth: 560, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' },
   modalHeader: { padding: '20px 24px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   modalTitle: { fontSize: 18, fontWeight: 700, color: C.text },
   modalBody: { padding: '16px 24px 24px' },
@@ -135,12 +138,12 @@ function Select({ label, children, ...props }) {
 }
 
 function Badge({ status, map }) {
-  const s = map[status] || { c: C.text3, bg: '#f3f4f6', label: status };
+  const s = map[status] || { c: C.text3, bg: '#73737318', label: status };
   return <span style={styles.badge(s.c, s.bg)}>{s.label}</span>;
 }
 
 // ── TABS ────────────────────────────────────────────────────
-const TABS = ['Dashboard', 'Funcionários', 'Treinamentos', 'Férias/Licenças'];
+const TABS = ['Dashboard', 'Colaboradores', 'Treinamentos', 'Férias/Licenças', 'Extras'];
 
 // ═══════════════════════════════════════════════════════════
 // COMPONENTE PRINCIPAL
@@ -154,7 +157,7 @@ export default function RH() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Filtros funcionários
+  // Filtros colaboradores
   const [filtroStatus, setFiltroStatus] = useState('');
   const [filtroArea, setFiltroArea] = useState('');
   const [busca, setBusca] = useState('');
@@ -201,7 +204,7 @@ export default function RH() {
   }
 
   async function deleteFuncionario(id) {
-    if (!confirm('Remover este funcionário?')) return;
+    if (!confirm('Remover este colaborador?')) return;
     try { await rh.funcionarios.remove(id); loadFuncs(); loadDash(); setModalDetail(null); }
     catch (e) { alert(e.message); }
   }
@@ -253,8 +256,8 @@ export default function RH() {
       {/* Header */}
       <div style={styles.header}>
         <div>
-          <div style={styles.title}>👥 Recursos Humanos</div>
-          <div style={styles.subtitle}>Gestão de funcionários, treinamentos e férias</div>
+          <div style={{ ...styles.title, display: 'flex', alignItems: 'center', gap: 10 }}><Users className="h-7 w-7" style={{ color: '#00B39D' }} /> Recursos Humanos</div>
+          <div style={styles.subtitle}>Gestão de colaboradores, treinamentos e férias</div>
         </div>
       </div>
 
@@ -288,6 +291,11 @@ export default function RH() {
           onNew={() => setModalFerias({})} onAprovar={aprovarFerias}
         />
       )}
+      {tab === 4 && (
+        <div style={{ minHeight: 200, padding: '4px 0' }}>
+          <TabExtras funcionarios={funcs} onRefresh={() => { loadDash(); loadFuncs(); }} />
+        </div>
+      )}
 
       {/* Modais */}
       <FuncionarioFormModal open={!!modalFunc} data={modalFunc} onClose={() => setModalFunc(null)} onSave={saveFuncionario} />
@@ -316,7 +324,7 @@ function DashboardTab({ dash }) {
       <div style={styles.kpiGrid}>
         <div style={styles.kpi(C.primary)}>
           <div style={styles.kpiValue}>{dash.total}</div>
-          <div style={styles.kpiLabel}>Total Funcionários</div>
+          <div style={styles.kpiLabel}>Total Colaboradores</div>
         </div>
         <div style={styles.kpi(C.green)}>
           <div style={styles.kpiValue}>{dash.ativos}</div>
@@ -420,7 +428,7 @@ function FuncionariosTab({ funcs, loading, busca, setBusca, filtroStatus, setFil
           {areas.map(a => <option key={a} value={a}>{a}</option>)}
         </select>
         <div style={{ marginLeft: 'auto' }}>
-          <button style={styles.btn('primary')} onClick={onNew}>+ Novo Funcionário</button>
+          <button style={styles.btn('primary')} onClick={onNew}>+ Novo Colaborador</button>
         </div>
       </div>
 
@@ -440,13 +448,24 @@ function FuncionariosTab({ funcs, loading, busca, setBusca, filtroStatus, setFil
             </thead>
             <tbody>
               {loading && <tr><td colSpan={7} style={{ ...styles.td, textAlign: 'center', color: C.text3 }}>Carregando...</td></tr>}
-              {!loading && funcs.length === 0 && <tr><td colSpan={7} style={{ ...styles.td, textAlign: 'center', color: C.text3 }}>Nenhum funcionário encontrado</td></tr>}
+              {!loading && funcs.length === 0 && <tr><td colSpan={7} style={{ ...styles.td, textAlign: 'center', color: C.text3 }}>Nenhum colaborador encontrado</td></tr>}
               {funcs.map(f => (
                 <tr key={f.id} style={styles.clickRow}
-                  onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
+                  onMouseEnter={e => e.currentTarget.style.background = '#1e1e1e'}
                   onMouseLeave={e => e.currentTarget.style.background = ''}
                   onClick={() => onDetail(f.id)}>
-                  <td style={{ ...styles.td, fontWeight: 600 }}>{f.nome}</td>
+                  <td style={{ ...styles.td, fontWeight: 600 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      {f.foto_url ? (
+                        <img src={f.foto_url} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                      ) : (
+                        <div style={{ width: 32, height: 32, borderRadius: '50%', background: C.primaryBg, color: C.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, flexShrink: 0 }}>
+                          {(f.nome || '?')[0].toUpperCase()}
+                        </div>
+                      )}
+                      {f.nome}
+                    </div>
+                  </td>
                   <td style={styles.td}>{f.cargo}</td>
                   <td style={styles.td}>{f.area || '—'}</td>
                   <td style={styles.td}>{TIPO_CONTRATO[f.tipo_contrato] || f.tipo_contrato}</td>
@@ -468,9 +487,108 @@ function FuncionariosTab({ funcs, loading, busca, setBusca, filtroStatus, setFil
 // ═══════════════════════════════════════════════════════════
 // TAB: TREINAMENTOS
 // ═══════════════════════════════════════════════════════════
-function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever }) {
+// ── Helpers de materiais ──
+const TIPO_MATERIAL = {
+  material: 'Material', questionario: 'Questionário', video: 'Vídeo',
+  apresentacao: 'Apresentação', documento: 'Documento',
+};
+const MATERIAL_STATUS = {
+  pendente: { c: C.amber, bg: C.amberBg, label: 'Pendente' },
+  visualizado: { c: C.blue, bg: C.blueBg, label: 'Visualizado' },
+  concluido: { c: C.green, bg: C.greenBg, label: 'Concluído' },
+};
+const FILE_ICONS = { 'application/pdf': '📄', 'application/vnd.ms-powerpoint': '📊', 'application/vnd.openxmlformats-officedocument.presentationml.presentation': '📊' };
+const getFileIcon = (mime) => FILE_ICONS[mime] || '📎';
+
+function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever, onReload }) {
   const [inscrevendo, setInscrevendo] = useState(null);
   const [funcSel, setFuncSel] = useState('');
+  // Materiais
+  const [materiaisPorTreino, setMateriaisPorTreino] = useState({});
+  const [expandido, setExpandido] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [showAddMaterial, setShowAddMaterial] = useState(null);
+  const [matForm, setMatForm] = useState({ titulo: '', tipo: 'material', descricao: '', obrigatorio: false });
+  const [matFile, setMatFile] = useState(null);
+  const [showEnviar, setShowEnviar] = useState(null); // material_id
+  const [enviarSel, setEnviarSel] = useState([]);
+  const fileRef = useRef(null);
+
+  async function loadMateriais(treinamentoId) {
+    try {
+      const data = await rh.materiais.list({ treinamento_id: treinamentoId });
+      setMateriaisPorTreino(prev => ({ ...prev, [treinamentoId]: data }));
+    } catch (e) { console.error(e); }
+  }
+
+  async function toggleExpand(treinoId) {
+    if (expandido === treinoId) { setExpandido(null); return; }
+    setExpandido(treinoId);
+    await loadMateriais(treinoId);
+  }
+
+  async function handleUploadMaterial(treinoId) {
+    if (!matForm.titulo) { alert('Título é obrigatório'); return; }
+    setUploading(true);
+    try {
+      let arquivo_url = null, arquivo_nome = null, arquivo_tipo = null;
+      if (matFile) {
+        const ext = matFile.name.split('.').pop();
+        const filePath = `treinamentos/${treinoId}/${crypto.randomUUID()}.${ext}`;
+        const { error } = await supabase.storage.from('rh-materiais').upload(filePath, matFile, { upsert: true });
+        if (error) throw error;
+        const { data: { publicUrl } } = supabase.storage.from('rh-materiais').getPublicUrl(filePath);
+        arquivo_url = publicUrl;
+        arquivo_nome = matFile.name;
+        arquivo_tipo = matFile.type;
+      }
+      await rh.materiais.create({
+        treinamento_id: treinoId, titulo: matForm.titulo, descricao: matForm.descricao,
+        tipo: matForm.tipo, obrigatorio: matForm.obrigatorio,
+        arquivo_url, arquivo_nome, arquivo_tipo,
+      });
+      setShowAddMaterial(null);
+      setMatForm({ titulo: '', tipo: 'material', descricao: '', obrigatorio: false });
+      setMatFile(null);
+      await loadMateriais(treinoId);
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao adicionar material: ' + err.message);
+    } finally { setUploading(false); }
+  }
+
+  async function handleEnviar(materialId, treinoId) {
+    if (!enviarSel.length) return;
+    try {
+      await rh.materiais.enviar(materialId, { funcionario_ids: enviarSel });
+      setShowEnviar(null);
+      setEnviarSel([]);
+      await loadMateriais(treinoId);
+    } catch (e) { alert(e.message); }
+  }
+
+  async function handleStatusUpdate(mfId, status, treinoId) {
+    try {
+      await rh.materiais.atualizarStatus(mfId, { status });
+      await loadMateriais(treinoId);
+    } catch (e) { alert(e.message); }
+  }
+
+  async function handleDeleteMaterial(matId, treinoId) {
+    if (!confirm('Remover este material?')) return;
+    try { await rh.materiais.remove(matId); await loadMateriais(treinoId); }
+    catch (e) { alert(e.message); }
+  }
+
+  function handleFileDrop(e) {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file) setMatFile(file);
+  }
+
+  const toggleFuncSel = (id) => {
+    setEnviarSel(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
 
   return (
     <>
@@ -481,58 +599,288 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever 
       {treinos.length === 0 && <div style={styles.empty}>Nenhum treinamento cadastrado</div>}
 
       <div style={{ display: 'grid', gap: 16 }}>
-        {treinos.map(t => (
-          <div key={t.id} style={styles.card}>
-            <div style={styles.cardHeader}>
-              <div>
-                <div style={styles.cardTitle}>{t.titulo}</div>
-                <div style={{ fontSize: 12, color: C.text2, marginTop: 2 }}>
-                  {fmtDate(t.data_inicio)}{t.data_fim ? ` → ${fmtDate(t.data_fim)}` : ''}
-                  {t.instrutor && ` • ${t.instrutor}`}
-                  {t.obrigatorio && <span style={{ ...styles.badge(C.red, C.redBg), marginLeft: 8 }}>Obrigatório</span>}
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button style={{ ...styles.btn('secondary'), ...styles.btnSm }} onClick={() => onEdit(t)}>✏️</button>
-                <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => onDelete(t.id)}>🗑</button>
-              </div>
-            </div>
-            {t.descricao && <div style={{ padding: '8px 20px', fontSize: 13, color: C.text2 }}>{t.descricao}</div>}
+        {treinos.map(t => {
+          const materiais = materiaisPorTreino[t.id] || [];
+          const isExpanded = expandido === t.id;
 
-            {/* Inscritos */}
-            <div style={{ padding: '8px 20px 16px' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: C.text2, marginBottom: 6, textTransform: 'uppercase' }}>
-                Inscritos ({(t.rh_treinamentos_funcionarios || []).length})
+          return (
+            <div key={t.id} style={styles.card}>
+              <div style={styles.cardHeader}>
+                <div>
+                  <div style={styles.cardTitle}>{t.titulo}</div>
+                  <div style={{ fontSize: 12, color: C.text2, marginTop: 2 }}>
+                    {fmtDate(t.data_inicio)}{t.data_fim ? ` → ${fmtDate(t.data_fim)}` : ''}
+                    {t.instrutor && ` • ${t.instrutor}`}
+                    {t.obrigatorio && <span style={{ ...styles.badge(C.red, C.redBg), marginLeft: 8 }}>Obrigatório</span>}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button style={{ ...styles.btn('secondary'), ...styles.btnSm }} onClick={() => onEdit(t)}><Pencil style={{ width: 14, height: 14 }} /></button>
+                  <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => onDelete(t.id)}><Trash2 style={{ width: 14, height: 14 }} /></button>
+                </div>
               </div>
-              {(t.rh_treinamentos_funcionarios || []).map(tf => (
-                <div key={tf.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: `1px solid ${C.border}` }}>
-                  <span style={{ fontSize: 13 }}>{tf.rh_funcionarios?.nome || '—'}</span>
-                  <Badge status={tf.status} map={{
-                    inscrito: { c: C.blue, bg: C.blueBg, label: 'Inscrito' },
-                    concluido: { c: C.green, bg: C.greenBg, label: 'Concluído' },
-                    cancelado: { c: C.red, bg: C.redBg, label: 'Cancelado' },
-                  }} />
+              {t.descricao && <div style={{ padding: '8px 20px', fontSize: 13, color: C.text2 }}>{t.descricao}</div>}
+
+              {/* Inscritos */}
+              <div style={{ padding: '8px 20px 12px' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.text2, marginBottom: 6, textTransform: 'uppercase' }}>
+                  Inscritos ({(t.rh_treinamentos_funcionarios || []).length})
                 </div>
-              ))}
-              {/* Inscrever funcionário */}
-              {inscrevendo === t.id ? (
-                <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }}>
-                  <select style={{ ...styles.select, flex: 1 }} value={funcSel} onChange={e => setFuncSel(e.target.value)}>
-                    <option value="">Selecionar funcionário</option>
-                    {funcs.filter(f => f.status === 'ativo').map(f => <option key={f.id} value={f.id}>{f.nome}</option>)}
-                  </select>
-                  <button style={{ ...styles.btn('primary'), ...styles.btnSm }}
-                    onClick={async () => { if (funcSel) { await onInscrever(t.id, funcSel); setInscrevendo(null); setFuncSel(''); } }}>
-                    OK
-                  </button>
-                  <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => setInscrevendo(null)}>✕</button>
-                </div>
-              ) : (
-                <button style={{ ...styles.btn('ghost'), marginTop: 6, fontSize: 12 }} onClick={() => setInscrevendo(t.id)}>+ Inscrever funcionário</button>
-              )}
+                {(t.rh_treinamentos_funcionarios || []).map(tf => (
+                  <div key={tf.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: `1px solid ${C.border}` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {tf.rh_funcionarios?.foto_url ? (
+                        <img src={tf.rh_funcionarios.foto_url} alt="" style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }} />
+                      ) : (
+                        <div style={{ width: 24, height: 24, borderRadius: '50%', background: C.primaryBg, color: C.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>
+                          {(tf.rh_funcionarios?.nome || '?')[0].toUpperCase()}
+                        </div>
+                      )}
+                      <span style={{ fontSize: 13 }}>{tf.rh_funcionarios?.nome || '—'}</span>
+                    </div>
+                    <Badge status={tf.status} map={{
+                      inscrito: { c: C.blue, bg: C.blueBg, label: 'Inscrito' },
+                      concluido: { c: C.green, bg: C.greenBg, label: 'Concluído' },
+                      cancelado: { c: C.red, bg: C.redBg, label: 'Cancelado' },
+                    }} />
+                  </div>
+                ))}
+                {inscrevendo === t.id ? (
+                  <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }}>
+                    <select style={{ ...styles.select, flex: 1 }} value={funcSel} onChange={e => setFuncSel(e.target.value)}>
+                      <option value="">Selecionar colaborador</option>
+                      {funcs.filter(f => f.status === 'ativo').map(f => <option key={f.id} value={f.id}>{f.nome}</option>)}
+                    </select>
+                    <button style={{ ...styles.btn('primary'), ...styles.btnSm }}
+                      onClick={async () => { if (funcSel) { await onInscrever(t.id, funcSel); setInscrevendo(null); setFuncSel(''); } }}>
+                      OK
+                    </button>
+                    <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => setInscrevendo(null)}>✕</button>
+                  </div>
+                ) : (
+                  <button style={{ ...styles.btn('ghost'), marginTop: 6, fontSize: 12 }} onClick={() => setInscrevendo(t.id)}>+ Inscrever colaborador</button>
+                )}
+              </div>
+
+              {/* Materiais — expandível */}
+              <div style={{ borderTop: `1px solid ${C.border}` }}>
+                <button
+                  onClick={() => toggleExpand(t.id)}
+                  style={{
+                    width: '100%', padding: '12px 20px', background: 'none', border: 'none',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer',
+                  }}
+                >
+                  <span style={{ fontSize: 11, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    📁 Materiais{materiais.length > 0 ? ` (${materiais.length})` : ''}
+                  </span>
+                  <span style={{ fontSize: 14, color: C.text3, transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)' }}>▼</span>
+                </button>
+
+                {isExpanded && (
+                  <div style={{ padding: '0 20px 16px' }}>
+                    {materiais.length === 0 && <div style={{ fontSize: 13, color: C.text3, padding: '8px 0' }}>Nenhum material adicionado</div>}
+
+                    {materiais.map(mat => {
+                      const destinatarios = mat.rh_materiais_funcionarios || [];
+                      const pendentes = destinatarios.filter(d => d.status === 'pendente');
+                      const visualizados = destinatarios.filter(d => d.status === 'visualizado');
+                      const concluidos = destinatarios.filter(d => d.status === 'concluido');
+
+                      return (
+                        <div key={mat.id} style={{ background: 'var(--cbrio-input-bg)', borderRadius: 10, padding: 16, marginBottom: 12, border: `1px solid ${C.border}` }}>
+                          {/* Header do material */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <span style={{ fontSize: 16 }}>{mat.arquivo_tipo ? getFileIcon(mat.arquivo_tipo) : '📁'}</span>
+                                <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{mat.titulo}</span>
+                                <span style={styles.badge(C.blue, C.blueBg)}>{TIPO_MATERIAL[mat.tipo] || mat.tipo}</span>
+                                {mat.obrigatorio && <span style={styles.badge(C.red, C.redBg)}>Obrigatório</span>}
+                              </div>
+                              {mat.descricao && <div style={{ fontSize: 12, color: C.text2, marginTop: 4 }}>{mat.descricao}</div>}
+                              {mat.arquivo_nome && (
+                                <a href={mat.arquivo_url} target="_blank" rel="noopener noreferrer"
+                                  style={{ fontSize: 12, color: C.primary, textDecoration: 'none', marginTop: 4, display: 'inline-block' }}>
+                                  {mat.arquivo_nome} ↗
+                                </a>
+                              )}
+                            </div>
+                            <button style={{ ...styles.btn('ghost'), ...styles.btnSm, color: C.red }} onClick={() => handleDeleteMaterial(mat.id, t.id)}>
+                              <Trash2 style={{ width: 13, height: 13 }} />
+                            </button>
+                          </div>
+
+                          {/* Resumo de status */}
+                          {destinatarios.length > 0 && (
+                            <div style={{ display: 'flex', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: 11, fontWeight: 600, color: C.amber }}>⏳ {pendentes.length} pendente{pendentes.length !== 1 ? 's' : ''}</span>
+                              <span style={{ fontSize: 11, fontWeight: 600, color: C.blue }}>👁 {visualizados.length} visualizado{visualizados.length !== 1 ? 's' : ''}</span>
+                              <span style={{ fontSize: 11, fontWeight: 600, color: C.green }}>✓ {concluidos.length} concluído{concluidos.length !== 1 ? 's' : ''}</span>
+                            </div>
+                          )}
+
+                          {/* Lista de destinatários */}
+                          {destinatarios.length > 0 && (
+                            <div style={{ marginBottom: 8 }}>
+                              {destinatarios.map(d => (
+                                <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: `1px solid ${C.border}` }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    {d.funcionario?.foto_url ? (
+                                      <img src={d.funcionario.foto_url} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
+                                    ) : (
+                                      <div style={{ width: 28, height: 28, borderRadius: '50%', background: C.primaryBg, color: C.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>
+                                        {(d.funcionario?.nome || '?')[0].toUpperCase()}
+                                      </div>
+                                    )}
+                                    <div>
+                                      <div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{d.funcionario?.nome}</div>
+                                      <div style={{ fontSize: 11, color: C.text3 }}>{d.funcionario?.cargo}</div>
+                                    </div>
+                                  </div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <Badge status={d.status} map={MATERIAL_STATUS} />
+                                    {d.status === 'pendente' && (
+                                      <button style={{ ...styles.btn('ghost'), ...styles.btnSm, fontSize: 10 }}
+                                        onClick={() => handleStatusUpdate(d.id, 'concluido', t.id)}>Marcar concluído</button>
+                                    )}
+                                    {d.status === 'visualizado' && (
+                                      <button style={{ ...styles.btn('ghost'), ...styles.btnSm, fontSize: 10 }}
+                                        onClick={() => handleStatusUpdate(d.id, 'concluido', t.id)}>Marcar concluído</button>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Enviar para colaboradores */}
+                          {showEnviar === mat.id ? (
+                            <div style={{ background: C.card, borderRadius: 8, padding: 12, border: `1px solid ${C.border}`, marginTop: 8 }}>
+                              <div style={{ fontSize: 11, fontWeight: 700, color: C.text2, marginBottom: 8, textTransform: 'uppercase' }}>Enviar para colaboradores</div>
+                              <div style={{ maxHeight: 180, overflowY: 'auto', marginBottom: 8 }}>
+                                {funcs.filter(f => f.status === 'ativo').map(f => {
+                                  const jaEnviado = destinatarios.some(d => d.funcionario?.id === f.id);
+                                  return (
+                                    <label key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', cursor: jaEnviado ? 'default' : 'pointer', opacity: jaEnviado ? 0.5 : 1 }}>
+                                      <input type="checkbox" disabled={jaEnviado} checked={jaEnviado || enviarSel.includes(f.id)} onChange={() => toggleFuncSel(f.id)} />
+                                      {f.foto_url ? (
+                                        <img src={f.foto_url} alt="" style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }} />
+                                      ) : (
+                                        <div style={{ width: 24, height: 24, borderRadius: '50%', background: C.primaryBg, color: C.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>
+                                          {(f.nome || '?')[0].toUpperCase()}
+                                        </div>
+                                      )}
+                                      <span style={{ fontSize: 13 }}>{f.nome} <span style={{ color: C.text3, fontSize: 11 }}>— {f.cargo}</span></span>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                              <div style={{ display: 'flex', gap: 8 }}>
+                                <button style={{ ...styles.btn('primary'), ...styles.btnSm }}
+                                  onClick={() => handleEnviar(mat.id, t.id)} disabled={!enviarSel.length}>
+                                  Enviar ({enviarSel.length})
+                                </button>
+                                <button style={{ ...styles.btn('ghost'), ...styles.btnSm }}
+                                  onClick={() => { setShowEnviar(null); setEnviarSel([]); }}>Cancelar</button>
+                                <button style={{ ...styles.btn('ghost'), ...styles.btnSm, marginLeft: 'auto' }}
+                                  onClick={() => {
+                                    const todos = funcs.filter(f => f.status === 'ativo' && !destinatarios.some(d => d.funcionario?.id === f.id)).map(f => f.id);
+                                    setEnviarSel(todos);
+                                  }}>Selecionar todos</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button style={{ ...styles.btn('ghost'), fontSize: 12, marginTop: 4 }}
+                              onClick={() => { setShowEnviar(mat.id); setEnviarSel([]); }}>
+                              + Enviar para colaboradores
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    {/* Adicionar Material */}
+                    {showAddMaterial === t.id ? (
+                      <div style={{ background: C.card, borderRadius: 10, padding: 16, border: `1px dashed ${C.primary}` }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 12 }}>Novo Material</div>
+                        <div style={styles.formRow}>
+                          <Input label="Título *" value={matForm.titulo} onChange={e => setMatForm(f => ({ ...f, titulo: e.target.value }))} />
+                          <div style={styles.formGroup}>
+                            <label style={styles.label}>Tipo</label>
+                            <select style={{ ...styles.select, width: '100%' }} value={matForm.tipo} onChange={e => setMatForm(f => ({ ...f, tipo: e.target.value }))}>
+                              {Object.entries(TIPO_MATERIAL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                            </select>
+                          </div>
+                        </div>
+                        <div style={styles.formGroup}>
+                          <label style={styles.label}>Descrição</label>
+                          <textarea style={{ ...styles.input, minHeight: 50, resize: 'vertical' }} value={matForm.descricao} onChange={e => setMatForm(f => ({ ...f, descricao: e.target.value }))} />
+                        </div>
+                        <div style={styles.formGroup}>
+                          <label style={{ ...styles.label, display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <input type="checkbox" checked={matForm.obrigatorio} onChange={e => setMatForm(f => ({ ...f, obrigatorio: e.target.checked }))} />
+                            Obrigatório
+                          </label>
+                        </div>
+
+                        {/* Upload de arquivo — drag & drop */}
+                        <div style={styles.formGroup}>
+                          <label style={styles.label}>Arquivo (PDF, PPT, etc.)</label>
+                          <div
+                            onDragOver={e => e.preventDefault()}
+                            onDrop={handleFileDrop}
+                            onClick={() => fileRef.current?.click()}
+                            style={{
+                              border: `2px dashed ${C.border}`, borderRadius: 10, padding: 16, textAlign: 'center',
+                              cursor: 'pointer', transition: 'border-color 0.2s',
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.borderColor = C.primary}
+                            onMouseLeave={e => e.currentTarget.style.borderColor = C.border}
+                          >
+                            <input ref={fileRef} type="file" accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.mp4" style={{ display: 'none' }}
+                              onChange={e => { setMatFile(e.target.files?.[0] || null); }} />
+                            {matFile ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}>
+                                <span style={{ fontSize: 22 }}>{getFileIcon(matFile.type)}</span>
+                                <div style={{ textAlign: 'left' }}>
+                                  <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{matFile.name}</div>
+                                  <div style={{ fontSize: 11, color: C.text3 }}>{(matFile.size / 1024 / 1024).toFixed(1)} MB</div>
+                                </div>
+                                <button type="button" onClick={e => { e.stopPropagation(); setMatFile(null); if (fileRef.current) fileRef.current.value = ''; }}
+                                  style={{ ...styles.btn('ghost'), color: C.red, fontSize: 14 }}>✕</button>
+                              </div>
+                            ) : (
+                              <>
+                                <div style={{ fontSize: 24, marginBottom: 4 }}>📁</div>
+                                <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Arraste um arquivo aqui</div>
+                                <div style={{ fontSize: 11, color: C.text3, marginTop: 2 }}>ou clique para selecionar — PDF, PPT, DOC, XLS, imagens</div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                          <button style={styles.btn('primary')} onClick={() => handleUploadMaterial(t.id)} disabled={uploading}>
+                            {uploading ? 'Enviando...' : 'Adicionar Material'}
+                          </button>
+                          <button style={styles.btn('ghost')} onClick={() => { setShowAddMaterial(null); setMatFile(null); setMatForm({ titulo: '', tipo: 'material', descricao: '', obrigatorio: false }); }}>
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button style={{ ...styles.btn('secondary'), fontSize: 12, marginTop: 4 }}
+                        onClick={() => setShowAddMaterial(t.id)}>
+                        + Adicionar Material
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </>
   );
@@ -556,7 +904,7 @@ function FeriasTab({ dash, funcs, onNew, onAprovar }) {
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={styles.th}>Funcionário</th>
+                <th style={styles.th}>Colaborador</th>
                 <th style={styles.th}>Tipo</th>
                 <th style={styles.th}>Início</th>
                 <th style={styles.th}>Fim</th>
@@ -597,13 +945,40 @@ function FeriasTab({ dash, funcs, onNew, onAprovar }) {
 
 function FuncionarioFormModal({ open, data, onClose, onSave }) {
   const [f, setF] = useState({});
+  const [uploading, setUploading] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const fileRef = useRef(null);
   useEffect(() => { if (data) setF({ ...data }); }, [data]);
   const upd = (k, v) => setF(p => ({ ...p, [k]: v }));
 
+  async function uploadFoto(file) {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { alert('Selecione um arquivo de imagem (JPG, PNG, etc.)'); return; }
+    if (file.size > 5 * 1024 * 1024) { alert('A imagem deve ter no máximo 5MB'); return; }
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const filePath = `colaboradores/${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage.from('rh-fotos').upload(filePath, file, { upsert: true });
+      if (error) throw error;
+      const { data: { publicUrl } } = supabase.storage.from('rh-fotos').getPublicUrl(filePath);
+      upd('foto_url', publicUrl);
+    } catch (err) {
+      console.error('Erro upload:', err);
+      alert('Erro ao enviar foto. Tente novamente.');
+    } finally { setUploading(false); }
+  }
+
+  function handleDrop(e) {
+    e.preventDefault(); setDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) uploadFoto(file);
+  }
+
   return (
     <Modal open={open} onClose={onClose}
-      title={f?.id ? '✏️ Editar Funcionário' : '➕ Novo Funcionário'}
-      footer={<button style={styles.btn('primary')} onClick={() => onSave(f)}>Salvar</button>}>
+      title={f?.id ? 'Editar Colaborador' : 'Novo Colaborador'}
+      footer={<button style={styles.btn('primary')} onClick={() => onSave(f)} disabled={uploading}>Salvar</button>}>
       <Input label="Nome *" value={f.nome || ''} onChange={e => upd('nome', e.target.value)} />
       <div style={styles.formRow}>
         <Input label="CPF" value={f.cpf || ''} onChange={e => upd('cpf', e.target.value)} />
@@ -631,6 +1006,52 @@ function FuncionarioFormModal({ open, data, onClose, onSave }) {
           <Input label="Data Demissão" type="date" value={f.data_demissao || ''} onChange={e => upd('data_demissao', e.target.value)} />
         </div>
       )}
+      {/* Foto — upload + drag & drop */}
+      <div style={styles.formGroup}>
+        <label style={styles.label}>Foto do Colaborador</label>
+        <div
+          onDragOver={e => { e.preventDefault(); setDragging(true); }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={handleDrop}
+          onClick={() => !uploading && fileRef.current?.click()}
+          style={{
+            border: `2px dashed ${dragging ? C.primary : '#444'}`,
+            borderRadius: 12, padding: 20, textAlign: 'center',
+            cursor: uploading ? 'wait' : 'pointer',
+            background: dragging ? `${C.primary}10` : 'transparent',
+            transition: 'all 0.2s',
+          }}
+        >
+          <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
+            onChange={e => { uploadFoto(e.target.files?.[0]); e.target.value = ''; }} />
+          {f.foto_url ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, justifyContent: 'center' }}>
+              <img src={f.foto_url} alt="Foto" style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${C.primary}` }}
+                onError={e => { e.target.style.display = 'none'; }} />
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ color: C.text, fontSize: 14, fontWeight: 600 }}>Foto enviada</div>
+                <div style={{ color: C.text2, fontSize: 12, marginTop: 4 }}>Clique ou arraste para trocar</div>
+                <button type="button" onClick={e => { e.stopPropagation(); upd('foto_url', ''); }}
+                  style={{ marginTop: 6, background: 'transparent', border: `1px solid #ef4444`, color: '#ef4444', borderRadius: 6, padding: '4px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                  Remover
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              {uploading ? (
+                <div style={{ color: C.primary, fontSize: 14, fontWeight: 600 }}>Enviando...</div>
+              ) : (
+                <>
+                  <div style={{ fontSize: 28, marginBottom: 6 }}>📷</div>
+                  <div style={{ color: C.text, fontSize: 14, fontWeight: 600 }}>Arraste uma foto aqui</div>
+                  <div style={{ color: C.text2, fontSize: 12, marginTop: 4 }}>ou clique para selecionar — JPG, PNG — máx. 5MB</div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
       <div style={styles.formGroup}>
         <label style={styles.label}>Observações</label>
         <textarea style={{ ...styles.input, minHeight: 60, resize: 'vertical' }} value={f.observacoes || ''} onChange={e => upd('observacoes', e.target.value)} />
@@ -646,7 +1067,7 @@ function TreinamentoFormModal({ open, data, onClose, onSave }) {
 
   return (
     <Modal open={open} onClose={onClose}
-      title={f?.id ? '✏️ Editar Treinamento' : '➕ Novo Treinamento'}
+      title={f?.id ? 'Editar Treinamento' : 'Novo Treinamento'}
       footer={<button style={styles.btn('primary')} onClick={() => onSave(f)}>Salvar</button>}>
       <Input label="Título *" value={f.titulo || ''} onChange={e => upd('titulo', e.target.value)} />
       <div style={styles.formRow}>
@@ -674,9 +1095,9 @@ function FeriasFormModal({ open, funcs, onClose, onSave }) {
   const upd = (k, v) => setF(p => ({ ...p, [k]: v }));
 
   return (
-    <Modal open={open} onClose={onClose} title="➕ Nova Solicitação de Férias/Licença"
+    <Modal open={open} onClose={onClose} title="Nova Solicitação de Férias/Licença"
       footer={<button style={styles.btn('primary')} onClick={() => onSave(f)}>Solicitar</button>}>
-      <Select label="Funcionário *" value={f.funcionario_id || ''} onChange={e => upd('funcionario_id', e.target.value)}>
+      <Select label="Colaborador *" value={f.funcionario_id || ''} onChange={e => upd('funcionario_id', e.target.value)}>
         <option value="">Selecionar</option>
         {(funcs || []).filter(fn => fn.status === 'ativo').map(fn => <option key={fn.id} value={fn.id}>{fn.nome}</option>)}
       </Select>
@@ -699,7 +1120,21 @@ function FuncionarioDetailModal({ open, data, onClose, onEdit, onDelete, onNewDo
   if (!data) return null;
   return (
     <Modal open={open} onClose={onClose} title={`👤 ${data.nome}`}>
-      {/* Info principal */}
+      {/* Avatar + Info principal */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+        {data.foto_url ? (
+          <img src={data.foto_url} alt="" style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', border: `3px solid ${C.primary}`, flexShrink: 0 }} />
+        ) : (
+          <div style={{ width: 72, height: 72, borderRadius: '50%', background: C.primaryBg, color: C.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 700, flexShrink: 0 }}>
+            {(data.nome || '?')[0].toUpperCase()}
+          </div>
+        )}
+        <div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: C.text }}>{data.nome}</div>
+          <div style={{ fontSize: 14, color: C.text2 }}>{data.cargo}{data.area ? ` · ${data.area}` : ''}</div>
+          <Badge status={data.status} map={STATUS_COLORS} />
+        </div>
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', marginBottom: 20 }}>
         <div><span style={{ fontSize: 11, color: C.text2 }}>Cargo:</span><div style={{ fontSize: 14, fontWeight: 600 }}>{data.cargo}</div></div>
         <div><span style={{ fontSize: 11, color: C.text2 }}>Área:</span><div style={{ fontSize: 14 }}>{data.area || '—'}</div></div>
@@ -713,7 +1148,7 @@ function FuncionarioDetailModal({ open, data, onClose, onEdit, onDelete, onNewDo
       </div>
 
       {data.observacoes && (
-        <div style={{ padding: '8px 12px', background: '#f9fafb', borderRadius: 8, marginBottom: 16, fontSize: 13, color: C.text2 }}>{data.observacoes}</div>
+        <div style={{ padding: '8px 12px', background: 'var(--cbrio-input-bg)', borderRadius: 8, marginBottom: 16, fontSize: 13, color: C.text2 }}>{data.observacoes}</div>
       )}
 
       {/* Documentos */}
@@ -750,7 +1185,7 @@ function FuncionarioDetailModal({ open, data, onClose, onEdit, onDelete, onNewDo
 
       {/* Férias */}
       <div style={{ marginBottom: 16 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: C.text2, textTransform: 'uppercase' }}>🏖️ Férias/Licenças ({(data.ferias_licencas || []).length})</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: C.text2, textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: 6 }}><Palmtree style={{ width: 14, height: 14, color: '#00B39D' }} /> Férias/Licenças ({(data.ferias_licencas || []).length})</span>
         {(data.ferias_licencas || []).map(f => (
           <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: `1px solid ${C.border}` }}>
             <span style={{ fontSize: 13 }}>{TIPO_FERIAS[f.tipo]} • {fmtDate(f.data_inicio)} → {fmtDate(f.data_fim)}</span>
@@ -761,8 +1196,8 @@ function FuncionarioDetailModal({ open, data, onClose, onEdit, onDelete, onNewDo
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 12, borderTop: `1px solid ${C.border}` }}>
-        <button style={styles.btn('secondary')} onClick={() => onEdit(data)}>✏️ Editar</button>
-        <button style={styles.btn('danger')} onClick={() => onDelete(data.id)}>🗑 Remover</button>
+        <button style={styles.btn('secondary')} onClick={() => onEdit(data)}><Pencil style={{ width: 14, height: 14, display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Editar</button>
+        <button style={styles.btn('danger')} onClick={() => onDelete(data.id)}><Trash2 style={{ width: 14, height: 14, display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Remover</button>
       </div>
     </Modal>
   );
