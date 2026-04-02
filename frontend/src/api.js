@@ -54,6 +54,7 @@ export const events = {
   get: (id) => get(`/events/${id}`),
   create: (data) => post('/events', data),
   update: (id, data) => put(`/events/${id}`, data),
+  updateStatus: (id, status) => patch(`/events/${id}/status`, { status }),
   remove: (id) => del(`/events/${id}`),
   // Occurrences
   updateOccurrence: (evId, occId, data) => patch(`/events/${evId}/occurrences/${occId}`, data),
@@ -117,14 +118,18 @@ export const meetings = {
 };
 
 export const occurrences = {
+  get: (occId) => get(`/occurrences/${occId}`),
   list: (eventId) => get(`/occurrences/${eventId}`),
   create: (eventId, data) => post(`/occurrences/${eventId}`, data),
   update: (id, data) => patch(`/occurrences/${id}`, data),
   remove: (id) => del(`/occurrences/${id}`),
   createTask: (occId, data) => post(`/occurrences/${occId}/tasks`, data),
   updateTask: (taskId, data) => patch(`/occurrences/tasks/${taskId}`, data),
+  updateTaskStatus: (taskId, status) => patch(`/occurrences/tasks/${taskId}/status`, { status }),
   removeTask: (taskId) => del(`/occurrences/tasks/${taskId}`),
   createMeeting: (occId, data) => post(`/occurrences/${occId}/meetings`, data),
+  removeMeeting: (id) => del(`/occurrences/meetings/${id}`),
+  togglePendency: (id, done) => patch(`/occurrences/pendencies/${id}`, { done }),
 };
 
 export const cycles = {
