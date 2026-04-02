@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { cycles as api } from '../../../api';
 
-const C = { dark: '#1a1a2e', t2: '#6b7280', border: '#e5e7eb', accent: '#7c3aed' };
+const C = { dark: '#e5e5e5', t2: '#a3a3a3', border: '#262626', accent: '#00B39D' };
 
 export default function BudgetPanel({ eventId, budget, onReload }) {
   const [showExpenseForm, setShowExpenseForm] = useState(false);
@@ -37,7 +37,7 @@ export default function BudgetPanel({ eventId, budget, onReload }) {
   };
 
   return (
-    <div style={{ background: '#fff', borderRadius: 10, padding: 14, border: `1px solid ${C.border}`, marginBottom: 12 }}>
+    <div style={{ background: '#161616', borderRadius: 10, padding: 14, border: `1px solid ${C.border}`, marginBottom: 12 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: C.dark }}>Orçamento</span>
         <button onClick={() => setShowExpenseForm(!showExpenseForm)}
@@ -50,18 +50,18 @@ export default function BudgetPanel({ eventId, budget, onReload }) {
         <span>R$ {gasto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
         <span>R$ {orcamento.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
       </div>
-      <div style={{ height: 8, background: '#e5e7eb', borderRadius: 4 }}>
+      <div style={{ height: 8, background: '#262626', borderRadius: 4 }}>
         <div style={{ height: '100%', width: `${Math.min(pct, 100)}%`, borderRadius: 4, transition: 'width 0.3s',
           background: excedido ? '#ef4444' : pct > 80 ? '#f59e0b' : '#10b981' }} />
       </div>
       {excedido && (
-        <div style={{ marginTop: 6, padding: '6px 10px', borderRadius: 6, background: '#fef2f2', border: '1px solid #fecaca', fontSize: 11, color: '#ef4444', fontWeight: 600 }}>
+        <div style={{ marginTop: 6, padding: '6px 10px', borderRadius: 6, background: '#ef444418', border: '1px solid #ef444440', fontSize: 11, color: '#ef4444', fontWeight: 600 }}>
           Orçamento excedido em R$ {(gasto - orcamento).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
         </div>
       )}
 
       {showExpenseForm && (
-        <form onSubmit={handleSubmitExpense} style={{ marginTop: 10, padding: 10, background: '#f9fafb', borderRadius: 8, border: `1px solid ${C.border}` }}>
+        <form onSubmit={handleSubmitExpense} style={{ marginTop: 10, padding: 10, background: '#1e1e1e', borderRadius: 8, border: `1px solid ${C.border}` }}>
           <input placeholder="Descrição" value={expense.descricao} onChange={e => setExpense(p => ({ ...p, descricao: e.target.value }))}
             style={inputStyle} />
           <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
@@ -86,5 +86,5 @@ export default function BudgetPanel({ eventId, budget, onReload }) {
   );
 }
 
-const inputStyle = { width: '100%', padding: '6px 10px', borderRadius: 6, border: '1px solid #e5e7eb', fontSize: 12, color: '#1a1a2e', outline: 'none' };
-const btnSave = { width: '100%', padding: '8px', borderRadius: 6, border: 'none', background: '#7c3aed', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 12 };
+const inputStyle = { width: '100%', padding: '6px 10px', borderRadius: 6, border: '1px solid #333', fontSize: 12, color: '#e5e5e5', background: '#1e1e1e', outline: 'none' };
+const btnSave = { width: '100%', padding: '8px', borderRadius: 6, border: 'none', background: '#00B39D', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 12 };

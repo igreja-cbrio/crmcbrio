@@ -15,6 +15,8 @@ import {
   LogOut,
   Map,
   Megaphone,
+  Moon,
+  Sun,
   Tag,
   Truck,
   UserCheck,
@@ -22,6 +24,7 @@ import {
   UsersRound,
   BookOpen,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -33,6 +36,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import React from "react";
 
 const sidebarVariants = {
@@ -114,6 +118,7 @@ export function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, role, signOut } = useAuth();
+  const { isDark, setIsDark } = useTheme();
 
   const pathname = location.pathname;
 
@@ -145,16 +150,16 @@ export function Sidebar() {
       onMouseEnter={() => setIsCollapsed(false)}
       onMouseLeave={() => setIsCollapsed(true)}
     >
-      <div className="flex h-full flex-col bg-white/80 backdrop-blur-xl border-r border-gray-200/60 shadow-sm">
+      <div className="flex h-full flex-col bg-[#111111] border-r border-[#262626]">
         {/* Logo */}
-        <div className="flex h-14 items-center gap-2.5 px-3 border-b border-gray-100">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#00B39D] shadow-sm">
-            <Church className="h-4 w-4 text-white" />
+        <div className="flex h-14 items-center gap-2.5 px-3 border-b border-[#262626]">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#00B39D] shadow-sm shadow-[#00B39D]/20">
+            <Church className="h-4 w-4 text-[#0a0a0a]" />
           </div>
           <motion.span
             variants={labelVariants}
             transition={transitionProps}
-            className="text-sm font-bold text-gray-800 whitespace-nowrap"
+            className="text-sm font-bold text-white whitespace-nowrap"
           >
             CBRio ERP
           </motion.span>
@@ -172,11 +177,11 @@ export function Sidebar() {
                   {/* Group header */}
                   <button
                     onClick={() => !isCollapsed && toggleGroup(group.id)}
-                    className="flex h-7 w-full items-center gap-1.5 rounded-md px-2 transition-colors hover:bg-gray-100/80"
+                    className="flex h-7 w-full items-center gap-1.5 rounded-md px-2 transition-colors hover:bg-[#1e1e1e]"
                   >
                     <ChevronRight
                       className={cn(
-                        "h-3 w-3 shrink-0 text-gray-400 transition-transform duration-200",
+                        "h-3 w-3 shrink-0 text-[#525252] transition-transform duration-200",
                         isExpanded && "rotate-90",
                         isCollapsed && "opacity-0 w-0"
                       )}
@@ -184,7 +189,7 @@ export function Sidebar() {
                     <motion.span
                       variants={labelVariants}
                       transition={transitionProps}
-                      className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 whitespace-nowrap"
+                      className="text-[10px] font-semibold uppercase tracking-widest text-[#525252] whitespace-nowrap"
                     >
                       {group.label}
                     </motion.span>
@@ -213,18 +218,18 @@ export function Sidebar() {
                               className={cn(
                                 "flex h-9 items-center gap-2.5 rounded-lg px-2.5 my-0.5 transition-all duration-150",
                                 isActive
-                                  ? "bg-[#00B39D]/10 text-[#00897B] font-medium"
-                                  : "text-gray-500 hover:bg-gray-100/80 hover:text-gray-700"
+                                  ? "bg-[#00B39D]/10 text-[#00B39D]"
+                                  : "text-[#737373] hover:bg-[#1e1e1e] hover:text-[#a3a3a3]"
                               )}
                             >
                               <Icon className={cn(
                                 "h-4 w-4 shrink-0",
-                                isActive ? "text-[#00B39D]" : "text-gray-400"
+                                isActive ? "text-[#00B39D]" : "text-[#525252]"
                               )} />
                               <motion.span
                                 variants={labelVariants}
                                 transition={transitionProps}
-                                className="text-[13px] whitespace-nowrap"
+                                className={cn("text-[13px] whitespace-nowrap", isActive && "font-medium")}
                               >
                                 {item.label}
                               </motion.span>
@@ -240,13 +245,32 @@ export function Sidebar() {
           </div>
         </ScrollArea>
 
+        {/* Theme toggle */}
+        <div className="px-2 pb-1">
+          <div className="flex h-9 items-center gap-2 rounded-lg px-2">
+            <Sun className={cn("h-4 w-4 shrink-0 transition-colors", isDark ? "text-[#525252]" : "text-amber-400")} />
+            <motion.div
+              variants={labelVariants}
+              transition={transitionProps}
+              className="flex items-center gap-2"
+            >
+              <Switch
+                checked={isDark}
+                onCheckedChange={setIsDark}
+                aria-label="Alternar tema"
+              />
+              <Moon className={cn("h-4 w-4 shrink-0 transition-colors", isDark ? "text-blue-400" : "text-[#525252]")} />
+            </motion.div>
+          </div>
+        </div>
+
         {/* User footer */}
-        <div className="border-t border-gray-100 p-2">
+        <div className="border-t border-[#262626] p-2">
           <DropdownMenu modal={false}>
             <DropdownMenuTrigger className="w-full outline-none">
-              <div className="flex h-10 w-full items-center gap-2.5 rounded-lg px-2 transition-colors hover:bg-gray-100/80">
+              <div className="flex h-10 w-full items-center gap-2.5 rounded-lg px-2 transition-colors hover:bg-[#1e1e1e]">
                 <Avatar className="h-7 w-7 shrink-0">
-                  <AvatarFallback className="bg-[#00B39D] text-white text-[11px] font-semibold">
+                  <AvatarFallback className="bg-[#00B39D] text-[#0a0a0a] text-[11px] font-semibold">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
@@ -256,28 +280,28 @@ export function Sidebar() {
                   className="flex flex-1 items-center min-w-0"
                 >
                   <div className="flex-1 text-left min-w-0">
-                    <p className="text-sm font-medium text-gray-700 truncate">{profile?.name || "—"}</p>
-                    <p className="text-[10px] text-gray-400 capitalize">{profile?.role || ""}</p>
+                    <p className="text-sm font-medium text-[#e5e5e5] truncate">{profile?.name || "—"}</p>
+                    <p className="text-[10px] text-[#525252] capitalize">{profile?.role || ""}</p>
                   </div>
-                  <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-gray-300" />
+                  <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-[#525252]" />
                 </motion.div>
               </div>
             </DropdownMenuTrigger>
-            <DropdownMenuContent side="top" sideOffset={8} align="start" className="w-56 rounded-xl border-gray-200 shadow-lg">
+            <DropdownMenuContent side="top" sideOffset={8} align="start" className="w-56 rounded-xl bg-[#1a1a1a] border-[#262626] shadow-xl">
               <div className="flex items-center gap-2.5 p-3">
                 <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-[#00B39D] text-white text-xs font-semibold">
+                  <AvatarFallback className="bg-[#00B39D] text-[#0a0a0a] text-xs font-semibold">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col">
-                  <span className="text-sm font-medium text-gray-800">{profile?.name || "—"}</span>
-                  <span className="text-xs text-gray-400">{profile?.email || ""}</span>
+                  <span className="text-sm font-medium text-[#e5e5e5]">{profile?.name || "—"}</span>
+                  <span className="text-xs text-[#525252]">{profile?.email || ""}</span>
                 </div>
               </div>
-              <DropdownMenuSeparator />
+              <DropdownMenuSeparator className="bg-[#262626]" />
               <DropdownMenuItem
-                className="flex items-center gap-2 text-red-500 cursor-pointer rounded-lg mx-1 hover:text-red-600"
+                className="flex items-center gap-2 text-red-400 cursor-pointer rounded-lg mx-1 hover:text-red-300 hover:bg-red-500/10"
                 onClick={handleSignOut}
               >
                 <LogOut className="h-4 w-4" /> Sair

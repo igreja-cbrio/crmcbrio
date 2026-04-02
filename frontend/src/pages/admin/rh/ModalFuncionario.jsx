@@ -1,16 +1,16 @@
 import { useState } from 'react';
 
 const s = {
-  overlay:  { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' },
-  modal:    { background: '#fff', borderRadius: 16, padding: 32, width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' },
-  title:    { fontSize: 20, fontWeight: 700, color: '#1a1a2e', marginBottom: 24 },
+  overlay:  { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  modal:    { background: '#1a1a1a', borderRadius: 16, padding: 32, width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.4)' },
+  title:    { fontSize: 20, fontWeight: 700, color: '#e5e5e5', marginBottom: 24 },
   grid:     { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' },
-  label:    { display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 5, marginTop: 14 },
-  input:    { width: '100%', padding: '9px 12px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 14, outline: 'none', boxSizing: 'border-box' },
-  select:   { width: '100%', padding: '9px 12px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box' },
-  footer:   { display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 24, paddingTop: 20, borderTop: '1px solid #e5e7eb' },
-  btnSave:  { background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 600, fontSize: 14, cursor: 'pointer' },
-  btnCancel:{ background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 600, fontSize: 14, cursor: 'pointer' },
+  label:    { display: 'block', fontSize: 13, fontWeight: 600, color: '#a3a3a3', marginBottom: 5, marginTop: 14 },
+  input:    { width: '100%', padding: '9px 12px', border: '1.5px solid #333', borderRadius: 8, fontSize: 14, outline: 'none', boxSizing: 'border-box', background: '#1e1e1e', color: '#e5e5e5' },
+  select:   { width: '100%', padding: '9px 12px', border: '1.5px solid #333', borderRadius: 8, fontSize: 14, outline: 'none', background: '#1e1e1e', color: '#e5e5e5', boxSizing: 'border-box' },
+  footer:   { display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 24, paddingTop: 20, borderTop: '1px solid #262626' },
+  btnSave:  { background: '#00B39D', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 600, fontSize: 14, cursor: 'pointer' },
+  btnCancel:{ background: '#262626', color: '#a3a3a3', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 600, fontSize: 14, cursor: 'pointer' },
   fullCol:  { gridColumn: '1 / -1' },
 };
 

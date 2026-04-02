@@ -4,13 +4,13 @@ const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 const s = {
   toolbar:  { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  btnPrim:  { background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', fontWeight: 600, fontSize: 13, cursor: 'pointer' },
+  btnPrim:  { background: '#00B39D', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', fontWeight: 600, fontSize: 13, cursor: 'pointer' },
   grid:     { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 },
-  card:     { background: '#fff', borderRadius: 12, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.07)' },
-  cardTitle:{ fontWeight: 700, fontSize: 15, color: '#1a1a2e', marginBottom: 6 },
-  cardMeta: { fontSize: 12, color: '#6b7280', marginBottom: 4 },
-  badge:    { display: 'inline-block', background: '#fef3c7', color: '#d97706', borderRadius: 20, padding: '2px 10px', fontSize: 11, fontWeight: 600 },
-  empty:    { textAlign: 'center', padding: '48px 0', color: '#9ca3af', fontSize: 14 },
+  card:     { background: '#161616', borderRadius: 12, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.2)' },
+  cardTitle:{ fontWeight: 700, fontSize: 15, color: '#e5e5e5', marginBottom: 6 },
+  cardMeta: { fontSize: 12, color: '#a3a3a3', marginBottom: 4 },
+  badge:    { display: 'inline-block', background: '#f59e0b18', color: '#f59e0b', borderRadius: 20, padding: '2px 10px', fontSize: 11, fontWeight: 600 },
+  empty:    { textAlign: 'center', padding: '48px 0', color: '#737373', fontSize: 14 },
 };
 
 async function getToken() {
@@ -53,23 +53,23 @@ export default function TabTreinamentos() {
   return (
     <div>
       <div style={s.toolbar}>
-        <span style={{ fontSize: 14, color: '#6b7280' }}>{treinamentos.length} treinamento(s)</span>
+        <span style={{ fontSize: 14, color: '#a3a3a3' }}>{treinamentos.length} treinamento(s)</span>
         <button style={s.btnPrim} onClick={() => setMostrarForm(!mostrarForm)}>
           {mostrarForm ? 'Cancelar' : '+ Novo Treinamento'}
         </button>
       </div>
 
       {mostrarForm && (
-        <form onSubmit={handleSalvar} style={{ background: '#fff', borderRadius: 12, padding: 20, marginBottom: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
+        <form onSubmit={handleSalvar} style={{ background: '#161616', borderRadius: 12, padding: 20, marginBottom: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
             <div style={{ gridColumn: '1/-1' }}>
               <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 5 }}>Título *</label>
-              <input required value={form.titulo} onChange={set('titulo')} style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }} />
+              <input required value={form.titulo} onChange={set('titulo')} style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #333', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }} />
             </div>
             {[['data_inicio','Data início *','date',true],['data_fim','Data fim','date',false],['instrutor','Instrutor','text',false]].map(([k,l,t,r]) => (
               <div key={k}>
                 <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 5, marginTop: 12 }}>{l}</label>
-                <input type={t} required={r} value={form[k]} onChange={set(k)} style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }} />
+                <input type={t} required={r} value={form[k]} onChange={set(k)} style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #333', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }} />
               </div>
             ))}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 20 }}>
@@ -100,7 +100,7 @@ export default function TabTreinamentos() {
                 </div>
                 <div style={s.cardMeta}>📅 {new Date(t.data_inicio).toLocaleDateString('pt-BR')}{t.data_fim ? ` – ${new Date(t.data_fim).toLocaleDateString('pt-BR')}` : ''}</div>
                 {t.instrutor && <div style={s.cardMeta}>👤 {t.instrutor}</div>}
-                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #f3f4f6', fontSize: 13, color: '#374151' }}>
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #262626', fontSize: 13, color: '#e5e5e5' }}>
                   <span>{inscritos} inscritos</span> · <span style={{ color: '#16a34a' }}>{concluidos} concluídos</span>
                 </div>
               </div>

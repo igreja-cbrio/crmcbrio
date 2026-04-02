@@ -46,8 +46,8 @@ export default function MeetingFormModal({ onSave, onClose }) {
     <div style={overlay} onClick={onClose}>
       <div style={modal} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1a1a2e', margin: 0 }}>Nova Reunião</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#6b7280' }}>×</button>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#e5e5e5', margin: 0 }}>Nova Reunião</h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#a3a3a3' }}>×</button>
         </div>
 
         {error && <div style={errBox}>{error}</div>}
@@ -74,9 +74,9 @@ export default function MeetingFormModal({ onSave, onClose }) {
               <button type="button" onClick={addPendency} style={addBtn}>+ Adicionar</button>
             </div>
             {pendencies.map((p, i) => (
-              <div key={i} style={{ background: '#f9fafb', borderRadius: 8, padding: 10, marginBottom: 6, border: '1px solid #e5e7eb' }}>
+              <div key={i} style={{ background: '#1e1e1e', borderRadius: 8, padding: 10, marginBottom: 6, border: '1px solid #262626' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: '#6b7280' }}>Pendência {i + 1}</span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: '#a3a3a3' }}>Pendência {i + 1}</span>
                   <button type="button" onClick={() => removePendency(i)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 14 }}>×</button>
                 </div>
                 <input placeholder="Descrição" value={p.description} onChange={e => updPendency(i, 'description', e.target.value)}
@@ -114,11 +114,11 @@ function Field({ label, value, onChange, type = 'text' }) {
   );
 }
 
-const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 };
-const modal = { background: '#fff', borderRadius: 12, padding: '24px 28px', width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto' };
-const labelStyle = { fontSize: 12, fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: 4 };
-const inputStyle = { width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 13, color: '#1a1a2e', outline: 'none' };
-const errBox = { background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', padding: '8px 12px', borderRadius: 8, fontSize: 12, marginBottom: 12 };
-const cancelBtn = { padding: '8px 16px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', color: '#6b7280', cursor: 'pointer', fontSize: 13, fontWeight: 600 };
-const saveBtn = { padding: '8px 18px', borderRadius: 8, border: 'none', background: '#7c3aed', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600 };
-const addBtn = { background: 'none', border: 'none', color: '#7c3aed', cursor: 'pointer', fontWeight: 600, fontSize: 12, padding: 0 };
+const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 };
+const modal = { background: '#1a1a1a', borderRadius: 12, padding: '24px 28px', width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto' };
+const labelStyle = { fontSize: 12, fontWeight: 600, color: '#a3a3a3', display: 'block', marginBottom: 4 };
+const inputStyle = { width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #333', fontSize: 13, color: '#e5e5e5', background: '#1e1e1e', outline: 'none' };
+const errBox = { background: '#ef444418', border: '1px solid #ef444440', color: '#ef4444', padding: '8px 12px', borderRadius: 8, fontSize: 12, marginBottom: 12 };
+const cancelBtn = { padding: '8px 16px', borderRadius: 8, border: '1px solid #262626', background: '#1e1e1e', color: '#a3a3a3', cursor: 'pointer', fontSize: 13, fontWeight: 600 };
+const saveBtn = { padding: '8px 18px', borderRadius: 8, border: 'none', background: '#00B39D', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600 };
+const addBtn = { background: 'none', border: 'none', color: '#00B39D', cursor: 'pointer', fontWeight: 600, fontSize: 12, padding: 0 };

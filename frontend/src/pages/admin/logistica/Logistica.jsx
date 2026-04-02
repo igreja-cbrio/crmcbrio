@@ -4,18 +4,18 @@ import { logistica } from '../../../api';
 
 // ── Tema ────────────────────────────────────────────────────
 const C = {
-  bg: '#f3f4f6', card: '#fff', primary: '#7c3aed', primaryBg: '#ede9fe',
-  text: '#1a1a2e', text2: '#6b7280', text3: '#9ca3af',
-  border: '#e5e7eb', green: '#10b981', greenBg: '#d1fae5',
-  red: '#ef4444', redBg: '#fee2e2', amber: '#f59e0b', amberBg: '#fef3c7',
-  blue: '#3b82f6', blueBg: '#dbeafe',
+  bg: '#0a0a0a', card: '#161616', primary: '#00B39D', primaryBg: '#00B39D18',
+  text: '#e5e5e5', text2: '#a3a3a3', text3: '#737373',
+  border: '#262626', green: '#10b981', greenBg: '#10b98118',
+  red: '#ef4444', redBg: '#ef444418', amber: '#f59e0b', amberBg: '#f59e0b18',
+  blue: '#3b82f6', blueBg: '#3b82f618',
 };
 
 const URGENCIA_COLORS = {
   urgente: { c: C.red, bg: C.redBg, label: 'Urgente' },
   alta: { c: C.amber, bg: C.amberBg, label: 'Alta' },
   normal: { c: C.blue, bg: C.blueBg, label: 'Normal' },
-  baixa: { c: C.text3, bg: '#f3f4f6', label: 'Baixa' },
+  baixa: { c: C.text3, bg: '#73737318', label: 'Baixa' },
 };
 
 const SOLICITACAO_STATUS = {
@@ -62,7 +62,7 @@ const styles = {
   cardHeader: { padding: '16px 20px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   cardTitle: { fontSize: 15, fontWeight: 700, color: C.text },
   table: { width: '100%', borderCollapse: 'collapse' },
-  th: { padding: '10px 16px', fontSize: 11, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'left', borderBottom: `1px solid ${C.border}`, background: '#fafafa' },
+  th: { padding: '10px 16px', fontSize: 11, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'left', borderBottom: `1px solid ${C.border}`, background: '#1e1e1e' },
   td: { padding: '12px 16px', fontSize: 13, color: C.text, borderBottom: `1px solid ${C.border}` },
   badge: (color, bg) => ({
     display: 'inline-block', padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600,
@@ -81,14 +81,14 @@ const styles = {
   filterRow: { display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' },
   input: {
     padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13,
-    outline: 'none', width: '100%', transition: 'border 0.15s', background: '#fff',
+    outline: 'none', width: '100%', transition: 'border 0.15s', background: '#1e1e1e', color: '#e5e5e5',
   },
-  select: { padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: '#fff', outline: 'none' },
+  select: { padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: '#1e1e1e', color: '#e5e5e5', outline: 'none' },
   label: { fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 4, display: 'block', textTransform: 'uppercase', letterSpacing: 0.5 },
   formGroup: { marginBottom: 14 },
   formRow: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 },
-  overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: 60, zIndex: 1000 },
-  modal: { background: '#fff', borderRadius: 16, width: '95%', maxWidth: 560, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' },
+  overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: 60, zIndex: 1000 },
+  modal: { background: '#1a1a1a', borderRadius: 16, width: '95%', maxWidth: 560, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' },
   modalHeader: { padding: '20px 24px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   modalTitle: { fontSize: 18, fontWeight: 700, color: C.text },
   modalBody: { padding: '16px 24px 24px' },
@@ -146,7 +146,7 @@ function Textarea({ label, ...props }) {
 }
 
 function Badge({ status, map }) {
-  const s = map[status] || { c: C.text3, bg: '#f3f4f6', label: status || '-' };
+  const s = map[status] || { c: C.text3, bg: '#73737318', label: status || '-' };
   return <span style={styles.badge(s.c, s.bg)}>{s.label}</span>;
 }
 
@@ -590,7 +590,7 @@ function FornecedoresTab({ data, loading, isDiretor, filtroAtivo, setFiltroAtivo
                   {f.telefone && <div style={{ fontSize: 11, color: C.text3 }}>{f.telefone}</div>}
                 </td>
                 <td style={styles.td}>
-                  <span style={styles.badge(f.ativo ? C.green : C.text3, f.ativo ? C.greenBg : '#f3f4f6')}>
+                  <span style={styles.badge(f.ativo ? C.green : C.text3, f.ativo ? C.greenBg : '#73737318')}>
                     {f.ativo ? 'Ativo' : 'Inativo'}
                   </span>
                 </td>
@@ -730,7 +730,7 @@ function PedidosTab({ data, loading, isDiretor, filtroStatus, setFiltroStatus, o
                   <td style={styles.td}>{fmtDate(p.data_prevista)}</td>
                   <td style={styles.td}>
                     {p.codigo_rastreio ? (
-                      <span style={{ fontFamily: 'monospace', fontSize: 12, background: '#f3f4f6', padding: '2px 6px', borderRadius: 4 }}>{p.codigo_rastreio}</span>
+                      <span style={{ fontFamily: 'monospace', fontSize: 12, background: '#73737318', padding: '2px 6px', borderRadius: 4 }}>{p.codigo_rastreio}</span>
                     ) : '-'}
                   </td>
                   <td style={styles.td}><Badge status={p.status} map={PEDIDO_STATUS} /></td>

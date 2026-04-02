@@ -1,28 +1,28 @@
 import { useState, useEffect } from 'react';
 import { cycles as api, users as usersApi } from '../../../api';
 
-const C = { dark: '#1a1a2e', t2: '#6b7280', t3: '#9ca3af', border: '#e5e7eb', accent: '#7c3aed', accentBg: '#f3e8ff' };
+const C = { dark: '#e5e5e5', t2: '#a3a3a3', t3: '#737373', border: '#262626', accent: '#00B39D', accentBg: '#00B39D18' };
 
 const PHASE_STATUS = {
-  pendente:     { label: 'Pendente',     color: '#9ca3af', bg: '#f3f4f6' },
-  em_andamento: { label: 'Em andamento', color: '#3b82f6', bg: '#eff6ff' },
-  concluida:    { label: 'Concluída',    color: '#10b981', bg: '#ecfdf5' },
-  atrasada:     { label: 'Atrasada',     color: '#ef4444', bg: '#fef2f2' },
-  em_risco:     { label: 'Em risco',     color: '#f59e0b', bg: '#fffbeb' },
+  pendente:     { label: 'Pendente',     color: '#737373', bg: '#73737318' },
+  em_andamento: { label: 'Em andamento', color: '#3b82f6', bg: '#3b82f618' },
+  concluida:    { label: 'Concluída',    color: '#10b981', bg: '#10b98118' },
+  atrasada:     { label: 'Atrasada',     color: '#ef4444', bg: '#ef444418' },
+  em_risco:     { label: 'Em risco',     color: '#f59e0b', bg: '#f59e0b18' },
 };
 
 const TASK_STATUS = {
-  a_fazer:       { label: 'A fazer',       color: '#9ca3af' },
+  a_fazer:       { label: 'A fazer',       color: '#737373' },
   em_andamento:  { label: 'Em andamento',  color: '#3b82f6' },
   bloqueada:     { label: 'Bloqueada',     color: '#ef4444' },
   concluida:     { label: 'Concluída',     color: '#10b981' },
 };
 
 const ADM_STATUS = {
-  pendente:       { label: 'Pendente',       color: '#9ca3af' },
+  pendente:       { label: 'Pendente',       color: '#737373' },
   em_andamento:   { label: 'Em andamento',   color: '#3b82f6' },
   concluido:      { label: 'Concluído',      color: '#10b981' },
-  nao_aplicavel:  { label: 'N/A',            color: '#6b7280' },
+  nao_aplicavel:  { label: 'N/A',            color: '#a3a3a3' },
 };
 
 function Badge({ text, color, bg }) {
@@ -43,12 +43,12 @@ function DelayBadge({ prazo, status, fimFase }) {
   return (
     <div style={{ display: 'flex', gap: 4, marginTop: 2 }}>
       {diasAtraso > 0 && (
-        <span style={{ fontSize: 10, fontWeight: 600, color: '#ef4444', padding: '1px 6px', borderRadius: 4, background: '#fef2f2' }}>
+        <span style={{ fontSize: 10, fontWeight: 600, color: '#ef4444', padding: '1px 6px', borderRadius: 4, background: '#ef444418' }}>
           {diasAtraso}d atrasado
         </span>
       )}
       {diasAlemFase > 0 && (
-        <span style={{ fontSize: 10, fontWeight: 600, color: '#f59e0b', padding: '1px 6px', borderRadius: 4, background: '#fffbeb' }}>
+        <span style={{ fontSize: 10, fontWeight: 600, color: '#f59e0b', padding: '1px 6px', borderRadius: 4, background: '#f59e0b18' }}>
           {diasAlemFase}d além da fase
         </span>
       )}
@@ -72,8 +72,8 @@ function PhaseDetailModal({ phase, tasks, onClose, onCreateTask, onTaskStatusCha
             <h2 style={{ fontSize: 18, fontWeight: 700, color: C.dark, margin: '4px 0' }}>{phase.nome_fase}</h2>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <Badge text={st.label} color={st.color} bg={st.bg} />
-              {phase.momento_chave && <Badge text="Momento-chave" color="#f59e0b" bg="#fffbeb" />}
-              <Badge text={phase.area} color={phase.area === 'marketing' ? '#7c3aed' : '#3b82f6'} />
+              {phase.momento_chave && <Badge text="Momento-chave" color="#f59e0b" bg="#f59e0b18" />}
+              <Badge text={phase.area} color={phase.area === 'marketing' ? '#00B39D' : '#3b82f6'} />
             </div>
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: C.t2 }}>×</button>
@@ -81,17 +81,17 @@ function PhaseDetailModal({ phase, tasks, onClose, onCreateTask, onTaskStatusCha
 
         {/* Info */}
         <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
-          <div style={{ background: '#f9fafb', borderRadius: 8, padding: '10px 14px', flex: 1, textAlign: 'center' }}>
+          <div style={{ background: '#1e1e1e', borderRadius: 8, padding: '10px 14px', flex: 1, textAlign: 'center' }}>
             <div style={{ fontSize: 10, color: C.t2, fontWeight: 600 }}>Período</div>
             <div style={{ fontSize: 13, fontWeight: 600, color: C.dark, marginTop: 2 }}>
               {fmtDate(phase.data_inicio_prevista)} → {fmtDate(phase.data_fim_prevista)}
             </div>
           </div>
-          <div style={{ background: '#ecfdf5', borderRadius: 8, padding: '10px 14px', flex: 1, textAlign: 'center' }}>
+          <div style={{ background: '#10b98118', borderRadius: 8, padding: '10px 14px', flex: 1, textAlign: 'center' }}>
             <div style={{ fontSize: 10, color: '#10b981', fontWeight: 600 }}>Concluídas</div>
             <div style={{ fontSize: 20, fontWeight: 700, color: '#10b981' }}>{done}</div>
           </div>
-          <div style={{ background: '#f3f4f6', borderRadius: 8, padding: '10px 14px', flex: 1, textAlign: 'center' }}>
+          <div style={{ background: '#73737318', borderRadius: 8, padding: '10px 14px', flex: 1, textAlign: 'center' }}>
             <div style={{ fontSize: 10, color: C.t2, fontWeight: 600 }}>Pendentes</div>
             <div style={{ fontSize: 20, fontWeight: 700, color: C.t2 }}>{pending}</div>
           </div>
@@ -100,7 +100,7 @@ function PhaseDetailModal({ phase, tasks, onClose, onCreateTask, onTaskStatusCha
         {/* Progress */}
         {phaseTasks.length > 0 && (
           <div style={{ marginBottom: 16 }}>
-            <div style={{ height: 6, background: '#e5e7eb', borderRadius: 3 }}>
+            <div style={{ height: 6, background: '#262626', borderRadius: 3 }}>
               <div style={{ height: '100%', width: `${phaseTasks.length > 0 ? Math.round((done / phaseTasks.length) * 100) : 0}%`, background: '#10b981', borderRadius: 3, transition: 'width 0.3s' }} />
             </div>
           </div>
@@ -117,7 +117,7 @@ function PhaseDetailModal({ phase, tasks, onClose, onCreateTask, onTaskStatusCha
         {phaseTasks.map(task => {
           const ts = TASK_STATUS[task.status] || TASK_STATUS.a_fazer;
           return (
-            <div key={task.id} style={{ background: '#fff', borderRadius: 8, padding: 10, border: `1px solid ${C.border}`, marginBottom: 6 }}>
+            <div key={task.id} style={{ background: '#161616', borderRadius: 8, padding: 10, border: `1px solid ${C.border}`, marginBottom: 6 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 600, fontSize: 13, color: C.dark }}>{task.titulo}</div>
@@ -310,13 +310,13 @@ export default function CycleView({ eventId }) {
   return (
     <div>
       {/* Progress bar */}
-      <div style={{ background: '#fff', borderRadius: 10, padding: 14, border: `1px solid ${C.border}`, marginBottom: 12 }}>
+      <div style={{ background: '#161616', borderRadius: 10, padding: 14, border: `1px solid ${C.border}`, marginBottom: 12 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: C.t2, marginBottom: 6 }}>
           <span>Progresso do Ciclo</span>
           <span>{phasesDone}/{phases.length} fases ({pctDone}%)</span>
         </div>
-        <div style={{ height: 8, background: '#e5e7eb', borderRadius: 4 }}>
-          <div style={{ height: '100%', width: `${pctDone}%`, background: '#7c3aed', borderRadius: 4, transition: 'width 0.3s' }} />
+        <div style={{ height: 8, background: '#262626', borderRadius: 4 }}>
+          <div style={{ height: '100%', width: `${pctDone}%`, background: '#00B39D', borderRadius: 4, transition: 'width 0.3s' }} />
         </div>
       </div>
 
@@ -342,7 +342,7 @@ export default function CycleView({ eventId }) {
             const tasksDone = phaseTasks.filter(t => t.status === 'concluida').length;
             return (
               <div key={phase.id} onClick={() => setSelectedPhase(phase)} style={{
-                background: '#fff', borderRadius: 10, padding: 12, border: `1px solid ${C.border}`, cursor: 'pointer',
+                background: '#161616', borderRadius: 10, padding: 12, border: `1px solid ${C.border}`, cursor: 'pointer',
                 borderLeft: phase.momento_chave ? '4px solid #f59e0b' : `4px solid ${st.color}`,
                 transition: 'box-shadow 0.15s',
               }}
@@ -376,7 +376,7 @@ export default function CycleView({ eventId }) {
           {Object.entries(TASK_STATUS).map(([status, meta]) => {
             const colTasks = tasks.filter(t => t.status === status);
             return (
-              <div key={status} style={{ background: '#f9fafb', borderRadius: 10, padding: 10 }}
+              <div key={status} style={{ background: '#1e1e1e', borderRadius: 10, padding: 10 }}
                 onDragOver={e => e.preventDefault()}
                 onDrop={e => { const tid = e.dataTransfer.getData('cycleTaskId'); if (tid) handleTaskStatusChange(tid, status); }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: meta.color, marginBottom: 8 }}>
@@ -384,14 +384,14 @@ export default function CycleView({ eventId }) {
                 </div>
                 {colTasks.map(task => (
                   <div key={task.id} draggable onDragStart={e => e.dataTransfer.setData('cycleTaskId', task.id)}
-                    style={{ background: '#fff', borderRadius: 8, padding: 10, marginBottom: 6, border: `1px solid ${C.border}`, cursor: 'grab' }}>
+                    style={{ background: '#161616', borderRadius: 8, padding: 10, marginBottom: 6, border: `1px solid ${C.border}`, cursor: 'grab' }}>
                     <div style={{ fontWeight: 600, fontSize: 13, color: C.dark }}>{task.titulo}</div>
                     <div style={{ fontSize: 11, color: C.t2, marginTop: 2 }}>
                       {task.responsavel_nome || 'Sem responsável'}
                       {task.prazo && ` · ${fmtDate(task.prazo)}`}
                     </div>
                     <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
-                      <Badge text={task.area === 'marketing' ? 'MKT' : 'ADM'} color={task.area === 'marketing' ? '#7c3aed' : '#f59e0b'} />
+                      <Badge text={task.area === 'marketing' ? 'MKT' : 'ADM'} color={task.area === 'marketing' ? '#00B39D' : '#f59e0b'} />
                       <Badge text={task.prioridade} color={task.prioridade === 'alta' ? '#ef4444' : task.prioridade === 'normal' ? '#3b82f6' : '#9ca3af'} />
                     </div>
                     <DelayBadge prazo={task.prazo} status={task.status} fimFase={phases.find(p => p.id === task.event_phase_id)?.data_fim_prevista} />
@@ -421,7 +421,7 @@ export default function CycleView({ eventId }) {
                 {items.map(item => {
                   const st = ADM_STATUS[item.status] || ADM_STATUS.pendente;
                   return (
-                    <div key={item.id} style={{ background: '#fff', borderRadius: 8, padding: 10, border: `1px solid ${C.border}`, marginBottom: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div key={item.id} style={{ background: '#161616', borderRadius: 8, padding: 10, border: `1px solid ${C.border}`, marginBottom: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 13, fontWeight: 600, color: C.dark }}>{item.titulo}</div>
                         <div style={{ fontSize: 11, color: C.t2 }}>{item.area} · {item.entrega_esperada}</div>
@@ -465,10 +465,10 @@ export default function CycleView({ eventId }) {
   );
 }
 
-const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 };
-const modal = { background: '#fff', borderRadius: 12, padding: '24px 28px', width: '100%', maxWidth: 600, maxHeight: '90vh', overflowY: 'auto' };
-const labelStyle = { fontSize: 12, fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: 4 };
-const inputStyle = { width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 13, color: '#1a1a2e', outline: 'none' };
-const errBox = { background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', padding: '8px 12px', borderRadius: 8, fontSize: 12, marginBottom: 12 };
-const btnPrimary = { padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', background: '#7c3aed', color: '#fff', fontWeight: 600, fontSize: 12 };
-const btnCancel = { padding: '8px 16px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', color: '#6b7280', cursor: 'pointer', fontWeight: 600, fontSize: 12 };
+const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 };
+const modal = { background: '#1a1a1a', borderRadius: 12, padding: '24px 28px', width: '100%', maxWidth: 600, maxHeight: '90vh', overflowY: 'auto' };
+const labelStyle = { fontSize: 12, fontWeight: 600, color: '#a3a3a3', display: 'block', marginBottom: 4 };
+const inputStyle = { width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #333', fontSize: 13, color: '#e5e5e5', background: '#1e1e1e', outline: 'none' };
+const errBox = { background: '#ef444418', border: '1px solid #ef444440', color: '#ef4444', padding: '8px 12px', borderRadius: 8, fontSize: 12, marginBottom: 12 };
+const btnPrimary = { padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', background: '#00B39D', color: '#fff', fontWeight: 600, fontSize: 12 };
+const btnCancel = { padding: '8px 16px', borderRadius: 8, border: '1px solid #262626', background: '#1e1e1e', color: '#a3a3a3', cursor: 'pointer', fontWeight: 600, fontSize: 12 };

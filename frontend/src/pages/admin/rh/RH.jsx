@@ -4,16 +4,16 @@ import { rh } from '../../../api';
 
 // ── Tema ────────────────────────────────────────────────────
 const C = {
-  bg: '#f3f4f6', card: '#fff', primary: '#7c3aed', primaryBg: '#ede9fe',
-  text: '#1a1a2e', text2: '#6b7280', text3: '#9ca3af',
-  border: '#e5e7eb', green: '#10b981', greenBg: '#d1fae5',
-  red: '#ef4444', redBg: '#fee2e2', amber: '#f59e0b', amberBg: '#fef3c7',
-  blue: '#3b82f6', blueBg: '#dbeafe', sidebar: '#1a1a2e',
+  bg: '#0a0a0a', card: '#161616', primary: '#00B39D', primaryBg: '#00B39D18',
+  text: '#e5e5e5', text2: '#a3a3a3', text3: '#737373',
+  border: '#262626', green: '#10b981', greenBg: '#10b98118',
+  red: '#ef4444', redBg: '#ef444418', amber: '#f59e0b', amberBg: '#f59e0b18',
+  blue: '#3b82f6', blueBg: '#3b82f618', sidebar: '#111111',
 };
 
 const STATUS_COLORS = {
   ativo: { c: C.green, bg: C.greenBg, label: 'Ativo' },
-  inativo: { c: C.text3, bg: '#f3f4f6', label: 'Inativo' },
+  inativo: { c: C.text3, bg: '#73737318', label: 'Inativo' },
   ferias: { c: C.blue, bg: C.blueBg, label: 'Férias' },
   licenca: { c: C.amber, bg: C.amberBg, label: 'Licença' },
 };
@@ -60,7 +60,7 @@ const styles = {
   cardHeader: { padding: '16px 20px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   cardTitle: { fontSize: 15, fontWeight: 700, color: C.text },
   table: { width: '100%', borderCollapse: 'collapse' },
-  th: { padding: '10px 16px', fontSize: 11, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'left', borderBottom: `1px solid ${C.border}`, background: '#fafafa' },
+  th: { padding: '10px 16px', fontSize: 11, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'left', borderBottom: `1px solid ${C.border}`, background: '#1e1e1e' },
   td: { padding: '12px 16px', fontSize: 13, color: C.text, borderBottom: `1px solid ${C.border}` },
   badge: (color, bg) => ({
     display: 'inline-block', padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600,
@@ -78,15 +78,15 @@ const styles = {
   filterRow: { display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' },
   input: {
     padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13,
-    outline: 'none', width: '100%', transition: 'border 0.15s', background: '#fff',
+    outline: 'none', width: '100%', transition: 'border 0.15s', background: '#1e1e1e', color: '#e5e5e5',
   },
-  select: { padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: '#fff', outline: 'none' },
+  select: { padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: '#1e1e1e', color: '#e5e5e5', outline: 'none' },
   label: { fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 4, display: 'block', textTransform: 'uppercase', letterSpacing: 0.5 },
   formGroup: { marginBottom: 14 },
   formRow: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 },
   // Modal
-  overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: 60, zIndex: 1000 },
-  modal: { background: '#fff', borderRadius: 16, width: '95%', maxWidth: 560, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' },
+  overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: 60, zIndex: 1000 },
+  modal: { background: '#1a1a1a', borderRadius: 16, width: '95%', maxWidth: 560, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' },
   modalHeader: { padding: '20px 24px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   modalTitle: { fontSize: 18, fontWeight: 700, color: C.text },
   modalBody: { padding: '16px 24px 24px' },
@@ -135,7 +135,7 @@ function Select({ label, children, ...props }) {
 }
 
 function Badge({ status, map }) {
-  const s = map[status] || { c: C.text3, bg: '#f3f4f6', label: status };
+  const s = map[status] || { c: C.text3, bg: '#73737318', label: status };
   return <span style={styles.badge(s.c, s.bg)}>{s.label}</span>;
 }
 
@@ -443,7 +443,7 @@ function FuncionariosTab({ funcs, loading, busca, setBusca, filtroStatus, setFil
               {!loading && funcs.length === 0 && <tr><td colSpan={7} style={{ ...styles.td, textAlign: 'center', color: C.text3 }}>Nenhum funcionário encontrado</td></tr>}
               {funcs.map(f => (
                 <tr key={f.id} style={styles.clickRow}
-                  onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
+                  onMouseEnter={e => e.currentTarget.style.background = '#1e1e1e'}
                   onMouseLeave={e => e.currentTarget.style.background = ''}
                   onClick={() => onDetail(f.id)}>
                   <td style={{ ...styles.td, fontWeight: 600 }}>{f.nome}</td>
@@ -713,7 +713,7 @@ function FuncionarioDetailModal({ open, data, onClose, onEdit, onDelete, onNewDo
       </div>
 
       {data.observacoes && (
-        <div style={{ padding: '8px 12px', background: '#f9fafb', borderRadius: 8, marginBottom: 16, fontSize: 13, color: C.text2 }}>{data.observacoes}</div>
+        <div style={{ padding: '8px 12px', background: '#1e1e1e', borderRadius: 8, marginBottom: 16, fontSize: 13, color: C.text2 }}>{data.observacoes}</div>
       )}
 
       {/* Documentos */}

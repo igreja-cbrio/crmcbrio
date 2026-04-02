@@ -37,10 +37,10 @@ export default function TaskFormModal({ task, onSave, onClose }) {
     <div style={overlay} onClick={onClose}>
       <div style={modal} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1a1a2e', margin: 0 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#e5e5e5', margin: 0 }}>
             {task ? 'Editar Tarefa' : 'Nova Tarefa'}
           </h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#6b7280' }}>×</button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#a3a3a3' }}>×</button>
         </div>
 
         {error && <div style={errBox}>{error}</div>}
@@ -77,7 +77,7 @@ export default function TaskFormModal({ task, onSave, onClose }) {
           </div>
           <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
             <input type="checkbox" checked={f.is_milestone} onChange={e => upd('is_milestone', e.target.checked)} />
-            <label style={{ fontSize: 13, color: '#1a1a2e' }}>É marco (milestone)</label>
+            <label style={{ fontSize: 13, color: '#e5e5e5' }}>É marco (milestone)</label>
           </div>
           <div style={{ marginBottom: 12 }}>
             <label style={labelStyle}>Descrição</label>
@@ -106,10 +106,10 @@ function Field({ label, value, onChange, type = 'text', style = {} }) {
   );
 }
 
-const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 };
-const modal = { background: '#fff', borderRadius: 12, padding: '24px 28px', width: '100%', maxWidth: 500, maxHeight: '90vh', overflowY: 'auto' };
-const labelStyle = { fontSize: 12, fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: 4 };
-const inputStyle = { width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 13, color: '#1a1a2e', outline: 'none' };
-const errBox = { background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', padding: '8px 12px', borderRadius: 8, fontSize: 12, marginBottom: 12 };
-const cancelBtn = { padding: '8px 16px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', color: '#6b7280', cursor: 'pointer', fontSize: 13, fontWeight: 600 };
-const saveBtn = { padding: '8px 18px', borderRadius: 8, border: 'none', background: '#7c3aed', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600 };
+const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 };
+const modal = { background: '#1a1a1a', borderRadius: 12, padding: '24px 28px', width: '100%', maxWidth: 500, maxHeight: '90vh', overflowY: 'auto' };
+const labelStyle = { fontSize: 12, fontWeight: 600, color: '#a3a3a3', display: 'block', marginBottom: 4 };
+const inputStyle = { width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #333', fontSize: 13, color: '#e5e5e5', background: '#1e1e1e', outline: 'none' };
+const errBox = { background: '#ef444418', border: '1px solid #ef444440', color: '#ef4444', padding: '8px 12px', borderRadius: 8, fontSize: 12, marginBottom: 12 };
+const cancelBtn = { padding: '8px 16px', borderRadius: 8, border: '1px solid #262626', background: '#1e1e1e', color: '#a3a3a3', cursor: 'pointer', fontSize: 13, fontWeight: 600 };
+const saveBtn = { padding: '8px 18px', borderRadius: 8, border: 'none', background: '#00B39D', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600 };

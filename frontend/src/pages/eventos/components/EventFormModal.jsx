@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 
-const C = { dark: '#1a1a2e', t2: '#6b7280', border: '#e5e7eb', accent: '#7c3aed' };
+const C = { dark: '#e5e5e5', t2: '#a3a3a3', border: '#262626', accent: '#00B39D' };
 
 const RECURRENCES = [
   { value: 'unico', label: 'Único' },
@@ -122,7 +122,7 @@ export default function EventFormModal({ event, categories, onSave, onClose }) {
               <div style={{ fontSize: 10, fontWeight: 700, color: C.t2, marginBottom: 4 }}>OCORRÊNCIAS ({occurrences.length})</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                 {occurrences.map(d => (
-                  <span key={d} style={{ fontSize: 10, padding: '2px 8px', borderRadius: 6, background: '#f3f4f6', border: `1px solid ${C.border}` }}>
+                  <span key={d} style={{ fontSize: 10, padding: '2px 8px', borderRadius: 6, background: '#73737318', border: `1px solid ${C.border}` }}>
                     {new Date(d + 'T12:00:00').toLocaleDateString('pt-BR')}
                   </span>
                 ))}
@@ -148,12 +148,12 @@ export default function EventFormModal({ event, categories, onSave, onClose }) {
           </div>
 
           {!event && (
-            <div style={{ marginBottom: 12, padding: '10px 12px', background: '#f3e8ff', borderRadius: 8, border: '1px solid #e9d5ff', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ marginBottom: 12, padding: '10px 12px', background: '#00B39D18', borderRadius: 8, border: '1px solid #00B39D30', display: 'flex', alignItems: 'center', gap: 8 }}>
               <input type="checkbox" checked={f.ativar_ciclo} onChange={e => upd('ativar_ciclo', e.target.checked)} id="ciclo" />
-              <label htmlFor="ciclo" style={{ fontSize: 13, color: '#7c3aed', fontWeight: 600, cursor: 'pointer' }}>
+              <label htmlFor="ciclo" style={{ fontSize: 13, color: '#00B39D', fontWeight: 600, cursor: 'pointer' }}>
                 Ativar Ciclo Criativo
               </label>
-              <span style={{ fontSize: 11, color: '#6b7280' }}>— ativa as 11 fases de produção + trilha administrativa</span>
+              <span style={{ fontSize: 11, color: '#a3a3a3' }}>— ativa as 11 fases de produção + trilha administrativa</span>
             </div>
           )}
 
@@ -179,27 +179,27 @@ function Field({ label, value, onChange, type = 'text', style = {} }) {
 }
 
 const overlay = {
-  position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex',
+  position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex',
   alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16,
 };
 const modal = {
-  background: '#fff', borderRadius: 12, padding: '24px 28px', width: '100%',
+  background: '#1a1a1a', borderRadius: 12, padding: '24px 28px', width: '100%',
   maxWidth: 560, maxHeight: '90vh', overflowY: 'auto',
 };
-const labelStyle = { fontSize: 12, fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: 4 };
+const labelStyle = { fontSize: 12, fontWeight: 600, color: '#a3a3a3', display: 'block', marginBottom: 4 };
 const inputStyle = {
-  width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #e5e7eb',
-  fontSize: 13, color: '#1a1a2e', outline: 'none',
+  width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #333',
+  fontSize: 13, color: '#e5e5e5', background: '#1e1e1e', outline: 'none',
 };
 const errBox = {
-  background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626',
+  background: '#ef444418', border: '1px solid #ef444440', color: '#ef4444',
   padding: '8px 12px', borderRadius: 8, fontSize: 12, marginBottom: 12,
 };
 const cancelBtn = {
-  padding: '8px 16px', borderRadius: 8, border: '1px solid #e5e7eb',
-  background: '#fff', color: '#6b7280', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+  padding: '8px 16px', borderRadius: 8, border: '1px solid #262626',
+  background: '#1e1e1e', color: '#a3a3a3', cursor: 'pointer', fontSize: 13, fontWeight: 600,
 };
 const saveBtn = {
   padding: '8px 18px', borderRadius: 8, border: 'none',
-  background: '#7c3aed', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+  background: '#00B39D', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600,
 };

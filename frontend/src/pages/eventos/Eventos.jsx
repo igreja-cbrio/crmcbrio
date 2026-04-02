@@ -4,11 +4,11 @@ import { events, cycles as cyclesApi } from '../../api';
 
 // ── Tema ────────────────────────────────────────────────────
 const C = {
-  bg: '#f3f4f6', card: '#fff', primary: '#7c3aed', primaryBg: '#ede9fe',
-  text: '#1a1a2e', text2: '#6b7280', text3: '#9ca3af',
-  border: '#e5e7eb', green: '#10b981', greenBg: '#d1fae5',
-  red: '#ef4444', redBg: '#fee2e2', amber: '#f59e0b', amberBg: '#fef3c7',
-  blue: '#3b82f6', blueBg: '#dbeafe',
+  bg: '#0a0a0a', card: '#161616', primary: '#00B39D', primaryBg: '#00B39D18',
+  text: '#e5e5e5', text2: '#a3a3a3', text3: '#737373',
+  border: '#262626', green: '#10b981', greenBg: '#10b98118',
+  red: '#ef4444', redBg: '#ef444418', amber: '#f59e0b', amberBg: '#f59e0b18',
+  blue: '#3b82f6', blueBg: '#3b82f618',
 };
 
 const STATUS_MAP = {
@@ -19,7 +19,7 @@ const STATUS_MAP = {
 };
 
 const TASK_STATUS_MAP = {
-  'pendente': { c: C.text3, bg: '#f3f4f6', label: 'Pendente' },
+  'pendente': { c: C.text3, bg: '#73737318', label: 'Pendente' },
   'em-andamento': { c: C.blue, bg: C.blueBg, label: 'Em Andamento' },
   'concluida': { c: C.green, bg: C.greenBg, label: 'Concluída' },
   'atrasada': { c: C.red, bg: C.redBg, label: 'Atrasada' },
@@ -58,7 +58,8 @@ const styles = {
   cardHeader: { padding: '16px 20px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   cardTitle: { fontSize: 15, fontWeight: 700, color: C.text },
   table: { width: '100%', borderCollapse: 'collapse' },
-  th: { padding: '10px 16px', fontSize: 11, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'left', borderBottom: `1px solid ${C.border}`, background: '#fafafa' },
+  th: { padding: '10px 16px', fontSize: 11, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'left', borderBottom: `1px solid ${C.border}`, background: '#1e1e1e' },
+
   td: { padding: '12px 16px', fontSize: 13, color: C.text, borderBottom: `1px solid ${C.border}` },
   badge: (color, bg) => ({
     display: 'inline-block', padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600,
@@ -76,14 +77,14 @@ const styles = {
   filterRow: { display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' },
   input: {
     padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13,
-    outline: 'none', width: '100%', transition: 'border 0.15s', background: '#fff',
+    outline: 'none', width: '100%', transition: 'border 0.15s', background: '#1e1e1e', color: '#e5e5e5',
   },
-  select: { padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: '#fff', outline: 'none' },
+  select: { padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: '#1e1e1e', color: '#e5e5e5', outline: 'none' },
   label: { fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 4, display: 'block', textTransform: 'uppercase', letterSpacing: 0.5 },
   formGroup: { marginBottom: 14 },
   formRow: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 },
-  overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: 60, zIndex: 1000 },
-  modal: { background: '#fff', borderRadius: 16, width: '95%', maxWidth: 560, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' },
+  overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: 60, zIndex: 1000 },
+  modal: { background: '#1a1a1a', borderRadius: 16, width: '95%', maxWidth: 560, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' },
   modalHeader: { padding: '20px 24px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   modalTitle: { fontSize: 18, fontWeight: 700, color: C.text },
   modalBody: { padding: '16px 24px 24px' },
@@ -96,7 +97,7 @@ const styles = {
     marginBottom: 10, boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
   },
   subtaskRow: { display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', fontSize: 13, color: C.text },
-  commentBox: { background: '#fafafa', borderRadius: 8, padding: '8px 12px', marginTop: 6, fontSize: 12, color: C.text2 },
+  commentBox: { background: '#1e1e1e', borderRadius: 8, padding: '8px 12px', marginTop: 6, fontSize: 12, color: C.text2 },
   dot: (color) => ({ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: color, marginRight: 6 }),
   backBtn: { background: 'none', border: 'none', cursor: 'pointer', color: C.primary, fontWeight: 600, fontSize: 13, padding: 0, marginBottom: 16 },
   inlineInput: { padding: '4px 8px', borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, outline: 'none', flex: 1 },
@@ -152,7 +153,7 @@ function Textarea({ label, ...props }) {
 }
 
 function Badge({ status, map }) {
-  const s = map[status] || { c: C.text3, bg: '#f3f4f6', label: status || '—' };
+  const s = map[status] || { c: C.text3, bg: '#73737318', label: status || '—' };
   return <span style={styles.badge(s.c, s.bg)}>{s.label}</span>;
 }
 
@@ -386,7 +387,7 @@ export default function Eventos() {
               {eventList.map(ev => (
                 <tr key={ev.id} style={styles.clickRow}
                   onClick={() => loadDetail(ev.id)}
-                  onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
+                  onMouseEnter={e => e.currentTarget.style.background = '#1e1e1e'}
                   onMouseLeave={e => e.currentTarget.style.background = ''}
                 >
                   <td style={{ ...styles.td, fontWeight: 600 }}>{ev.name}</td>

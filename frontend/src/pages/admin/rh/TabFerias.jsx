@@ -7,14 +7,14 @@ const STATUS_COLOR = { pendente: '#d97706', aprovado: '#16a34a', rejeitado: '#dc
 
 const s = {
   toolbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  btnPrim: { background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', fontWeight: 600, fontSize: 13, cursor: 'pointer' },
-  table:   { width: '100%', background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px rgba(0,0,0,0.07)', borderCollapse: 'collapse', overflow: 'hidden' },
-  th:      { textAlign: 'left', padding: '12px 16px', fontSize: 12, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', background: '#f9fafb', borderBottom: '1px solid #e5e7eb' },
-  td:      { padding: '12px 16px', fontSize: 14, color: '#374151', borderBottom: '1px solid #f3f4f6' },
+  btnPrim: { background: '#00B39D', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', fontWeight: 600, fontSize: 13, cursor: 'pointer' },
+  table:   { width: '100%', background: '#161616', borderRadius: 12, boxShadow: '0 1px 4px rgba(0,0,0,0.2)', borderCollapse: 'collapse', overflow: 'hidden' },
+  th:      { textAlign: 'left', padding: '12px 16px', fontSize: 12, fontWeight: 600, color: '#a3a3a3', textTransform: 'uppercase', background: '#1e1e1e', borderBottom: '1px solid #262626' },
+  td:      { padding: '12px 16px', fontSize: 14, color: '#e5e5e5', borderBottom: '1px solid #262626' },
   badge:   { display: 'inline-block', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600 },
-  btnAprv: { background: '#dcfce7', color: '#16a34a', border: 'none', borderRadius: 6, padding: '4px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600, marginRight: 6 },
-  btnRej:  { background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: 6, padding: '4px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600 },
-  empty:   { textAlign: 'center', padding: '48px 0', color: '#9ca3af', fontSize: 14 },
+  btnAprv: { background: '#10b98118', color: '#10b981', border: 'none', borderRadius: 6, padding: '4px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600, marginRight: 6 },
+  btnRej:  { background: '#ef444418', color: '#ef4444', border: 'none', borderRadius: 6, padding: '4px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600 },
+  empty:   { textAlign: 'center', padding: '48px 0', color: '#737373', fontSize: 14 },
 };
 
 async function getToken() {
@@ -84,9 +84,9 @@ export default function TabFerias() {
               key={st || 'todos'}
               onClick={() => setFiltroStatus(st)}
               style={{ padding: '6px 14px', borderRadius: 20, border: '1.5px solid', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                background: filtroStatus === st ? '#7c3aed' : '#fff',
-                color: filtroStatus === st ? '#fff' : '#6b7280',
-                borderColor: filtroStatus === st ? '#7c3aed' : '#e5e7eb' }}
+                background: filtroStatus === st ? '#00B39D' : '#1e1e1e',
+                color: filtroStatus === st ? '#fff' : '#a3a3a3',
+                borderColor: filtroStatus === st ? '#00B39D' : '#262626' }}
             >
               {st || 'Todos'}
             </button>
@@ -98,25 +98,25 @@ export default function TabFerias() {
       </div>
 
       {mostrarForm && (
-        <form onSubmit={handleSalvar} style={{ background: '#fff', borderRadius: 12, padding: 20, marginBottom: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
+        <form onSubmit={handleSalvar} style={{ background: '#161616', borderRadius: 12, padding: 20, marginBottom: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
             <div style={{ gridColumn: '1/-1' }}>
               <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 5 }}>Funcionário *</label>
-              <select required value={form.funcionario_id} onChange={set('funcionario_id')} style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }}>
+              <select required value={form.funcionario_id} onChange={set('funcionario_id')} style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #333', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }}>
                 <option value="">Selecione...</option>
                 {funcionarios.map((f) => <option key={f.id} value={f.id}>{f.nome} — {f.cargo}</option>)}
               </select>
             </div>
             <div>
               <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 5, marginTop: 12 }}>Tipo</label>
-              <select value={form.tipo} onChange={set('tipo')} style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }}>
+              <select value={form.tipo} onChange={set('tipo')} style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #333', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }}>
                 {Object.entries(TIPO_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
             </div>
             {[['data_inicio','Início *',true],['data_fim','Fim *',true]].map(([k,l,r]) => (
               <div key={k}>
                 <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 5, marginTop: 12 }}>{l}</label>
-                <input type="date" required={r} value={form[k]} onChange={set(k)} style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }} />
+                <input type="date" required={r} value={form[k]} onChange={set(k)} style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #333', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }} />
               </div>
             ))}
           </div>
@@ -140,7 +140,7 @@ export default function TabFerias() {
               const dias = Math.ceil((new Date(f.data_fim) - new Date(f.data_inicio)) / 86400000);
               return (
                 <tr key={f.id}>
-                  <td style={s.td}><div style={{ fontWeight: 600 }}>{f.rh_funcionarios?.nome}</div><div style={{ fontSize: 12, color: '#9ca3af' }}>{f.rh_funcionarios?.cargo}</div></td>
+                  <td style={s.td}><div style={{ fontWeight: 600 }}>{f.rh_funcionarios?.nome}</div><div style={{ fontSize: 12, color: '#737373' }}>{f.rh_funcionarios?.cargo}</div></td>
                   <td style={s.td}>{TIPO_LABEL[f.tipo] ?? f.tipo}</td>
                   <td style={s.td}>{new Date(f.data_inicio).toLocaleDateString('pt-BR')}</td>
                   <td style={s.td}>{new Date(f.data_fim).toLocaleDateString('pt-BR')}</td>
