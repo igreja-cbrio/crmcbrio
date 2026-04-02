@@ -868,16 +868,34 @@ export default function Eventos() {
     return (
       <>
         {/* KPIs */}
-        {kpis.length > 0 && (
-          <div style={styles.kpiGrid}>
-            {kpis.map(k => (
-              <div key={k.label} style={styles.kpi(k.color)}>
-                <div style={styles.kpiValue}>{k.value}</div>
-                <div style={styles.kpiLabel}>{k.label}</div>
+        {/* Barra de status compacta */}
+        <div style={{
+          background: 'var(--cbrio-card, #fff)', borderRadius: 12, border: `1px solid ${C.border}`,
+          padding: '14px 24px', marginBottom: 20, display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+        }}>
+          {[
+            { label: 'Eventos', value: counts.total, color: C.primary },
+            { label: 'No Prazo', value: counts['no-prazo'], color: C.green },
+            { label: 'Em Risco', value: counts['em-risco'], color: C.amber },
+            { label: 'Atrasados', value: counts['atrasado'], color: C.red },
+            { label: 'Concluídos', value: counts['concluido'], color: C.blue },
+            null,
+            { label: 'Próx. 7d', value: k.events_next_7d || 0, color: '#8b5cf6' },
+            { label: 'Tarefas abertas', value: k.tasks_open || 0, color: C.text2 },
+            { label: 'Tarefas atrasadas', value: k.tasks_overdue || 0, color: C.red },
+            { label: 'Riscos', value: k.risks_open || 0, color: C.amber },
+            { label: 'Sem dono', value: k.events_no_owner || 0, color: C.text3 },
+          ].map((item, i) => {
+            if (!item) return <div key={i} style={{ width: 1, height: 24, background: 'var(--cbrio-border, #e5e7eb)' }} />;
+            return (
+              <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 20, fontWeight: 800, color: item.color }}>{item.value}</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--cbrio-text3, #9ca3af)', textTransform: 'uppercase', letterSpacing: 0.3 }}>{item.label}</span>
               </div>
-            ))}
-          </div>
-        )}
+            );
+          })}
+        </div>
 
         {/* Orçamento global + Carga de trabalho */}
         {(k.budget_total > 0 || workload.length > 0) && (
