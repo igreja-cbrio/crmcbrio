@@ -978,7 +978,12 @@ function FuncionarioFormModal({ open, data, onClose, onSave }) {
   return (
     <Modal open={open} onClose={onClose}
       title={f?.id ? 'Editar Colaborador' : 'Novo Colaborador'}
-      footer={<button style={styles.btn('primary')} onClick={() => onSave(f)} disabled={uploading}>Salvar</button>}>
+      footer={<>
+        <button style={styles.btn('ghost')} onClick={onClose}>Cancelar</button>
+        <button style={{ ...styles.btn('primary'), padding: '10px 32px', fontSize: 14 }} onClick={() => onSave(f)} disabled={uploading}>
+          {uploading ? 'Enviando foto...' : f?.id ? '💾 Salvar Alterações' : '✅ Admitir Colaborador'}
+        </button>
+      </>}>
       <Input label="Nome *" value={f.nome || ''} onChange={e => upd('nome', e.target.value)} />
       <div style={styles.formRow}>
         <Input label="CPF" value={f.cpf || ''} onChange={e => upd('cpf', e.target.value)} />
