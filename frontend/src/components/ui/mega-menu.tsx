@@ -39,7 +39,7 @@ export default function MegaMenu({ items, role }: MegaMenuProps) {
   };
 
   return (
-    <ul className="relative flex items-center gap-2">
+    <ul className="relative flex items-center gap-4">
       {items.map((navItem) => {
         // Filter by role at group level
         const hasAccess = !navItem.subMenus || navItem.subMenus.some(sub =>
@@ -111,23 +111,23 @@ export default function MegaMenu({ items, role }: MegaMenuProps) {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 8, scale: 0.96 }}
                     transition={{ duration: 0.15 }}
-                    className="w-max p-6 shadow-2xl"
+                    className="w-max p-7 shadow-2xl"
                     style={{
                       background: 'var(--cbrio-card)',
                       border: '1px solid var(--cbrio-border)',
                       borderRadius: 16,
                     }}
                   >
-                    <div className="flex shrink-0 gap-10">
+                    <div className="flex shrink-0 gap-12">
                       {navItem.subMenus.map((sub) => (
-                        <div className="min-w-[200px]" key={sub.title}>
+                        <div className="min-w-[220px]" key={sub.title}>
                           <h3
                             className="mb-3 text-[11px] font-semibold uppercase tracking-widest"
                             style={{ color: 'var(--cbrio-text3)' }}
                           >
                             {sub.title}
                           </h3>
-                          <ul className="space-y-2">
+                          <ul className="space-y-1">
                             {sub.items.map((item) => {
                               const Icon = item.icon;
                               const isActive = location.pathname.startsWith(item.path);
@@ -136,7 +136,7 @@ export default function MegaMenu({ items, role }: MegaMenuProps) {
                                   <Link
                                     to={item.path}
                                     onClick={() => setOpenMenu(null)}
-                                    className="flex items-start gap-3 rounded-xl p-3 transition-colors duration-150 group"
+                                    className="flex items-center gap-3.5 rounded-xl p-3 transition-colors duration-150 group"
                                     style={{
                                       background: isActive ? '#00B39D10' : undefined,
                                     }}

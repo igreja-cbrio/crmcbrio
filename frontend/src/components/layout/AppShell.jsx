@@ -96,7 +96,7 @@ export default function AppShell() {
         style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}
       >
         {/* Logo */}
-        <div className="flex items-center gap-3 mr-10 shrink-0">
+        <div className="flex items-center gap-3 mr-12 shrink-0">
           <img
             src="/images/logo-cbrio.svg"
             alt="CBRio"

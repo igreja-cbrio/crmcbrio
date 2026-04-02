@@ -14,6 +14,7 @@ const Financeiro   = lazy(() => import('./pages/admin/financeiro/Financeiro'));
 const Logistica    = lazy(() => import('./pages/admin/logistica/Logistica'));
 const Patrimonio   = lazy(() => import('./pages/admin/patrimonio/Patrimonio'));
 const Calendario   = lazy(() => import('./pages/Calendario'));
+const Membresia    = lazy(() => import('./pages/ministerial/Membresia'));
 
 const Loading = () => (
   <div style={{ padding: 40, color: '#6b7280', fontSize: 14 }}>Carregando módulo...</div>
@@ -87,6 +88,13 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
+        {/* Ministerial */}
+        <Route path="ministerial/membresia" element={
+          <ProtectedRoute roles={['admin', 'diretor']}>
+            <Suspense fallback={<Loading />}><Membresia /></Suspense>
+          </ProtectedRoute>
+        } />
 
         {/* Catch-all */}
         <Route path="*" element={<Navigate to="/eventos" replace />} />

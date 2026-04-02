@@ -243,3 +243,25 @@ export const rh = {
     remove: (id) => del(`/rh/ferias/${id}`),
   },
 };
+
+export const membresia = {
+  kpis: () => get('/membresia/kpis'),
+  membros: {
+    list: (params) => get('/membresia/membros' + (params ? '?' + new URLSearchParams(params) : '')),
+    get: (id) => get(`/membresia/membros/${id}`),
+    create: (data) => post('/membresia/membros', data),
+    update: (id, data) => put(`/membresia/membros/${id}`, data),
+    remove: (id) => del(`/membresia/membros/${id}`),
+  },
+  trilha: {
+    create: (data) => post('/membresia/trilha', data),
+    update: (id, data) => patch(`/membresia/trilha/${id}`, data),
+  },
+  familias: {
+    list: () => get('/membresia/familias'),
+    create: (data) => post('/membresia/familias', data),
+  },
+  historico: {
+    create: (data) => post('/membresia/historico', data),
+  },
+};

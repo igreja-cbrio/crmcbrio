@@ -42,6 +42,7 @@ app.use('/api/rh', require('./routes/rh'));
 app.use('/api/financeiro', require('./routes/financeiro'));
 app.use('/api/logistica', require('./routes/logistica'));
 app.use('/api/patrimonio', require('./routes/patrimonio'));
+app.use('/api/membresia', require('./routes/membresia'));
 
 // ── Health check ──
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
