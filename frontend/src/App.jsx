@@ -13,6 +13,7 @@ const RH           = lazy(() => import('./pages/admin/rh/RH'));
 const Financeiro   = lazy(() => import('./pages/admin/financeiro/Financeiro'));
 const Logistica    = lazy(() => import('./pages/admin/logistica/Logistica'));
 const Patrimonio   = lazy(() => import('./pages/admin/patrimonio/Patrimonio'));
+const Calendario   = lazy(() => import('./pages/Calendario'));
 
 const Loading = () => (
   <div style={{ padding: 40, color: '#6b7280', fontSize: 14 }}>Carregando módulo...</div>
@@ -51,6 +52,7 @@ function AppRoutes() {
         <Route path="eventos/:id" element={<Suspense fallback={<Loading />}><EventDetail /></Suspense>} />
         <Route path="projetos" element={<Suspense fallback={<Loading />}><Projetos /></Suspense>} />
         <Route path="expansao" element={<Suspense fallback={<Loading />}><Expansao /></Suspense>} />
+        <Route path="calendario" element={<Suspense fallback={<Loading />}><Calendario /></Suspense>} />
 
         {/* Administrativo */}
         <Route

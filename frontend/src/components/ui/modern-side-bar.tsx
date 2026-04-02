@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Calendar,
+  CalendarDays,
   ChevronRight,
   ChevronsUpDown,
   Church,
@@ -85,7 +85,8 @@ const NAV_GROUPS: NavGroup[] = [
     id: "projetos",
     label: "Projetos e Eventos",
     items: [
-      { label: "Eventos", path: "/eventos", icon: Calendar },
+      { label: "Eventos", path: "/eventos", icon: CalendarDays },
+      { label: "Calendário", path: "/calendario", icon: CalendarDays },
       { label: "Projetos", path: "/projetos", icon: FolderKanban, roles: ["admin", "diretor"] },
       { label: "Expansão", path: "/expansao", icon: Map, roles: ["admin", "diretor"] },
     ],
@@ -167,7 +168,7 @@ export function Sidebar() {
 
         {/* Navigation */}
         <ScrollArea className="flex-1 py-2">
-          <div className="flex flex-col gap-1 px-2">
+          <div className="flex flex-col gap-1 px-3">
             {NAV_GROUPS.map((group) => {
               if (group.roles && !group.roles.includes(role || "")) return null;
               const isExpanded = openGroups.includes(group.id);
@@ -177,7 +178,7 @@ export function Sidebar() {
                   {/* Group header */}
                   <button
                     onClick={() => !isCollapsed && toggleGroup(group.id)}
-                    className="flex h-7 w-full items-center gap-1.5 rounded-md px-2 transition-colors hover:bg-[#1e1e1e]"
+                    className="flex h-7 w-full items-center gap-1.5 rounded-md px-3 transition-colors hover:bg-[#1e1e1e]"
                   >
                     <ChevronRight
                       className={cn(
@@ -216,7 +217,7 @@ export function Sidebar() {
                               key={item.path}
                               to={item.path}
                               className={cn(
-                                "flex h-9 items-center gap-2.5 rounded-lg px-2.5 my-0.5 transition-all duration-150",
+                                "flex h-9 items-center gap-2.5 rounded-lg px-3.5 my-0.5 transition-all duration-150",
                                 isActive
                                   ? "bg-[#00B39D]/10 text-[#00B39D]"
                                   : "text-[#737373] hover:bg-[#1e1e1e] hover:text-[#a3a3a3]"
