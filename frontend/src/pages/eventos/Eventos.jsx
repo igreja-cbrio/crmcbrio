@@ -725,27 +725,39 @@ export default function Eventos() {
                 {colTasks.map(task => {
                   const cat = CAT[getCat(task)] || CAT.outros;
                   const evName = allEvents.find(e => e.id === task.event_id)?.name || '';
-                  const isLate = task.prazo && new Date(normDate(task.prazo)) < new Date() && task.status !== 'concluida';
                   const subs = task.subtasks || [];
                   const subsDone = subs.filter(s => s.done).length;
                   const isOpen = kanbanExpanded === task.id;
+                  // Dias até entrega
+                  const p = normDate(task.prazo);
+                  const diff = p ? Math.ceil((new Date(p + 'T12:00:00') - new Date()) / 86400000) : null;
+                  const dColor = diff === null || task.status === 'concluida' ? null : diff < 0 ? '#ef4444' : diff <= 3 ? '#f59e0b' : '#10b981';
+                  const dText = diff === null ? '' : diff < 0 ? `${Math.abs(diff)}d atrás` : diff === 0 ? 'Hoje' : `${diff}d`;
 
                   return (
                     <div key={task.id} draggable onDragStart={e => e.dataTransfer.setData('cycleKanbanId', task.id)}
                       onClick={() => setKanbanExpanded(isOpen ? null : task.id)}
-                      style={{ background: 'var(--cbrio-card)', borderRadius: 8, padding: 8, marginBottom: 4, border: isOpen ? '1.5px solid #00B39D' : `1px solid var(--cbrio-border)`, cursor: 'grab', transition: 'box-shadow .15s' }}
+                      style={{
+                        background: 'var(--cbrio-card)', borderRadius: 8, padding: 8, marginBottom: 4,
+                        border: isOpen ? '1.5px solid #00B39D' : dColor === '#ef4444' ? '1px solid #fecaca' : `1px solid var(--cbrio-border)`,
+                        cursor: 'grab', transition: 'box-shadow .15s',
+                      }}
                       onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'}
                       onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
                       <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 99, background: cat.bg, color: cat.color, fontWeight: 500, display: 'inline-block', marginBottom: 4 }}>{cat.label}</span>
                       <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--cbrio-text)', lineHeight: 1.3, marginBottom: 3 }}>{task.titulo}</div>
                       {evName && <div style={{ fontSize: 9, color: 'var(--cbrio-text3)', marginBottom: 2 }}>{evName}</div>}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: 'var(--cbrio-text3)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 9, color: 'var(--cbrio-text3)' }}>
                         <span>{task.responsavel_nome || '—'}</span>
-                        <span>
-                          {task.prazo && <span style={{ color: isLate ? '#ef4444' : 'inherit', fontWeight: isLate ? 600 : 400 }}>{fmtDate(task.prazo)}{isLate ? ' !' : ''}</span>}
-                          {subs.length > 0 && ` · ${subsDone}/${subs.length}`}
-                        </span>
+                        {subs.length > 0 && <span>{subsDone}/{subs.length}</span>}
                       </div>
+                      {/* DaysCounter colorido */}
+                      {dColor && task.status !== 'concluida' && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--cbrio-border)' }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: dColor }}>{fmtDate(task.prazo)}</span>
+                          <span style={{ fontSize: 10, fontWeight: 700, color: dColor, padding: '1px 6px', borderRadius: 8, background: `${dColor}15` }}>{dText}</span>
+                        </div>
+                      )}
 
                       {/* Subtarefas expandidas */}
                       {isOpen && subs.length > 0 && (
