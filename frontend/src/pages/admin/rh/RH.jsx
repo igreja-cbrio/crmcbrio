@@ -143,7 +143,7 @@ function Badge({ status, map }) {
 }
 
 // ── TABS ────────────────────────────────────────────────────
-const TABS = ['Dashboard', 'Colaboradores', 'Admissão', 'Treinamentos', 'Férias/Licenças', 'Extras'];
+const TABS = ['Dashboard', 'Colaboradores', 'Admissão', 'Organograma', 'Treinamentos', 'Férias/Licenças', 'Extras'];
 
 // ═══════════════════════════════════════════════════════════
 // COMPONENTE PRINCIPAL
@@ -281,25 +281,26 @@ export default function RH() {
         />
       )}
       {tab === 2 && <TabAdmissao />}
-      {tab === 3 && (
+      {tab === 3 && <OrgChartTab funcs={funcs} onDetail={openDetail} />}
+      {tab === 4 && (
         <TreinamentosTab treinos={treinos} funcs={funcs}
           onNew={() => setModalTreino({})} onEdit={(t) => setModalTreino(t)} onDelete={deleteTreinamento}
           onInscrever={async (treinoId, funcId) => { await rh.treinamentos.inscrever(treinoId, { funcionario_id: funcId }); loadTreinos(); }}
         />
       )}
-      {tab === 4 && (
+      {tab === 5 && (
         <FeriasTab dash={dash} funcs={funcs}
           onNew={() => setModalFerias({})} onAprovar={aprovarFerias}
         />
       )}
-      {tab === 5 && (
+      {tab === 6 && (
         <div style={{ minHeight: 200, padding: '4px 0' }}>
           <TabExtras funcionarios={funcs} onRefresh={() => { loadDash(); loadFuncs(); }} />
         </div>
       )}
 
       {/* Modais */}
-      <FuncionarioFormModal open={!!modalFunc} data={modalFunc} onClose={() => setModalFunc(null)} onSave={saveFuncionario} />
+      <FuncionarioFormModal open={!!modalFunc} data={modalFunc} onClose={() => setModalFunc(null)} onSave={saveFuncionario} funcionarios={funcs} />
       <TreinamentoFormModal open={!!modalTreino} data={modalTreino} onClose={() => setModalTreino(null)} onSave={saveTreinamento} />
       <FeriasFormModal open={!!modalFerias} funcs={funcs} onClose={() => setModalFerias(null)} onSave={saveFerias} />
       <FuncionarioDetailPanel
@@ -353,8 +354,8 @@ function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
   const kpis = [
     { label: 'Total Colaboradores', value: dash.total, bg: '#0a0a0a', onClick: () => goTo(1) },
     { label: 'Ativos', value: dash.ativos, bg: '#00B39D', onClick: () => goTo(1, 'ativo') },
-    { label: 'Em Férias', value: dash.ferias, bg: '#3b82f6', onClick: () => goTo(4) },
-    { label: 'Em Licença', value: dash.licenca, bg: '#f59e0b', onClick: () => goTo(4) },
+    { label: 'Em Férias', value: dash.ferias, bg: '#3b82f6', onClick: () => goTo(5) },
+    { label: 'Em Licença', value: dash.licenca, bg: '#f59e0b', onClick: () => goTo(5) },
     { label: 'Inativos', value: dash.inativos, bg: '#6b7280', onClick: () => goTo(1, 'inativo') },
     { label: 'Custo Mensal', value: fmtM(dash.custoMensal), bg: '#dc2626' },
     { label: 'Turnover', value: `${dash.turnover || 0}%`, bg: dash.turnover > 15 ? '#ef4444' : '#10b981' },
@@ -1054,10 +1055,94 @@ function FeriasTab({ funcs, onNew, onAprovar }) {
 }
 
 // ═══════════════════════════════════════════════════════════
+// TAB: ORGANOGRAMA
+// ═══════════════════════════════════════════════════════════
+function OrgChartTab({ funcs, onDetail }) {
+  const ativos = funcs.filter(f => f.status === 'ativo');
+
+  // Montar árvore hierárquica
+  function buildTree(gestorId) {
+    return ativos
+      .filter(f => (f.gestor_id || null) === gestorId)
+      .sort((a, b) => a.nome.localeCompare(b.nome));
+  }
+
+  function OrgNode({ func, level = 0 }) {
+    const subordinados = buildTree(func.id);
+    const statusColor = STATUS_COLORS[func.status] || STATUS_COLORS.ativo;
+    return (
+      <div style={{ marginLeft: level > 0 ? 32 : 0 }}>
+        <div
+          onClick={() => onDetail(func.id)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px',
+            background: C.card, borderRadius: 10, border: `1px solid ${C.border}`,
+            marginBottom: 8, cursor: 'pointer', transition: 'all 0.15s',
+            borderLeft: `3px solid ${statusColor.c}`,
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = C.primaryBg; }}
+          onMouseLeave={e => { e.currentTarget.style.background = C.card; }}
+        >
+          {func.foto_url ? (
+            <img src={func.foto_url} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+          ) : (
+            <div style={{ width: 36, height: 36, borderRadius: '50%', background: C.primaryBg, color: C.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, flexShrink: 0 }}>
+              {func.nome[0].toUpperCase()}
+            </div>
+          )}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{func.nome}</div>
+            <div style={{ fontSize: 12, color: C.text2 }}>{func.cargo}{func.area ? ` · ${func.area}` : ''}</div>
+          </div>
+          {subordinados.length > 0 && (
+            <span style={{ fontSize: 11, color: C.text3, background: `${C.primary}18`, padding: '2px 8px', borderRadius: 10, fontWeight: 600 }}>
+              {subordinados.length} subordinado{subordinados.length > 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
+        {subordinados.length > 0 && (
+          <div style={{ borderLeft: `2px solid ${C.border}`, marginLeft: 18, paddingLeft: 0 }}>
+            {subordinados.map(sub => <OrgNode key={sub.id} func={sub} level={level + 1} />)}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Roots = colaboradores sem gestor
+  const roots = buildTree(null);
+  const semGestor = ativos.filter(f => !f.gestor_id);
+  const comGestor = ativos.filter(f => f.gestor_id);
+
+  return (
+    <>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div style={{ fontSize: 13, color: C.text2 }}>
+          {ativos.length} colaboradores ativos · {comGestor.length} com gestor · {semGestor.length} sem gestor definido
+        </div>
+        <div style={{ fontSize: 12, color: C.text3 }}>
+          Clique para ver detalhes · Defina gestores em "Editar Colaborador"
+        </div>
+      </div>
+      {roots.length === 0 ? (
+        <div style={styles.empty}>
+          <div style={{ fontSize: 28, marginBottom: 8 }}>🏢</div>
+          Nenhum colaborador ativo. Defina o campo "Gestor Direto" em cada colaborador para montar o organograma.
+        </div>
+      ) : (
+        <div style={{ maxWidth: 800 }}>
+          {roots.map(r => <OrgNode key={r.id} func={r} level={0} />)}
+        </div>
+      )}
+    </>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
 // MODAIS
 // ═══════════════════════════════════════════════════════════
 
-function FuncionarioFormModal({ open, data, onClose, onSave }) {
+function FuncionarioFormModal({ open, data, onClose, onSave, funcionarios = [] }) {
   const [f, setF] = useState({});
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -1117,6 +1202,10 @@ function FuncionarioFormModal({ open, data, onClose, onSave }) {
         <Input label="Data Admissão *" type="date" value={f.data_admissao || ''} onChange={e => upd('data_admissao', e.target.value)} />
         <Input label="Salário (R$)" type="number" value={f.salario || ''} onChange={e => upd('salario', e.target.value)} />
       </div>
+      <Select label="Gestor Direto" value={f.gestor_id || ''} onChange={e => upd('gestor_id', e.target.value || null)}>
+        <option value="">Nenhum (nível máximo)</option>
+        {funcionarios.filter(fn => fn.id !== f.id && fn.status === 'ativo').map(fn => <option key={fn.id} value={fn.id}>{fn.nome} — {fn.cargo}</option>)}
+      </Select>
       {f.id && (
         <div style={styles.formRow}>
           <Select label="Status" value={f.status || 'ativo'} onChange={e => upd('status', e.target.value)}>
