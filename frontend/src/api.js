@@ -120,6 +120,8 @@ export const meetings = {
 export const dashboard = {
   pmo: () => get('/dashboard/pmo'),
   workload: () => get('/dashboard/workload'),
+  projectsKanban: () => get('/dashboard/projects-kanban'),
+  strategicKanban: () => get('/dashboard/strategic-kanban'),
 };
 
 export const risks = {

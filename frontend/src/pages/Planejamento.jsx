@@ -51,10 +51,15 @@ export default function Planejamento() {
   const [cycleData, setCycleData] = useState(null);
   const [kanbanPhase, setKanbanPhase] = useState(null);
   const [areaFilter, setAreaFilter] = useState('all');
-  const [typeFilter, setTypeFilter] = useState('all'); // 'all', 'eventos', 'projetos', 'estrategico'
+  const [typeFilter, setTypeFilter] = useState('all');
   const [eventFilter, setEventFilter] = useState('all');
   const [expanded, setExpanded] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Projetos + Estratégico
+  const [projectsData, setProjectsData] = useState([]);
+  const [strategicData, setStrategicData] = useState([]);
+  const [selectedAreaGroup, setSelectedAreaGroup] = useState('all');
 
   // Gantt data
   const [ganttTasks, setGanttTasks] = useState([]);
@@ -71,6 +76,8 @@ export default function Planejamento() {
         }
       }).catch(() => {}),
       tasksApi.all({}).then(setGanttTasks).catch(() => {}),
+      dashApi.projectsKanban().then(setProjectsData).catch(() => {}),
+      dashApi.strategicKanban().then(setStrategicData).catch(() => {}),
     ]).finally(() => setLoading(false));
   }, []);
 
@@ -289,7 +296,8 @@ export default function Planejamento() {
             ))}
           </div>
 
-          {/* Faixa de fases */}
+          {/* ══ KANBAN EVENTOS (fases do ciclo) ══ */}
+          {(typeFilter === 'all' || typeFilter === 'eventos') && <>
           <div style={{ overflowX: 'auto', marginBottom: 16, paddingBottom: 6 }}>
             <div style={{ display: 'flex', gap: 5, minWidth: 'max-content' }}>
               {phaseNums.map((num, i) => {
@@ -390,6 +398,157 @@ export default function Planejamento() {
               </div>
             </>
           )}
+          </>}
+
+          {/* ══ KANBAN PROJETOS (por área: Criativo/Gestão/Ministerial) ══ */}
+          {(typeFilter === 'projetos') && (() => {
+            const AREAS = [
+              { key: 'all', label: 'Todas', color: C.accent },
+              { key: 'Criativo', label: 'Criativo', color: '#00B39D' },
+              { key: 'Gestão', label: 'Gestão', color: '#3b82f6' },
+              { key: 'Ministerial', label: 'Ministerial', color: '#8b5cf6' },
+            ];
+            const filtered = selectedAreaGroup === 'all' ? projectsData : projectsData.filter(p => p.area_group === selectedAreaGroup);
+            const STATUS_COLS = [
+              { key: 'no-prazo', label: 'No prazo', color: '#10b981' },
+              { key: 'em-risco', label: 'Em risco', color: '#f59e0b' },
+              { key: 'atrasado', label: 'Atrasado', color: '#ef4444' },
+            ];
+
+            return (
+              <div>
+                {/* Faixa de áreas */}
+                <div style={{ display: 'flex', gap: 5, marginBottom: 16 }}>
+                  {AREAS.map(a => (
+                    <button key={a.key} onClick={() => setSelectedAreaGroup(a.key)} style={{
+                      borderRadius: 8, padding: '8px 16px', cursor: 'pointer', fontSize: 12, fontWeight: selectedAreaGroup === a.key ? 700 : 400,
+                      border: selectedAreaGroup === a.key ? `2px solid ${a.color}` : `1px solid ${C.border}`,
+                      background: selectedAreaGroup === a.key ? `${a.color}15` : C.card,
+                      color: selectedAreaGroup === a.key ? a.color : C.t3,
+                    }}>{a.label} ({a.key === 'all' ? projectsData.length : projectsData.filter(p => p.area_group === a.key).length})</button>
+                  ))}
+                </div>
+
+                {/* Cards épicos de projetos */}
+                {filtered.length === 0 && <div style={{ padding: 40, textAlign: 'center', color: C.t3, fontSize: 13 }}>Nenhum projeto cadastrado. Crie projetos para vê-los aqui.</div>}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                  {STATUS_COLS.map(col => {
+                    const colProjects = sortByUrgency(filtered.filter(p => p.status === col.key).map(p => ({ ...p, prazo: p.date_end })));
+                    return (
+                      <div key={col.key} style={{ background: C.bg, borderRadius: 10, padding: 10 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: col.color, textTransform: 'uppercase' }}>{col.label}</span>
+                          <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 99, background: C.card, border: `1px solid ${C.border}`, color: C.t3 }}>{colProjects.length}</span>
+                        </div>
+                        {colProjects.length === 0 && <div style={{ padding: 16, textAlign: 'center', fontSize: 10, color: C.t3, border: '1.5px dashed var(--cbrio-border)', borderRadius: 8 }}>—</div>}
+                        {colProjects.map(p => {
+                          const pct = p.tasks_total > 0 ? Math.round((p.tasks_done / p.tasks_total) * 100) : 0;
+                          const ed = normDate(p.date_end);
+                          const diff = ed ? Math.ceil((new Date(ed + 'T12:00:00') - new Date()) / 86400000) : null;
+                          const dc = diff === null ? null : diff < 0 ? '#ef4444' : diff <= 3 ? '#f59e0b' : '#10b981';
+                          const dt = diff === null ? '' : diff < 0 ? `${Math.abs(diff)}d atrás` : diff === 0 ? 'Hoje' : `${diff}d`;
+                          return (
+                            <div key={p.id} style={{ background: C.card, borderRadius: 8, padding: 10, marginBottom: 6, border: `1px solid ${C.border}` }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 99, background: `${p.category_color || '#9ca3af'}20`, color: p.category_color || C.t3, fontWeight: 500 }}>{p.category_name}</span>
+                                <span style={{ fontSize: 9, color: C.t3 }}>{p.area_group}</span>
+                              </div>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 4 }}>{p.name}</div>
+                              {p.responsible && <div style={{ fontSize: 10, color: C.t3, marginBottom: 4 }}>{p.responsible}</div>}
+                              {/* Barra de progresso */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                                <div style={{ flex: 1, height: 4, background: C.border, borderRadius: 2 }}>
+                                  <div style={{ height: '100%', width: `${pct}%`, background: '#10b981', borderRadius: 2 }} />
+                                </div>
+                                <span style={{ fontSize: 9, color: C.t3, fontWeight: 600 }}>{p.tasks_done}/{p.tasks_total}</span>
+                              </div>
+                              {dc && <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                                <span style={{ fontSize: 10, fontWeight: 700, color: dc }}>{fmtDate(p.date_end)}</span>
+                                <span style={{ fontSize: 9, fontWeight: 700, color: dc, padding: '1px 5px', borderRadius: 6, background: `${dc}15` }}>{dt}</span>
+                              </div>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ══ KANBAN ESTRATÉGICO (mesma estrutura de projetos) ══ */}
+          {(typeFilter === 'estrategico') && (() => {
+            const AREAS = [
+              { key: 'all', label: 'Todas', color: C.accent },
+              { key: 'Gestão', label: 'Gestão', color: '#3b82f6' },
+              { key: 'Ministerial', label: 'Ministerial', color: '#8b5cf6' },
+            ];
+            const filtered = selectedAreaGroup === 'all' ? strategicData : strategicData.filter(p => p.area_group === selectedAreaGroup);
+            const STATUS_COLS = [
+              { key: 'no-prazo', label: 'No prazo', color: '#10b981' },
+              { key: 'em-risco', label: 'Em risco', color: '#f59e0b' },
+              { key: 'atrasado', label: 'Atrasado', color: '#ef4444' },
+            ];
+
+            return (
+              <div>
+                <div style={{ display: 'flex', gap: 5, marginBottom: 16 }}>
+                  {AREAS.map(a => (
+                    <button key={a.key} onClick={() => setSelectedAreaGroup(a.key)} style={{
+                      borderRadius: 8, padding: '8px 16px', cursor: 'pointer', fontSize: 12, fontWeight: selectedAreaGroup === a.key ? 700 : 400,
+                      border: selectedAreaGroup === a.key ? `2px solid ${a.color}` : `1px solid ${C.border}`,
+                      background: selectedAreaGroup === a.key ? `${a.color}15` : C.card,
+                      color: selectedAreaGroup === a.key ? a.color : C.t3,
+                    }}>{a.label} ({a.key === 'all' ? strategicData.length : strategicData.filter(p => p.area_group === a.key).length})</button>
+                  ))}
+                </div>
+
+                {filtered.length === 0 && <div style={{ padding: 40, textAlign: 'center', color: C.t3, fontSize: 13 }}>Nenhum marco estratégico cadastrado. Crie planos para vê-los aqui.</div>}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                  {STATUS_COLS.map(col => {
+                    const colPlans = sortByUrgency(filtered.filter(p => p.status === col.key).map(p => ({ ...p, prazo: p.date_end })));
+                    return (
+                      <div key={col.key} style={{ background: C.bg, borderRadius: 10, padding: 10 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: col.color, textTransform: 'uppercase' }}>{col.label}</span>
+                          <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 99, background: C.card, border: `1px solid ${C.border}`, color: C.t3 }}>{colPlans.length}</span>
+                        </div>
+                        {colPlans.length === 0 && <div style={{ padding: 16, textAlign: 'center', fontSize: 10, color: C.t3, border: '1.5px dashed var(--cbrio-border)', borderRadius: 8 }}>—</div>}
+                        {colPlans.map(p => {
+                          const pct = p.tasks_total > 0 ? Math.round((p.tasks_done / p.tasks_total) * 100) : 0;
+                          const ed = normDate(p.date_end);
+                          const diff = ed ? Math.ceil((new Date(ed + 'T12:00:00') - new Date()) / 86400000) : null;
+                          const dc = diff === null ? null : diff < 0 ? '#ef4444' : diff <= 3 ? '#f59e0b' : '#10b981';
+                          const dt = diff === null ? '' : diff < 0 ? `${Math.abs(diff)}d atrás` : diff === 0 ? 'Hoje' : `${diff}d`;
+                          return (
+                            <div key={p.id} style={{ background: C.card, borderRadius: 8, padding: 10, marginBottom: 6, border: `1px solid ${C.border}` }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 99, background: `${p.category_color || '#9ca3af'}20`, color: p.category_color || C.t3, fontWeight: 500 }}>{p.category_name}</span>
+                                <span style={{ fontSize: 9, color: C.t3 }}>{p.area_group}</span>
+                              </div>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 4 }}>{p.name}</div>
+                              {p.responsible && <div style={{ fontSize: 10, color: C.t3, marginBottom: 4 }}>{p.responsible}</div>}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                                <div style={{ flex: 1, height: 4, background: C.border, borderRadius: 2 }}>
+                                  <div style={{ height: '100%', width: `${pct}%`, background: '#10b981', borderRadius: 2 }} />
+                                </div>
+                                <span style={{ fontSize: 9, color: C.t3, fontWeight: 600 }}>{p.tasks_done}/{p.tasks_total}</span>
+                              </div>
+                              {dc && <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                                <span style={{ fontSize: 10, fontWeight: 700, color: dc }}>{fmtDate(p.date_end)}</span>
+                                <span style={{ fontSize: 9, fontWeight: 700, color: dc, padding: '1px 5px', borderRadius: 6, background: `${dc}15` }}>{dt}</span>
+                              </div>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 
