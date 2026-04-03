@@ -37,6 +37,21 @@ async function authenticate(req, res, next) {
     return res.status(403).json({ error: 'Usuário inativo ou sem perfil' });
   }
 
+  // Auto-sync: se profile não tem area, buscar no RH pelo email
+  if (!profile.area && profile.email) {
+    const { data: rh } = await supabase
+      .from('rh_funcionarios')
+      .select('area, cargo')
+      .eq('email', profile.email)
+      .eq('status', 'ativo')
+      .limit(1)
+      .maybeSingle();
+    if (rh?.area) {
+      await supabase.from('profiles').update({ area: rh.area }).eq('id', profile.id);
+      profile.area = rh.area;
+    }
+  }
+
   const mappedRole = ROLE_MAP[profile.role] || profile.role;
 
   req.user = {
