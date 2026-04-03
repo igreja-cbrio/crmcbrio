@@ -72,26 +72,46 @@ export const events = {
 };
 
 export const projects = {
-  list: (params) => get('/projects' + (params ? '?' + new URLSearchParams(params) : '')),
+  categories: () => get('/projects/categories'),
   dashboard: () => get('/projects/dashboard'),
+  list: (params) => get('/projects' + (params ? '?' + new URLSearchParams(params) : '')),
   get: (id) => get(`/projects/${id}`),
   create: (data) => post('/projects', data),
   update: (id, data) => put(`/projects/${id}`, data),
   remove: (id) => del(`/projects/${id}`),
-  // Objectives
-  createObjective: (pId, data) => post(`/projects/${pId}/objectives`, data),
-  updateObjective: (objId, data) => put(`/projects/objectives/${objId}`, data),
+  // Phases
+  createPhase: (pId, data) => post(`/projects/${pId}/phases`, data),
+  updatePhase: (phaseId, data) => patch(`/projects/phases/${phaseId}`, data),
   // Tasks
   createTask: (pId, data) => post(`/projects/${pId}/tasks`, data),
   updateTask: (taskId, data) => put(`/projects/tasks/${taskId}`, data),
   updateTaskStatus: (taskId, status) => patch(`/projects/tasks/${taskId}/status`, { status }),
   removeTask: (taskId) => del(`/projects/tasks/${taskId}`),
+  // Subtasks
+  createSubtask: (taskId, data) => post(`/projects/tasks/${taskId}/subtasks`, data),
+  toggleSubtask: (subId, done) => patch(`/projects/subtasks/${subId}`, { done }),
+  removeSubtask: (subId) => del(`/projects/subtasks/${subId}`),
+  // Comments
+  addComment: (taskId, text) => post(`/projects/tasks/${taskId}/comments`, { text }),
   // Milestones
   createMilestone: (pId, data) => post(`/projects/${pId}/milestones`, data),
-  toggleMilestone: (mId, done) => patch(`/projects/milestones/${mId}`, { done }),
-  // Views
-  workload: () => get('/projects/views/workload'),
-  pendenciesByArea: () => get('/projects/views/pendencies-by-area'),
+  updateMilestone: (mId, data) => put(`/projects/milestones/${mId}`, data),
+  updateMilestoneStatus: (mId, status) => patch(`/projects/milestones/${mId}/status`, { status }),
+  // KPIs
+  createKpi: (pId, data) => post(`/projects/${pId}/kpis`, data),
+  updateKpi: (kpiId, data) => patch(`/projects/kpis/${kpiId}`, data),
+  removeKpi: (kpiId) => del(`/projects/kpis/${kpiId}`),
+  // Risks
+  createRisk: (pId, data) => post(`/projects/${pId}/risks`, data),
+  updateRisk: (riskId, data) => patch(`/projects/risks/${riskId}`, data),
+  removeRisk: (riskId) => del(`/projects/risks/${riskId}`),
+  // Budget
+  createBudgetItem: (pId, data) => post(`/projects/${pId}/budget`, data),
+  updateBudgetItem: (itemId, data) => patch(`/projects/budget/${itemId}`, data),
+  removeBudgetItem: (itemId) => del(`/projects/budget/${itemId}`),
+  // Retrospective
+  getRetrospective: (pId) => get(`/projects/${pId}/retrospective`),
+  saveRetrospective: (pId, data) => post(`/projects/${pId}/retrospective`, data),
 };
 
 export const expansion = {
