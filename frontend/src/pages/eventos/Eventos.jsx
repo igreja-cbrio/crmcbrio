@@ -375,10 +375,10 @@ export default function Eventos() {
       try {
         const cycleData = await cyclesApi.get(id);
         setHasCycle(!!cycleData?.cycle);
-        setDetailTab('tarefas');
+        setDetailTab('reunioes');
       } catch {
         setHasCycle(false);
-        setDetailTab('tarefas');
+        setDetailTab('reunioes');
       }
     } catch (e) { setError(e.message); }
     finally { setLoading(false); }
@@ -909,7 +909,9 @@ export default function Eventos() {
                     const si = normDate(ph.data_inicio_prevista); const ei = normDate(ph.data_fim_prevista);
                     if (!si || !ei) return <div key={ph.id} style={{ height: BH, borderBottom: '1px solid var(--cbrio-border)' }} />;
                     const lp = dPct(si); const rp = dPct(ei); const wp = Math.max(rp - lp, 2);
-                    const isDone = ph.status === 'concluida';
+                    const phT = aTasks.filter(t => t.event_phase_id === ph.id);
+                    const phD = phT.filter(t => t.status === 'concluida').length;
+                    const isDone = ph.status === 'concluida' || (phT.length > 0 && phD === phT.length) || phT.length === 0;
                     const endD = new Date(ei + 'T12:00:00');
                     const diff2 = Math.ceil((endD - new Date()) / 86400000);
                     const barC = isDone ? '#d1d5db' : diff2 < 0 ? '#ef4444' : diff2 <= 3 ? '#f59e0b' : '#10b981';
@@ -1290,11 +1292,9 @@ export default function Eventos() {
         {/* ── ABAS FIXAS ── */}
         <div style={styles.tabs}>
           {[
-            { key: 'tarefas', label: `Tarefas (${expandedOcc ? (expandedOcc.tasks?.length || 0) : taskList.length})` },
             { key: 'reunioes', label: `Reuniões (${expandedOcc ? (expandedOcc.meetings?.length || 0) : meetingsList.length})` },
             { key: 'riscos', label: `Riscos (${eventRisks.length})` },
             { key: 'historico', label: `Histórico (${auditHistory.length})` },
-            ...(hasCycle ? [{ key: 'ciclo', label: 'Ciclo Criativo' }] : []),
             ...(ev.status === 'concluido' ? [{ key: 'retro', label: 'Retrospectiva' }] : []),
           ].map(t => (
             <button key={t.key} style={styles.tab(detailTab === t.key)} onClick={() => { setDetailTab(t.key); setExpandedCard(null); }}>{t.label}</button>

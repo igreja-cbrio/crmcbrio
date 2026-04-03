@@ -471,7 +471,10 @@ export default function Planejamento() {
                         const ei = normDate(ph.data_fim_prevista);
                         if (!si || !ei) return <div key={ph.id} style={{ height: BAR_H, borderBottom: `1px solid ${C.border}` }} />;
                         const lp = dPct(si); const rp = dPct(ei); const wp = Math.max(rp - lp, 2);
-                        const isDone = ph.status === 'concluida';
+                        // Auto-concluir: se todas as tarefas da fase estão concluídas ou não tem tarefas
+                        const phTasks = allTasks.filter(t => t.event_phase_id === ph.id);
+                        const phDone = phTasks.filter(t => t.status === 'concluida').length;
+                        const isDone = ph.status === 'concluida' || (phTasks.length > 0 && phDone === phTasks.length) || phTasks.length === 0;
                         const endDate = new Date(ei + 'T12:00:00');
                         const diff = Math.ceil((endDate - new Date()) / 86400000);
                         const barColor = isDone ? '#d1d5db' : diff < 0 ? '#ef4444' : diff <= 3 ? '#f59e0b' : '#10b981';
