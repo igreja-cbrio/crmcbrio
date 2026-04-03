@@ -115,8 +115,12 @@ export default function Planejamento() {
   let phaseTasks = allTasks.filter(t => {
     // Filtro por fase (visão PMO) ou todas as tarefas (visão pessoal)
     if (viewMode === 'pmo') {
-      const ph = allPhases.find(p => p.id === t.event_phase_id);
-      if (!ph || ph.numero_fase !== kanbanPhase) return false;
+      if (kanbanPhase === 'simple') {
+        if (t.event_phase_id !== 'simple') return false;
+      } else {
+        const ph = allPhases.find(p => p.id === t.event_phase_id);
+        if (!ph || ph.numero_fase !== kanbanPhase) return false;
+      }
     }
     if (eventFilter !== 'all' && t.event_id !== eventFilter) return false;
     // Filtro por visão
@@ -162,7 +166,7 @@ export default function Planejamento() {
 
       {/* Tabs */}
       <div style={{ display: 'flex', borderBottom: `2px solid ${C.border}`, marginBottom: 20 }}>
-        {['Dashboard', 'Kanban', 'Gantt'].map((t, i) => (
+        {['Dashboard', 'Kanban', 'Lista', 'Gantt'].map((t, i) => (
           <button key={t} onClick={() => setTab(i)} style={{
             padding: '10px 20px', border: 'none', background: 'none', cursor: 'pointer',
             fontSize: 13, fontWeight: 600, color: tab === i ? C.accent : C.t3,
@@ -352,6 +356,25 @@ export default function Planejamento() {
                   </div>
                 );
               })}
+              {/* Card "Sem ciclo" */}
+              {(() => {
+                const sT = allTasks.filter(t => t.event_phase_id === 'simple');
+                if (sT.length === 0 && allEvents.filter(e => e._simple).length === 0) return null;
+                const isA = kanbanPhase === 'simple';
+                return (
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <div style={{ width: 16, height: 2, background: C.border, flexShrink: 0 }} />
+                    <div onClick={() => { setKanbanPhase('simple'); setExpanded(null); }} style={{
+                      borderRadius: 8, padding: '8px 10px', cursor: 'pointer', minWidth: 100,
+                      border: isA ? '2px solid #f59e0b' : `1px solid ${C.border}`,
+                      background: isA ? '#f59e0b10' : C.card,
+                    }}>
+                      <div style={{ fontSize: 10, fontWeight: isA ? 700 : 500, color: isA ? '#f59e0b' : C.text }}>Sem ciclo</div>
+                      <div style={{ fontSize: 9, color: C.t3 }}>{sT.length} tarefas</div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
@@ -359,7 +382,7 @@ export default function Planejamento() {
           {kanbanPhase && (
             <>
               <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 10 }}>
-                Fase {kanbanPhase} — {phaseNames[kanbanPhase]}
+                {kanbanPhase === 'simple' ? 'Eventos sem ciclo' : `Fase ${kanbanPhase} — ${phaseNames[kanbanPhase]}`}
                 <span style={{ fontSize: 12, fontWeight: 400, color: C.t3, marginLeft: 12 }}>
                   {phaseTasks.filter(t => t.status === 'concluida').length}/{phaseTasks.length} tarefas
                 </span>
@@ -603,7 +626,101 @@ export default function Planejamento() {
       )}
 
       {/* ═══ TAB: Gantt (por fases do ciclo) ═══ */}
+      {/* ═══ TAB: Lista ═══ */}
       {tab === 2 && (() => {
+        const [listGroup, setListGroup] = [viewMode, setViewMode]; // reusar viewMode para agrupamento
+        const [listHorizon, setListHorizon] = [horizon, setHorizon];
+
+        // Buscar todas as tarefas de todos os ciclos + eventos simples
+        let allItems = allTasks.map(t => ({
+          id: t.id, name: t.titulo || t.name, responsible: t.responsavel_nome || t.responsible || 'Sem responsável',
+          deadline: t.prazo || t.deadline, status: t.status, source: t.event_phase_id === 'simple' ? 'evento' : 'ciclo',
+          event_name: allEvents.find(e => e.id === t.event_id)?.name || '—', event_id: t.event_id,
+        }));
+        allItems = filterByHorizon(allItems, listHorizon, 'deadline');
+        allItems = sortByUrgency(allItems.map(t => ({ ...t, prazo: t.deadline })));
+
+        // Filtro por visão
+        if (listGroup === 'minhas') allItems = allItems.filter(t => t.responsible === profile?.name);
+        if (listGroup === 'area' && userArea) allItems = allItems.filter(t => t.event_name.includes(userArea) || t.source === userArea);
+
+        // Agrupar
+        const groups = {};
+        allItems.forEach(t => {
+          const key = t.responsible || 'Sem responsável';
+          if (!groups[key]) groups[key] = [];
+          groups[key].push(t);
+        });
+
+        const STATUS_LABEL = { a_fazer: 'A fazer', em_andamento: 'Em andamento', concluida: 'Concluída', bloqueada: 'Bloqueada', pendente: 'Pendente', 'em-andamento': 'Em andamento' };
+        const STATUS_COLOR = { a_fazer: '#9ca3af', em_andamento: '#3b82f6', concluida: '#10b981', bloqueada: '#ef4444', pendente: '#9ca3af', 'em-andamento': '#3b82f6' };
+
+        return (
+          <div>
+            {/* Filtros */}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16, alignItems: 'center' }}>
+              <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Horizonte:</span>
+              <select value={listHorizon} onChange={e => setListHorizon(parseInt(e.target.value))}
+                style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card }}>
+                <option value={15}>15 dias</option>
+                <option value={30}>30 dias</option>
+                <option value={0}>Sem filtro</option>
+              </select>
+              <span style={{ width: 1, height: 20, background: C.border }} />
+              <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Visão:</span>
+              {[
+                { key: 'pmo', label: 'Todas' },
+                ...(userArea ? [{ key: 'area', label: `${userArea}` }] : []),
+                { key: 'minhas', label: 'Minhas' },
+              ].map(v => (
+                <button key={v.key} onClick={() => setViewMode(v.key)} style={{
+                  padding: '4px 12px', borderRadius: 8, fontSize: 11, fontWeight: listGroup === v.key ? 700 : 400, cursor: 'pointer',
+                  border: listGroup === v.key ? `2px solid ${C.accent}` : `1px solid ${C.border}`,
+                  background: listGroup === v.key ? `${C.accent}15` : 'transparent',
+                  color: listGroup === v.key ? C.accent : C.t3,
+                }}>{v.label}</button>
+              ))}
+            </div>
+
+            {/* Lista agrupada por responsável */}
+            {allItems.length === 0 && <div style={{ padding: 40, textAlign: 'center', color: C.t3, fontSize: 13 }}>Nenhuma tarefa nos próximos {listHorizon || '∞'} dias</div>}
+            {Object.entries(groups).map(([person, tasks]) => (
+              <div key={person} style={{ marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: C.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, fontWeight: 700 }}>
+                    {person.charAt(0).toUpperCase()}
+                  </div>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{person}</span>
+                  <span style={{ fontSize: 11, color: C.t3 }}>({tasks.length} tarefas)</span>
+                </div>
+                {tasks.map(t => {
+                  const d = normDate(t.deadline);
+                  const diff = d ? Math.ceil((new Date(d + 'T12:00:00') - new Date()) / 86400000) : null;
+                  const dc = diff === null || t.status === 'concluida' ? null : diff < 0 ? '#ef4444' : diff <= 3 ? '#f59e0b' : '#10b981';
+                  const dt = diff === null ? '' : diff < 0 ? `${Math.abs(diff)}d atrás` : diff === 0 ? 'Hoje' : `${diff}d`;
+                  const sc = STATUS_COLOR[t.status] || '#9ca3af';
+                  return (
+                    <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: C.card, borderRadius: 8, border: `1px solid ${C.border}`, marginBottom: 4 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: sc, flexShrink: 0 }} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{t.name}</div>
+                        <div style={{ fontSize: 10, color: C.t3 }}>{t.event_name}</div>
+                      </div>
+                      <span style={{ fontSize: 10, fontWeight: 600, color: sc, padding: '2px 8px', borderRadius: 10, background: `${sc}15` }}>{STATUS_LABEL[t.status] || t.status}</span>
+                      {dc && <span style={{ fontSize: 11, fontWeight: 700, color: dc, padding: '2px 8px', borderRadius: 8, background: `${dc}15`, flexShrink: 0 }}>{dt}</span>}
+                      {d && <span style={{ fontSize: 10, color: C.t3, flexShrink: 0 }}>{fmtDate(d)}</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+            <div style={{ height: 60 }} />
+          </div>
+        );
+      })()}
+
+      {/* ═══ TAB: Gantt (por fases do ciclo) ═══ */}
+      {tab === 3 && (() => {
         const STATUS_COLORS = { pendente: '#9ca3af', em_andamento: '#3b82f6', concluida: '#10b981', atrasada: '#ef4444', em_risco: '#f59e0b' };
 
         // Agrupar fases por evento

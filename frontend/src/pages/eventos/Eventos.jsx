@@ -379,11 +379,12 @@ export default function Eventos() {
       // Verificar se tem ciclo criativo
       try {
         const cycleData = await cyclesApi.get(id);
-        setHasCycle(!!cycleData?.cycle);
-        setDetailTab('reunioes');
+        const has = !!cycleData?.cycle;
+        setHasCycle(has);
+        setDetailTab(has ? 'reunioes' : 'tarefas');
       } catch {
         setHasCycle(false);
-        setDetailTab('reunioes');
+        setDetailTab('tarefas');
       }
     } catch (e) { setError(e.message); }
     finally { setLoading(false); }
@@ -1307,6 +1308,7 @@ export default function Eventos() {
         {/* ── ABAS FIXAS ── */}
         <div style={styles.tabs}>
           {[
+            ...(!hasCycle ? [{ key: 'tarefas', label: `Tarefas (${expandedOcc ? (expandedOcc.tasks?.length || 0) : taskList.length})` }] : []),
             { key: 'reunioes', label: `Reuniões (${expandedOcc ? (expandedOcc.meetings?.length || 0) : meetingsList.length})` },
             { key: 'riscos', label: `Riscos (${eventRisks.length})` },
             { key: 'historico', label: `Histórico (${auditHistory.length})` },

@@ -81,10 +81,32 @@ router.get('/kanban/all', async (req, res) => {
 
     const events = activeCycles.map(c => ({ id: c.event_id, name: c.events?.name || '—' }));
 
+    // Buscar eventos SEM ciclo (simples) que não estão concluídos
+    const { data: allActiveEvents } = await supabase.from('events').select('id, name').neq('status', 'concluido');
+    const cycleEventIds = new Set(eventIds);
+    const simpleEvents = (allActiveEvents || []).filter(e => !cycleEventIds.has(e.id));
+
+    // Buscar tarefas dos eventos simples
+    const simpleIds = simpleEvents.map(e => e.id);
+    const { data: simpleTasks } = simpleIds.length > 0
+      ? await supabase.from('event_tasks').select('*').in('event_id', simpleIds)
+      : { data: [] };
+
+    // Mapear event_tasks para formato compatível com cycle_phase_tasks
+    const mappedSimpleTasks = (simpleTasks || []).map(t => ({
+      id: t.id, event_phase_id: 'simple', event_id: t.event_id,
+      titulo: t.name, responsavel_nome: t.responsible, area: t.area || 'adm',
+      prazo: t.deadline, status: t.status === 'pendente' ? 'a_fazer' : t.status === 'em-andamento' ? 'em_andamento' : t.status,
+      prioridade: t.priority || 'normal', observacoes: '', subtasks: [],
+      _source: 'simple',
+    }));
+
+    const allEvents = [...events, ...simpleEvents.map(e => ({ id: e.id, name: e.name, _simple: true }))];
+
     res.json({
-      events,
+      events: allEvents,
       phases: phasesRes.data || [],
-      tasks: tasksWithSubs,
+      tasks: [...tasksWithSubs, ...mappedSimpleTasks],
     });
   } catch (err) { console.error(err); res.status(500).json({ error: err.message }); }
 });
