@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Users, Pencil, Trash2, Palmtree } from 'lucide-react';
+import { Button } from '../../../components/ui/button';
 import { useAuth } from '../../../contexts/AuthContext';
 import { rh, permissoes } from '../../../api';
 import { supabase } from '../../../supabaseClient';
@@ -112,7 +113,7 @@ function Modal({ open, onClose, title, children, footer }) {
       <div style={styles.modal} onClick={e => e.stopPropagation()}>
         <div style={styles.modalHeader}>
           <div style={styles.modalTitle}>{title}</div>
-          <button style={{ ...styles.btn('ghost'), fontSize: 18 }} onClick={onClose}>✕</button>
+          <Button variant="ghost" className="text-lg" onClick={onClose}>✕</Button>
         </div>
         <div style={styles.modalBody}>{children}</div>
         {footer && <div style={styles.modalFooter}>{footer}</div>}
@@ -472,7 +473,7 @@ function FuncionariosTab({ funcs, loading, busca, setBusca, filtroStatus, setFil
           {areas.map(a => <option key={a} value={a}>{a}</option>)}
         </select>
         <div style={{ marginLeft: 'auto' }}>
-          <button style={styles.btn('primary')} onClick={onNew}>+ Novo Colaborador</button>
+          <Button onClick={onNew}>+ Novo Colaborador</Button>
         </div>
       </div>
 
@@ -516,7 +517,7 @@ function FuncionariosTab({ funcs, loading, busca, setBusca, filtroStatus, setFil
                   <td style={styles.td}>{fmtDate(f.data_admissao)}</td>
                   <td style={styles.td}><Badge status={f.status} map={STATUS_COLORS} /></td>
                   <td style={styles.td}>
-                    <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={e => { e.stopPropagation(); onDelete(f.id); }}>🗑</button>
+                    <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); onDelete(f.id); }}>🗑</Button>
                   </td>
                 </tr>
               ))}
@@ -637,7 +638,7 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-        <button style={styles.btn('primary')} onClick={onNew}>+ Novo Treinamento</button>
+        <Button onClick={onNew}>+ Novo Treinamento</Button>
       </div>
 
       {treinos.length === 0 && <div style={styles.empty}>Nenhum treinamento cadastrado</div>}
@@ -659,8 +660,8 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 6 }}>
-                  <button style={{ ...styles.btn('secondary'), ...styles.btnSm }} onClick={() => onEdit(t)}><Pencil style={{ width: 14, height: 14 }} /></button>
-                  <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => onDelete(t.id)}><Trash2 style={{ width: 14, height: 14 }} /></button>
+                  <Button variant="outline" size="sm" onClick={() => onEdit(t)}><Pencil style={{ width: 14, height: 14 }} /></Button>
+                  <Button variant="ghost" size="sm" onClick={() => onDelete(t.id)}><Trash2 style={{ width: 14, height: 14 }} /></Button>
                 </div>
               </div>
               {t.descricao && <div style={{ padding: '8px 20px', fontSize: 13, color: C.text2 }}>{t.descricao}</div>}
@@ -695,14 +696,14 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
                       <option value="">Selecionar colaborador</option>
                       {funcs.filter(f => f.status === 'ativo').map(f => <option key={f.id} value={f.id}>{f.nome}</option>)}
                     </select>
-                    <button style={{ ...styles.btn('primary'), ...styles.btnSm }}
+                    <Button size="sm"
                       onClick={async () => { if (funcSel) { await onInscrever(t.id, funcSel); setInscrevendo(null); setFuncSel(''); } }}>
                       OK
-                    </button>
-                    <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => setInscrevendo(null)}>✕</button>
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => setInscrevendo(null)}>✕</Button>
                   </div>
                 ) : (
-                  <button style={{ ...styles.btn('ghost'), marginTop: 6, fontSize: 12 }} onClick={() => setInscrevendo(t.id)}>+ Inscrever colaborador</button>
+                  <Button variant="ghost" className="mt-1.5 text-xs" onClick={() => setInscrevendo(t.id)}>+ Inscrever colaborador</Button>
                 )}
               </div>
 
@@ -750,9 +751,9 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
                                 </a>
                               )}
                             </div>
-                            <button style={{ ...styles.btn('ghost'), ...styles.btnSm, color: C.red }} onClick={() => handleDeleteMaterial(mat.id, t.id)}>
+                            <Button variant="ghost" size="sm" style={{ color: C.red }} onClick={() => handleDeleteMaterial(mat.id, t.id)}>
                               <Trash2 style={{ width: 13, height: 13 }} />
-                            </button>
+                            </Button>
                           </div>
 
                           {/* Resumo de status */}
@@ -785,12 +786,12 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                     <Badge status={d.status} map={MATERIAL_STATUS} />
                                     {d.status === 'pendente' && (
-                                      <button style={{ ...styles.btn('ghost'), ...styles.btnSm, fontSize: 10 }}
-                                        onClick={() => handleStatusUpdate(d.id, 'concluido', t.id)}>Marcar concluído</button>
+                                      <Button variant="ghost" size="sm" className="text-[10px]"
+                                        onClick={() => handleStatusUpdate(d.id, 'concluido', t.id)}>Marcar concluído</Button>
                                     )}
                                     {d.status === 'visualizado' && (
-                                      <button style={{ ...styles.btn('ghost'), ...styles.btnSm, fontSize: 10 }}
-                                        onClick={() => handleStatusUpdate(d.id, 'concluido', t.id)}>Marcar concluído</button>
+                                      <Button variant="ghost" size="sm" className="text-[10px]"
+                                        onClick={() => handleStatusUpdate(d.id, 'concluido', t.id)}>Marcar concluído</Button>
                                     )}
                                   </div>
                                 </div>
@@ -821,24 +822,24 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
                                 })}
                               </div>
                               <div style={{ display: 'flex', gap: 8 }}>
-                                <button style={{ ...styles.btn('primary'), ...styles.btnSm }}
+                                <Button size="sm"
                                   onClick={() => handleEnviar(mat.id, t.id)} disabled={!enviarSel.length}>
                                   Enviar ({enviarSel.length})
-                                </button>
-                                <button style={{ ...styles.btn('ghost'), ...styles.btnSm }}
-                                  onClick={() => { setShowEnviar(null); setEnviarSel([]); }}>Cancelar</button>
-                                <button style={{ ...styles.btn('ghost'), ...styles.btnSm, marginLeft: 'auto' }}
+                                </Button>
+                                <Button variant="ghost" size="sm"
+                                  onClick={() => { setShowEnviar(null); setEnviarSel([]); }}>Cancelar</Button>
+                                <Button variant="ghost" size="sm" style={{ marginLeft: 'auto' }}
                                   onClick={() => {
                                     const todos = funcs.filter(f => f.status === 'ativo' && !destinatarios.some(d => d.funcionario?.id === f.id)).map(f => f.id);
                                     setEnviarSel(todos);
-                                  }}>Selecionar todos</button>
+                                  }}>Selecionar todos</Button>
                               </div>
                             </div>
                           ) : (
-                            <button style={{ ...styles.btn('ghost'), fontSize: 12, marginTop: 4 }}
+                            <Button variant="ghost" className="text-xs mt-1"
                               onClick={() => { setShowEnviar(mat.id); setEnviarSel([]); }}>
                               + Enviar para colaboradores
-                            </button>
+                            </Button>
                           )}
                         </div>
                       );
@@ -891,8 +892,8 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
                                   <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{matFile.name}</div>
                                   <div style={{ fontSize: 11, color: C.text3 }}>{(matFile.size / 1024 / 1024).toFixed(1)} MB</div>
                                 </div>
-                                <button type="button" onClick={e => { e.stopPropagation(); setMatFile(null); if (fileRef.current) fileRef.current.value = ''; }}
-                                  style={{ ...styles.btn('ghost'), color: C.red, fontSize: 14 }}>✕</button>
+                                <Button variant="ghost" type="button" onClick={e => { e.stopPropagation(); setMatFile(null); if (fileRef.current) fileRef.current.value = ''; }}
+                                  style={{ color: C.red }} className="text-sm">✕</Button>
                               </div>
                             ) : (
                               <>
@@ -905,19 +906,19 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
                         </div>
 
                         <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                          <button style={styles.btn('primary')} onClick={() => handleUploadMaterial(t.id)} disabled={uploading}>
+                          <Button onClick={() => handleUploadMaterial(t.id)} disabled={uploading}>
                             {uploading ? 'Enviando...' : 'Adicionar Material'}
-                          </button>
-                          <button style={styles.btn('ghost')} onClick={() => { setShowAddMaterial(null); setMatFile(null); setMatForm({ titulo: '', tipo: 'material', descricao: '', obrigatorio: false }); }}>
+                          </Button>
+                          <Button variant="ghost" onClick={() => { setShowAddMaterial(null); setMatFile(null); setMatForm({ titulo: '', tipo: 'material', descricao: '', obrigatorio: false }); }}>
                             Cancelar
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     ) : (
-                      <button style={{ ...styles.btn('secondary'), fontSize: 12, marginTop: 4 }}
+                      <Button variant="outline" className="text-xs mt-1"
                         onClick={() => setShowAddMaterial(t.id)}>
                         + Adicionar Material
-                      </button>
+                      </Button>
                     )}
                   </div>
                 )}
@@ -985,17 +986,17 @@ function FeriasTab({ funcs, onNew, onAprovar }) {
         <input style={{ ...styles.input, maxWidth: 140 }} type="date" value={filtroDe} onChange={e => setFiltroDe(e.target.value)} placeholder="De" title="Data início de" />
         <input style={{ ...styles.input, maxWidth: 140 }} type="date" value={filtroAte} onChange={e => setFiltroAte(e.target.value)} placeholder="Até" title="Data início até" />
         {(filtroStatus || filtroArea || filtroDe || filtroAte || filtroFunc) && (
-          <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => { setFiltroStatus(''); setFiltroArea(''); setFiltroDe(''); setFiltroAte(''); setFiltroFunc(''); }}>✕ Limpar</button>
+          <Button variant="ghost" size="sm" onClick={() => { setFiltroStatus(''); setFiltroArea(''); setFiltroDe(''); setFiltroAte(''); setFiltroFunc(''); }}>✕ Limpar</Button>
         )}
         <div style={{ marginLeft: 'auto' }}>
-          <button style={styles.btn('primary')} onClick={onNew}>+ Nova Solicitação</button>
+          <Button onClick={onNew}>+ Nova Solicitação</Button>
         </div>
       </div>
 
       <div style={styles.card}>
         <div style={styles.cardHeader}>
           <div style={styles.cardTitle}>Férias e Licenças ({ferias.length})</div>
-          <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={loadFerias}>🔄</button>
+          <Button variant="ghost" size="sm" onClick={loadFerias}>🔄</Button>
         </div>
         <div style={{ overflowX: 'auto' }}>
           <table style={styles.table}>
@@ -1042,8 +1043,8 @@ function FeriasTab({ funcs, onNew, onAprovar }) {
                     <td style={styles.td}>
                       {f.status === 'pendente' && (
                         <div style={{ display: 'flex', gap: 4 }}>
-                          <button style={{ ...styles.btn('primary'), ...styles.btnSm }} onClick={() => handleAprovar(f.id, 'aprovado')}>✓</button>
-                          <button style={{ ...styles.btn('danger'), ...styles.btnSm }} onClick={() => handleAprovar(f.id, 'rejeitado')}>✕</button>
+                          <Button size="sm" onClick={() => handleAprovar(f.id, 'aprovado')}>✓</Button>
+                          <Button variant="destructive" size="sm" onClick={() => handleAprovar(f.id, 'rejeitado')}>✕</Button>
                         </div>
                       )}
                     </td>
@@ -1182,10 +1183,10 @@ function FuncionarioFormModal({ open, data, onClose, onSave, funcionarios = [] }
     <Modal open={open} onClose={onClose}
       title={f?.id ? 'Editar Colaborador' : 'Novo Colaborador'}
       footer={<>
-        <button style={styles.btn('ghost')} onClick={onClose}>Cancelar</button>
-        <button style={{ ...styles.btn('primary'), padding: '10px 32px', fontSize: 14 }} onClick={() => onSave(f)} disabled={uploading}>
+        <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+        <Button className="text-sm px-8 py-2.5" onClick={() => onSave(f)} disabled={uploading}>
           {uploading ? 'Enviando foto...' : f?.id ? '💾 Salvar Alterações' : '✅ Admitir Colaborador'}
-        </button>
+        </Button>
       </>}>
       <Input label="Nome *" value={f.nome || ''} onChange={e => upd('nome', e.target.value)} />
       <div style={styles.formRow}>
@@ -1280,7 +1281,7 @@ function TreinamentoFormModal({ open, data, onClose, onSave }) {
   return (
     <Modal open={open} onClose={onClose}
       title={f?.id ? 'Editar Treinamento' : 'Novo Treinamento'}
-      footer={<button style={styles.btn('primary')} onClick={() => onSave(f)}>Salvar</button>}>
+      footer={<Button onClick={() => onSave(f)}>Salvar</Button>}>
       <Input label="Título *" value={f.titulo || ''} onChange={e => upd('titulo', e.target.value)} />
       <div style={styles.formRow}>
         <Input label="Data Início *" type="date" value={f.data_inicio || ''} onChange={e => upd('data_inicio', e.target.value)} />
@@ -1308,7 +1309,7 @@ function FeriasFormModal({ open, funcs, onClose, onSave }) {
 
   return (
     <Modal open={open} onClose={onClose} title="Nova Solicitação de Férias/Licença"
-      footer={<button style={styles.btn('primary')} onClick={() => onSave(f)}>Solicitar</button>}>
+      footer={<Button onClick={() => onSave(f)}>Solicitar</Button>}>
       <Select label="Colaborador *" value={f.funcionario_id || ''} onChange={e => upd('funcionario_id', e.target.value)}>
         <option value="">Selecionar</option>
         {(funcs || []).filter(fn => fn.status === 'ativo').map(fn => <option key={fn.id} value={fn.id}>{fn.nome}</option>)}
@@ -1598,10 +1599,10 @@ function DocumentosSection({ data, onNewDoc, onDeleteDoc }) {
         <div style={{ display: 'flex', gap: 6 }}>
           <input ref={fileRef} type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xls,.xlsx" style={{ display: 'none' }}
             onChange={e => { handleUploadDoc(e.target.files?.[0]); e.target.value = ''; }} />
-          <button style={{ ...styles.btn('secondary'), ...styles.btnSm }} onClick={() => fileRef.current?.click()} disabled={uploading}>
+          <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
             {uploading ? '⏳ Enviando...' : '📎 Upload'}
-          </button>
-          <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => onNewDoc(data.id)}>+ Manual</button>
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => onNewDoc(data.id)}>+ Manual</Button>
         </div>
       </div>
       {/* Alertas de documentos */}
@@ -1636,8 +1637,8 @@ function DocumentosSection({ data, onNewDoc, onDeleteDoc }) {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            {d.storage_path && <a href={d.storage_path} target="_blank" rel="noopener noreferrer" style={{ ...styles.btn('ghost'), ...styles.btnSm, color: C.primary, textDecoration: 'none' }}>⬇ Baixar</a>}
-            <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => onDeleteDoc(d.id, data.id)}>🗑</button>
+            {d.storage_path && <a href={d.storage_path} target="_blank" rel="noopener noreferrer" style={{ color: C.primary, textDecoration: 'none' }} className="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-3">⬇ Baixar</a>}
+            <Button variant="ghost" size="sm" onClick={() => onDeleteDoc(d.id, data.id)}>🗑</Button>
           </div>
         </div>
       ))}
@@ -1767,8 +1768,8 @@ function FuncionarioDetailPanel({ open, data, onClose, onEdit, onDelete, onNewDo
         <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--cbrio-modal-bg)', padding: '20px 28px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>👤 {data.nome}</div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button style={styles.btn('secondary')} onClick={() => onEdit(data)}><Pencil style={{ width: 14, height: 14, display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Editar</button>
-            <button style={{ ...styles.btn('ghost'), fontSize: 18 }} onClick={onClose}>✕</button>
+            <Button variant="outline" onClick={() => onEdit(data)}><Pencil style={{ width: 14, height: 14, display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Editar</Button>
+            <Button variant="ghost" className="text-lg" onClick={onClose}>✕</Button>
           </div>
         </div>
         <div style={{ padding: '24px 28px' }}>
@@ -1840,7 +1841,7 @@ function FuncionarioDetailPanel({ open, data, onClose, onEdit, onDelete, onNewDo
       <div style={{ marginBottom: 16, borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: C.text2, textTransform: 'uppercase' }}>🔐 Permissões do Sistema</span>
-          {!showPerms && <button style={{ ...styles.btn('secondary'), ...styles.btnSm }} onClick={loadPermissions}>Configurar</button>}
+          {!showPerms && <Button variant="outline" size="sm" onClick={loadPermissions}>Configurar</Button>}
         </div>
 
         {showPerms && permData && estrutura && (
@@ -1934,7 +1935,7 @@ function FuncionarioDetailPanel({ open, data, onClose, onEdit, onDelete, onNewDo
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 16, borderTop: `1px solid ${C.border}`, marginTop: 16 }}>
-        <button style={styles.btn('danger')} onClick={() => onDelete(data.id)}><Trash2 style={{ width: 14, height: 14, display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Remover Colaborador</button>
+        <Button variant="destructive" onClick={() => onDelete(data.id)}><Trash2 style={{ width: 14, height: 14, display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Remover Colaborador</Button>
       </div>
         </div>{/* end padding div */}
       </div>{/* end panel */}
@@ -1949,7 +1950,7 @@ function DocumentoFormModal({ open, data, onClose, onSave }) {
 
   return (
     <Modal open={open} onClose={onClose} title="📄 Novo Documento"
-      footer={<button style={styles.btn('primary')} onClick={() => onSave(data?.funcionario_id, f)}>Salvar</button>}>
+      footer={<Button onClick={() => onSave(data?.funcionario_id, f)}>Salvar</Button>}>
       <Input label="Nome do Documento *" value={f.nome || ''} onChange={e => upd('nome', e.target.value)} />
       <Select label="Tipo" value={f.tipo} onChange={e => upd('tipo', e.target.value)}>
         <option value="contrato">Contrato</option>

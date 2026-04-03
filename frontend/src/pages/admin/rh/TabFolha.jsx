@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { rh } from '../../../api';
+import { Button } from '../../../components/ui/button';
 
 const C = {
   bg: 'var(--cbrio-bg)', card: 'var(--cbrio-card)', primary: '#00B39D', primaryBg: '#00B39D18',
@@ -186,7 +187,7 @@ export default function TabFolha() {
                   <td style={{ ...s.tdR, color: isPJ ? C.text3 : C.red }}>{isPJ ? '—' : fmtMoney(f.ir)}</td>
                   <td style={{ ...s.tdR, color: isPJ ? C.text3 : C.amber }}>{isPJ ? '—' : fmtMoney(f.fgts)}</td>
                   <td style={{ ...s.tdR, fontWeight: 700, color: C.green }}>{fmtMoney(isPJ ? f.salario : f.remuneracao_liquida)}</td>
-                  <td style={s.td}><button style={{ ...s.btn('ghost'), fontSize: 12 }} onClick={() => printHolerite(f)}>Imprimir</button></td>
+                  <td style={s.td}><Button variant="ghost" size="xs" onClick={() => printHolerite(f)}>Imprimir</Button></td>
                 </tr>
               );
             })}

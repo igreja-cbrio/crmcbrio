@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { rh } from '../../../api';
+import { Button } from '../../../components/ui/button';
 
 const C = {
   bg: 'var(--cbrio-bg)', card: 'var(--cbrio-card)', primary: '#00B39D', primaryBg: '#00B39D18',
@@ -243,9 +244,9 @@ export default function TabAdmissao() {
         <option value="">Todos os status</option>
         {Object.entries(STATUS_ADM).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
       </select>
-      <button style={styles.btn('primary')} onClick={() => setModalForm({ tipo_contrato: 'pj', status: 'rascunho' })}>
+      <Button onClick={() => setModalForm({ tipo_contrato: 'pj', status: 'rascunho' })}>
         + Nova Admissão
-      </button>
+      </Button>
     </div>
 
     <div style={styles.card}>
@@ -275,12 +276,12 @@ export default function TabAdmissao() {
                 <td style={styles.td}>{fmtDate(a.data_inicio)}</td>
                 <td style={styles.td}>
                   <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                    <button style={{ ...styles.btn('ghost'), fontSize: 12 }} onClick={() => setModalForm(a)}>Editar</button>
-                    <button style={{ ...styles.btn('ghost'), fontSize: 12, color: C.primary }} onClick={() => abrirContrato(a)}>Contrato</button>
+                    <Button variant="ghost" size="xs" onClick={() => setModalForm(a)}>Editar</Button>
+                    <Button variant="ghost" size="xs" className="text-[#00B39D]" onClick={() => abrirContrato(a)}>Contrato</Button>
                     {a.status !== 'concluido' && a.status !== 'cancelado' && (
-                      <button style={{ ...styles.btn('ghost'), fontSize: 12, color: C.green }} onClick={() => concluir(a.id)}>Concluir</button>
+                      <Button variant="ghost" size="xs" className="text-emerald-500" onClick={() => concluir(a.id)}>Concluir</Button>
                     )}
-                    <button style={{ ...styles.btn('ghost'), fontSize: 12, color: C.red }} onClick={() => excluir(a.id)}>Excluir</button>
+                    <Button variant="ghost" size="xs" className="text-red-500" onClick={() => excluir(a.id)}>Excluir</Button>
                   </div>
                 </td>
               </tr>
@@ -312,7 +313,7 @@ function AdmissaoFormModal({ data, onClose, onSave, saving }) {
         {/* Header sticky */}
         <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--cbrio-modal-bg)', padding: '20px 28px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>{f.id ? 'Editar Admissão' : 'Nova Admissão'}</div>
-          <button style={{ ...styles.btn('ghost'), fontSize: 18 }} onClick={onClose}>✕</button>
+          <Button variant="ghost" size="sm" onClick={onClose}>✕</Button>
         </div>
 
         {/* Body */}
@@ -379,10 +380,10 @@ function AdmissaoFormModal({ data, onClose, onSave, saving }) {
 
         {/* Footer sticky */}
         <div style={{ position: 'sticky', bottom: 0, background: 'var(--cbrio-modal-bg)', padding: '16px 28px', borderTop: `1px solid ${C.border}`, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button style={styles.btn('ghost')} onClick={onClose}>Cancelar</button>
-          <button style={styles.btn('primary')} onClick={() => onSave(f)} disabled={saving}>
+          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+          <Button onClick={() => onSave(f)} disabled={saving}>
             {saving ? 'Salvando...' : f.id ? 'Salvar' : 'Criar Admissão'}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -429,16 +430,16 @@ function ContratoEditorModal({ data, onClose, onSave, saving }) {
             <div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>Contrato — {adm.nome}</div>
             <div style={{ fontSize: 12, color: C.text2, marginTop: 2 }}>Edite o texto abaixo. O contrato é totalmente editável.</div>
           </div>
-          <button style={{ ...styles.btn('ghost'), fontSize: 18 }} onClick={onClose}>✕</button>
+          <Button variant="ghost" size="sm" onClick={onClose}>✕</Button>
         </div>
 
         {/* Toolbar */}
         <div style={{ padding: '12px 28px', borderBottom: `1px solid ${C.border}`, display: 'flex', gap: 8 }}>
-          <button style={styles.btn('secondary')} onClick={() => document.execCommand('bold')}>Negrito</button>
-          <button style={styles.btn('secondary')} onClick={() => document.execCommand('italic')}>Itálico</button>
-          <button style={styles.btn('secondary')} onClick={() => document.execCommand('underline')}>Sublinhado</button>
+          <Button variant="outline" onClick={() => document.execCommand('bold')}>Negrito</Button>
+          <Button variant="outline" onClick={() => document.execCommand('italic')}>Itálico</Button>
+          <Button variant="outline" onClick={() => document.execCommand('underline')}>Sublinhado</Button>
           <div style={{ flex: 1 }} />
-          <button style={styles.btn('ghost')} onClick={handlePrint}>Imprimir / PDF</button>
+          <Button variant="ghost" onClick={handlePrint}>Imprimir / PDF</Button>
         </div>
 
         {/* Editor */}
@@ -457,10 +458,10 @@ function ContratoEditorModal({ data, onClose, onSave, saving }) {
 
         {/* Footer */}
         <div style={{ position: 'sticky', bottom: 0, background: 'var(--cbrio-modal-bg)', padding: '16px 28px', borderTop: `1px solid ${C.border}`, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button style={styles.btn('ghost')} onClick={onClose}>Fechar</button>
-          <button style={styles.btn('primary')} onClick={handleSave} disabled={saving}>
+          <Button variant="ghost" onClick={onClose}>Fechar</Button>
+          <Button onClick={handleSave} disabled={saving}>
             {saving ? 'Salvando...' : 'Salvar Contrato'}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

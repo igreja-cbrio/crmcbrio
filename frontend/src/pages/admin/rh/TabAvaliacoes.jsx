@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { rh } from '../../../api';
+import { Button } from '../../../components/ui/button';
 
 const C = {
   bg: 'var(--cbrio-bg)', card: 'var(--cbrio-card)', primary: '#00B39D', primaryBg: '#00B39D18',
@@ -93,9 +94,9 @@ export default function TabAvaliacoes({ funcionarios = [] }) {
   return (<>
     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
       <div style={{ fontSize: 13, color: C.text2 }}>{avaliacoes.length} avaliação(ões) registrada(s)</div>
-      <button style={s.btn('primary')} onClick={() => setPanel({ funcionario_id: '', periodo: `${thisYear}-Q${Math.ceil((new Date().getMonth() + 1) / 3)}`, data_avaliacao: new Date().toISOString().slice(0, 10), status: 'rascunho' })}>
+      <Button onClick={() => setPanel({ funcionario_id: '', periodo: `${thisYear}-Q${Math.ceil((new Date().getMonth() + 1) / 3)}`, data_avaliacao: new Date().toISOString().slice(0, 10), status: 'rascunho' })}>
         + Nova Avaliação
-      </button>
+      </Button>
     </div>
 
     <div style={{ display: 'grid', gridTemplateColumns: panel ? '1fr 1fr' : '1fr', gap: 16 }}>
@@ -123,8 +124,8 @@ export default function TabAvaliacoes({ funcionarios = [] }) {
               </td>
               <td style={s.td}><span style={s.badge(a.status === 'finalizado' ? C.green : C.text3, a.status === 'finalizado' ? C.greenBg : '#73737318')}>{a.status === 'finalizado' ? 'Finalizado' : 'Rascunho'}</span></td>
               <td style={s.td}>
-                <button style={{ ...s.btn('ghost'), fontSize: 12 }} onClick={() => setPanel(a)}>Editar</button>
-                <button style={{ ...s.btn('ghost'), fontSize: 12, color: C.red }} onClick={() => excluir(a.id)}>Excluir</button>
+                <Button variant="ghost" size="xs" onClick={() => setPanel(a)}>Editar</Button>
+                <Button variant="ghost" size="xs" className="text-red-500" onClick={() => excluir(a.id)}>Excluir</Button>
               </td>
             </tr>
           ))}
@@ -136,7 +137,7 @@ export default function TabAvaliacoes({ funcionarios = [] }) {
         <div style={s.card}>
           <div style={{ ...s.cardHeader }}>
             <div style={s.cardTitle}>{panel.id ? 'Editar Avaliação' : 'Nova Avaliação'}</div>
-            <button style={{ ...s.btn('ghost'), fontSize: 16 }} onClick={() => setPanel(null)}>✕</button>
+            <Button variant="ghost" size="sm" onClick={() => setPanel(null)}>✕</Button>
           </div>
           <div style={{ padding: 20, maxHeight: 600, overflowY: 'auto' }}>
             <div style={{ marginBottom: 14 }}>
@@ -198,10 +199,10 @@ export default function TabAvaliacoes({ funcionarios = [] }) {
             </div>
 
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
-              <button style={s.btn('ghost')} onClick={() => { upd('status', 'rascunho'); salvar(); }} disabled={saving}>Salvar Rascunho</button>
-              <button style={s.btn('primary')} onClick={() => { upd('status', 'finalizado'); setTimeout(salvar, 50); }} disabled={saving}>
+              <Button variant="ghost" onClick={() => { upd('status', 'rascunho'); salvar(); }} disabled={saving}>Salvar Rascunho</Button>
+              <Button onClick={() => { upd('status', 'finalizado'); setTimeout(salvar, 50); }} disabled={saving}>
                 {saving ? 'Salvando...' : 'Finalizar Avaliação'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
