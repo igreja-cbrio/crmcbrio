@@ -1467,15 +1467,13 @@ function BeneficiosSection({ data, onSave }) {
           {/* Toolbar */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
             {!editing ? (
-              <button onClick={startEdit} style={{ fontSize: 12, color: C.primary, background: 'none', border: `1px solid ${C.primary}`, borderRadius: 6, padding: '4px 12px', cursor: 'pointer', fontWeight: 600 }}>
-                <Pencil style={{ width: 12, height: 12, display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Editar Benefícios
-              </button>
+              <Button variant="outline" size="xs" className="gap-1.5" onClick={startEdit}>
+                <Pencil className="h-3 w-3" />Editar Benefícios
+              </Button>
             ) : (
               <div style={{ display: 'flex', gap: 6 }}>
-                <button onClick={() => setEditing(false)} style={{ fontSize: 12, color: C.text2, background: 'none', border: 'none', cursor: 'pointer' }}>Cancelar</button>
-                <button onClick={handleSave} disabled={saving} style={{ fontSize: 12, color: '#fff', background: C.primary, border: 'none', borderRadius: 6, padding: '4px 14px', cursor: 'pointer', fontWeight: 600 }}>
-                  {saving ? 'Salvando...' : 'Salvar'}
-                </button>
+                <Button variant="ghost" size="xs" onClick={() => setEditing(false)}>Cancelar</Button>
+                <Button size="xs" onClick={handleSave} disabled={saving}>{saving ? 'Salvando...' : 'Salvar'}</Button>
               </div>
             )}
           </div>
@@ -1830,7 +1828,7 @@ function FuncionarioDetailPanel({ open, data, onClose, onEdit, onDelete, onNewDo
         <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--cbrio-modal-bg)', padding: '20px 28px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>👤 {data.nome}</div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <Button variant="outline" onClick={() => onEdit(data)}><Pencil style={{ width: 14, height: 14, display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Editar</Button>
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => onEdit(data)}><Pencil className="h-3.5 w-3.5" />Editar</Button>
             <Button variant="ghost" className="text-lg" onClick={onClose}>✕</Button>
           </div>
         </div>
@@ -1997,7 +1995,7 @@ function FuncionarioDetailPanel({ open, data, onClose, onEdit, onDelete, onNewDo
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 16, borderTop: `1px solid ${C.border}`, marginTop: 16 }}>
-        <Button variant="destructive" onClick={() => onDelete(data.id)}><Trash2 style={{ width: 14, height: 14, display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Remover Colaborador</Button>
+        <Button variant="destructive" size="sm" className="gap-1.5" onClick={() => onDelete(data.id)}><Trash2 className="h-3.5 w-3.5" />Remover Colaborador</Button>
       </div>
         </div>{/* end padding div */}
       </div>{/* end panel */}
