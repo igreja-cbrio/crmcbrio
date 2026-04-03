@@ -37,6 +37,7 @@ const NAV_ITEMS = [
   {
     id: 2,
     label: 'Projetos e Eventos',
+    path: '/planejamento',
     subMenus: [
       {
         title: 'Módulos',
