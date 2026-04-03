@@ -334,9 +334,9 @@ function StatCard({ label, value, bg, svg, onClick }) {
       onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
     >
       {svg}
-      <div style={{ position: 'relative', zIndex: 1 }}>
+      <div style={{ position: 'relative', zIndex: 1, overflow: 'hidden' }}>
         <div style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.8)', marginBottom: 8 }}>{label}</div>
-        <div style={{ fontSize: 32, fontWeight: 700, letterSpacing: -1 }}>{value}</div>
+        <div style={{ fontSize: String(value).length > 10 ? 22 : 32, fontWeight: 700, letterSpacing: -1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</div>
       </div>
     </div>
   );
@@ -374,24 +374,16 @@ function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
         ))}
       </div>
 
-      {/* Métricas extras */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 24 }}>
+      {/* Métricas extras — mesmo layout StatCard */}
+      <div style={styles.kpiGrid}>
         {[
-          { label: 'Admissões (12m)', value: dash.admissoesAno, icon: '📥', color: C.green },
-          { label: 'Desligamentos (12m)', value: dash.desligamentosAno, icon: '📤', color: C.red },
-          { label: 'Admissões Pendentes', value: dash.admissoesPendentes, icon: '📋', color: C.amber },
-          { label: 'Treinamentos Pendentes', value: dash.treinosPendentes, icon: '🎓', color: C.blue },
-          { label: 'Folha Salarial', value: fmtM(dash.totalSalarios), icon: '💵', color: C.primary },
-        ].map(m => (
-          <div key={m.label} style={{ ...styles.card, padding: '14px 16px', borderLeft: `3px solid ${m.color}` }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 20 }}>{m.icon}</span>
-              <div>
-                <div style={{ fontSize: 10, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>{m.label}</div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: C.text }}>{m.value ?? 0}</div>
-              </div>
-            </div>
-          </div>
+          { label: 'Admissões (12m)', value: dash.admissoesAno ?? 0, bg: '#10b981' },
+          { label: 'Desligamentos (12m)', value: dash.desligamentosAno ?? 0, bg: '#ef4444' },
+          { label: 'Admissões Pendentes', value: dash.admissoesPendentes ?? 0, bg: '#f59e0b' },
+          { label: 'Treinamentos Pend.', value: dash.treinosPendentes ?? 0, bg: '#3b82f6' },
+          { label: 'Folha Salarial', value: fmtM(dash.totalSalarios), bg: '#0a0a0a' },
+        ].map((k, i) => (
+          <StatCard key={k.label} label={k.label} value={k.value} bg={k.bg} svg={kpiSvgs[i % kpiSvgs.length]} />
         ))}
       </div>
 
