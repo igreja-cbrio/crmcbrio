@@ -173,6 +173,7 @@ export const cycles = {
   updateAdmItem: (itemId, data) => patch(`/cycles/adm/${itemId}`, data),
   registerExpense: (data) => post('/cycles/expenses', data),
   summaryAll: () => get('/cycles/summary/all'),
+  kanbanAll: () => get('/cycles/kanban/all'),
 };
 
 export const agents = {

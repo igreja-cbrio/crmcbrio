@@ -559,201 +559,208 @@ export default function Eventos() {
     { label: 'Sem responsável', value: k.events_no_owner || 0, color: '#9ca3af' },
   ];
 
-  // ── Kanban ──
-  const [kanbanArea, setKanbanArea] = useState('');
+  // ── Kanban (dois níveis)
+  const [kanbanArea, setKanbanArea] = useState('all');
   const [kanbanExpanded, setKanbanExpanded] = useState(null);
+  const [kanbanCycleData, setKanbanCycleData] = useState(null);
+  const [kanbanPhase, setKanbanPhase] = useState(null);
+  const [kanbanEvent, setKanbanEvent] = useState('all');
 
-  async function loadKanban(sourceFilter, areaFilter) {
+  async function loadKanban() {
     setKanbanLoading(true);
     try {
-      const params = {};
-      if (sourceFilter) params.source = sourceFilter;
-      if (areaFilter) params.area = areaFilter;
-      const data = await tasksApi.all(params);
-      setKanbanTasks(data);
+      const data = await cyclesApi.kanbanAll();
+      setKanbanCycleData(data);
+      // Auto-selecionar primeira fase não concluída
+      if (data?.phases?.length > 0 && !kanbanPhase) {
+        const first = data.phases.find(p => p.status !== 'concluida') || data.phases[0];
+        setKanbanPhase(first.numero_fase);
+      }
     } catch (e) { console.error(e); }
     finally { setKanbanLoading(false); }
   }
 
-  async function kanbanChangeStatus(source, taskId, newStatus) {
+  async function kanbanChangeStatus(taskId, newStatus) {
     try {
-      await tasksApi.updateStatus(source, taskId, newStatus);
-      loadKanban(kanbanFilter, kanbanArea);
+      await cyclesApi.updateTask(taskId, { status: newStatus });
+      loadKanban();
     } catch (e) { setError(e.message); }
   }
 
   // ═══════════════════════════════════════════════════════════
-  // RENDER — KANBAN
+  // RENDER — KANBAN (dois níveis: fases + kanban por fase)
   // ═══════════════════════════════════════════════════════════
   function renderKanban() {
-    const COLUMNS = [
-      { key: 'pendente', label: 'Pendente', color: '#9ca3af' },
-      { key: 'em-andamento', label: 'Em andamento', color: '#3b82f6' },
-      { key: 'bloqueada', label: 'Bloqueado', color: '#ef4444' },
-      { key: 'concluida', label: 'Concluído', color: '#10b981' },
-    ];
-    const SOURCE_BADGE = {
-      evento: { label: 'Evento', color: '#7c3aed', bg: '#ede9fe' },
-      ciclo: { label: 'Ciclo Criativo', color: '#00B39D', bg: '#d1fae5' },
-      projeto: { label: 'Projeto', color: '#3b82f6', bg: '#dbeafe' },
-      planejamento: { label: 'Estratégico', color: '#f59e0b', bg: '#fef3c7' },
+    const CAT = {
+      marketing:  { label: 'Marketing',  color: '#00B39D', bg: '#d1fae5' },
+      compras:    { label: 'Compras',    color: '#3b82f6', bg: '#dbeafe' },
+      financeiro: { label: 'Financeiro', color: '#10b981', bg: '#d1fae5' },
+      manutencao: { label: 'Manutenção', color: '#f59e0b', bg: '#fef3c7' },
+      limpeza:    { label: 'Limpeza',    color: '#8b5cf6', bg: '#ede9fe' },
+      cozinha:    { label: 'Cozinha',    color: '#ec4899', bg: '#fce7f3' },
+      outros:     { label: 'Outros',     color: 'var(--cbrio-text3)', bg: 'var(--cbrio-bg)' },
     };
-    const PRIORITY_COLOR = { urgente: '#ef4444', alta: '#f59e0b', media: '#3b82f6', baixa: '#9ca3af' };
+    const COLS = [
+      { key: 'a_fazer', label: 'A fazer', color: 'var(--cbrio-text3)' },
+      { key: 'em_andamento', label: 'Em andamento', color: '#3b82f6' },
+      { key: 'bloqueada', label: 'Bloqueada', color: '#ef4444' },
+      { key: 'concluida', label: 'Concluída', color: '#10b981' },
+    ];
+    const getCat = (t) => { if (t.area === 'marketing') return 'marketing'; const m = (t.observacoes || '').match(/Área:\s*(\w+)/i); return m ? m[1] : 'outros'; };
 
-    function TaskDeadline({ deadline, isDone }) {
-      if (!deadline || isDone) return null;
-      const d = normDate(deadline);
-      if (!d) return null;
-      const diff = Math.ceil((new Date(d + 'T12:00:00') - new Date()) / 86400000);
-      const color = diff < 0 ? '#ef4444' : diff <= 7 ? '#f59e0b' : '#10b981';
-      const text = diff < 0 ? `${Math.abs(diff)}d atrás` : diff === 0 ? 'Hoje' : `${diff}d`;
-      return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--cbrio-border, #e5e7eb)' }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color }}>{fmtDate(deadline)}</span>
-          <span style={{ fontSize: 11, fontWeight: 700, color, padding: '2px 8px', borderRadius: 10, background: `${color}15` }}>{text}</span>
-        </div>
-      );
-    }
+    const d = kanbanCycleData;
+    if (!d) return <div style={{ padding: 20, textAlign: 'center', color: 'var(--cbrio-text3)' }}>{kanbanLoading ? 'Carregando...' : 'Nenhum ciclo criativo ativo'}</div>;
+
+    const allPhases = d.phases || [];
+    const allTasks = d.tasks || [];
+    const allEvents = d.events || [];
+
+    // Agrupar fases por numero_fase (unificando de todos os eventos)
+    const phaseNums = [...new Set(allPhases.map(p => p.numero_fase))].sort((a, b) => a - b);
+    const phaseNames = {};
+    allPhases.forEach(p => { phaseNames[p.numero_fase] = p.nome_fase; });
+
+    // Filtrar por evento
+    const filteredPhases = kanbanEvent === 'all' ? allPhases : allPhases.filter(p => p.event_id === kanbanEvent);
+    const phaseIds = new Set(filteredPhases.map(p => p.id));
+
+    // Tarefas da fase selecionada + filtros
+    let phaseTasks = allTasks.filter(t => {
+      const ph = allPhases.find(p => p.id === t.event_phase_id);
+      if (!ph || ph.numero_fase !== kanbanPhase) return false;
+      if (kanbanEvent !== 'all' && t.event_id !== kanbanEvent) return false;
+      return true;
+    });
+    if (kanbanArea !== 'all') phaseTasks = phaseTasks.filter(t => getCat(t) === kanbanArea);
 
     return (
       <div style={{ margin: '0 -32px', padding: '0 16px' }}>
-        {/* Filtros de fonte */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
-          {[
-            { key: '', label: 'Todas as tarefas' },
-            { key: 'evento', label: 'Eventos' },
-            { key: 'ciclo', label: 'Ciclo Criativo' },
-            { key: 'projeto', label: 'Projetos' },
-            { key: 'planejamento', label: 'Planejamento' },
-          ].map(f => (
-            <button key={f.key} onClick={() => { setKanbanFilter(f.key); loadKanban(f.key, kanbanArea); }}
-              style={{
-                padding: '6px 16px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                border: kanbanFilter === f.key ? '2px solid var(--color-primary, #7c3aed)' : '1px solid var(--cbrio-border, #e5e7eb)',
-                background: kanbanFilter === f.key ? 'var(--color-primary, #7c3aed)' : 'transparent',
-                color: kanbanFilter === f.key ? '#fff' : 'var(--cbrio-text2, #6b7280)',
-              }}>
-              {f.label}
-            </button>
+        {/* Filtros */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
+          {/* Filtro evento */}
+          <span style={{ fontSize: 11, color: 'var(--cbrio-text2)', fontWeight: 600 }}>Evento:</span>
+          <select value={kanbanEvent} onChange={e => setKanbanEvent(e.target.value)}
+            style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, border: `1px solid var(--cbrio-border)`, background: 'var(--cbrio-card)' }}>
+            <option value="all">Todos os eventos</option>
+            {allEvents.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+          </select>
+
+          <span style={{ width: 1, height: 20, background: 'var(--cbrio-border)', margin: '0 4px' }} />
+
+          {/* Filtro área */}
+          <span style={{ fontSize: 11, color: 'var(--cbrio-text2)', fontWeight: 600 }}>Área:</span>
+          {[{ key: 'all', label: 'Todas' }, ...Object.entries(CAT).filter(([k]) => k !== 'outros').map(([k, v]) => ({ key: k, label: v.label, color: v.color, bg: v.bg }))].map(f => (
+            <button key={f.key} onClick={() => setKanbanArea(f.key)} style={{
+              padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: kanbanArea === f.key ? 600 : 400, cursor: 'pointer',
+              border: kanbanArea === f.key ? `2px solid ${f.color || '#00B39D'}` : `1px solid var(--cbrio-border)`,
+              background: kanbanArea === f.key ? (f.bg || '#d1fae5') : 'transparent',
+              color: kanbanArea === f.key ? (f.color || '#00B39D') : 'var(--cbrio-text3)',
+            }}>{f.label}</button>
           ))}
         </div>
 
-        {/* Filtros de área */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--cbrio-text3, #9ca3af)', marginRight: 4 }}>Área:</span>
-          {[
-            { key: '', label: 'Todas' },
-            { key: 'marketing', label: 'Marketing' },
-            { key: 'adm', label: 'Administrativo' },
-          ].map(f => (
-            <button key={f.key} onClick={() => { setKanbanArea(f.key); loadKanban(kanbanFilter, f.key); }}
-              style={{
-                padding: '4px 12px', borderRadius: 16, fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                border: kanbanArea === f.key ? '2px solid #00B39D' : '1px solid var(--cbrio-border, #e5e7eb)',
-                background: kanbanArea === f.key ? '#00B39D' : 'transparent',
-                color: kanbanArea === f.key ? '#fff' : 'var(--cbrio-text3, #6b7280)',
-              }}>
-              {f.label}
-            </button>
-          ))}
-        </div>
+        {/* Faixa de fases (nível 1) */}
+        <div style={{ overflowX: 'auto', marginBottom: 16, paddingBottom: 6 }}>
+          <div style={{ display: 'flex', gap: 5, minWidth: 'max-content' }}>
+            {phaseNums.map((num, i) => {
+              const isActive = num === kanbanPhase;
+              const relevantPhases = filteredPhases.filter(p => p.numero_fase === num);
+              const relevantPhaseIds = relevantPhases.map(p => p.id);
+              const pTasks = allTasks.filter(t => relevantPhaseIds.includes(t.event_phase_id) && (kanbanEvent === 'all' || t.event_id === kanbanEvent));
+              const pDone = pTasks.filter(t => t.status === 'concluida').length;
+              const pBlocked = pTasks.filter(t => t.status === 'bloqueada').length;
+              const isDone = pTasks.length > 0 && pDone === pTasks.length;
+              const pPct = pTasks.length > 0 ? Math.round((pDone / pTasks.length) * 100) : 0;
 
-        {kanbanLoading && <div style={{ padding: 20, textAlign: 'center', color: 'var(--cbrio-text3, #9ca3af)' }}>Carregando...</div>}
-
-        {/* 4 colunas */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, minHeight: 'calc(100vh - 260px)' }}>
-          {COLUMNS.map(col => {
-            const colTasks = kanbanTasks.filter(t => t.status === col.key);
-            return (
-              <div key={col.key}
-                style={{ background: 'var(--cbrio-bg, #f9fafb)', borderRadius: 12, padding: 12, display: 'flex', flexDirection: 'column' }}
-                onDragOver={e => e.preventDefault()}
-                onDrop={e => {
-                  const data = e.dataTransfer.getData('kanbanTask');
-                  if (data) {
-                    const { id, source } = JSON.parse(data);
-                    kanbanChangeStatus(source, id, col.key);
-                  }
-                }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, padding: '0 4px' }}>
-                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: col.color }} />
-                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--cbrio-text, #1a1a2e)' }}>{col.label}</span>
-                  <span style={{ fontSize: 11, color: 'var(--cbrio-text3, #9ca3af)', fontWeight: 600 }}>({colTasks.length})</span>
-                </div>
-
-                <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {colTasks.map(task => {
-                    const sb = SOURCE_BADGE[task.source] || SOURCE_BADGE.evento;
-                    const cardKey = `${task.source}-${task.id}`;
-                    const isExpanded = kanbanExpanded === cardKey;
-                    const subs = task.subtasks || [];
-                    const subsDone = subs.filter(s => s.done).length;
-                    return (
-                      <div key={cardKey} draggable
-                        onDragStart={e => e.dataTransfer.setData('kanbanTask', JSON.stringify({ id: task.id, source: task.source }))}
-                        onClick={() => setKanbanExpanded(isExpanded ? null : cardKey)}
-                        style={{
-                          background: 'var(--cbrio-card, #fff)', borderRadius: 10, padding: '12px 14px',
-                          border: isExpanded ? '1.5px solid var(--color-primary, #7c3aed)' : '1px solid var(--cbrio-border, #e5e7eb)',
-                          cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', transition: 'all 0.15s',
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'}
-                        onMouseLeave={e => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)'}
-                      >
-                        {/* Resumo (sempre visível) */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                          <span style={{ color: 'var(--cbrio-text3)', fontSize: 11 }}>{isExpanded ? '▼' : '▶'}</span>
-                          <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--cbrio-text, #1a1a2e)', flex: 1 }}>{task.name}</div>
-                        </div>
-                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 4 }}>
-                          <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 10, color: sb.color, background: sb.bg }}>{sb.label}</span>
-                          {task.area && (
-                            <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 10, color: task.area === 'marketing' ? '#7c3aed' : '#f59e0b', background: task.area === 'marketing' ? '#ede9fe' : '#fef3c7' }}>
-                              {task.area === 'marketing' ? 'MKT' : 'ADM'}
-                            </span>
-                          )}
-                          {subs.length > 0 && (
-                            <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 10, color: 'var(--cbrio-text3)', background: 'var(--cbrio-bg, #f3f4f6)' }}>
-                              {subsDone}/{subs.length} subtarefas
-                            </span>
-                          )}
-                        </div>
-                        <div style={{ fontSize: 11, color: 'var(--cbrio-text2, #6b7280)' }}>{task.parent_name}</div>
-                        <div style={{ fontSize: 11, color: 'var(--cbrio-text3, #9ca3af)', marginTop: 4 }}>
-                          {task.responsible || 'Sem responsável'}
-                        </div>
-                        <TaskDeadline deadline={task.deadline} isDone={col.key === 'concluida'} />
-
-                        {/* Expandido: subtarefas + detalhes */}
-                        {isExpanded && (
-                          <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--cbrio-border, #e5e7eb)' }} onClick={e => e.stopPropagation()}>
-                            {task.observacoes && <div style={{ fontSize: 11, color: 'var(--cbrio-text3)', marginBottom: 6 }}>{task.observacoes}</div>}
-                            {subs.length > 0 && (
-                              <div>
-                                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--cbrio-text2)', marginBottom: 4 }}>Subtarefas ({subsDone}/{subs.length})</div>
-                                {subs.map(sub => (
-                                  <div key={sub.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '3px 0', color: 'var(--cbrio-text)' }}>
-                                    <input type="checkbox" checked={sub.done} onChange={async () => {
-                                      sub.done = !sub.done;
-                                      setKanbanTasks([...kanbanTasks]);
-                                    }} style={{ cursor: 'pointer' }} />
-                                    <span style={sub.done ? { textDecoration: 'line-through', color: 'var(--cbrio-text3)' } : {}}>{sub.name}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                            {subs.length === 0 && <div style={{ fontSize: 11, color: 'var(--cbrio-text3)' }}>Sem subtarefas</div>}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                  {colTasks.length === 0 && (
-                    <div style={{ padding: 20, textAlign: 'center', fontSize: 12, color: 'var(--cbrio-text3, #9ca3af)', border: '2px dashed var(--cbrio-border, #e5e7eb)', borderRadius: 10 }}>
-                      Solte tarefas aqui
+              return (
+                <div key={num} style={{ display: 'flex', alignItems: 'center' }}>
+                  <div onClick={() => { setKanbanPhase(num); setKanbanExpanded(null); }} style={{
+                    borderRadius: 8, padding: '8px 10px', cursor: 'pointer', minWidth: 100, maxWidth: 120,
+                    border: isActive ? '2px solid #00B39D' : `1px solid var(--cbrio-border)`,
+                    background: isActive ? 'rgba(0,179,157,0.1)' : isDone ? 'var(--cbrio-bg)' : 'var(--cbrio-card)',
+                    opacity: isDone && !isActive ? 0.7 : 1, transition: 'all .15s',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: 'var(--cbrio-text3)', marginBottom: 3 }}>
+                      <span>F{num}</span>
+                      {pBlocked > 0 && <span style={{ color: '#ef4444' }}>{pBlocked} bloq</span>}
                     </div>
-                  )}
+                    <div style={{ fontSize: 10, fontWeight: isActive ? 700 : 500, color: isActive ? '#00B39D' : 'var(--cbrio-text)', lineHeight: 1.3, marginBottom: 4 }}>
+                      {phaseNames[num]}
+                    </div>
+                    <div style={{ height: 3, borderRadius: 2, background: 'var(--cbrio-border)', marginBottom: 3 }}>
+                      <div style={{ height: 3, borderRadius: 2, width: `${pPct}%`, background: isDone ? '#10b981' : pPct > 0 ? '#00B39D' : 'transparent', transition: 'width .3s' }} />
+                    </div>
+                    <div style={{ fontSize: 9, color: 'var(--cbrio-text3)' }}>{pTasks.length > 0 ? `${pDone}/${pTasks.length}` : 'vazia'}</div>
+                  </div>
+                  {i < phaseNums.length - 1 && <div style={{ width: 12, height: 2, background: isDone ? '#10b981' : 'var(--cbrio-border)', flexShrink: 0 }} />}
                 </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Header da fase */}
+        {kanbanPhase && (
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--cbrio-text)', marginBottom: 10 }}>
+            Fase {kanbanPhase} — {phaseNames[kanbanPhase]}
+            <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--cbrio-text3)', marginLeft: 12 }}>
+              {phaseTasks.filter(t => t.status === 'concluida').length}/{phaseTasks.length} tarefas
+            </span>
+          </div>
+        )}
+
+        {/* Kanban 4 colunas (nível 2) */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, minHeight: 300 }}>
+          {COLS.map(col => {
+            const colTasks = phaseTasks.filter(t => t.status === col.key);
+            return (
+              <div key={col.key} style={{ background: 'var(--cbrio-bg)', borderRadius: 10, padding: 8 }}
+                onDragOver={e => e.preventDefault()}
+                onDrop={e => { const id = e.dataTransfer.getData('cycleKanbanId'); if (id) kanbanChangeStatus(id, col.key); }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: col.color, textTransform: 'uppercase', letterSpacing: 0.4 }}>{col.label}</span>
+                  <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 99, background: 'var(--cbrio-card)', border: `1px solid var(--cbrio-border)`, color: 'var(--cbrio-text3)' }}>{colTasks.length}</span>
+                </div>
+                {colTasks.length === 0 && <div style={{ padding: 12, textAlign: 'center', fontSize: 10, color: 'var(--cbrio-text3)', border: '1.5px dashed var(--cbrio-border)', borderRadius: 8 }}>—</div>}
+                {colTasks.map(task => {
+                  const cat = CAT[getCat(task)] || CAT.outros;
+                  const evName = allEvents.find(e => e.id === task.event_id)?.name || '';
+                  const isLate = task.prazo && new Date(normDate(task.prazo)) < new Date() && task.status !== 'concluida';
+                  const subs = task.subtasks || [];
+                  const subsDone = subs.filter(s => s.done).length;
+                  const isOpen = kanbanExpanded === task.id;
+
+                  return (
+                    <div key={task.id} draggable onDragStart={e => e.dataTransfer.setData('cycleKanbanId', task.id)}
+                      onClick={() => setKanbanExpanded(isOpen ? null : task.id)}
+                      style={{ background: 'var(--cbrio-card)', borderRadius: 8, padding: 8, marginBottom: 4, border: isOpen ? '1.5px solid #00B39D' : `1px solid var(--cbrio-border)`, cursor: 'grab', transition: 'box-shadow .15s' }}
+                      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'}
+                      onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
+                      <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 99, background: cat.bg, color: cat.color, fontWeight: 500, display: 'inline-block', marginBottom: 4 }}>{cat.label}</span>
+                      <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--cbrio-text)', lineHeight: 1.3, marginBottom: 3 }}>{task.titulo}</div>
+                      {evName && <div style={{ fontSize: 9, color: 'var(--cbrio-text3)', marginBottom: 2 }}>{evName}</div>}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: 'var(--cbrio-text3)' }}>
+                        <span>{task.responsavel_nome || '—'}</span>
+                        <span>
+                          {task.prazo && <span style={{ color: isLate ? '#ef4444' : 'inherit', fontWeight: isLate ? 600 : 400 }}>{fmtDate(task.prazo)}{isLate ? ' !' : ''}</span>}
+                          {subs.length > 0 && ` · ${subsDone}/${subs.length}`}
+                        </span>
+                      </div>
+
+                      {/* Subtarefas expandidas */}
+                      {isOpen && subs.length > 0 && (
+                        <div style={{ marginTop: 6, paddingTop: 6, borderTop: `1px solid var(--cbrio-border)` }} onClick={e => e.stopPropagation()}>
+                          {subs.map(sub => (
+                            <div key={sub.id} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, padding: '2px 0', color: 'var(--cbrio-text)' }}>
+                              <input type="checkbox" checked={sub.done} onChange={() => { sub.done = !sub.done; setKanbanCycleData({ ...d }); }} style={{ cursor: 'pointer', width: 13, height: 13 }} />
+                              <span style={sub.done ? { textDecoration: 'line-through', color: 'var(--cbrio-text3)' } : {}}>{sub.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             );
           })}
@@ -1888,8 +1895,8 @@ export default function Eventos() {
       <div style={styles.tabs}>
         <button style={styles.tab(tab === 0)} onClick={() => setTab(0)}>Home</button>
         <button style={styles.tab(tab === 1)} onClick={() => setTab(1)}>Lista</button>
-        <button style={styles.tab(tab === 2)} onClick={() => { setTab(2); if (kanbanTasks.length === 0) loadKanban(kanbanFilter, kanbanArea); }}>Kanban</button>
-        <button style={styles.tab(tab === 3)} onClick={() => { setTab(3); if (kanbanTasks.length === 0) loadKanban(kanbanFilter, kanbanArea); }}>Gantt</button>
+        <button style={styles.tab(tab === 2)} onClick={() => { setTab(2); if (!kanbanCycleData) loadKanban(); }}>Kanban</button>
+        <button style={styles.tab(tab === 3)} onClick={() => { setTab(3); if (kanbanTasks.length === 0) { const params = {}; if (kanbanFilter) params.source = kanbanFilter; if (kanbanArea && kanbanArea !== 'all') params.area = kanbanArea; tasksApi.all(params).then(setKanbanTasks).catch(() => {}); } }}>Gantt</button>
         {selectedEvent && <button style={styles.tab(tab === 4)} onClick={() => setTab(4)}>Detalhes</button>}
       </div>
 
