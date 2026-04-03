@@ -175,10 +175,20 @@ router.get('/:eventId', async (req, res) => {
       totalGasto = (expenses || []).reduce((acc, e) => acc + Number(e.valor), 0);
     }
 
+    // Buscar subtarefas de todas as tasks do ciclo
+    const taskIds = (tasksRes.data || []).map(t => t.id);
+    const { data: allSubs } = taskIds.length > 0
+      ? await supabase.from('cycle_task_subtasks').select('*').in('task_id', taskIds).order('sort_order')
+      : { data: [] };
+    const subsMap = {};
+    (allSubs || []).forEach(s => { if (!subsMap[s.task_id]) subsMap[s.task_id] = []; subsMap[s.task_id].push(s); });
+
+    const tasksWithSubs = (tasksRes.data || []).map(t => ({ ...t, subtasks: subsMap[t.id] || [] }));
+
     res.json({
       cycle: cycleData,
       phases: phasesRes.data || [],
-      tasks: tasksRes.data || [],
+      tasks: tasksWithSubs,
       admTrack: admRes.data || [],
       budget: budgetRes.data ? { ...budgetRes.data, total_gasto: totalGasto } : null,
     });
