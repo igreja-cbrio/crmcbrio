@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Button } from '../../../components/ui/button';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -7,14 +8,13 @@ const STATUS_COLOR = { pendente: '#d97706', aprovado: '#16a34a', rejeitado: '#dc
 
 const s = {
   toolbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  btnPrim: { background: '#00B39D', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', fontWeight: 600, fontSize: 13, cursor: 'pointer' },
   table:   { width: '100%', background: 'var(--cbrio-card)', borderRadius: 12, boxShadow: '0 1px 4px rgba(0,0,0,0.2)', borderCollapse: 'collapse', overflow: 'hidden' },
   th:      { textAlign: 'left', padding: '12px 16px', fontSize: 12, fontWeight: 600, color: 'var(--cbrio-text2)', textTransform: 'uppercase', background: 'var(--cbrio-table-header)', borderBottom: '1px solid var(--cbrio-border)' },
   td:      { padding: '12px 16px', fontSize: 14, color: 'var(--cbrio-text)', borderBottom: '1px solid var(--cbrio-border)' },
   badge:   { display: 'inline-block', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600 },
-  btnAprv: { background: '#10b98118', color: '#10b981', border: 'none', borderRadius: 6, padding: '4px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600, marginRight: 6 },
-  btnRej:  { background: '#ef444418', color: '#ef4444', border: 'none', borderRadius: 6, padding: '4px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600 },
   empty:   { textAlign: 'center', padding: '48px 0', color: 'var(--cbrio-text3)', fontSize: 14 },
+  input:   { width: '100%', padding: '9px 12px', border: '1px solid var(--cbrio-border)', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', background: 'var(--cbrio-input-bg)', color: 'var(--cbrio-text)', outline: 'none' },
+  label:   { fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 5, color: 'var(--cbrio-text)' },
 };
 
 async function getToken() {
@@ -23,26 +23,16 @@ async function getToken() {
   return session?.access_token;
 }
 
-/**
- * Calcula saldo de férias CLT: 30 dias a cada 12 meses trabalhados.
- * Subtrai dias de férias já aprovadas.
- */
 function calcSaldoFerias(func, feriasAprovadas) {
   if (!func.data_admissao) return null;
   const admissao = new Date(func.data_admissao + 'T12:00:00');
   const hoje = new Date();
   const mesesTrab = Math.floor((hoje - admissao) / (30.44 * 86400000));
-  const periodos = Math.floor(mesesTrab / 12); // períodos aquisitivos completos
+  const periodos = Math.floor(mesesTrab / 12);
   const diasAdquiridos = periodos * 30;
-
-  // Dias já usados (aprovados, tipo férias)
   const diasUsados = (feriasAprovadas || [])
     .filter(f => f.funcionario_id === func.id && f.tipo === 'ferias' && f.status === 'aprovado')
-    .reduce((sum, f) => {
-      const d = Math.ceil((new Date(f.data_fim) - new Date(f.data_inicio)) / 86400000);
-      return sum + d;
-    }, 0);
-
+    .reduce((sum, f) => sum + Math.ceil((new Date(f.data_fim) - new Date(f.data_inicio)) / 86400000), 0);
   const saldo = diasAdquiridos - diasUsados;
   const mesesProxPeriodo = 12 - (mesesTrab % 12);
   return { mesesTrab, periodos, diasAdquiridos, diasUsados, saldo, mesesProxPeriodo };
@@ -50,7 +40,7 @@ function calcSaldoFerias(func, feriasAprovadas) {
 
 export default function TabFerias() {
   const [ferias, setFerias] = useState([]);
-  const [allFerias, setAllFerias] = useState([]); // todas aprovadas p/ cálculo de saldo
+  const [allFerias, setAllFerias] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filtroStatus, setFiltroStatus] = useState('pendente');
   const [mostrarForm, setMostrarForm] = useState(false);
@@ -114,29 +104,32 @@ export default function TabFerias() {
       <div style={s.toolbar}>
         <div style={{ display: 'flex', gap: 8 }}>
           {['pendente', 'aprovado', 'rejeitado', ''].map((st) => (
-            <button
+            <Button
               key={st || 'todos'}
+              variant={filtroStatus === st ? 'default' : 'outline'}
+              size="sm"
               onClick={() => setFiltroStatus(st)}
-              style={{ padding: '6px 14px', borderRadius: 20, border: '1.5px solid', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                background: filtroStatus === st ? '#00B39D' : 'var(--cbrio-input-bg)',
-                color: filtroStatus === st ? '#fff' : 'var(--cbrio-text2)',
-                borderColor: filtroStatus === st ? '#00B39D' : 'var(--cbrio-border)' }}
+              className="rounded-full"
             >
               {st || 'Todos'}
-            </button>
+            </Button>
           ))}
         </div>
-        <button style={s.btnPrim} onClick={() => setMostrarForm(!mostrarForm)}>
+        <Button onClick={() => setMostrarForm(!mostrarForm)}>
           {mostrarForm ? 'Cancelar' : '+ Solicitar'}
-        </button>
+        </Button>
       </div>
 
       {/* Saldo de Férias */}
-      <button onClick={() => setShowSaldos(!showSaldos)}
-        style={{ background: 'var(--cbrio-input-bg)', border: '1px solid var(--cbrio-border)', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, color: 'var(--cbrio-text2)', cursor: 'pointer', marginBottom: 16, width: '100%', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Button
+        variant="ghost"
+        className="w-full justify-between mb-4 text-left"
+        style={{ background: 'var(--cbrio-input-bg)', border: '1px solid var(--cbrio-border)' }}
+        onClick={() => setShowSaldos(!showSaldos)}
+      >
         <span>📊 Saldo de Férias por Colaborador (CLT)</span>
-        <span style={{ fontSize: 12, transform: showSaldos ? 'rotate(180deg)' : '', transition: 'transform 0.2s' }}>▼</span>
-      </button>
+        <span style={{ fontSize: 12, transform: showSaldos ? 'rotate(180deg)' : '', transition: 'transform 0.2s', display: 'inline-block' }}>▼</span>
+      </Button>
       {showSaldos && (
         <div style={{ background: 'var(--cbrio-card)', borderRadius: 12, boxShadow: '0 1px 4px rgba(0,0,0,0.2)', marginBottom: 20, overflow: 'hidden' }}>
           <table style={s.table}>
@@ -180,27 +173,27 @@ export default function TabFerias() {
         <form onSubmit={handleSalvar} style={{ background: 'var(--cbrio-card)', borderRadius: 12, padding: 20, marginBottom: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
             <div style={{ gridColumn: '1/-1' }}>
-              <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 5 }}>Colaborador *</label>
-              <select required value={form.funcionario_id} onChange={set('funcionario_id')} style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #333', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }}>
+              <label style={s.label}>Colaborador *</label>
+              <select required value={form.funcionario_id} onChange={set('funcionario_id')} style={s.input}>
                 <option value="">Selecione...</option>
                 {funcionarios.map((f) => <option key={f.id} value={f.id}>{f.nome} — {f.cargo}</option>)}
               </select>
             </div>
             <div>
-              <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 5, marginTop: 12 }}>Tipo</label>
-              <select value={form.tipo} onChange={set('tipo')} style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #333', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }}>
+              <label style={{ ...s.label, marginTop: 12 }}>Tipo</label>
+              <select value={form.tipo} onChange={set('tipo')} style={s.input}>
                 {Object.entries(TIPO_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
             </div>
             {[['data_inicio','Início *',true],['data_fim','Fim *',true]].map(([k,l,r]) => (
               <div key={k}>
-                <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 5, marginTop: 12 }}>{l}</label>
-                <input type="date" required={r} value={form[k]} onChange={set(k)} style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #333', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }} />
+                <label style={{ ...s.label, marginTop: 12 }}>{l}</label>
+                <input type="date" required={r} value={form[k]} onChange={set(k)} style={s.input} />
               </div>
             ))}
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
-            <button type="submit" style={s.btnPrim}>Registrar Solicitação</button>
+            <Button type="submit">Registrar Solicitação</Button>
           </div>
         </form>
       )}
@@ -245,10 +238,10 @@ export default function TabFerias() {
                   </td>
                   <td style={s.td}>
                     {f.status === 'pendente' && (
-                      <>
-                        <button style={s.btnAprv} onClick={() => handleAprovar(f.id, 'aprovado')}>Aprovar</button>
-                        <button style={s.btnRej}  onClick={() => handleAprovar(f.id, 'rejeitado')}>Rejeitar</button>
-                      </>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <Button variant="success" size="xs" onClick={() => handleAprovar(f.id, 'aprovado')}>Aprovar</Button>
+                        <Button variant="destructive" size="xs" onClick={() => handleAprovar(f.id, 'rejeitado')}>Rejeitar</Button>
+                      </div>
                     )}
                   </td>
                 </tr>
