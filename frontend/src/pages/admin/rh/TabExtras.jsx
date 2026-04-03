@@ -54,6 +54,10 @@ export default function TabExtras({ funcionarios, onRefresh }) {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (form.horario_fim && form.horario_inicio && form.horario_fim <= form.horario_inicio) {
+      alert('O horário de fim deve ser posterior ao horário de início.');
+      return;
+    }
     try {
       await rh.extras.create({ ...form, valor: form.valor || valorPadrao });
       setShowModal(false);

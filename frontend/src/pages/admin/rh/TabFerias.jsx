@@ -77,6 +77,10 @@ export default function TabFerias() {
 
   async function handleSalvar(e) {
     e.preventDefault();
+    if (form.data_inicio && form.data_fim && form.data_fim < form.data_inicio) {
+      alert('A data de fim deve ser igual ou posterior à data de início.');
+      return;
+    }
     const token = await getToken();
     const res = await fetch(`${API}/api/rh/ferias`, {
       method: 'POST',

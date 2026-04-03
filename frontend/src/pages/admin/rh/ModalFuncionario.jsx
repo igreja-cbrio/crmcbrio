@@ -87,8 +87,29 @@ export default function ModalFuncionario({ funcionario, onSalvar, onFechar }) {
     if (fileRef.current) fileRef.current.value = '';
   }
 
+  function validarCPF(cpf) {
+    if (!cpf) return true; // CPF é opcional
+    const nums = cpf.replace(/\D/g, '');
+    if (nums.length !== 11) return false;
+    if (/^(\d)\1+$/.test(nums)) return false;
+    let soma = 0;
+    for (let i = 0; i < 9; i++) soma += parseInt(nums[i]) * (10 - i);
+    let dig = 11 - (soma % 11);
+    if (dig >= 10) dig = 0;
+    if (parseInt(nums[9]) !== dig) return false;
+    soma = 0;
+    for (let i = 0; i < 10; i++) soma += parseInt(nums[i]) * (11 - i);
+    dig = 11 - (soma % 11);
+    if (dig >= 10) dig = 0;
+    return parseInt(nums[10]) === dig;
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
+    if (form.cpf && !validarCPF(form.cpf)) {
+      alert('CPF inválido. Verifique os dígitos.');
+      return;
+    }
     setSalvando(true);
     const payload = { ...form };
     if (payload.salario === '') delete payload.salario;

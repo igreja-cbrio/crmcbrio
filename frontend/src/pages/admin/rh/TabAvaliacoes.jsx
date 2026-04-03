@@ -64,11 +64,12 @@ export default function TabAvaliacoes({ funcionarios = [] }) {
 
   useEffect(() => { load(); }, [load]);
 
-  async function salvar() {
+  async function salvar(overrides = {}) {
     setSaving(true);
+    const payload = { ...panel, ...overrides };
     try {
-      if (panel.id) await rh.avaliacoes.update(panel.id, panel);
-      else await rh.avaliacoes.create(panel);
+      if (payload.id) await rh.avaliacoes.update(payload.id, payload);
+      else await rh.avaliacoes.create(payload);
       setPanel(null); load();
     } catch (e) { alert(e.message); }
     setSaving(false);
@@ -199,8 +200,8 @@ export default function TabAvaliacoes({ funcionarios = [] }) {
             </div>
 
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
-              <Button variant="ghost" onClick={() => { upd('status', 'rascunho'); salvar(); }} disabled={saving}>Salvar Rascunho</Button>
-              <Button onClick={() => { upd('status', 'finalizado'); setTimeout(salvar, 50); }} disabled={saving}>
+              <Button variant="ghost" onClick={() => salvar({ status: 'rascunho' })} disabled={saving}>Salvar Rascunho</Button>
+              <Button onClick={() => salvar({ status: 'finalizado' })} disabled={saving}>
                 {saving ? 'Salvando...' : 'Finalizar Avaliação'}
               </Button>
             </div>

@@ -701,18 +701,16 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
 
               {/* Materiais — expandível */}
               <div style={{ borderTop: `1px solid ${C.border}` }}>
-                <button
+                <Button
+                  variant="ghost"
                   onClick={() => toggleExpand(t.id)}
-                  style={{
-                    width: '100%', padding: '12px 20px', background: 'none', border: 'none',
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer',
-                  }}
+                  className="w-full justify-between rounded-none h-auto py-3 px-5"
                 >
                   <span style={{ fontSize: 11, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                     📁 Materiais{materiais.length > 0 ? ` (${materiais.length})` : ''}
                   </span>
-                  <span style={{ fontSize: 14, color: C.text3, transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)' }}>▼</span>
-                </button>
+                  <span style={{ fontSize: 14, color: C.text3, transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)', display: 'inline-block' }}>▼</span>
+                </Button>
 
                 {isExpanded && (
                   <div style={{ padding: '0 20px 16px' }}>
