@@ -199,14 +199,23 @@ export default function CycleView({ eventId }) {
                 {colTasks.length === 0 && <div style={{ padding: 12, textAlign: 'center', fontSize: 10, color: C.t3, border: '1.5px dashed var(--cbrio-border)', borderRadius: 8 }}>—</div>}
                 {colTasks.map(task => {
                   const cat = CAT[getCategory(task)] || CAT.outros;
-                  const isLate = task.prazo && new Date(normDate(task.prazo)) < new Date() && task.status !== 'concluida';
                   const subs = task.subtasks || [];
                   const subsDone = subs.filter(s => s.done).length;
                   const isOpen = expandedTask === `kb-${task.id}`;
+                  // Calcular dias
+                  const p = normDate(task.prazo);
+                  const diff = p ? Math.ceil((new Date(p + 'T12:00:00') - new Date()) / 86400000) : null;
+                  const daysColor = diff === null || task.status === 'concluida' ? null : diff < 0 ? '#ef4444' : diff <= 3 ? '#f59e0b' : '#10b981';
+                  const daysText = diff === null ? '' : diff < 0 ? `${Math.abs(diff)}d atrás` : diff === 0 ? 'Hoje' : `${diff}d`;
+
                   return (
                     <div key={task.id} draggable onDragStart={e => e.dataTransfer.setData('cycleTaskId', task.id)}
                       onClick={() => setExpandedTask(isOpen ? null : `kb-${task.id}`)}
-                      style={{ background: 'var(--cbrio-card)', borderRadius: 8, padding: 8, marginBottom: 4, border: isOpen ? `1.5px solid ${C.accent}` : `1px solid ${C.border}`, cursor: 'pointer', transition: 'box-shadow .15s' }}
+                      style={{
+                        background: 'var(--cbrio-card)', borderRadius: 8, padding: 8, marginBottom: 4,
+                        border: isOpen ? `1.5px solid ${C.accent}` : daysColor === '#ef4444' ? '1px solid #fecaca' : `1px solid ${C.border}`,
+                        cursor: 'pointer', transition: 'box-shadow .15s',
+                      }}
                       onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'}
                       onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 3 }}>
@@ -217,13 +226,17 @@ export default function CycleView({ eventId }) {
                         </select>
                       </div>
                       <div style={{ fontSize: 11, fontWeight: 500, color: C.dark, lineHeight: 1.3, marginBottom: 3 }}>{task.titulo}</div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: C.t3 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 9, color: C.t3 }}>
                         <span>{task.responsavel_nome || '—'}</span>
-                        <span>
-                          {task.prazo && <span style={{ color: isLate ? '#ef4444' : 'inherit', fontWeight: isLate ? 600 : 400 }}>{fmtDate(task.prazo)}{isLate ? ' !' : ''}</span>}
-                          {subs.length > 0 && ` · ${subsDone}/${subs.length}`}
-                        </span>
+                        {subs.length > 0 && <span>{subsDone}/{subs.length}</span>}
                       </div>
+                      {/* DaysCounter colorido */}
+                      {daysColor && task.status !== 'concluida' && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, paddingTop: 6, borderTop: `1px solid ${C.border}` }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: daysColor }}>{fmtDate(task.prazo)}</span>
+                          <span style={{ fontSize: 10, fontWeight: 700, color: daysColor, padding: '1px 6px', borderRadius: 8, background: `${daysColor}15` }}>{daysText}</span>
+                        </div>
+                      )}
                       {isOpen && subs.length > 0 && (
                         <div style={{ marginTop: 6, paddingTop: 6, borderTop: `1px solid ${C.border}` }} onClick={e => e.stopPropagation()}>
                           {subs.map(sub => (
