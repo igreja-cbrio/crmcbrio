@@ -27,7 +27,7 @@ const COLS = [
 
 function normDate(d) { return d ? (typeof d === 'string' ? d.slice(0, 10) : '') : ''; }
 function fmtDate(d) { const s = normDate(d); if (!s) return ''; const [y, m, day] = s.split('-'); return `${day}/${m}`; }
-function getCat(t) { if (t.area === 'marketing') return 'marketing'; const m = (t.observacoes || '').match(/Área:\s*(\w+)/i); return m ? m[1] : 'outros'; }
+function getCat(t) { return (t.area || '').toLowerCase() || 'outros'; }
 // Ordenar por urgência: prazo mais próximo de vencer primeiro, sem prazo por último
 function filterByHorizon(items, days, dateField = 'prazo') {
   if (!days) return items; // 0 = sem filtro
@@ -52,9 +52,14 @@ export default function Planejamento() {
   const userRole = profile?.role || '';
   const userArea = profile?.area || '';
   const userId = user?.id || '';
+
+  // Ler URL params para drill-down (ex: /planejamento?person=João)
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlPerson = urlParams.get('person') || '';
+  const urlStatus = urlParams.get('status') || '';
   const isPMO = ['diretor', 'admin'].includes(userRole);
 
-  const [tab, setTab] = useState(0); // 0=Dashboard, 1=Kanban, 2=Gantt
+  const [tab, setTab] = useState((urlPerson || urlStatus) ? 2 : 0); // 0=Dashboard, 1=Kanban, 2=Lista, 3=Gantt
   const [viewMode, setViewMode] = useState(isPMO ? 'pmo' : 'minhas'); // 'pmo' = por fase, 'area' = por área, 'minhas' = só minhas
   const [kpis, setKpis] = useState(null);
   const [workload, setWorkload] = useState([]);
@@ -66,8 +71,21 @@ export default function Planejamento() {
   const [expanded, setExpanded] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Drill-down filters (usados quando KPI é clicado ou via URL params)
+  const [listStatusFilter, setListStatusFilter] = useState(urlStatus);
+  const [listPersonFilter, setListPersonFilter] = useState(urlPerson);
+
+  // Helper: navegar do KPI para a Lista com filtro
+  const drillDown = (opts = {}) => {
+    setTab(2); // Lista
+    setHorizon(0); // sem filtro de horizonte para ver tudo
+    setViewMode('pmo');
+    setListStatusFilter(opts.status || '');
+    setListPersonFilter(opts.person || '');
+  };
+
   // Horizonte temporal (dias)
-  const [horizon, setHorizon] = useState(15); // 15, 30, 0 (sem filtro)
+  const [horizon, setHorizon] = useState((urlPerson || urlStatus) ? 0 : 30); // 30, 15, 0 (sem filtro)
 
   // Projetos + Estratégico
   const [projectsData, setProjectsData] = useState([]);
@@ -77,25 +95,32 @@ export default function Planejamento() {
   // Gantt data
   const [ganttTasks, setGanttTasks] = useState([]);
 
+  const [apiError, setApiError] = useState('');
+
   useEffect(() => {
     Promise.all([
-      dashApi.pmo().then(setKpis).catch(() => {}),
-      dashApi.workload().then(setWorkload).catch(() => {}),
+      dashApi.pmo().then(setKpis).catch(e => console.error('KPIs:', e)),
+      dashApi.workload().then(setWorkload).catch(e => console.error('Workload:', e)),
       cyclesApi.kanbanAll().then(d => {
         setCycleData(d);
         if (d?.phases?.length > 0) {
           const first = d.phases.find(p => p.status !== 'concluida') || d.phases[0];
           setKanbanPhase(first.numero_fase);
         }
-      }).catch(() => {}),
-      tasksApi.all({}).then(setGanttTasks).catch(() => {}),
-      dashApi.projectsKanban().then(setProjectsData).catch(() => {}),
-      dashApi.strategicKanban().then(setStrategicData).catch(() => {}),
+      }).catch(e => console.error('Kanban:', e)),
+      tasksApi.all({}).then(setGanttTasks).catch(e => console.error('Gantt:', e)),
+      dashApi.projectsKanban().then(setProjectsData).catch(e => console.error('Projetos:', e)),
+      dashApi.strategicKanban().then(setStrategicData).catch(e => console.error('Estratégico:', e)),
     ]).finally(() => setLoading(false));
   }, []);
 
   const handleTaskStatus = async (taskId, status) => {
-    await cyclesApi.updateTask(taskId, { status });
+    const task = (cycleData?.tasks || []).find(t => t.id === taskId);
+    if (task && task.event_phase_id === 'simple') {
+      await tasksApi.updateStatus('evento', taskId, status);
+    } else {
+      await cyclesApi.updateTask(taskId, { status });
+    }
     cyclesApi.kanbanAll().then(setCycleData).catch(() => {});
   };
 
@@ -181,18 +206,20 @@ export default function Planejamento() {
           {/* KPIs */}
           <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: '14px 24px', marginBottom: 20, display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center' }}>
             {[
-              { label: 'Eventos', value: k.total_events || 0, color: C.accent },
-              { label: 'No Prazo', value: k.events_on_track || 0, color: '#10b981' },
-              { label: 'Em Risco', value: k.events_at_risk || 0, color: '#f59e0b' },
-              { label: 'Atrasados', value: k.events_overdue || 0, color: '#ef4444' },
+              { label: 'Eventos', value: k.total_events || 0, color: C.accent, action: () => { window.location.href = '/eventos'; } },
+              { label: 'No Prazo', value: k.events_on_track || 0, color: '#10b981', action: () => { window.location.href = '/eventos?status=no-prazo'; } },
+              { label: 'Em Risco', value: k.events_at_risk || 0, color: '#f59e0b', action: () => { window.location.href = '/eventos?status=em-risco'; } },
+              { label: 'Atrasados', value: k.events_overdue || 0, color: '#ef4444', action: () => { window.location.href = '/eventos?status=atrasado'; } },
               null,
-              { label: 'Tarefas abertas', value: k.tasks_open || 0, color: C.t2 },
-              { label: 'Tarefas atrasadas', value: k.tasks_overdue || 0, color: '#ef4444' },
-              { label: 'Riscos abertos', value: k.risks_open || 0, color: '#f59e0b' },
+              { label: 'Tarefas abertas', value: k.tasks_open || 0, color: C.t2, action: () => drillDown({}) },
+              { label: 'Tarefas atrasadas', value: k.tasks_overdue || 0, color: '#ef4444', action: () => drillDown({ status: 'atrasada' }) },
+              { label: 'Riscos abertos', value: k.risks_open || 0, color: '#f59e0b', action: () => { window.location.href = '/eventos?tab=riscos'; } },
             ].map((item, i) => {
               if (!item) return <div key={i} style={{ width: 1, height: 24, background: C.border }} />;
               return (
-                <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div key={item.label} onClick={item.action} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '4px 8px', borderRadius: 8, transition: 'background .15s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = `${item.color}15`}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <span style={{ fontSize: 20, fontWeight: 800, color: item.color }}>{item.value}</span>
                   <span style={{ fontSize: 11, fontWeight: 600, color: C.t3, textTransform: 'uppercase', letterSpacing: 0.3 }}>{item.label}</span>
                 </div>
@@ -217,13 +244,18 @@ export default function Planejamento() {
             {workload.length > 0 && (
               <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: '20px 24px', flex: '1 1 300px' }}>
                 <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 12 }}>Carga de Trabalho</div>
-                {workload.slice(0, 6).map((w, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                {workload.slice(0, 10).map((w, i) => (
+                  <div key={i} onClick={() => drillDown({ person: w.responsible })}
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, cursor: 'pointer', padding: '4px 6px', borderRadius: 6, transition: 'background .1s' }}
+                    onMouseEnter={e => e.currentTarget.style.background = `${C.accent}08`}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                     <span style={{ fontSize: 12, color: C.text, width: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.responsible}</span>
                     <div style={{ flex: 1, height: 8, background: C.border, borderRadius: 4 }}>
                       <div style={{ height: '100%', width: `${Math.min((w.total_tasks / Math.max(...workload.map(x => x.total_tasks), 1)) * 100, 100)}%`, borderRadius: 4, background: w.atrasadas > 0 ? '#ef4444' : '#10b981' }} />
                     </div>
-                    <span style={{ fontSize: 12, color: w.atrasadas > 0 ? '#ef4444' : C.t3, fontWeight: 600, minWidth: 50, textAlign: 'right' }}>{w.total_tasks}t</span>
+                    <span style={{ fontSize: 12, color: w.atrasadas > 0 ? '#ef4444' : C.t3, fontWeight: 600, minWidth: 50, textAlign: 'right' }}>
+                      {w.total_tasks}t{w.atrasadas > 0 ? ` (${w.atrasadas} ⚠)` : ''}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -286,16 +318,20 @@ export default function Planejamento() {
             {typeFilter === 'projetos' && (
               <>
                 <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Projeto:</span>
-                <select style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card }}>
+                <select value={eventFilter} onChange={e => setEventFilter(e.target.value)}
+                  style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card }}>
                   <option value="all">Todos os projetos</option>
+                  {projectsData.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
               </>
             )}
             {typeFilter === 'estrategico' && (
               <>
                 <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Marco:</span>
-                <select style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card }}>
+                <select value={eventFilter} onChange={e => setEventFilter(e.target.value)}
+                  style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card }}>
                   <option value="all">Todos os marcos</option>
+                  {strategicData.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
               </>
             )}
@@ -339,8 +375,11 @@ export default function Planejamento() {
                 const pPct = pT.length > 0 ? Math.round((pDone / pT.length) * 100) : 0;
                 return (
                   <div key={num} style={{ display: 'flex', alignItems: 'center' }}>
-                    <div onClick={() => { setKanbanPhase(num); setExpanded(null); }} style={{
-                      borderRadius: 8, padding: '8px 10px', cursor: 'pointer', minWidth: 100, maxWidth: 120,
+                    <div onClick={() => { setKanbanPhase(num); setExpanded(null); }}
+                      onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = `${C.accent}08`; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                      onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = isDone ? C.bg : C.card; e.currentTarget.style.transform = ''; }}
+                      style={{
+                      borderRadius: 8, padding: '8px 10px', cursor: 'pointer', minWidth: 100, maxWidth: 120, transition: 'all .15s',
                       border: isActive ? `2px solid ${C.accent}` : `1px solid ${C.border}`,
                       background: isActive ? `${C.accent}10` : isDone ? C.bg : C.card,
                       opacity: isDone && !isActive ? 0.7 : 1,
@@ -391,14 +430,16 @@ export default function Planejamento() {
                 {COLS.map(col => {
                   const colT = sortByUrgency(phaseTasks.filter(t => t.status === col.key));
                   return (
-                    <div key={col.key} style={{ background: C.bg, borderRadius: 10, padding: 8 }}
+                    <div key={col.key} style={{ background: C.bg, borderRadius: 10, padding: 8, transition: 'background .15s' }}
                       onDragOver={e => e.preventDefault()}
-                      onDrop={e => { const id = e.dataTransfer.getData('planKanbanId'); if (id) handleTaskStatus(id, col.key); }}>
+                      onDragEnter={e => { e.currentTarget.style.background = `${col.color}15`; }}
+                      onDragLeave={e => { e.currentTarget.style.background = C.bg; }}
+                      onDrop={e => { e.currentTarget.style.background = C.bg; const id = e.dataTransfer.getData('planKanbanId'); if (id) handleTaskStatus(id, col.key); }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                         <span style={{ fontSize: 10, fontWeight: 600, color: col.color, textTransform: 'uppercase' }}>{col.label}</span>
                         <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 99, background: C.card, border: `1px solid ${C.border}`, color: C.t3 }}>{colT.length}</span>
                       </div>
-                      {colT.length === 0 && <div style={{ padding: 12, textAlign: 'center', fontSize: 10, color: C.t3, border: '1.5px dashed var(--cbrio-border)', borderRadius: 8 }}>—</div>}
+                      {colT.length === 0 && <div style={{ padding: 16, textAlign: 'center', fontSize: 10, color: C.t3, border: '1.5px dashed var(--cbrio-border)', borderRadius: 8 }}>Arraste tarefas aqui</div>}
                       {colT.map(task => {
                         const cat = CAT[getCat(task)] || CAT.outros;
                         const evN = allEvents.find(e => e.id === task.event_id)?.name || '';
@@ -409,9 +450,11 @@ export default function Planejamento() {
                         const subs = task.subtasks || [];
                         const isOpen = expanded === task.id;
                         return (
-                          <div key={task.id} draggable onDragStart={e => e.dataTransfer.setData('planKanbanId', task.id)}
+                          <div key={task.id} draggable
+                            onDragStart={e => { e.dataTransfer.setData('planKanbanId', task.id); e.currentTarget.style.opacity = '0.4'; }}
+                            onDragEnd={e => { e.currentTarget.style.opacity = '1'; }}
                             onClick={() => setExpanded(isOpen ? null : task.id)}
-                            style={{ background: C.card, borderRadius: 8, padding: 8, marginBottom: 4, border: dc === '#ef4444' ? '1px solid #fecaca' : `1px solid ${C.border}`, cursor: 'pointer' }}
+                            style={{ background: C.card, borderRadius: 8, padding: 8, marginBottom: 4, border: dc === '#ef4444' ? '1px solid #fecaca' : `1px solid ${C.border}`, cursor: 'grab', transition: 'opacity .15s, box-shadow .15s' }}
                             onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'}
                             onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
                             <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 99, background: cat.bg, color: cat.color, fontWeight: 500, display: 'inline-block', marginBottom: 4 }}>{cat.label}</span>
@@ -431,7 +474,7 @@ export default function Planejamento() {
                               <div style={{ marginTop: 6, paddingTop: 6, borderTop: `1px solid ${C.border}` }} onClick={e => e.stopPropagation()}>
                                 {subs.map(sub => (
                                   <div key={sub.id} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, padding: '2px 0', color: C.text }}>
-                                    <input type="checkbox" checked={sub.done} onChange={() => { sub.done = !sub.done; setCycleData({ ...d }); }} style={{ cursor: 'pointer', width: 13, height: 13 }} />
+                                    <input type="checkbox" checked={sub.done} onChange={async () => { await cyclesApi.updateSubtask(sub.id, { done: !sub.done }); cyclesApi.kanbanAll().then(setCycleData).catch(() => {}); }} style={{ cursor: 'pointer', width: 13, height: 13 }} />
                                     <span style={sub.done ? { textDecoration: 'line-through', color: C.t3 } : {}}>{sub.name}</span>
                                   </div>
                                 ))}
@@ -636,13 +679,35 @@ export default function Planejamento() {
           id: t.id, name: t.titulo || t.name, responsible: t.responsavel_nome || t.responsible || 'Sem responsável',
           deadline: t.prazo || t.deadline, status: t.status, source: t.event_phase_id === 'simple' ? 'evento' : 'ciclo',
           event_name: allEvents.find(e => e.id === t.event_id)?.name || '—', event_id: t.event_id,
+          area: t.area || allEvents.find(e => e.id === t.event_id)?.category_name || '',
         }));
         allItems = filterByHorizon(allItems, listHorizon, 'deadline');
         allItems = sortByUrgency(allItems.map(t => ({ ...t, prazo: t.deadline })));
 
-        // Filtro por visão
+        // Filtro por visão baseado no nível de permissão
+        if (listGroup === 'pmo') {
+          // PMO/Diretor/Admin vê tudo. Outros veem só da sua área + suas tarefas
+          if (!isPMO && userArea) {
+            allItems = allItems.filter(t => t.responsible === profile?.name || t.area === userArea || getCat(t) === userArea.toLowerCase());
+          } else if (!isPMO) {
+            allItems = allItems.filter(t => t.responsible === profile?.name);
+          }
+        }
         if (listGroup === 'minhas') allItems = allItems.filter(t => t.responsible === profile?.name);
-        if (listGroup === 'area' && userArea) allItems = allItems.filter(t => t.event_name.includes(userArea) || t.source === userArea);
+        if (listGroup === 'area' && userArea) allItems = allItems.filter(t => t.area === userArea || getCat(t) === userArea.toLowerCase());
+
+        // Drill-down filters (vindos dos KPIs clicáveis)
+        if (listStatusFilter === 'atrasada') {
+          allItems = allItems.filter(t => {
+            const dl = normDate(t.deadline);
+            return dl && new Date(dl + 'T12:00:00') < new Date() && t.status !== 'concluida';
+          });
+        } else if (listStatusFilter) {
+          allItems = allItems.filter(t => t.status === listStatusFilter);
+        }
+        if (listPersonFilter) {
+          allItems = allItems.filter(t => t.responsible === listPersonFilter);
+        }
 
         // Agrupar
         const groups = {};
@@ -669,9 +734,9 @@ export default function Planejamento() {
               <span style={{ width: 1, height: 20, background: C.border }} />
               <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Visão:</span>
               {[
-                { key: 'pmo', label: 'Todas' },
-                ...(userArea ? [{ key: 'area', label: `${userArea}` }] : []),
-                { key: 'minhas', label: 'Minhas' },
+                { key: 'pmo', label: isPMO ? 'Todas' : (userArea ? `Minha área + minhas` : 'Minhas tarefas') },
+                ...(userArea ? [{ key: 'area', label: `Só ${userArea}` }] : []),
+                { key: 'minhas', label: 'Só minhas' },
               ].map(v => (
                 <button key={v.key} onClick={() => setViewMode(v.key)} style={{
                   padding: '4px 12px', borderRadius: 8, fontSize: 11, fontWeight: listGroup === v.key ? 700 : 400, cursor: 'pointer',
@@ -682,8 +747,29 @@ export default function Planejamento() {
               ))}
             </div>
 
+            {/* Filtros ativos (drill-down) */}
+            {(listStatusFilter || listPersonFilter) && (
+              <div style={{ display: 'flex', gap: 6, marginBottom: 12, alignItems: 'center' }}>
+                <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Filtros:</span>
+                {listStatusFilter && (
+                  <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: '#ef444415', color: '#ef4444', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    {listStatusFilter === 'atrasada' ? 'Atrasadas' : listStatusFilter}
+                    <button onClick={() => setListStatusFilter('')} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 12, padding: 0, marginLeft: 2 }}>✕</button>
+                  </span>
+                )}
+                {listPersonFilter && (
+                  <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: `${C.accent}15`, color: C.accent, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    {listPersonFilter}
+                    <button onClick={() => setListPersonFilter('')} style={{ background: 'none', border: 'none', color: C.accent, cursor: 'pointer', fontSize: 12, padding: 0, marginLeft: 2 }}>✕</button>
+                  </span>
+                )}
+                <button onClick={() => { setListStatusFilter(''); setListPersonFilter(''); setHorizon(30); }}
+                  style={{ fontSize: 10, padding: '3px 10px', borderRadius: 20, border: `1px solid ${C.border}`, background: 'transparent', color: C.t3, cursor: 'pointer' }}>Limpar filtros</button>
+              </div>
+            )}
+
             {/* Lista agrupada por responsável */}
-            {allItems.length === 0 && <div style={{ padding: 40, textAlign: 'center', color: C.t3, fontSize: 13 }}>Nenhuma tarefa nos próximos {listHorizon || '∞'} dias</div>}
+            {allItems.length === 0 && <div style={{ padding: 40, textAlign: 'center', color: C.t3, fontSize: 13 }}>Nenhuma tarefa encontrada. Ajuste o horizonte ou os filtros de visão.</div>}
             {Object.entries(groups).map(([person, tasks]) => (
               <div key={person} style={{ marginBottom: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
@@ -700,7 +786,10 @@ export default function Planejamento() {
                   const dt = diff === null ? '' : diff < 0 ? `${Math.abs(diff)}d atrás` : diff === 0 ? 'Hoje' : `${diff}d`;
                   const sc = STATUS_COLOR[t.status] || '#9ca3af';
                   return (
-                    <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: C.card, borderRadius: 8, border: `1px solid ${C.border}`, marginBottom: 4 }}>
+                    <div key={t.id} onClick={() => { if (t.event_id) window.location.href = `/eventos?id=${t.event_id}`; }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: C.card, borderRadius: 8, border: `1px solid ${C.border}`, marginBottom: 4, cursor: 'pointer', transition: 'background .1s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = `${C.accent}08`}
+                      onMouseLeave={e => e.currentTarget.style.background = C.card}>
                       <div style={{ width: 8, height: 8, borderRadius: '50%', background: sc, flexShrink: 0 }} />
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{t.name}</div>
@@ -788,7 +877,7 @@ export default function Planejamento() {
                           <div key={i} style={{ position: 'absolute', left: `${m.pct}%`, top: 0, height: '100%', borderLeft: `1px solid ${C.border}`, padding: '5px 6px', fontSize: 10, fontWeight: 600, color: C.t2, whiteSpace: 'nowrap' }}>{m.label}</div>
                         ))}
                         <div style={{ position: 'absolute', left: `${tPct}%`, top: 0, width: 2, height: '100%', background: '#ef4444', zIndex: 2 }} />
-                        <div style={{ position: 'absolute', left: `${tPct}%`, top: -1, transform: 'translateX(-50%)', fontSize: 8, fontWeight: 700, color: '#ef4444', background: C.card, padding: '0 3px', borderRadius: 3, zIndex: 3 }}>hoje</div>
+                        <div style={{ position: 'absolute', left: `${tPct}%`, top: -1, transform: 'translateX(-50%)', fontSize: 10, fontWeight: 700, color: '#ef4444', background: C.card, padding: '1px 5px', borderRadius: 4, zIndex: 3 }}>hoje</div>
                       </div>
 
                       {/* Barras das fases */}

@@ -1,7 +1,7 @@
 # CLAUDE.md — CBRio ERP
 
 Guia para Claude Code e agentes de IA trabalhando neste repositório.
-Atualizado em: 2026-04-02 (v2)
+Atualizado em: 2026-04-03 (v3) — Auditoria UX completa + KPIs clicáveis
 
 ---
 
@@ -178,6 +178,7 @@ Migrations em `supabase/migrations/`:
 - `016_cycle_task_subtasks.sql` — subtarefas de ciclos criativos
 - `017_rh_beneficios.sql` — benefícios de funcionários
 - `018_notificacoes_system.sql` — sistema de notificações (modulo, severidade, chave_dedup, notificacao_regras)
+- `027_pmo_views.sql` — views `vw_pmo_kpis` (KPIs agregados) e `vw_workload` (carga por responsável)
 
 **RLS importante:** A policy `profiles_select_all_authenticated` permite qualquer user autenticado ler perfis (evita recursão infinita). NÃO usar sub-select em profiles dentro de policies de profiles.
 
@@ -349,8 +350,18 @@ Estes arquivos afetam o sistema inteiro. Alterações devem ser feitas via **Pul
 
 ### Eventos, Projetos, Expansão
 - Frontend implementado (Marcos Paulo)
-- Backend usa pg pool direto (requer DATABASE_URL)
-- Ciclos criativos com subtarefas
+- Backend usa Supabase client (migrado de pg pool)
+- Ciclos criativos com 11 fases + 35 tarefas ADM + 138 subtarefas automáticas
+- **KPIs clicáveis** — todos os números do dashboard navegam para os dados filtrados
+- **Abas Riscos + Histórico + Retrospectiva** no detalhe do evento
+- **People picker** — campo responsável com autocomplete de usuários
+- **Subtarefas persistentes** — checkbox salva via API (endpoint PATCH /cycles/subtasks/:subId)
+- **Drag-and-drop com feedback visual** — cards ficam transparentes, colunas destacam ao receber
+- **Filtro de área direto** — usa campo `area` ao invés de regex em observacoes
+- **Horizonte padrão 30 dias** — ciclos de 5 semanas visíveis por padrão
+- **URL params drill-down** — `/eventos?status=atrasado`, `/planejamento?person=João`
+- **Views SQL** — `vw_pmo_kpis` e `vw_workload` (migration 027)
+- Projetos/Estratégico com dropdowns populados no kanban
 
 ### Calendário
 - Página /calendario com react-day-picker
