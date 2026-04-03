@@ -33,15 +33,15 @@ router.get('/dashboard', async (req, res) => {
       porArea[area] = (porArea[area] || 0) + 1;
     });
 
-    // Férias/licenças próximas do vencimento (próximos 30 dias)
+    // Férias/licenças nos próximos 30 dias (inclui em andamento e futuras)
     const hoje = new Date().toISOString().slice(0, 10);
     const em30 = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
     const { data: feriasProximas } = await supabase
       .from('rh_ferias_licencas')
-      .select('*, rh_funcionarios(nome)')
+      .select('*, rh_funcionarios(nome, cargo, area, foto_url)')
       .eq('status', 'aprovado')
-      .gte('data_inicio', hoje)
       .lte('data_inicio', em30)
+      .gte('data_fim', hoje)
       .order('data_inicio');
 
     // Documentos com vencimento próximo (60 dias)
@@ -53,11 +53,54 @@ router.get('/dashboard', async (req, res) => {
       .gte('data_expiracao', hoje)
       .order('data_expiracao');
 
+    // Custo total mensal (salários ativos)
+    const { data: salarios } = await supabase
+      .from('rh_funcionarios')
+      .select('salario, custo_total_mensal')
+      .eq('status', 'ativo');
+    const custoMensal = (salarios || []).reduce((sum, f) => sum + Number(f.custo_total_mensal || f.salario || 0), 0);
+    const totalSalarios = (salarios || []).reduce((sum, f) => sum + Number(f.salario || 0), 0);
+
+    // Admissões nos últimos 12 meses (para turnover)
+    const umAnoAtras = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10);
+    const { count: admissoesAno } = await supabase
+      .from('rh_funcionarios')
+      .select('id', { count: 'exact', head: true })
+      .gte('data_admissao', umAnoAtras);
+
+    // Desligamentos nos últimos 12 meses
+    const { count: desligamentosAno } = await supabase
+      .from('rh_funcionarios')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'inativo')
+      .gte('data_demissao', umAnoAtras);
+
+    // Admissões pendentes
+    const { count: admissoesPendentes } = await supabase
+      .from('rh_admissoes')
+      .select('id', { count: 'exact', head: true })
+      .not('status', 'in', '("concluido","cancelado")');
+
+    // Treinamentos pendentes
+    const { count: treinosPendentes } = await supabase
+      .from('rh_treinamentos_funcionarios')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'inscrito');
+
+    // Taxa de turnover = desligamentos / média headcount * 100
+    const turnover = total > 0 ? Math.round((desligamentosAno || 0) / total * 100) : 0;
+
     res.json({
       total, ativos, ferias, licenca, inativos,
       porContrato, porArea,
       feriasProximas: feriasProximas || [],
       docsVencendo: docsVencendo || [],
+      custoMensal, totalSalarios,
+      admissoesAno: admissoesAno || 0,
+      desligamentosAno: desligamentosAno || 0,
+      turnover,
+      admissoesPendentes: admissoesPendentes || 0,
+      treinosPendentes: treinosPendentes || 0,
     });
   } catch (e) {
     console.error('[RH] Dashboard:', e.message);
@@ -125,7 +168,12 @@ router.get('/funcionarios/:id', async (req, res) => {
 // POST /api/rh/funcionarios
 router.post('/funcionarios', async (req, res) => {
   try {
-    const { nome, cpf, email, telefone, cargo, area, tipo_contrato, data_admissao, salario, observacoes, foto_url } = req.body;
+    const { nome, cpf, email, telefone, cargo, area, tipo_contrato, data_admissao, salario, observacoes, foto_url,
+      complemento_salario, alimentacao, transporte, saude, seguro_vida, educacao, saldo_livre,
+      plano_saude, gratificacao, adicional_nivel, participacao_comite, veiculo,
+      adicional_pastores, adicional_lideranca, adicional_pulpito,
+      bonus_anual_50, bonus_anual_integral, ferias_integral,
+      remuneracao_bruta, remuneracao_liquida, fgts, ir, inss, custo_total_mensal } = req.body;
     if (!nome || !cargo || !data_admissao) {
       return res.status(400).json({ error: 'Nome, cargo e data de admissão são obrigatórios' });
     }
@@ -137,6 +185,11 @@ router.post('/funcionarios', async (req, res) => {
         cargo, area: area || null, tipo_contrato: tipo_contrato || 'clt',
         data_admissao, salario: salario || null, observacoes: observacoes || null,
         foto_url: foto_url || null,
+        complemento_salario, alimentacao, transporte, saude, seguro_vida, educacao, saldo_livre,
+        plano_saude, gratificacao, adicional_nivel, participacao_comite, veiculo,
+        adicional_pastores, adicional_lideranca, adicional_pulpito,
+        bonus_anual_50, bonus_anual_integral, ferias_integral,
+        remuneracao_bruta, remuneracao_liquida, fgts, ir, inss, custo_total_mensal,
         created_by: req.user.userId,
       })
       .select()
@@ -153,15 +206,10 @@ router.post('/funcionarios', async (req, res) => {
 // PUT /api/rh/funcionarios/:id
 router.put('/funcionarios/:id', async (req, res) => {
   try {
-    const { nome, cpf, email, telefone, cargo, area, tipo_contrato, data_admissao, data_demissao, salario, status, observacoes, foto_url } = req.body;
+    const { id: _id, created_at, created_by, updated_at: _ua, ...fields } = req.body;
     const { data, error } = await supabase
       .from('rh_funcionarios')
-      .update({
-        nome, cpf, email, telefone, cargo, area, tipo_contrato,
-        data_admissao, data_demissao: data_demissao || null,
-        salario, status, observacoes, foto_url: foto_url || null,
-        updated_at: new Date().toISOString(),
-      })
+      .update({ ...fields, updated_at: new Date().toISOString() })
       .eq('id', req.params.id)
       .select()
       .single();
@@ -356,19 +404,28 @@ router.patch('/treinamentos-funcionarios/:id', async (req, res) => {
 });
 
 // ── FÉRIAS E LICENÇAS ──────────────────────────────────────
-// GET /api/rh/ferias
+// GET /api/rh/ferias?status=&area=&data_de=&data_ate=&funcionario_id=
 router.get('/ferias', async (req, res) => {
   try {
-    const { status } = req.query;
+    const { status, area, data_de, data_ate, funcionario_id } = req.query;
     let query = supabase
       .from('rh_ferias_licencas')
       .select('*, rh_funcionarios(nome, cargo, area, foto_url)')
       .order('data_inicio', { ascending: false });
 
     if (status) query = query.eq('status', status);
+    if (funcionario_id) query = query.eq('funcionario_id', funcionario_id);
+    if (data_de) query = query.gte('data_inicio', data_de);
+    if (data_ate) query = query.lte('data_inicio', data_ate);
 
-    const { data, error } = await query;
+    let { data, error } = await query;
     if (error) return res.status(400).json({ error: error.message });
+
+    // Filter by area (post-query since it's a joined field)
+    if (area && data) {
+      data = data.filter(f => f.rh_funcionarios?.area === area);
+    }
+
     res.json(data);
   } catch (e) {
     console.error('[RH] Listar férias:', e.message);
@@ -715,6 +772,162 @@ router.patch('/materiais-funcionarios/:id', async (req, res) => {
     console.error('[RH] Atualizar status material:', e.message);
     res.status(500).json({ error: 'Erro ao atualizar status' });
   }
+});
+
+// ═══════════════════════════════════════════════════════════
+// ADMISSÕES
+// ═══════════════════════════════════════════════════════════
+
+// GET /api/rh/admissoes
+router.get('/admissoes', async (req, res) => {
+  try {
+    let query = supabase.from('rh_admissoes').select('*').order('created_at', { ascending: false });
+    if (req.query.status) query = query.eq('status', req.query.status);
+    if (req.query.tipo_contrato) query = query.eq('tipo_contrato', req.query.tipo_contrato);
+    const { data, error } = await query;
+    if (error) throw error;
+    res.json(data);
+  } catch (e) {
+    console.error('[RH] Listar admissões:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/rh/admissoes/:id
+router.get('/admissoes/:id', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('rh_admissoes').select('*').eq('id', req.params.id).single();
+    if (error) throw error;
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/rh/admissoes
+router.post('/admissoes', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('rh_admissoes')
+      .insert({ ...req.body, created_by: req.user.id })
+      .select().single();
+    if (error) throw error;
+    res.json(data);
+  } catch (e) {
+    console.error('[RH] Criar admissão:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// PATCH /api/rh/admissoes/:id
+router.patch('/admissoes/:id', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('rh_admissoes')
+      .update(req.body)
+      .eq('id', req.params.id)
+      .select().single();
+    if (error) throw error;
+    res.json(data);
+  } catch (e) {
+    console.error('[RH] Atualizar admissão:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// DELETE /api/rh/admissoes/:id
+router.delete('/admissoes/:id', async (req, res) => {
+  try {
+    const { error } = await supabase.from('rh_admissoes').delete().eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/rh/admissoes/:id/concluir — finaliza admissão e cria funcionário
+router.post('/admissoes/:id/concluir', async (req, res) => {
+  try {
+    const { data: adm, error: admErr } = await supabase.from('rh_admissoes').select('*').eq('id', req.params.id).single();
+    if (admErr) throw admErr;
+
+    // Cria funcionário a partir da admissão
+    const funcData = {
+      nome: adm.nome,
+      cpf: adm.cpf,
+      email: adm.email,
+      telefone: adm.telefone,
+      cargo: adm.cargo,
+      area: adm.area,
+      tipo_contrato: adm.tipo_contrato,
+      data_admissao: adm.data_inicio || new Date().toISOString().slice(0, 10),
+      salario: adm.salario,
+      status: 'ativo',
+      observacoes: adm.observacoes,
+      created_by: req.user.id,
+    };
+
+    const { data: func, error: funcErr } = await supabase.from('rh_funcionarios')
+      .insert(funcData).select().single();
+    if (funcErr) throw funcErr;
+
+    // Atualiza admissão como concluída
+    await supabase.from('rh_admissoes')
+      .update({ status: 'concluido', funcionario_id: func.id })
+      .eq('id', req.params.id);
+
+    res.json({ admissao: adm, funcionario: func });
+  } catch (e) {
+    console.error('[RH] Concluir admissão:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// AVALIAÇÕES DE DESEMPENHO
+// ═══════════════════════════════════════════════════════════
+
+router.get('/avaliacoes', async (req, res) => {
+  try {
+    let query = supabase.from('rh_avaliacoes')
+      .select('*, rh_funcionarios(nome, cargo, area, foto_url)')
+      .order('created_at', { ascending: false });
+    if (req.query.funcionario_id) query = query.eq('funcionario_id', req.query.funcionario_id);
+    if (req.query.periodo) query = query.eq('periodo', req.query.periodo);
+    const { data, error } = await query;
+    if (error) throw error;
+    res.json(data);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/avaliacoes', async (req, res) => {
+  try {
+    const body = { ...req.body, avaliador_id: req.user.id };
+    // Calcular nota geral
+    const notas = [body.nota_produtividade, body.nota_qualidade, body.nota_pontualidade, body.nota_trabalho_equipe, body.nota_iniciativa, body.nota_comunicacao].filter(n => n);
+    if (notas.length) body.nota_geral = (notas.reduce((a, b) => a + b, 0) / notas.length).toFixed(1);
+    const { data, error } = await supabase.from('rh_avaliacoes').insert(body).select().single();
+    if (error) throw error;
+    res.json(data);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.patch('/avaliacoes/:id', async (req, res) => {
+  try {
+    const body = { ...req.body };
+    const notas = [body.nota_produtividade, body.nota_qualidade, body.nota_pontualidade, body.nota_trabalho_equipe, body.nota_iniciativa, body.nota_comunicacao].filter(n => n);
+    if (notas.length) body.nota_geral = (notas.reduce((a, b) => a + b, 0) / notas.length).toFixed(1);
+    const { data, error } = await supabase.from('rh_avaliacoes').update(body).eq('id', req.params.id).select().single();
+    if (error) throw error;
+    res.json(data);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.delete('/avaliacoes/:id', async (req, res) => {
+  try {
+    const { error } = await supabase.from('rh_avaliacoes').delete().eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 module.exports = router;

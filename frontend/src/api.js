@@ -185,6 +185,13 @@ export const agents = {
   approve: (id) => patch(`/agents/queue/${id}/approve`),
   reject: (id) => patch(`/agents/queue/${id}/reject`),
   log: () => get('/agents/log'),
+  // Framework de agentes
+  run: (data) => post('/agents/run', data),
+  runs: (params) => get('/agents/runs' + (params ? '?' + new URLSearchParams(params) : '')),
+  runDetail: (id) => get(`/agents/runs/${id}`),
+  runSteps: (id) => get(`/agents/runs/${id}/steps`),
+  cancelRun: (id) => post(`/agents/runs/${id}/cancel`),
+  stats: () => get('/agents/stats'),
 };
 
 export const financeiro = {
@@ -238,7 +245,39 @@ export const logistica = {
     update: (id, data) => put(`/logistica/pedidos/${id}`, data),
     remove: (id) => del(`/logistica/pedidos/${id}`),
     receber: (id, data) => post(`/logistica/pedidos/${id}/recebimento`, data),
+    itens: (pedidoId) => get(`/logistica/pedidos/${pedidoId}/itens`),
+    addItem: (pedidoId, data) => post(`/logistica/pedidos/${pedidoId}/itens`, data),
+    removeItem: (id) => del(`/logistica/itens/${id}`),
   },
+  notas: {
+    list: () => get('/logistica/notas'),
+    create: (data) => post('/logistica/notas', data),
+    remove: (id) => del(`/logistica/notas/${id}`),
+  },
+  movimentacoes: {
+    list: (params) => get('/logistica/movimentacoes' + (params ? '?' + new URLSearchParams(params) : '')),
+    create: (data) => post('/logistica/movimentacoes', data),
+    historico: (codigo) => get(`/logistica/movimentacoes/historico/${encodeURIComponent(codigo)}`),
+  },
+};
+
+export const ml = {
+  status: () => get('/ml/status'),
+  config: (data) => post('/ml/config', data),
+  authUrl: () => get('/ml/auth-url'),
+  disconnect: () => post('/ml/disconnect'),
+  orders: (params) => get('/ml/orders' + (params ? '?' + new URLSearchParams(params) : '')),
+  order: (id) => get(`/ml/orders/${id}`),
+  shipments: () => get('/ml/shipments'),
+  shipment: (id) => get(`/ml/shipments/${id}`),
+  syncNotas: () => post('/ml/sync-notas'),
+};
+
+export const arquivei = {
+  status: () => get('/arquivei/status'),
+  config: (data) => post('/arquivei/config', data),
+  disconnect: () => post('/arquivei/disconnect'),
+  sync: () => post('/arquivei/sync'),
 };
 
 export const patrimonio = {
@@ -260,6 +299,7 @@ export const patrimonio = {
     update: (id, data) => put(`/patrimonio/bens/${id}`, data),
     remove: (id) => del(`/patrimonio/bens/${id}`),
     movimentar: (id, data) => post(`/patrimonio/bens/${id}/movimentacoes`, data),
+    porCodigo: (codigo) => get(`/patrimonio/bens/barcode/${encodeURIComponent(codigo)}`),
   },
   inventarios: {
     list: () => get('/patrimonio/inventarios'),
@@ -297,6 +337,7 @@ export const rh = {
     atualizarStatus: (id, data) => patch(`/rh/materiais-funcionarios/${id}`, data),
   },
   ferias: {
+    list: (params) => get('/rh/ferias' + (params ? '?' + new URLSearchParams(params) : '')),
     create: (funcId, data) => post(`/rh/funcionarios/${funcId}/ferias`, data),
     update: (id, data) => patch(`/rh/ferias/${id}`, data),
     remove: (id) => del(`/rh/ferias/${id}`),
@@ -311,13 +352,43 @@ export const rh = {
     get: () => get('/rh/config'),
     set: (chave, valor) => put(`/rh/config/${chave}`, { valor }),
   },
+  avaliacoes: {
+    list: (params) => get('/rh/avaliacoes' + (params ? '?' + new URLSearchParams(params) : '')),
+    create: (data) => post('/rh/avaliacoes', data),
+    update: (id, data) => patch(`/rh/avaliacoes/${id}`, data),
+    remove: (id) => del(`/rh/avaliacoes/${id}`),
+  },
+  admissoes: {
+    list: (params) => get('/rh/admissoes' + (params ? '?' + new URLSearchParams(params) : '')),
+    get: (id) => get(`/rh/admissoes/${id}`),
+    create: (data) => post('/rh/admissoes', data),
+    update: (id, data) => patch(`/rh/admissoes/${id}`, data),
+    remove: (id) => del(`/rh/admissoes/${id}`),
+    concluir: (id) => post(`/rh/admissoes/${id}/concluir`),
+  },
 };
 
 export const notificacoes = {
-  list: () => get('/notificacoes'),
+  list: (params) => get('/notificacoes' + (params ? '?' + new URLSearchParams(params) : '')),
   count: () => get('/notificacoes/count'),
   ler: (id) => patch(`/notificacoes/${id}/ler`),
   lerTodas: () => patch('/notificacoes/ler-todas'),
+  gerar: () => post('/notificacoes/gerar'),
+  regras: {
+    list: () => get('/notificacoes/regras'),
+    create: (data) => post('/notificacoes/regras', data),
+    remove: (id) => del(`/notificacoes/regras/${id}`),
+  },
+};
+
+export const permissoes = {
+  estrutura: () => get('/permissoes/estrutura'),
+  usuario: (id) => get(`/permissoes/usuario/${id}`),
+  usuarioPorEmail: (email) => get(`/permissoes/usuario-por-email/${encodeURIComponent(email)}`),
+  criarUsuario: (data) => post('/permissoes/usuario', data),
+  setCargo: (id, cargo_id) => put(`/permissoes/usuario/${id}/cargo`, { cargo_id }),
+  setAreas: (id, area_ids) => put(`/permissoes/usuario/${id}/areas`, { area_ids }),
+  setModulo: (id, data) => put(`/permissoes/usuario/${id}/modulo`, data),
 };
 
 export const membresia = {

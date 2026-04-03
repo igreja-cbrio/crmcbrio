@@ -46,14 +46,7 @@ const styles = {
     borderBottom: active ? `2px solid ${C.primary}` : '2px solid transparent',
     marginBottom: -2, transition: 'all 0.15s',
   }),
-  kpiGrid: { display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 24 },
-  kpi: (color) => ({
-    background: C.card, borderRadius: 12, padding: '20px 24px', border: `1px solid ${C.border}`,
-    borderLeft: `4px solid ${color}`, boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-    flex: '1 1 170px', minWidth: 140,
-  }),
-  kpiValue: { fontSize: 32, fontWeight: 800, color: C.text },
-  kpiLabel: { fontSize: 12, fontWeight: 600, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 4 },
+  kpiGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12, marginBottom: 24 },
   card: {
     background: C.card, borderRadius: 12, border: `1px solid ${C.border}`,
     boxShadow: '0 1px 3px rgba(0,0,0,0.04)', overflow: 'hidden',
@@ -241,6 +234,33 @@ function BigCalendar({ eventsByDate, onSelectDate, selectedDate }) {
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+// ── KPI Cards (estilo unificado) ─────────────────────────────
+const EV_STAT_SVGS = [
+  <svg key="e0" style={{ position: 'absolute', right: 0, top: 0, height: '100%', width: '67%', pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 300 200" fill="none"><circle cx="220" cy="100" r="90" fill="#fff" fillOpacity="0.08" /><circle cx="260" cy="60" r="60" fill="#fff" fillOpacity="0.10" /></svg>,
+  <svg key="e1" style={{ position: 'absolute', right: 0, top: 0, height: '100%', width: '67%', pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 300 200" fill="none"><circle cx="200" cy="140" r="100" fill="#fff" fillOpacity="0.07" /><circle cx="270" cy="40" r="50" fill="#fff" fillOpacity="0.09" /></svg>,
+  <svg key="e2" style={{ position: 'absolute', right: 0, top: 0, height: '100%', width: '67%', pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 300 200" fill="none"><circle cx="240" cy="80" r="80" fill="#fff" fillOpacity="0.08" /><circle cx="280" cy="150" r="55" fill="#fff" fillOpacity="0.10" /></svg>,
+  <svg key="e3" style={{ position: 'absolute', right: 0, top: 0, height: '100%', width: '67%', pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 300 200" fill="none"><circle cx="210" cy="120" r="95" fill="#fff" fillOpacity="0.07" /><circle cx="265" cy="50" r="45" fill="#fff" fillOpacity="0.10" /></svg>,
+  <svg key="e4" style={{ position: 'absolute', right: 0, top: 0, height: '100%', width: '67%', pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 300 200" fill="none"><circle cx="230" cy="90" r="85" fill="#fff" fillOpacity="0.08" /><circle cx="270" cy="160" r="50" fill="#fff" fillOpacity="0.09" /></svg>,
+  <svg key="e5" style={{ position: 'absolute', right: 0, top: 0, height: '100%', width: '67%', pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 300 200" fill="none"><circle cx="200" cy="100" r="90" fill="#fff" fillOpacity="0.07" /><circle cx="260" cy="40" r="60" fill="#fff" fillOpacity="0.10" /></svg>,
+  <svg key="e6" style={{ position: 'absolute', right: 0, top: 0, height: '100%', width: '67%', pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 300 200" fill="none"><circle cx="220" cy="110" r="88" fill="#fff" fillOpacity="0.08" /><circle cx="275" cy="55" r="52" fill="#fff" fillOpacity="0.09" /></svg>,
+];
+
+function EvStatCard({ label, value, bg, svg }) {
+  return (
+    <div
+      style={{ position: 'relative', overflow: 'hidden', background: bg, borderRadius: 12, padding: '20px 24px', color: '#fff', minHeight: 100, cursor: 'pointer', transition: 'transform 0.15s, box-shadow 0.15s' }}
+      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.3)'; }}
+      onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
+    >
+      {svg}
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <div style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.8)', marginBottom: 8 }}>{label}</div>
+        <div style={{ fontSize: 32, fontWeight: 700, letterSpacing: -1 }}>{value}</div>
       </div>
     </div>
   );
@@ -1068,11 +1088,8 @@ export default function Eventos() {
         {/* KPIs */}
         {kpis.length > 0 && (
           <div style={styles.kpiGrid}>
-            {kpis.map(k => (
-              <div key={k.label} style={styles.kpi(k.color)}>
-                <div style={styles.kpiValue}>{k.value}</div>
-                <div style={styles.kpiLabel}>{k.label}</div>
-              </div>
+            {kpis.map((k, i) => (
+              <EvStatCard key={k.label} label={k.label} value={k.value} bg={k.color} svg={EV_STAT_SVGS[i % EV_STAT_SVGS.length]} />
             ))}
           </div>
         )}

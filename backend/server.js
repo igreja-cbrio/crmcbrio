@@ -44,9 +44,12 @@ app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/rh', require('./routes/rh'));
 app.use('/api/financeiro', require('./routes/financeiro'));
 app.use('/api/logistica', require('./routes/logistica'));
+app.use('/api/ml', require('./routes/mercadolivre'));
+app.use('/api/arquivei', require('./routes/arquivei'));
 app.use('/api/patrimonio', require('./routes/patrimonio'));
 app.use('/api/membresia', require('./routes/membresia'));
 app.use('/api/notificacoes', require('./routes/notificacoes'));
+app.use('/api/permissoes', require('./routes/permissoes'));
 
 // ── Health check ──
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
@@ -68,6 +71,11 @@ if (!process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`[CBRio PMO] Servidor rodando na porta ${PORT}`);
     console.log(`[CBRio PMO] Ambiente: ${process.env.NODE_ENV || 'development'}`);
+
+    // Cron: gerar notificações automáticas a cada 6 horas
+    const { gerarTodasNotificacoes } = require('./services/notificacaoGenerator');
+    setTimeout(() => gerarTodasNotificacoes(), 30000);
+    setInterval(() => gerarTodasNotificacoes(), 6 * 60 * 60 * 1000);
   });
 }
 

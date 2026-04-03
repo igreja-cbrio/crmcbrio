@@ -1,0 +1,235 @@
+import { useState, useEffect, useCallback } from 'react';
+import { agents } from '../../api';
+
+const C = {
+  bg: 'var(--cbrio-bg)', card: 'var(--cbrio-card)', primary: '#00B39D', primaryBg: '#00B39D18',
+  text: 'var(--cbrio-text)', text2: 'var(--cbrio-text2)', text3: 'var(--cbrio-text3)',
+  border: 'var(--cbrio-border)', green: '#10b981', greenBg: '#10b98118',
+  red: '#ef4444', redBg: '#ef444418', amber: '#f59e0b', amberBg: '#f59e0b18',
+  blue: '#3b82f6', blueBg: '#3b82f618', purple: '#8b5cf6', purpleBg: '#8b5cf618',
+};
+
+const STATUS_MAP = {
+  running: { c: C.blue, bg: C.blueBg, label: 'Executando...' },
+  completed: { c: C.green, bg: C.greenBg, label: 'Concluído' },
+  failed: { c: C.red, bg: C.redBg, label: 'Falhou' },
+  cancelled: { c: C.text3, bg: '#73737318', label: 'Cancelado' },
+};
+
+const SEV_MAP = {
+  critico: { c: '#fff', bg: C.red, label: 'CRÍTICO' },
+  aviso: { c: '#000', bg: C.amber, label: 'AVISO' },
+  info: { c: '#fff', bg: C.blue, label: 'INFO' },
+};
+
+const AGENT_TYPES = [
+  { value: 'system_auditor', label: 'Auditor do Sistema', desc: 'Analisa dados reais de todos os módulos e identifica problemas, inconsistências e oportunidades de melhoria.' },
+];
+
+const s = {
+  page: { maxWidth: 1600, margin: '0 auto', padding: '0 24px' },
+  card: { background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, boxShadow: '0 1px 3px rgba(0,0,0,0.04)', overflow: 'hidden' },
+  cardHeader: { padding: '16px 20px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  cardTitle: { fontSize: 15, fontWeight: 700, color: C.text },
+  btn: (v = 'primary') => ({ padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: 'none', transition: 'all 0.15s', ...(v === 'primary' ? { background: C.primary, color: '#fff' } : {}), ...(v === 'ghost' ? { background: 'transparent', color: C.text2 } : {}), ...(v === 'secondary' ? { background: 'transparent', color: C.primary, border: `1px solid ${C.primary}` } : {}) }),
+  badge: (c, bg) => ({ display: 'inline-block', padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, color: c, background: bg }),
+  empty: { textAlign: 'center', padding: 40, color: C.text3, fontSize: 14 },
+};
+
+const fmtDate = (d) => d ? new Date(d).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
+const fmtCost = (v) => `$${(Number(v) || 0).toFixed(4)}`;
+const fmtTokens = (v) => (v || 0).toLocaleString('pt-BR');
+
+export default function AssistenteIA() {
+  const [runs, setRuns] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [launching, setLaunching] = useState(false);
+  const [selectedRun, setSelectedRun] = useState(null);
+  const [steps, setSteps] = useState([]);
+  const [pollingId, setPollingId] = useState(null);
+
+  const loadRuns = useCallback(async () => {
+    try { setRuns(await agents.runs()); } catch (e) { console.error(e); }
+  }, []);
+
+  const loadStats = useCallback(async () => {
+    try { setStats(await agents.stats()); } catch (e) { console.error(e); }
+  }, []);
+
+  useEffect(() => { loadRuns(); loadStats(); }, [loadRuns, loadStats]);
+
+  // Polling para runs em execução
+  useEffect(() => {
+    const hasRunning = runs.some(r => r.status === 'running');
+    if (hasRunning && !pollingId) {
+      const id = setInterval(() => { loadRuns(); }, 5000);
+      setPollingId(id);
+    } else if (!hasRunning && pollingId) {
+      clearInterval(pollingId);
+      setPollingId(null);
+    }
+    return () => { if (pollingId) clearInterval(pollingId); };
+  }, [runs, pollingId, loadRuns]);
+
+  async function launchAgent(agentType) {
+    setLaunching(true);
+    try {
+      const result = await agents.run({ agentType, config: { targetModules: ['all'], tokenBudget: 50000 } });
+      await loadRuns();
+      if (result.runId) selectRun(result.runId);
+    } catch (e) { alert(e.message); }
+    setLaunching(false);
+  }
+
+  async function selectRun(runId) {
+    try {
+      const detail = await agents.runDetail(runId);
+      const stepsData = await agents.runSteps(runId);
+      setSelectedRun(detail);
+      setSteps(stepsData);
+    } catch (e) { console.error(e); }
+  }
+
+  return (
+    <div style={s.page}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: C.text, letterSpacing: -0.5 }}>Assistente IA</div>
+          <div style={{ fontSize: 13, color: C.text2, marginTop: 2 }}>Agentes inteligentes para auditoria, análise e melhorias do sistema</div>
+        </div>
+        {stats && (
+          <div style={{ display: 'flex', gap: 16, fontSize: 12, color: C.text2 }}>
+            <span>Execuções: <strong style={{ color: C.text }}>{stats.totalRuns}</strong></span>
+            <span>Tokens: <strong style={{ color: C.text }}>{fmtTokens(stats.totalTokens)}</strong></span>
+            <span>Custo: <strong style={{ color: C.text }}>{fmtCost(stats.totalCost)}</strong></span>
+          </div>
+        )}
+      </div>
+
+      {/* Launch Panel */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12, marginBottom: 24 }}>
+        {AGENT_TYPES.map(at => (
+          <div key={at.value} style={{ ...s.card, padding: 20 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 6 }}>{at.label}</div>
+            <div style={{ fontSize: 12, color: C.text2, lineHeight: 1.5, marginBottom: 16 }}>{at.desc}</div>
+            <button style={{ ...s.btn('primary'), width: '100%' }} onClick={() => launchAgent(at.value)} disabled={launching}>
+              {launching ? 'Iniciando...' : 'Executar Agente'}
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: selectedRun ? '1fr 2fr' : '1fr', gap: 16 }}>
+        {/* Runs List */}
+        <div style={s.card}>
+          <div style={s.cardHeader}>
+            <div style={s.cardTitle}>Execuções</div>
+            <button style={s.btn('ghost')} onClick={loadRuns}>Atualizar</button>
+          </div>
+          {runs.length === 0 ? <div style={s.empty}>Nenhuma execução ainda</div> : (
+            <div style={{ maxHeight: 500, overflowY: 'auto' }}>
+              {runs.map(r => {
+                const st = STATUS_MAP[r.status] || STATUS_MAP.running;
+                const isSelected = selectedRun?.id === r.id;
+                return (
+                  <div key={r.id} onClick={() => selectRun(r.id)} style={{
+                    padding: '14px 20px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer',
+                    background: isSelected ? C.primaryBg : 'transparent',
+                    transition: 'background 0.15s',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{r.agent_type === 'system_auditor' ? 'Auditor' : r.agent_type}</span>
+                      <span style={s.badge(st.c, st.bg)}>{st.label}</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: C.text3 }}>
+                      {fmtDate(r.created_at)} · {fmtTokens((r.tokens_input || 0) + (r.tokens_output || 0))} tokens · {fmtCost(r.cost_usd)}
+                    </div>
+                    {r.status === 'completed' && r.findings?.length > 0 && (
+                      <div style={{ fontSize: 11, color: C.amber, marginTop: 4 }}>
+                        {r.findings.length} finding(s)
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Run Detail */}
+        {selectedRun && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Summary */}
+            {selectedRun.summary && (
+              <div style={{ ...s.card, padding: 20 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: C.primary, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Resumo Executivo</div>
+                <div style={{ fontSize: 14, color: C.text, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{selectedRun.summary}</div>
+              </div>
+            )}
+
+            {selectedRun.error && (
+              <div style={{ ...s.card, padding: 20, borderLeft: `4px solid ${C.red}` }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: C.red, marginBottom: 4 }}>Erro</div>
+                <div style={{ fontSize: 13, color: C.text }}>{selectedRun.error}</div>
+              </div>
+            )}
+
+            {/* Findings */}
+            {selectedRun.findings?.length > 0 && (
+              <div style={s.card}>
+                <div style={s.cardHeader}>
+                  <div style={s.cardTitle}>Findings ({selectedRun.findings.length})</div>
+                </div>
+                <div style={{ maxHeight: 400, overflowY: 'auto' }}>
+                  {selectedRun.findings.map((f, i) => {
+                    const sev = SEV_MAP[f.severity] || SEV_MAP.info;
+                    return (
+                      <div key={i} style={{ padding: '14px 20px', borderBottom: `1px solid ${C.border}` }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                          <span style={{ ...s.badge(sev.c, sev.bg), fontSize: 9 }}>{sev.label}</span>
+                          <span style={{ ...s.badge(C.primary, C.primaryBg), fontSize: 9 }}>{(f.module || '').toUpperCase()}</span>
+                          <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{f.title}</span>
+                        </div>
+                        <div style={{ fontSize: 13, color: C.text2, lineHeight: 1.5, marginBottom: 6 }}>{f.detail}</div>
+                        {f.suggestion && (
+                          <div style={{ fontSize: 12, color: C.green, fontStyle: 'italic' }}>Sugestão: {f.suggestion}</div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Steps */}
+            {steps.length > 0 && (
+              <div style={s.card}>
+                <div style={s.cardHeader}>
+                  <div style={s.cardTitle}>Steps ({steps.length})</div>
+                </div>
+                {steps.map(step => (
+                  <div key={step.id} style={{ padding: '10px 20px', borderBottom: `1px solid ${C.border}`, fontSize: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: C.text2 }}>
+                      <span>#{step.step_number} · <strong>{step.role}</strong> · {step.model?.split('-').slice(0, 2).join('-')}</span>
+                      <span>{fmtTokens(step.tokens_input + step.tokens_output)} tokens · {step.duration_ms}ms · {fmtCost(step.cost_usd)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Status running */}
+            {selectedRun.status === 'running' && (
+              <div style={{ ...s.card, padding: 20, textAlign: 'center' }}>
+                <div style={{ fontSize: 24, marginBottom: 8 }}>🔄</div>
+                <div style={{ fontSize: 14, color: C.text, fontWeight: 600 }}>Agente em execução...</div>
+                <div style={{ fontSize: 12, color: C.text2, marginTop: 4 }}>A página atualiza automaticamente a cada 5 segundos.</div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

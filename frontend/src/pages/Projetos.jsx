@@ -35,7 +35,7 @@ const AREAS = ['Administrativa', 'Ministerial', 'Criativo', 'Geracional', 'Opera
 
 // ── Estilos ─────────────────────────────────────────────────
 const styles = {
-  page: { maxWidth: 1200, margin: '0 auto' },
+  page: { maxWidth: 1600, margin: '0 auto', padding: '0 24px' },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 },
   title: { fontSize: 28, fontWeight: 800, color: C.text, letterSpacing: -0.5 },
   subtitle: { fontSize: 13, color: C.text2, marginTop: 2 },
@@ -45,13 +45,7 @@ const styles = {
     color: a ? C.primary : C.text2, borderBottom: a ? `2px solid ${C.primary}` : '2px solid transparent',
     marginBottom: -2, transition: 'all 0.15s',
   }),
-  kpiGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 24 },
-  kpi: (color) => ({
-    background: C.card, borderRadius: 12, padding: '16px 20px', border: `1px solid ${C.border}`,
-    borderLeft: `4px solid ${color}`, boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-  }),
-  kpiValue: { fontSize: 28, fontWeight: 800, color: C.text },
-  kpiLabel: { fontSize: 11, fontWeight: 600, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 },
+  kpiGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12, marginBottom: 24 },
   card: { background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, boxShadow: '0 1px 3px rgba(0,0,0,0.04)', overflow: 'hidden' },
   cardHeader: { padding: '16px 20px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   cardTitle: { fontSize: 15, fontWeight: 700, color: C.text },
@@ -147,6 +141,30 @@ function ProgressBar({ value, max }) {
 
 // ── TABS ────────────────────────────────────────────────────
 const TABS = ['Lista', 'Detalhes'];
+
+// ── KPI Cards (estilo unificado) ─────────────────────────────
+const PROJ_STAT_SVGS = [
+  <svg key="p0" style={{ position: 'absolute', right: 0, top: 0, height: '100%', width: '67%', pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 300 200" fill="none"><circle cx="220" cy="100" r="90" fill="#fff" fillOpacity="0.08" /><circle cx="260" cy="60" r="60" fill="#fff" fillOpacity="0.10" /></svg>,
+  <svg key="p1" style={{ position: 'absolute', right: 0, top: 0, height: '100%', width: '67%', pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 300 200" fill="none"><circle cx="200" cy="140" r="100" fill="#fff" fillOpacity="0.07" /><circle cx="270" cy="40" r="50" fill="#fff" fillOpacity="0.09" /></svg>,
+  <svg key="p2" style={{ position: 'absolute', right: 0, top: 0, height: '100%', width: '67%', pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 300 200" fill="none"><circle cx="240" cy="80" r="80" fill="#fff" fillOpacity="0.08" /><circle cx="280" cy="150" r="55" fill="#fff" fillOpacity="0.10" /></svg>,
+  <svg key="p3" style={{ position: 'absolute', right: 0, top: 0, height: '100%', width: '67%', pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 300 200" fill="none"><circle cx="210" cy="120" r="95" fill="#fff" fillOpacity="0.07" /><circle cx="265" cy="50" r="45" fill="#fff" fillOpacity="0.10" /></svg>,
+];
+
+function ProjStatCard({ label, value, bg, svg }) {
+  return (
+    <div
+      style={{ position: 'relative', overflow: 'hidden', background: bg, borderRadius: 12, padding: '20px 24px', color: '#fff', minHeight: 100, cursor: 'pointer', transition: 'transform 0.15s, box-shadow 0.15s' }}
+      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.3)'; }}
+      onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
+    >
+      {svg}
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <div style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.8)', marginBottom: 8 }}>{label}</div>
+        <div style={{ fontSize: 32, fontWeight: 700, letterSpacing: -1 }}>{value}</div>
+      </div>
+    </div>
+  );
+}
 
 // ═══════════════════════════════════════════════════════════
 // COMPONENTE PRINCIPAL
@@ -277,10 +295,14 @@ export default function Projetos() {
           {/* KPIs */}
           {dash && (
             <div style={styles.kpiGrid}>
-              <div style={styles.kpi(C.primary)}><div style={styles.kpiValue}>{dash.total ?? 0}</div><div style={styles.kpiLabel}>Total</div></div>
-              <div style={styles.kpi(C.amber)}><div style={styles.kpiValue}>{dash.em_andamento ?? 0}</div><div style={styles.kpiLabel}>Em Andamento</div></div>
-              <div style={styles.kpi(C.green)}><div style={styles.kpiValue}>{dash.concluidos ?? 0}</div><div style={styles.kpiLabel}>Concluidos</div></div>
-              <div style={styles.kpi(C.blue)}><div style={styles.kpiValue}>{dash.planejamento ?? 0}</div><div style={styles.kpiLabel}>Planejamento</div></div>
+              {[
+                { label: 'Total', value: dash.total ?? 0, bg: '#00B39D' },
+                { label: 'Em Andamento', value: dash.em_andamento ?? 0, bg: '#f59e0b' },
+                { label: 'Concluídos', value: dash.concluidos ?? 0, bg: '#10b981' },
+                { label: 'Planejamento', value: dash.planejamento ?? 0, bg: '#3b82f6' },
+              ].map((k, i) => (
+                <ProjStatCard key={k.label} label={k.label} value={k.value} bg={k.bg} svg={PROJ_STAT_SVGS[i % PROJ_STAT_SVGS.length]} />
+              ))}
             </div>
           )}
 

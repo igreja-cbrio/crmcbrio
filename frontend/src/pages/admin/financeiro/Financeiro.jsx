@@ -36,7 +36,7 @@ const STATUS_REEMBOLSO = {
 
 // ── Estilos ─────────────────────────────────────────────────
 const styles = {
-  page: { maxWidth: 1200, margin: '0 auto' },
+  page: { maxWidth: 1600, margin: '0 auto', padding: '0 24px' },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 },
   title: { fontSize: 28, fontWeight: 800, color: C.text, letterSpacing: -0.5 },
   subtitle: { fontSize: 13, color: C.text2, marginTop: 2 },
@@ -48,12 +48,6 @@ const styles = {
     marginBottom: -2, transition: 'all 0.15s',
   }),
   kpiGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12, marginBottom: 24 },
-  kpi: (color) => ({
-    background: C.card, borderRadius: 12, padding: '16px 20px', border: `1px solid ${C.border}`,
-    borderLeft: `4px solid ${color}`, boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-  }),
-  kpiValue: { fontSize: 28, fontWeight: 800, color: C.text },
-  kpiLabel: { fontSize: 11, fontWeight: 600, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 },
   card: {
     background: C.card, borderRadius: 12, border: `1px solid ${C.border}`,
     boxShadow: '0 1px 3px rgba(0,0,0,0.04)', overflow: 'hidden',
@@ -141,6 +135,33 @@ function Badge({ status, map }) {
 
 // ── TABS ────────────────────────────────────────────────────
 const TABS = ['Dashboard', 'Contas', 'Transacoes', 'Contas a Pagar', 'Reembolsos'];
+
+// ── KPI Cards (estilo unificado) ─────────────────────────────
+const FIN_STAT_SVGS = [
+  <svg key="f0" style={{ position: 'absolute', right: 0, top: 0, height: '100%', width: '67%', pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 300 200" fill="none"><circle cx="220" cy="100" r="90" fill="#fff" fillOpacity="0.08" /><circle cx="260" cy="60" r="60" fill="#fff" fillOpacity="0.10" /></svg>,
+  <svg key="f1" style={{ position: 'absolute', right: 0, top: 0, height: '100%', width: '67%', pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 300 200" fill="none"><circle cx="200" cy="140" r="100" fill="#fff" fillOpacity="0.07" /><circle cx="270" cy="40" r="50" fill="#fff" fillOpacity="0.09" /></svg>,
+  <svg key="f2" style={{ position: 'absolute', right: 0, top: 0, height: '100%', width: '67%', pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 300 200" fill="none"><circle cx="240" cy="80" r="80" fill="#fff" fillOpacity="0.08" /><circle cx="280" cy="150" r="55" fill="#fff" fillOpacity="0.10" /></svg>,
+  <svg key="f3" style={{ position: 'absolute', right: 0, top: 0, height: '100%', width: '67%', pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 300 200" fill="none"><circle cx="210" cy="120" r="95" fill="#fff" fillOpacity="0.07" /><circle cx="265" cy="50" r="45" fill="#fff" fillOpacity="0.10" /></svg>,
+  <svg key="f4" style={{ position: 'absolute', right: 0, top: 0, height: '100%', width: '67%', pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 300 200" fill="none"><circle cx="230" cy="90" r="85" fill="#fff" fillOpacity="0.08" /><circle cx="270" cy="160" r="50" fill="#fff" fillOpacity="0.09" /></svg>,
+  <svg key="f5" style={{ position: 'absolute', right: 0, top: 0, height: '100%', width: '67%', pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 300 200" fill="none"><circle cx="200" cy="100" r="90" fill="#fff" fillOpacity="0.07" /><circle cx="260" cy="40" r="60" fill="#fff" fillOpacity="0.10" /></svg>,
+  <svg key="f6" style={{ position: 'absolute', right: 0, top: 0, height: '100%', width: '67%', pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 300 200" fill="none"><circle cx="220" cy="110" r="88" fill="#fff" fillOpacity="0.08" /><circle cx="275" cy="55" r="52" fill="#fff" fillOpacity="0.09" /></svg>,
+];
+
+function StatCard({ label, value, bg, svg }) {
+  return (
+    <div
+      style={{ position: 'relative', overflow: 'hidden', background: bg, borderRadius: 12, padding: '20px 24px', color: '#fff', minHeight: 100, cursor: 'pointer', transition: 'transform 0.15s, box-shadow 0.15s' }}
+      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.3)'; }}
+      onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
+    >
+      {svg}
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <div style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.8)', marginBottom: 8 }}>{label}</div>
+        <div style={{ fontSize: 32, fontWeight: 700, letterSpacing: -1 }}>{value}</div>
+      </div>
+    </div>
+  );
+}
 
 // ═══════════════════════════════════════════════════════════
 // COMPONENTE PRINCIPAL
@@ -296,30 +317,25 @@ export default function Financeiro() {
     try { await financeiro.reembolsos.aprovar(id, status); loadReembolsos(); loadDash(); } catch (e) { handleError(e); }
   };
 
-  // ── Render helpers ──
-  const renderKpi = (label, value, color, isMoney = false) => (
-    <div style={styles.kpi(color)}>
-      <div style={styles.kpiValue}>{isMoney ? fmtMoney(value) : (value ?? 0)}</div>
-      <div style={styles.kpiLabel}>{label}</div>
-    </div>
-  );
-
   // ═══════════════════════════════════════════════════════════
   // TAB: DASHBOARD
   // ═══════════════════════════════════════════════════════════
   const renderDashboard = () => {
     if (!dash) return <div style={styles.empty}>Carregando...</div>;
+    const kpis = [
+      { label: 'Saldo Total', value: fmtMoney(dash.saldoTotal), bg: '#00B39D' },
+      { label: 'Contas Ativas', value: dash.contasAtivas ?? 0, bg: '#3b82f6' },
+      { label: 'Receitas do Mês', value: fmtMoney(dash.receitasMes), bg: '#10b981' },
+      { label: 'Despesas do Mês', value: fmtMoney(dash.despesasMes), bg: '#ef4444' },
+      { label: 'A Pagar Pendentes', value: dash.contasPagarPendentes ?? 0, bg: '#f59e0b' },
+      { label: 'A Pagar Vencidas', value: dash.contasPagarVencidas ?? 0, bg: '#dc2626' },
+      { label: 'Valor a Pagar', value: fmtMoney(dash.valorPagarPendente), bg: '#f59e0b' },
+      { label: 'Reembolsos Pend.', value: dash.reembolsosPendentes ?? 0, bg: '#3b82f6' },
+      { label: 'Valor Reembolsos', value: fmtMoney(dash.valorReembolsosPendentes), bg: '#0a0a0a' },
+    ];
     return (
       <div style={styles.kpiGrid}>
-        {renderKpi('Saldo Total', dash.saldoTotal, C.primary, true)}
-        {renderKpi('Contas Ativas', dash.contasAtivas, C.blue)}
-        {renderKpi('Receitas do Mes', dash.receitasMes, C.green, true)}
-        {renderKpi('Despesas do Mes', dash.despesasMes, C.red, true)}
-        {renderKpi('A Pagar Pendentes', dash.contasPagarPendentes, C.amber)}
-        {renderKpi('A Pagar Vencidas', dash.contasPagarVencidas, C.red)}
-        {renderKpi('Valor a Pagar', dash.valorPagarPendente, C.amber, true)}
-        {renderKpi('Reembolsos Pend.', dash.reembolsosPendentes, C.blue)}
-        {renderKpi('Valor Reembolsos', dash.valorReembolsosPendentes, C.blue, true)}
+        {kpis.map((k, i) => <StatCard key={k.label} label={k.label} value={k.value} bg={k.bg} svg={FIN_STAT_SVGS[i % FIN_STAT_SVGS.length]} />)}
       </div>
     );
   };

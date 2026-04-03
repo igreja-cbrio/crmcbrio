@@ -1,8 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Users, Pencil, Trash2, Palmtree } from 'lucide-react';
+import { Button } from '../../../components/ui/button';
 import { useAuth } from '../../../contexts/AuthContext';
-import { rh } from '../../../api';
+import { rh, permissoes } from '../../../api';
 import { supabase } from '../../../supabaseClient';
+import TabAdmissao from './TabAdmissao';
+import TabFolha from './TabFolha';
+import TabAvaliacoes from './TabAvaliacoes';
 import TabExtras from './TabExtras';
 
 // ── Tema ────────────────────────────────────────────────────
@@ -38,7 +42,7 @@ const FERIAS_STATUS = {
 
 // ── Estilos ─────────────────────────────────────────────────
 const styles = {
-  page: { maxWidth: 1200, margin: '0 auto' },
+  page: { maxWidth: 1600, margin: '0 auto', padding: '0 24px' },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 },
   title: { fontSize: 28, fontWeight: 800, color: C.text, letterSpacing: -0.5 },
   subtitle: { fontSize: 13, color: C.text2, marginTop: 2 },
@@ -87,7 +91,6 @@ const styles = {
   label: { fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 4, display: 'block', textTransform: 'uppercase', letterSpacing: 0.5 },
   formGroup: { marginBottom: 14 },
   formRow: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 },
-  // Modal
   overlay: { position: 'fixed', inset: 0, background: 'var(--cbrio-overlay)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: 60, zIndex: 1000 },
   modal: { background: 'var(--cbrio-modal-bg)', borderRadius: 16, width: '95%', maxWidth: 560, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' },
   modalHeader: { padding: '20px 24px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
@@ -110,7 +113,7 @@ function Modal({ open, onClose, title, children, footer }) {
       <div style={styles.modal} onClick={e => e.stopPropagation()}>
         <div style={styles.modalHeader}>
           <div style={styles.modalTitle}>{title}</div>
-          <button style={{ ...styles.btn('ghost'), fontSize: 18 }} onClick={onClose}>✕</button>
+          <Button variant="ghost" className="text-lg" onClick={onClose}>✕</Button>
         </div>
         <div style={styles.modalBody}>{children}</div>
         {footer && <div style={styles.modalFooter}>{footer}</div>}
@@ -143,7 +146,7 @@ function Badge({ status, map }) {
 }
 
 // ── TABS ────────────────────────────────────────────────────
-const TABS = ['Dashboard', 'Colaboradores', 'Treinamentos', 'Férias/Licenças', 'Extras'];
+const TABS = ['Dashboard', 'Colaboradores', 'Admissão', 'Organograma', 'Folha', 'Avaliações', 'Treinamentos', 'Férias/Licenças', 'Extras'];
 
 // ═══════════════════════════════════════════════════════════
 // COMPONENTE PRINCIPAL
@@ -271,7 +274,7 @@ export default function RH() {
       {error && <div style={{ color: C.red, marginBottom: 12, fontSize: 13 }}>{error}</div>}
 
       {/* Tab Content */}
-      {tab === 0 && <DashboardTab dash={dash} />}
+      {tab === 0 && <DashboardTab dash={dash} onNavigate={setTab} setFiltroStatus={setFiltroStatus} />}
       {tab === 1 && (
         <FuncionariosTab
           funcs={funcs} loading={loading} busca={busca} setBusca={setBusca}
@@ -280,28 +283,32 @@ export default function RH() {
           onNew={() => setModalFunc({})} onEdit={(f) => setModalFunc(f)} onDetail={openDetail} onDelete={deleteFuncionario}
         />
       )}
-      {tab === 2 && (
+      {tab === 2 && <TabAdmissao />}
+      {tab === 3 && <OrgChartTab funcs={funcs} onDetail={openDetail} />}
+      {tab === 4 && <TabFolha />}
+      {tab === 5 && <TabAvaliacoes funcionarios={funcs} />}
+      {tab === 6 && (
         <TreinamentosTab treinos={treinos} funcs={funcs}
           onNew={() => setModalTreino({})} onEdit={(t) => setModalTreino(t)} onDelete={deleteTreinamento}
           onInscrever={async (treinoId, funcId) => { await rh.treinamentos.inscrever(treinoId, { funcionario_id: funcId }); loadTreinos(); }}
         />
       )}
-      {tab === 3 && (
+      {tab === 7 && (
         <FeriasTab dash={dash} funcs={funcs}
           onNew={() => setModalFerias({})} onAprovar={aprovarFerias}
         />
       )}
-      {tab === 4 && (
+      {tab === 8 && (
         <div style={{ minHeight: 200, padding: '4px 0' }}>
           <TabExtras funcionarios={funcs} onRefresh={() => { loadDash(); loadFuncs(); }} />
         </div>
       )}
 
       {/* Modais */}
-      <FuncionarioFormModal open={!!modalFunc} data={modalFunc} onClose={() => setModalFunc(null)} onSave={saveFuncionario} />
+      <FuncionarioFormModal open={!!modalFunc} data={modalFunc} onClose={() => setModalFunc(null)} onSave={saveFuncionario} funcionarios={funcs} />
       <TreinamentoFormModal open={!!modalTreino} data={modalTreino} onClose={() => setModalTreino(null)} onSave={saveTreinamento} />
       <FeriasFormModal open={!!modalFerias} funcs={funcs} onClose={() => setModalFerias(null)} onSave={saveFerias} />
-      <FuncionarioDetailModal
+      <FuncionarioDetailPanel
         open={!!modalDetail} data={modalDetail} onClose={() => setModalDetail(null)}
         onEdit={(f) => { setModalDetail(null); setModalFunc(f); }}
         onDelete={deleteFuncionario}
@@ -316,35 +323,70 @@ export default function RH() {
 // ═══════════════════════════════════════════════════════════
 // TAB: DASHBOARD
 // ═══════════════════════════════════════════════════════════
-function DashboardTab({ dash }) {
+// Stat Card com visual moderno (inspirado em reui/statistics-card)
+function StatCard({ label, value, bg, svg, onClick }) {
+  return (
+    <div onClick={onClick} style={{
+      position: 'relative', overflow: 'hidden', background: bg, borderRadius: 12, padding: '20px 24px', color: '#fff', minHeight: 100,
+      cursor: onClick ? 'pointer' : 'default', transition: 'transform 0.15s, box-shadow 0.15s',
+    }}
+      onMouseEnter={e => { if (onClick) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.3)'; } }}
+      onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
+    >
+      {svg}
+      <div style={{ position: 'relative', zIndex: 1, overflow: 'hidden' }}>
+        <div style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.8)', marginBottom: 8 }}>{label}</div>
+        <div style={{ fontSize: String(value).length > 10 ? 22 : 32, fontWeight: 700, letterSpacing: -1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</div>
+      </div>
+    </div>
+  );
+}
+
+const kpiSvgs = [
+  <svg key="s1" style={{ position: 'absolute', right: 0, top: 0, height: '100%', width: '67%', pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 300 200" fill="none"><circle cx="220" cy="100" r="90" fill="#fff" fillOpacity="0.08" /><circle cx="260" cy="60" r="60" fill="#fff" fillOpacity="0.10" /><circle cx="200" cy="160" r="50" fill="#fff" fillOpacity="0.07" /><circle cx="270" cy="150" r="30" fill="#fff" fillOpacity="0.12" /></svg>,
+  <svg key="s2" style={{ position: 'absolute', right: 0, top: 0, width: 192, height: 192, pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 200 200" fill="none"><ellipse cx="170" cy="60" rx="40" ry="18" fill="#fff" fillOpacity="0.13" /><rect x="120" y="20" width="60" height="20" rx="8" fill="#fff" fillOpacity="0.10" /><polygon points="150,0 200,0 200,50" fill="#fff" fillOpacity="0.07" /><circle cx="180" cy="100" r="14" fill="#fff" fillOpacity="0.16" /></svg>,
+  <svg key="s3" style={{ position: 'absolute', right: 0, top: 0, width: 192, height: 192, pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 200 200" fill="none"><rect x="120" y="0" width="70" height="70" rx="35" fill="#fff" fillOpacity="0.09" /><ellipse cx="170" cy="80" rx="28" ry="12" fill="#fff" fillOpacity="0.12" /><polygon points="200,0 200,60 140,0" fill="#fff" fillOpacity="0.07" /><circle cx="150" cy="30" r="10" fill="#fff" fillOpacity="0.15" /></svg>,
+  <svg key="s4" style={{ position: 'absolute', right: 0, top: 0, width: 192, height: 192, pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 200 200" fill="none"><polygon points="200,0 200,100 100,0" fill="#fff" fillOpacity="0.09" /><ellipse cx="170" cy="40" rx="30" ry="18" fill="#fff" fillOpacity="0.13" /><rect x="140" y="60" width="40" height="18" rx="8" fill="#fff" fillOpacity="0.10" /><circle cx="150" cy="30" r="14" fill="#fff" fillOpacity="0.18" /></svg>,
+  <svg key="s5" style={{ position: 'absolute', right: 0, top: 0, width: 192, height: 192, pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 200 200" fill="none"><circle cx="160" cy="50" r="40" fill="#fff" fillOpacity="0.10" /><rect x="130" y="80" width="50" height="16" rx="8" fill="#fff" fillOpacity="0.08" /><polygon points="180,0 200,0 200,40" fill="#fff" fillOpacity="0.12" /></svg>,
+];
+
+function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
   if (!dash) return <div style={styles.empty}>Carregando dashboard...</div>;
+
+  const goTo = (tab, status) => { if (setFiltroStatus) setFiltroStatus(status || ''); if (onNavigate) onNavigate(tab); };
+
+  const fmtM = (v) => v != null ? `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}` : '—';
+  const kpis = [
+    { label: 'Total Colaboradores', value: dash.total, bg: '#0a0a0a', onClick: () => goTo(1) },
+    { label: 'Ativos', value: dash.ativos, bg: '#00B39D', onClick: () => goTo(1, 'ativo') },
+    { label: 'Em Férias', value: dash.ferias, bg: '#3b82f6', onClick: () => goTo(7) },
+    { label: 'Em Licença', value: dash.licenca, bg: '#f59e0b', onClick: () => goTo(7) },
+    { label: 'Inativos', value: dash.inativos, bg: '#6b7280', onClick: () => goTo(1, 'inativo') },
+    { label: 'Custo Mensal', value: fmtM(dash.custoMensal), bg: '#dc2626' },
+    { label: 'Turnover', value: `${dash.turnover || 0}%`, bg: dash.turnover > 15 ? '#ef4444' : '#10b981' },
+  ];
+
   return (
     <>
-      {/* KPIs */}
       <div style={styles.kpiGrid}>
-        <div style={styles.kpi(C.primary)}>
-          <div style={styles.kpiValue}>{dash.total}</div>
-          <div style={styles.kpiLabel}>Total Colaboradores</div>
-        </div>
-        <div style={styles.kpi(C.green)}>
-          <div style={styles.kpiValue}>{dash.ativos}</div>
-          <div style={styles.kpiLabel}>Ativos</div>
-        </div>
-        <div style={styles.kpi(C.blue)}>
-          <div style={styles.kpiValue}>{dash.ferias}</div>
-          <div style={styles.kpiLabel}>Em Férias</div>
-        </div>
-        <div style={styles.kpi(C.amber)}>
-          <div style={styles.kpiValue}>{dash.licenca}</div>
-          <div style={styles.kpiLabel}>Em Licença</div>
-        </div>
-        <div style={styles.kpi(C.text3)}>
-          <div style={styles.kpiValue}>{dash.inativos}</div>
-          <div style={styles.kpiLabel}>Inativos</div>
-        </div>
+        {kpis.map((k, i) => (
+          <StatCard key={k.label} label={k.label} value={k.value} bg={k.bg} svg={kpiSvgs[i]} onClick={k.onClick} />
+        ))}
       </div>
 
-      {/* Por tipo de contrato */}
+      {/* Métricas extras — mesmo layout StatCard */}
+      <div style={styles.kpiGrid}>
+        {[
+          { label: 'Admissões (12m)', value: dash.admissoesAno ?? 0, bg: '#10b981' },
+          { label: 'Desligamentos (12m)', value: dash.desligamentosAno ?? 0, bg: '#ef4444' },
+          { label: 'Admissões Pendentes', value: dash.admissoesPendentes ?? 0, bg: '#f59e0b' },
+          { label: 'Treinamentos Pend.', value: dash.treinosPendentes ?? 0, bg: '#3b82f6' },
+          { label: 'Folha Salarial', value: fmtM(dash.totalSalarios), bg: '#0a0a0a' },
+        ].map((k, i) => (
+          <StatCard key={k.label} label={k.label} value={k.value} bg={k.bg} svg={kpiSvgs[i % kpiSvgs.length]} />
+        ))}
+      </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
         <div style={styles.card}>
           <div style={styles.cardHeader}><div style={styles.cardTitle}>Por Tipo de Contrato</div></div>
@@ -373,7 +415,6 @@ function DashboardTab({ dash }) {
         </div>
       </div>
 
-      {/* Alertas */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         <div style={styles.card}>
           <div style={styles.cardHeader}><div style={styles.cardTitle}>📅 Férias Próximas (30 dias)</div></div>
@@ -414,11 +455,7 @@ function FuncionariosTab({ funcs, loading, busca, setBusca, filtroStatus, setFil
   return (
     <>
       <div style={styles.filterRow}>
-        <input
-          style={{ ...styles.input, maxWidth: 280 }}
-          placeholder="🔍 Buscar por nome..." value={busca}
-          onChange={e => setBusca(e.target.value)}
-        />
+        <input style={{ ...styles.input, maxWidth: 280 }} placeholder="🔍 Buscar por nome..." value={busca} onChange={e => setBusca(e.target.value)} />
         <select style={styles.select} value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
           <option value="">Todos os status</option>
           {Object.entries(STATUS_COLORS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
@@ -428,7 +465,7 @@ function FuncionariosTab({ funcs, loading, busca, setBusca, filtroStatus, setFil
           {areas.map(a => <option key={a} value={a}>{a}</option>)}
         </select>
         <div style={{ marginLeft: 'auto' }}>
-          <button style={styles.btn('primary')} onClick={onNew}>+ Novo Colaborador</button>
+          <Button onClick={onNew}>+ Novo Colaborador</Button>
         </div>
       </div>
 
@@ -472,7 +509,7 @@ function FuncionariosTab({ funcs, loading, busca, setBusca, filtroStatus, setFil
                   <td style={styles.td}>{fmtDate(f.data_admissao)}</td>
                   <td style={styles.td}><Badge status={f.status} map={STATUS_COLORS} /></td>
                   <td style={styles.td}>
-                    <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={e => { e.stopPropagation(); onDelete(f.id); }}>🗑</button>
+                    <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); onDelete(f.id); }}>🗑</Button>
                   </td>
                 </tr>
               ))}
@@ -593,7 +630,7 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-        <button style={styles.btn('primary')} onClick={onNew}>+ Novo Treinamento</button>
+        <Button onClick={onNew}>+ Novo Treinamento</Button>
       </div>
 
       {treinos.length === 0 && <div style={styles.empty}>Nenhum treinamento cadastrado</div>}
@@ -615,8 +652,8 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 6 }}>
-                  <button style={{ ...styles.btn('secondary'), ...styles.btnSm }} onClick={() => onEdit(t)}><Pencil style={{ width: 14, height: 14 }} /></button>
-                  <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => onDelete(t.id)}><Trash2 style={{ width: 14, height: 14 }} /></button>
+                  <Button variant="outline" size="sm" onClick={() => onEdit(t)}><Pencil style={{ width: 14, height: 14 }} /></Button>
+                  <Button variant="ghost" size="sm" onClick={() => onDelete(t.id)}><Trash2 style={{ width: 14, height: 14 }} /></Button>
                 </div>
               </div>
               {t.descricao && <div style={{ padding: '8px 20px', fontSize: 13, color: C.text2 }}>{t.descricao}</div>}
@@ -651,14 +688,14 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
                       <option value="">Selecionar colaborador</option>
                       {funcs.filter(f => f.status === 'ativo').map(f => <option key={f.id} value={f.id}>{f.nome}</option>)}
                     </select>
-                    <button style={{ ...styles.btn('primary'), ...styles.btnSm }}
+                    <Button size="sm"
                       onClick={async () => { if (funcSel) { await onInscrever(t.id, funcSel); setInscrevendo(null); setFuncSel(''); } }}>
                       OK
-                    </button>
-                    <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => setInscrevendo(null)}>✕</button>
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => setInscrevendo(null)}>✕</Button>
                   </div>
                 ) : (
-                  <button style={{ ...styles.btn('ghost'), marginTop: 6, fontSize: 12 }} onClick={() => setInscrevendo(t.id)}>+ Inscrever colaborador</button>
+                  <Button variant="ghost" className="mt-1.5 text-xs" onClick={() => setInscrevendo(t.id)}>+ Inscrever colaborador</Button>
                 )}
               </div>
 
@@ -706,9 +743,9 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
                                 </a>
                               )}
                             </div>
-                            <button style={{ ...styles.btn('ghost'), ...styles.btnSm, color: C.red }} onClick={() => handleDeleteMaterial(mat.id, t.id)}>
+                            <Button variant="ghost" size="sm" style={{ color: C.red }} onClick={() => handleDeleteMaterial(mat.id, t.id)}>
                               <Trash2 style={{ width: 13, height: 13 }} />
-                            </button>
+                            </Button>
                           </div>
 
                           {/* Resumo de status */}
@@ -741,12 +778,12 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                     <Badge status={d.status} map={MATERIAL_STATUS} />
                                     {d.status === 'pendente' && (
-                                      <button style={{ ...styles.btn('ghost'), ...styles.btnSm, fontSize: 10 }}
-                                        onClick={() => handleStatusUpdate(d.id, 'concluido', t.id)}>Marcar concluído</button>
+                                      <Button variant="ghost" size="sm" className="text-[10px]"
+                                        onClick={() => handleStatusUpdate(d.id, 'concluido', t.id)}>Marcar concluído</Button>
                                     )}
                                     {d.status === 'visualizado' && (
-                                      <button style={{ ...styles.btn('ghost'), ...styles.btnSm, fontSize: 10 }}
-                                        onClick={() => handleStatusUpdate(d.id, 'concluido', t.id)}>Marcar concluído</button>
+                                      <Button variant="ghost" size="sm" className="text-[10px]"
+                                        onClick={() => handleStatusUpdate(d.id, 'concluido', t.id)}>Marcar concluído</Button>
                                     )}
                                   </div>
                                 </div>
@@ -777,24 +814,24 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
                                 })}
                               </div>
                               <div style={{ display: 'flex', gap: 8 }}>
-                                <button style={{ ...styles.btn('primary'), ...styles.btnSm }}
+                                <Button size="sm"
                                   onClick={() => handleEnviar(mat.id, t.id)} disabled={!enviarSel.length}>
                                   Enviar ({enviarSel.length})
-                                </button>
-                                <button style={{ ...styles.btn('ghost'), ...styles.btnSm }}
-                                  onClick={() => { setShowEnviar(null); setEnviarSel([]); }}>Cancelar</button>
-                                <button style={{ ...styles.btn('ghost'), ...styles.btnSm, marginLeft: 'auto' }}
+                                </Button>
+                                <Button variant="ghost" size="sm"
+                                  onClick={() => { setShowEnviar(null); setEnviarSel([]); }}>Cancelar</Button>
+                                <Button variant="ghost" size="sm" style={{ marginLeft: 'auto' }}
                                   onClick={() => {
                                     const todos = funcs.filter(f => f.status === 'ativo' && !destinatarios.some(d => d.funcionario?.id === f.id)).map(f => f.id);
                                     setEnviarSel(todos);
-                                  }}>Selecionar todos</button>
+                                  }}>Selecionar todos</Button>
                               </div>
                             </div>
                           ) : (
-                            <button style={{ ...styles.btn('ghost'), fontSize: 12, marginTop: 4 }}
+                            <Button variant="ghost" className="text-xs mt-1"
                               onClick={() => { setShowEnviar(mat.id); setEnviarSel([]); }}>
                               + Enviar para colaboradores
-                            </button>
+                            </Button>
                           )}
                         </div>
                       );
@@ -847,8 +884,8 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
                                   <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{matFile.name}</div>
                                   <div style={{ fontSize: 11, color: C.text3 }}>{(matFile.size / 1024 / 1024).toFixed(1)} MB</div>
                                 </div>
-                                <button type="button" onClick={e => { e.stopPropagation(); setMatFile(null); if (fileRef.current) fileRef.current.value = ''; }}
-                                  style={{ ...styles.btn('ghost'), color: C.red, fontSize: 14 }}>✕</button>
+                                <Button variant="ghost" type="button" onClick={e => { e.stopPropagation(); setMatFile(null); if (fileRef.current) fileRef.current.value = ''; }}
+                                  style={{ color: C.red }} className="text-sm">✕</Button>
                               </div>
                             ) : (
                               <>
@@ -861,19 +898,19 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
                         </div>
 
                         <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                          <button style={styles.btn('primary')} onClick={() => handleUploadMaterial(t.id)} disabled={uploading}>
+                          <Button onClick={() => handleUploadMaterial(t.id)} disabled={uploading}>
                             {uploading ? 'Enviando...' : 'Adicionar Material'}
-                          </button>
-                          <button style={styles.btn('ghost')} onClick={() => { setShowAddMaterial(null); setMatFile(null); setMatForm({ titulo: '', tipo: 'material', descricao: '', obrigatorio: false }); }}>
+                          </Button>
+                          <Button variant="ghost" onClick={() => { setShowAddMaterial(null); setMatFile(null); setMatForm({ titulo: '', tipo: 'material', descricao: '', obrigatorio: false }); }}>
                             Cancelar
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     ) : (
-                      <button style={{ ...styles.btn('secondary'), fontSize: 12, marginTop: 4 }}
+                      <Button variant="outline" className="text-xs mt-1"
                         onClick={() => setShowAddMaterial(t.id)}>
                         + Adicionar Material
-                      </button>
+                      </Button>
                     )}
                   </div>
                 )}
@@ -889,17 +926,70 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
 // ═══════════════════════════════════════════════════════════
 // TAB: FÉRIAS/LICENÇAS
 // ═══════════════════════════════════════════════════════════
-function FeriasTab({ dash, funcs, onNew, onAprovar }) {
-  const ferias = dash?.feriasProximas || [];
-  // Mostrar todas as férias (precisaria de endpoint separado, por ora usa dashboard)
+function FeriasTab({ funcs, onNew, onAprovar }) {
+  const [ferias, setFerias] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filtroStatus, setFiltroStatus] = useState('');
+  const [filtroArea, setFiltroArea] = useState('');
+  const [filtroDe, setFiltroDe] = useState('');
+  const [filtroAte, setFiltroAte] = useState('');
+  const [filtroFunc, setFiltroFunc] = useState('');
+
+  const areas = [...new Set((funcs || []).map(f => f.area).filter(Boolean))];
+
+  const loadFerias = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = {};
+      if (filtroStatus) params.status = filtroStatus;
+      if (filtroArea) params.area = filtroArea;
+      if (filtroDe) params.data_de = filtroDe;
+      if (filtroAte) params.data_ate = filtroAte;
+      if (filtroFunc) params.funcionario_id = filtroFunc;
+      setFerias(await rh.ferias.list(Object.keys(params).length ? params : undefined) || []);
+    } catch (e) { console.error(e); }
+    setLoading(false);
+  }, [filtroStatus, filtroArea, filtroDe, filtroAte, filtroFunc]);
+
+  useEffect(() => { loadFerias(); }, [loadFerias]);
+
+  async function handleAprovar(id, status) {
+    await onAprovar(id, status);
+    loadFerias();
+  }
+
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-        <button style={styles.btn('primary')} onClick={onNew}>+ Nova Solicitação</button>
+      <div style={styles.filterRow}>
+        <select style={styles.select} value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
+          <option value="">Todos os status</option>
+          <option value="pendente">Pendente</option>
+          <option value="aprovado">Aprovado</option>
+          <option value="rejeitado">Rejeitado</option>
+        </select>
+        <select style={styles.select} value={filtroArea} onChange={e => setFiltroArea(e.target.value)}>
+          <option value="">Todas as áreas</option>
+          {areas.map(a => <option key={a} value={a}>{a}</option>)}
+        </select>
+        <select style={styles.select} value={filtroFunc} onChange={e => setFiltroFunc(e.target.value)}>
+          <option value="">Todos os colaboradores</option>
+          {(funcs || []).filter(f => f.status === 'ativo').map(f => <option key={f.id} value={f.id}>{f.nome}</option>)}
+        </select>
+        <input style={{ ...styles.input, maxWidth: 140 }} type="date" value={filtroDe} onChange={e => setFiltroDe(e.target.value)} placeholder="De" title="Data início de" />
+        <input style={{ ...styles.input, maxWidth: 140 }} type="date" value={filtroAte} onChange={e => setFiltroAte(e.target.value)} placeholder="Até" title="Data início até" />
+        {(filtroStatus || filtroArea || filtroDe || filtroAte || filtroFunc) && (
+          <Button variant="ghost" size="sm" onClick={() => { setFiltroStatus(''); setFiltroArea(''); setFiltroDe(''); setFiltroAte(''); setFiltroFunc(''); }}>✕ Limpar</Button>
+        )}
+        <div style={{ marginLeft: 'auto' }}>
+          <Button onClick={onNew}>+ Nova Solicitação</Button>
+        </div>
       </div>
 
       <div style={styles.card}>
-        <div style={styles.cardHeader}><div style={styles.cardTitle}>Férias e Licenças</div></div>
+        <div style={styles.cardHeader}>
+          <div style={styles.cardTitle}>Férias e Licenças ({ferias.length})</div>
+          <Button variant="ghost" size="sm" onClick={loadFerias}>🔄</Button>
+        </div>
         <div style={{ overflowX: 'auto' }}>
           <table style={styles.table}>
             <thead>
@@ -908,29 +998,51 @@ function FeriasTab({ dash, funcs, onNew, onAprovar }) {
                 <th style={styles.th}>Tipo</th>
                 <th style={styles.th}>Início</th>
                 <th style={styles.th}>Fim</th>
+                <th style={styles.th}>Dias</th>
                 <th style={styles.th}>Status</th>
+                <th style={styles.th}>Obs.</th>
                 <th style={styles.th}>Ações</th>
               </tr>
             </thead>
             <tbody>
-              {ferias.length === 0 && <tr><td colSpan={6} style={{ ...styles.td, textAlign: 'center', color: C.text3 }}>Nenhuma solicitação</td></tr>}
-              {ferias.map(f => (
-                <tr key={f.id}>
-                  <td style={{ ...styles.td, fontWeight: 600 }}>{f.rh_funcionarios?.nome || '—'}</td>
-                  <td style={styles.td}>{TIPO_FERIAS[f.tipo] || f.tipo}</td>
-                  <td style={styles.td}>{fmtDate(f.data_inicio)}</td>
-                  <td style={styles.td}>{fmtDate(f.data_fim)}</td>
-                  <td style={styles.td}><Badge status={f.status} map={FERIAS_STATUS} /></td>
-                  <td style={styles.td}>
-                    {f.status === 'pendente' && (
-                      <div style={{ display: 'flex', gap: 4 }}>
-                        <button style={{ ...styles.btn('primary'), ...styles.btnSm }} onClick={() => onAprovar(f.id, 'aprovado')}>✓</button>
-                        <button style={{ ...styles.btn('danger'), ...styles.btnSm }} onClick={() => onAprovar(f.id, 'rejeitado')}>✕</button>
+              {loading && <tr><td colSpan={8} style={{ ...styles.td, textAlign: 'center', color: C.text3 }}>Carregando...</td></tr>}
+              {!loading && ferias.length === 0 && <tr><td colSpan={8} style={{ ...styles.td, textAlign: 'center', color: C.text3 }}>Nenhuma solicitação</td></tr>}
+              {ferias.map(f => {
+                const dias = f.data_inicio && f.data_fim ? Math.ceil((new Date(f.data_fim) - new Date(f.data_inicio)) / 86400000) : '—';
+                return (
+                  <tr key={f.id}>
+                    <td style={styles.td}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        {f.rh_funcionarios?.foto_url ? (
+                          <img src={f.rh_funcionarios.foto_url} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                        ) : (
+                          <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#00B39D18', color: '#00B39D', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, flexShrink: 0 }}>
+                            {(f.rh_funcionarios?.nome || '?')[0].toUpperCase()}
+                          </div>
+                        )}
+                        <div>
+                          <div style={{ fontWeight: 600 }}>{f.rh_funcionarios?.nome}</div>
+                          <div style={{ fontSize: 12, color: C.text3 }}>{f.rh_funcionarios?.cargo}</div>
+                        </div>
                       </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td style={styles.td}>{TIPO_FERIAS[f.tipo] || f.tipo}</td>
+                    <td style={styles.td}>{fmtDate(f.data_inicio)}</td>
+                    <td style={styles.td}>{fmtDate(f.data_fim)}</td>
+                    <td style={{ ...styles.td, fontWeight: 600 }}>{dias}</td>
+                    <td style={styles.td}><Badge status={f.status} map={FERIAS_STATUS} /></td>
+                    <td style={{ ...styles.td, fontSize: 12, color: C.text3, maxWidth: 150 }}>{f.observacoes || '—'}</td>
+                    <td style={styles.td}>
+                      {f.status === 'pendente' && (
+                        <div style={{ display: 'flex', gap: 4 }}>
+                          <Button size="sm" onClick={() => handleAprovar(f.id, 'aprovado')}>✓</Button>
+                          <Button variant="destructive" size="sm" onClick={() => handleAprovar(f.id, 'rejeitado')}>✕</Button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -940,10 +1052,164 @@ function FeriasTab({ dash, funcs, onNew, onAprovar }) {
 }
 
 // ═══════════════════════════════════════════════════════════
+// TAB: ORGANOGRAMA (visual flowchart)
+// ═══════════════════════════════════════════════════════════
+function OrgChartTab({ funcs, onDetail }) {
+  const ativos = funcs.filter(f => f.status === 'ativo');
+  const containerRef = useRef(null);
+  const [zoom, setZoom] = useState(0.85);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const dragStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
+
+  function handleWheel(e) {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.05 : 0.05;
+    setZoom(z => Math.max(0.3, Math.min(2, z + delta)));
+  }
+
+  function handleMouseDown(e) {
+    if (e.target.closest('[data-orgcard]')) return; // don't drag when clicking cards
+    setDragging(true);
+    dragStart.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y };
+  }
+
+  function handleMouseMove(e) {
+    if (!dragging) return;
+    setPan({
+      x: dragStart.current.panX + (e.clientX - dragStart.current.x),
+      y: dragStart.current.panY + (e.clientY - dragStart.current.y),
+    });
+  }
+
+  function handleMouseUp() { setDragging(false); }
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
+  }, []);
+
+  function getChildren(gestorId) {
+    return ativos.filter(f => (f.gestor_id || null) === gestorId).sort((a, b) => a.nome.localeCompare(b.nome));
+  }
+
+  // Card do colaborador
+  function OrgCard({ func, highlight }) {
+    return (
+      <div
+        data-orgcard
+        onClick={() => onDetail(func.id)}
+        style={{
+          background: 'var(--cbrio-card)', border: `2px solid ${highlight ? C.primary : C.border}`,
+          borderRadius: 12, padding: '14px 20px', textAlign: 'center', cursor: 'pointer',
+          minWidth: 140, maxWidth: 200, transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.25)'; e.currentTarget.style.borderColor = C.primary; }}
+        onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = highlight ? C.primary : C.border; }}
+      >
+        {func.foto_url ? (
+          <img src={func.foto_url} alt="" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', margin: '0 auto 8px', display: 'block', border: `2px solid ${C.primary}` }} />
+        ) : (
+          <div style={{ width: 44, height: 44, borderRadius: '50%', background: C.primaryBg, color: C.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, margin: '0 auto 8px' }}>
+            {func.nome[0].toUpperCase()}
+          </div>
+        )}
+        <div style={{ fontSize: 12, fontWeight: 700, color: C.text, lineHeight: 1.3 }}>{func.cargo || func.area || '—'}</div>
+        <div style={{ fontSize: 11, color: C.text2, marginTop: 2 }}>{func.nome}</div>
+      </div>
+    );
+  }
+
+  // Nó recursivo da árvore visual
+  function OrgTreeNode({ func }) {
+    const children = getChildren(func.id);
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <OrgCard func={func} highlight={children.length > 0} />
+        {children.length > 0 && (
+          <>
+            {/* Linha vertical descendo do pai */}
+            <div style={{ width: 2, height: 24, background: C.primary, opacity: 0.4 }} />
+            {/* Container dos filhos */}
+            <div style={{ position: 'relative', display: 'flex', gap: 16, justifyContent: 'center' }}>
+              {/* Linha horizontal conectando filhos */}
+              {children.length > 1 && (
+                <div style={{
+                  position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
+                  width: `calc(100% - 140px)`, height: 2, background: C.primary, opacity: 0.4,
+                }} />
+              )}
+              {children.map(child => (
+                <div key={child.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  {/* Linha vertical subindo para conectar */}
+                  <div style={{ width: 2, height: 24, background: C.primary, opacity: 0.4 }} />
+                  <OrgTreeNode func={child} />
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  const roots = getChildren(null);
+  const comGestor = ativos.filter(f => f.gestor_id).length;
+
+  return (
+    <>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <div style={{ fontSize: 13, color: C.text2 }}>
+          {ativos.length} colaboradores · {comGestor} com gestor definido
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Button variant="outline" size="icon-xs" onClick={() => setZoom(z => Math.max(0.3, z - 0.1))}>−</Button>
+          <span style={{ fontSize: 12, color: C.text3, minWidth: 40, textAlign: 'center' }}>{Math.round(zoom * 100)}%</span>
+          <Button variant="outline" size="icon-xs" onClick={() => setZoom(z => Math.min(2, z + 0.1))}>+</Button>
+          <Button variant="ghost" size="xs" onClick={() => { setZoom(0.85); setPan({ x: 0, y: 0 }); }}>Reset</Button>
+        </div>
+      </div>
+      <div style={{ fontSize: 11, color: C.text3, marginBottom: 8 }}>Scroll para zoom · Arraste para mover · Clique no card para detalhes</div>
+      {roots.length === 0 ? (
+        <div style={styles.empty}>
+          <div style={{ fontSize: 28, marginBottom: 8 }}>🏢</div>
+          Defina o campo "Gestor Direto" em cada colaborador para montar o organograma.
+        </div>
+      ) : (
+        <div
+          ref={containerRef}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          style={{
+            overflow: 'hidden', borderRadius: 12, border: `1px solid ${C.border}`,
+            background: 'var(--cbrio-input-bg)', cursor: dragging ? 'grabbing' : 'grab',
+            height: 'calc(100vh - 280px)', minHeight: 400, position: 'relative',
+          }}
+        >
+          <div style={{
+            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+            transformOrigin: 'top center',
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            minWidth: 'max-content', padding: '40px 60px 80px',
+            transition: dragging ? 'none' : 'transform 0.1s ease-out',
+          }}>
+            {roots.map(r => <OrgTreeNode key={r.id} func={r} />)}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
 // MODAIS
 // ═══════════════════════════════════════════════════════════
 
-function FuncionarioFormModal({ open, data, onClose, onSave }) {
+function FuncionarioFormModal({ open, data, onClose, onSave, funcionarios = [] }) {
   const [f, setF] = useState({});
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -978,7 +1244,12 @@ function FuncionarioFormModal({ open, data, onClose, onSave }) {
   return (
     <Modal open={open} onClose={onClose}
       title={f?.id ? 'Editar Colaborador' : 'Novo Colaborador'}
-      footer={<button style={styles.btn('primary')} onClick={() => onSave(f)} disabled={uploading}>Salvar</button>}>
+      footer={<>
+        <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+        <Button className="text-sm px-8 py-2.5" onClick={() => onSave(f)} disabled={uploading}>
+          {uploading ? 'Enviando foto...' : f?.id ? '💾 Salvar Alterações' : '✅ Admitir Colaborador'}
+        </Button>
+      </>}>
       <Input label="Nome *" value={f.nome || ''} onChange={e => upd('nome', e.target.value)} />
       <div style={styles.formRow}>
         <Input label="CPF" value={f.cpf || ''} onChange={e => upd('cpf', e.target.value)} />
@@ -998,6 +1269,10 @@ function FuncionarioFormModal({ open, data, onClose, onSave }) {
         <Input label="Data Admissão *" type="date" value={f.data_admissao || ''} onChange={e => upd('data_admissao', e.target.value)} />
         <Input label="Salário (R$)" type="number" value={f.salario || ''} onChange={e => upd('salario', e.target.value)} />
       </div>
+      <Select label="Gestor Direto" value={f.gestor_id || ''} onChange={e => upd('gestor_id', e.target.value || null)}>
+        <option value="">Nenhum (nível máximo)</option>
+        {funcionarios.filter(fn => fn.id !== f.id && fn.status === 'ativo').map(fn => <option key={fn.id} value={fn.id}>{fn.nome} — {fn.cargo}</option>)}
+      </Select>
       {f.id && (
         <div style={styles.formRow}>
           <Select label="Status" value={f.status || 'ativo'} onChange={e => upd('status', e.target.value)}>
@@ -1068,7 +1343,7 @@ function TreinamentoFormModal({ open, data, onClose, onSave }) {
   return (
     <Modal open={open} onClose={onClose}
       title={f?.id ? 'Editar Treinamento' : 'Novo Treinamento'}
-      footer={<button style={styles.btn('primary')} onClick={() => onSave(f)}>Salvar</button>}>
+      footer={<Button onClick={() => onSave(f)}>Salvar</Button>}>
       <Input label="Título *" value={f.titulo || ''} onChange={e => upd('titulo', e.target.value)} />
       <div style={styles.formRow}>
         <Input label="Data Início *" type="date" value={f.data_inicio || ''} onChange={e => upd('data_inicio', e.target.value)} />
@@ -1096,7 +1371,7 @@ function FeriasFormModal({ open, funcs, onClose, onSave }) {
 
   return (
     <Modal open={open} onClose={onClose} title="Nova Solicitação de Férias/Licença"
-      footer={<button style={styles.btn('primary')} onClick={() => onSave(f)}>Solicitar</button>}>
+      footer={<Button onClick={() => onSave(f)}>Solicitar</Button>}>
       <Select label="Colaborador *" value={f.funcionario_id || ''} onChange={e => upd('funcionario_id', e.target.value)}>
         <option value="">Selecionar</option>
         {(funcs || []).filter(fn => fn.status === 'ativo').map(fn => <option key={fn.id} value={fn.id}>{fn.nome}</option>)}
@@ -1116,12 +1391,450 @@ function FeriasFormModal({ open, funcs, onClose, onSave }) {
   );
 }
 
-function FuncionarioDetailModal({ open, data, onClose, onEdit, onDelete, onNewDoc, onDeleteDoc }) {
-  if (!data) return null;
+// ── Benefícios e Documentos sections ──
+const BENEFICIOS_FIELDS = [
+  { key: 'complemento_salario', label: 'Complemento Salário' },
+  { key: 'alimentacao', label: 'Alimentação' },
+  { key: 'transporte', label: 'Transporte' },
+  { key: 'saude', label: 'Saúde' },
+  { key: 'seguro_vida', label: 'Seguro de Vida' },
+  { key: 'educacao', label: 'Educação' },
+  { key: 'saldo_livre', label: 'Saldo Livre' },
+  { key: 'plano_saude', label: 'Plano de Saúde' },
+  { key: 'gratificacao', label: 'Gratificação' },
+  { key: 'adicional_nivel', label: 'Adicional de Nível' },
+  { key: 'participacao_comite', label: 'Comitê Estratégico' },
+  { key: 'veiculo', label: 'Veículo' },
+  { key: 'adicional_pastores', label: 'Adicional Pastores' },
+  { key: 'adicional_lideranca', label: 'Adicional Liderança' },
+  { key: 'adicional_pulpito', label: 'Adicional Púlpito' },
+];
+
+const DESCONTOS_FIELDS = [
+  { key: 'fgts', label: 'FGTS' },
+  { key: 'ir', label: 'IR' },
+  { key: 'inss', label: 'INSS' },
+];
+
+const TOTAIS_FIELDS = [
+  { key: 'remuneracao_bruta', label: 'Remuneração Bruta' },
+  { key: 'remuneracao_liquida', label: 'Remuneração Líquida' },
+  { key: 'custo_total_mensal', label: 'Custo Total Mensal' },
+];
+
+const BONUS_FIELDS = [
+  { key: 'bonus_anual_50', label: 'Bônus Anual 50%' },
+  { key: 'bonus_anual_integral', label: 'Bônus Anual Integral' },
+  { key: 'ferias_integral', label: 'Férias Integral' },
+];
+
+function BeneficiosSection({ data, onSave }) {
+  const [expanded, setExpanded] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({});
+  const [saving, setSaving] = useState(false);
+  const activeBenefits = BENEFICIOS_FIELDS.filter(b => Number(data[b.key]) > 0);
+  const isPJ = data.tipo_contrato === 'pj';
+  const remLiquida = isPJ ? data.salario : data.remuneracao_liquida;
+
+  function startEdit() {
+    const f = {};
+    [...BENEFICIOS_FIELDS, ...DESCONTOS_FIELDS, ...TOTAIS_FIELDS, ...BONUS_FIELDS].forEach(b => {
+      f[b.key] = data[b.key] || '';
+    });
+    f.salario = data.salario || '';
+    setForm(f);
+    setEditing(true);
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    const updates = {};
+    Object.entries(form).forEach(([k, v]) => { updates[k] = v === '' ? 0 : Number(v); });
+    try { await onSave(updates); setEditing(false); } catch { }
+    setSaving(false);
+  }
+
   return (
-    <Modal open={open} onClose={onClose} title={`👤 ${data.nome}`}>
+    <div style={{ marginBottom: 16 }}>
+      <button onClick={() => setExpanded(!expanded)}
+        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: 8 }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: C.text2, textTransform: 'uppercase' }}>💰 Benefícios e Remuneração ({activeBenefits.length}) {isPJ && <span style={{ color: C.amber, fontSize: 10 }}>• PJ</span>}</span>
+        <span style={{ fontSize: 12, color: C.text3, transition: 'transform 0.2s', transform: expanded ? 'rotate(180deg)' : '' }}>▼</span>
+      </button>
+      {expanded && (
+        <div style={{ background: 'var(--cbrio-input-bg)', borderRadius: 10, padding: 16 }}>
+          {/* Toolbar */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+            {!editing ? (
+              <Button variant="outline" size="xs" className="gap-1.5" onClick={startEdit}>
+                <Pencil className="h-3 w-3" />Editar Benefícios
+              </Button>
+            ) : (
+              <div style={{ display: 'flex', gap: 6 }}>
+                <Button variant="ghost" size="xs" onClick={() => setEditing(false)}>Cancelar</Button>
+                <Button size="xs" onClick={handleSave} disabled={saving}>{saving ? 'Salvando...' : 'Salvar'}</Button>
+              </div>
+            )}
+          </div>
+
+          {isPJ && (
+            <div style={{ padding: '8px 12px', background: '#f59e0b18', borderRadius: 8, marginBottom: 12, fontSize: 12, color: C.amber, border: '1px solid #f59e0b30' }}>
+              Vínculo PJ — sem descontos de FGTS, IR e INSS. Remuneração líquida = salário base.
+            </div>
+          )}
+
+          {/* Modo de edição */}
+          {editing ? (
+            <>
+              <div style={{ fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 6, textTransform: 'uppercase' }}>Salário Base</div>
+              <input type="number" step="0.01" value={form.salario} onChange={e => setForm(f => ({ ...f, salario: e.target.value }))}
+                style={{ ...styles.input, marginBottom: 12, maxWidth: 220 }} placeholder="R$" />
+
+              <div style={{ fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 6, textTransform: 'uppercase' }}>Benefícios</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px', marginBottom: 12 }}>
+                {BENEFICIOS_FIELDS.map(b => (
+                  <div key={b.key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <label style={{ fontSize: 11, color: C.text2, width: 120, flexShrink: 0 }}>{b.label}</label>
+                    <input type="number" step="0.01" value={form[b.key]} onChange={e => setForm(f => ({ ...f, [b.key]: e.target.value }))}
+                      style={{ ...styles.input, padding: '4px 8px', fontSize: 12 }} placeholder="0" />
+                  </div>
+                ))}
+              </div>
+
+              {!isPJ && (<>
+                <div style={{ fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 6, textTransform: 'uppercase' }}>Descontos (CLT)</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px 12px', marginBottom: 12 }}>
+                  {DESCONTOS_FIELDS.map(b => (
+                    <div key={b.key} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <label style={{ fontSize: 11, color: C.text2, width: 40, flexShrink: 0 }}>{b.label}</label>
+                      <input type="number" step="0.01" value={form[b.key]} onChange={e => setForm(f => ({ ...f, [b.key]: e.target.value }))}
+                        style={{ ...styles.input, padding: '4px 8px', fontSize: 12 }} placeholder="0" />
+                    </div>
+                  ))}
+                </div>
+              </>)}
+
+              <div style={{ fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 6, textTransform: 'uppercase' }}>Totais</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px', marginBottom: 12 }}>
+                {TOTAIS_FIELDS.map(b => (
+                  <div key={b.key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <label style={{ fontSize: 11, color: C.text2, width: 120, flexShrink: 0 }}>{b.label}</label>
+                    <input type="number" step="0.01" value={form[b.key]} onChange={e => setForm(f => ({ ...f, [b.key]: e.target.value }))}
+                      style={{ ...styles.input, padding: '4px 8px', fontSize: 12 }} placeholder="0" />
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 6, textTransform: 'uppercase' }}>Provisões Anuais</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px' }}>
+                {BONUS_FIELDS.map(b => (
+                  <div key={b.key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <label style={{ fontSize: 11, color: C.text2, width: 120, flexShrink: 0 }}>{b.label}</label>
+                    <input type="number" step="0.01" value={form[b.key]} onChange={e => setForm(f => ({ ...f, [b.key]: e.target.value }))}
+                      style={{ ...styles.input, padding: '4px 8px', fontSize: 12 }} placeholder="0" />
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Resumo financeiro */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: 12 }}>
+                {[
+                  { label: 'Salário Base', value: data.salario, color: C.primary },
+                  ...(!isPJ ? [{ label: 'Rem. Bruta', value: data.remuneracao_bruta, color: C.blue }] : []),
+                  { label: 'Rem. Líquida', value: remLiquida, color: C.green },
+                  { label: 'Custo Total', value: isPJ ? data.salario : data.custo_total_mensal, color: C.amber },
+                ].map(item => (
+                  <div key={item.label} style={{ padding: '10px 12px', borderRadius: 8, border: `1px solid ${C.border}`, borderLeft: `3px solid ${item.color}` }}>
+                    <div style={{ fontSize: 10, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>{item.label}</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{fmtMoney(item.value)}</div>
+                  </div>
+                ))}
+              </div>
+
+              {activeBenefits.length > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px' }}>
+                  {activeBenefits.map(b => (
+                    <div key={b.key} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: `1px solid ${C.border}` }}>
+                      <span style={{ fontSize: 12, color: C.text2 }}>{b.label}</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{fmtMoney(data[b.key])}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {!isPJ && (Number(data.fgts) > 0 || Number(data.ir) > 0 || Number(data.inss) > 0) && (
+                <div style={{ marginTop: 10, paddingTop: 8, borderTop: `1px solid ${C.border}` }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 4 }}>Descontos</div>
+                  <div style={{ display: 'flex', gap: 16 }}>
+                    {Number(data.fgts) > 0 && <span style={{ fontSize: 12, color: C.red }}>FGTS: {fmtMoney(data.fgts)}</span>}
+                    {Number(data.ir) > 0 && <span style={{ fontSize: 12, color: C.red }}>IR: {fmtMoney(data.ir)}</span>}
+                    {Number(data.inss) > 0 && <span style={{ fontSize: 12, color: C.red }}>INSS: {fmtMoney(data.inss)}</span>}
+                  </div>
+                </div>
+              )}
+
+              {(Number(data.bonus_anual_50) > 0 || Number(data.bonus_anual_integral) > 0 || Number(data.ferias_integral) > 0) && (
+                <div style={{ marginTop: 10, paddingTop: 8, borderTop: `1px solid ${C.border}` }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 4 }}>Provisões Anuais</div>
+                  <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                    {Number(data.bonus_anual_50) > 0 && <span style={{ fontSize: 12, color: C.text }}>Bônus 50%: {fmtMoney(data.bonus_anual_50)}</span>}
+                    {Number(data.bonus_anual_integral) > 0 && <span style={{ fontSize: 12, color: C.text }}>Bônus Integral: {fmtMoney(data.bonus_anual_integral)}</span>}
+                    {Number(data.ferias_integral) > 0 && <span style={{ fontSize: 12, color: C.text }}>Férias: {fmtMoney(data.ferias_integral)}</span>}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const DOCS_OBRIGATORIOS = {
+  clt: [
+    { tipo: 'contrato', label: 'Contrato de Trabalho' },
+    { tipo: 'rg', label: 'RG' },
+    { tipo: 'cpf', label: 'CPF' },
+    { tipo: 'ctps', label: 'CTPS' },
+    { tipo: 'comprovante_residencia', label: 'Comprovante de Residência' },
+  ],
+  pj: [
+    { tipo: 'contrato', label: 'Contrato de Prestação de Serviços' },
+    { tipo: 'cnpj', label: 'Cartão CNPJ' },
+    { tipo: 'cpf', label: 'CPF do Representante' },
+    { tipo: 'rg', label: 'RG do Representante' },
+  ],
+  voluntario: [
+    { tipo: 'contrato', label: 'Termo de Voluntariado' },
+    { tipo: 'rg', label: 'RG' },
+  ],
+  estagiario: [
+    { tipo: 'contrato', label: 'Contrato de Estágio' },
+    { tipo: 'rg', label: 'RG' },
+    { tipo: 'cpf', label: 'CPF' },
+    { tipo: 'comprovante_matricula', label: 'Comprovante de Matrícula' },
+  ],
+};
+
+function DocumentosSection({ data, onNewDoc, onDeleteDoc }) {
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef(null);
+
+  // Verificar docs obrigatórios faltando
+  const obrigatorios = DOCS_OBRIGATORIOS[data.tipo_contrato] || [];
+  const docsExistentes = (data.documentos || []).map(d => d.tipo?.toLowerCase());
+  const docsFaltando = obrigatorios.filter(req => !docsExistentes.some(t => t === req.tipo || t?.includes(req.tipo)));
+  const today = new Date().toISOString().slice(0, 10);
+  const docsVencidos = (data.documentos || []).filter(d => d.data_expiracao && d.data_expiracao < today);
+
+  async function handleUploadDoc(file) {
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { alert('Arquivo deve ter no máximo 10MB'); return; }
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const filePath = `documentos/${data.id}/${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage.from('rh-fotos').upload(filePath, file, { upsert: true });
+      if (error) throw error;
+      const { data: { publicUrl } } = supabase.storage.from('rh-fotos').getPublicUrl(filePath);
+      // Create document record
+      const tipo = ext.toLowerCase() === 'pdf' ? 'contrato' : ext.toLowerCase();
+      await rh.documentos.create(data.id, { nome: file.name, tipo, storage_path: publicUrl });
+      alert('Documento enviado com sucesso!');
+      // Reload - parent should handle
+    } catch (e) {
+      console.error(e);
+      alert('Erro ao enviar documento: ' + e.message);
+    } finally { setUploading(false); }
+  }
+
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: C.text2, textTransform: 'uppercase' }}>📄 Documentos ({(data.documentos || []).length})</span>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <input ref={fileRef} type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xls,.xlsx" style={{ display: 'none' }}
+            onChange={e => { handleUploadDoc(e.target.files?.[0]); e.target.value = ''; }} />
+          <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
+            {uploading ? '⏳ Enviando...' : '📎 Upload'}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => onNewDoc(data.id)}>+ Manual</Button>
+        </div>
+      </div>
+      {/* Alertas de documentos */}
+      {docsFaltando.length > 0 && (
+        <div style={{ padding: '10px 14px', background: '#f59e0b12', border: '1px solid #f59e0b30', borderRadius: 8, marginBottom: 10 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.amber, marginBottom: 4 }}>Documentos obrigatórios faltando ({docsFaltando.length})</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {docsFaltando.map(d => (
+              <span key={d.tipo} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, background: '#f59e0b20', color: C.amber, fontWeight: 500 }}>{d.label}</span>
+            ))}
+          </div>
+        </div>
+      )}
+      {docsVencidos.length > 0 && (
+        <div style={{ padding: '10px 14px', background: '#ef444412', border: '1px solid #ef444430', borderRadius: 8, marginBottom: 10 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.red, marginBottom: 4 }}>Documentos VENCIDOS ({docsVencidos.length})</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {docsVencidos.map(d => (
+              <span key={d.id} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, background: '#ef444420', color: C.red, fontWeight: 500 }}>{d.nome} (exp: {fmtDate(d.data_expiracao)})</span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {(data.documentos || []).map(d => (
+        <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: `1px solid ${C.border}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 16 }}>{d.storage_path ? '📄' : '📋'}</span>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{d.nome}</div>
+              <div style={{ fontSize: 11, color: C.text3 }}>{d.tipo}{d.data_expiracao ? ` • exp: ${fmtDate(d.data_expiracao)}` : ''}</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            {d.storage_path && <a href={d.storage_path} target="_blank" rel="noopener noreferrer" style={{ color: C.primary, textDecoration: 'none' }} className="inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-3">⬇ Baixar</a>}
+            <Button variant="ghost" size="sm" onClick={() => onDeleteDoc(d.id, data.id)}>🗑</Button>
+          </div>
+        </div>
+      ))}
+      {(data.documentos || []).length === 0 && <div style={{ fontSize: 13, color: C.text3, padding: '8px 0' }}>Nenhum documento — use o botão Upload para enviar</div>}
+    </div>
+  );
+}
+
+function NotasColaborador({ funcId, initialValue }) {
+  const [notas, setNotas] = useState(initialValue);
+  const [saved, setSaved] = useState(true);
+  const timerRef = useRef(null);
+
+  function handleChange(e) {
+    setNotas(e.target.value);
+    setSaved(false);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => saveNotas(e.target.value), 1500);
+  }
+
+  async function saveNotas(value) {
+    try {
+      await rh.funcionarios.update(funcId, { observacoes: value });
+      setSaved(true);
+    } catch (e) { console.error(e); }
+  }
+
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: C.text2, textTransform: 'uppercase' }}>📝 Anotações</span>
+        <span style={{ fontSize: 11, color: saved ? C.green : C.amber }}>{saved ? '✓ Salvo' : '⏳ Salvando...'}</span>
+      </div>
+      <textarea
+        style={{ ...styles.input, minHeight: 80, resize: 'vertical' }}
+        value={notas}
+        onChange={handleChange}
+        placeholder="Escreva anotações sobre este colaborador..."
+      />
+    </div>
+  );
+}
+
+const NIVEL_LABELS = { 1: 'Sem acesso', 2: 'Pessoal', 3: 'Área', 4: 'Setor', 5: 'Admin' };
+const NIVEL_COLORS = { 1: C.red, 2: C.amber, 3: C.blue, 4: C.green, 5: '#8b5cf6' };
+
+function FuncionarioDetailPanel({ open, data, onClose, onEdit, onDelete, onNewDoc, onDeleteDoc }) {
+  const [showPerms, setShowPerms] = useState(false);
+  const [permData, setPermData] = useState(null);
+  const [estrutura, setEstrutura] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { if (data && open) { setShowPerms(false); setPermData(null); } }, [data, open]);
+
+  async function loadPermissions() {
+    if (!estrutura) {
+      try { setEstrutura(await permissoes.estrutura()); } catch (e) { console.error(e); }
+    }
+    // Find or create user in permissions system by email or name
+    try {
+      let permUser = null;
+      if (data.email) {
+        permUser = await permissoes.usuarioPorEmail(data.email);
+      }
+      if (!permUser) {
+        // Create user in permissions system
+        const result = await permissoes.criarUsuario({ nome: data.nome, email: data.email || null, cargo_id: 2 });
+        permUser = { id: result.id };
+      }
+      const perms = await permissoes.usuario(permUser.id);
+      setPermData(perms);
+    } catch (e) { console.error(e); }
+    setShowPerms(true);
+  }
+
+  async function handleCargoChange(cargoId) {
+    if (!permData?.usuario) return;
+    setSaving(true);
+    try {
+      await permissoes.setCargo(permData.usuario.id, cargoId);
+      const perms = await permissoes.usuario(permData.usuario.id);
+      setPermData(perms);
+    } catch (e) { alert(e.message); }
+    setSaving(false);
+  }
+
+  async function handleAreaToggle(areaId) {
+    if (!permData?.usuario) return;
+    const currentIds = (permData.areas || []).map(a => a.area_id);
+    const newIds = currentIds.includes(areaId) ? currentIds.filter(id => id !== areaId) : [...currentIds, areaId];
+    setSaving(true);
+    try {
+      await permissoes.setAreas(permData.usuario.id, newIds);
+      const perms = await permissoes.usuario(permData.usuario.id);
+      setPermData(perms);
+    } catch (e) { alert(e.message); }
+    setSaving(false);
+  }
+
+  async function handleModuloChange(moduloId, tipo, nivel) {
+    if (!permData?.usuario) return;
+    const existing = (permData.overrides || []).find(o => o.modulo_id === moduloId);
+    const cargoDefault = permData.usuario.cargos || {};
+    const currentLeitura = existing?.nivel_leitura ?? cargoDefault.nivel_padrao_leitura ?? 1;
+    const currentEscrita = existing?.nivel_escrita ?? cargoDefault.nivel_padrao_escrita ?? 1;
+    setSaving(true);
+    try {
+      await permissoes.setModulo(permData.usuario.id, {
+        modulo_id: moduloId,
+        nivel_leitura: tipo === 'leitura' ? nivel : currentLeitura,
+        nivel_escrita: tipo === 'escrita' ? nivel : currentEscrita,
+      });
+      const perms = await permissoes.usuario(permData.usuario.id);
+      setPermData(perms);
+    } catch (e) { alert(e.message); }
+    setSaving(false);
+  }
+
+  if (!data || !open) return null;
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex' }}>
+      {/* Overlay */}
+      <div style={{ flex: 1, background: 'rgba(0,0,0,0.5)' }} onClick={onClose} />
+      {/* Panel */}
+      <div style={{ width: '55%', minWidth: 500, maxWidth: 800, background: 'var(--cbrio-modal-bg)', overflowY: 'auto', boxShadow: '-8px 0 30px rgba(0,0,0,0.3)', animation: 'slideInRight 0.25s ease-out' }}>
+        {/* Header */}
+        <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--cbrio-modal-bg)', padding: '20px 28px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>👤 {data.nome}</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => onEdit(data)}><Pencil className="h-3.5 w-3.5" />Editar</Button>
+            <Button variant="ghost" className="text-lg" onClick={onClose}>✕</Button>
+          </div>
+        </div>
+        <div style={{ padding: '24px 28px' }}>
       {/* Avatar + Info principal */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
         {data.foto_url ? (
           <img src={data.foto_url} alt="" style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', border: `3px solid ${C.primary}`, flexShrink: 0 }} />
         ) : (
@@ -1147,26 +1860,16 @@ function FuncionarioDetailModal({ open, data, onClose, onEdit, onDelete, onNewDo
         <div><span style={{ fontSize: 11, color: C.text2 }}>Status:</span><div><Badge status={data.status} map={STATUS_COLORS} /></div></div>
       </div>
 
-      {data.observacoes && (
-        <div style={{ padding: '8px 12px', background: 'var(--cbrio-input-bg)', borderRadius: 8, marginBottom: 16, fontSize: 13, color: C.text2 }}>{data.observacoes}</div>
-      )}
+      {/* Anotações editáveis */}
+      <NotasColaborador funcId={data.id} initialValue={data.observacoes || ''} />
 
-      {/* Documentos */}
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: C.text2, textTransform: 'uppercase' }}>📄 Documentos ({(data.documentos || []).length})</span>
-          <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => onNewDoc(data.id)}>+ Adicionar</button>
-        </div>
-        {(data.documentos || []).map(d => (
-          <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: `1px solid ${C.border}` }}>
-            <span style={{ fontSize: 13 }}>{d.nome} <span style={{ color: C.text3, fontSize: 11 }}>({d.tipo})</span></span>
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              {d.data_expiracao && <span style={{ fontSize: 11, color: C.text3 }}>exp: {fmtDate(d.data_expiracao)}</span>}
-              <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => onDeleteDoc(d.id, data.id)}>🗑</button>
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* Benefícios e Remuneração */}
+      <BeneficiosSection data={data} onSave={async (updated) => {
+        try { await rh.funcionarios.update(data.id, updated); onClose(); } catch (e) { alert(e.message); }
+      }} />
+
+      {/* Documentos com upload */}
+      <DocumentosSection data={data} onNewDoc={onNewDoc} onDeleteDoc={onDeleteDoc} onRefresh={() => onClose()} />
 
       {/* Treinamentos */}
       <div style={{ marginBottom: 16 }}>
@@ -1194,12 +1897,109 @@ function FuncionarioDetailModal({ open, data, onClose, onEdit, onDelete, onNewDo
         ))}
       </div>
 
-      {/* Actions */}
-      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 12, borderTop: `1px solid ${C.border}` }}>
-        <button style={styles.btn('secondary')} onClick={() => onEdit(data)}><Pencil style={{ width: 14, height: 14, display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Editar</button>
-        <button style={styles.btn('danger')} onClick={() => onDelete(data.id)}><Trash2 style={{ width: 14, height: 14, display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Remover</button>
+      {/* Permissões */}
+      <div style={{ marginBottom: 16, borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: C.text2, textTransform: 'uppercase' }}>🔐 Permissões do Sistema</span>
+          {!showPerms && <Button variant="outline" size="sm" onClick={loadPermissions}>Configurar</Button>}
+        </div>
+
+        {showPerms && permData && estrutura && (
+          <div style={{ background: 'var(--cbrio-input-bg)', borderRadius: 10, padding: 16 }}>
+            {/* Cargo / Nível base */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: C.text2, textTransform: 'uppercase', marginBottom: 6, display: 'block' }}>Nível de acesso base</label>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {(estrutura.cargos || []).map(c => (
+                  <button key={c.id} onClick={() => handleCargoChange(c.id)} disabled={saving}
+                    style={{
+                      padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                      border: `2px solid ${permData.usuario?.cargo_id === c.id ? NIVEL_COLORS[c.nivel_padrao_leitura] : C.border}`,
+                      background: permData.usuario?.cargo_id === c.id ? `${NIVEL_COLORS[c.nivel_padrao_leitura]}18` : 'transparent',
+                      color: permData.usuario?.cargo_id === c.id ? NIVEL_COLORS[c.nivel_padrao_leitura] : C.text2,
+                    }}>
+                    {c.nome}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Áreas vinculadas */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: C.text2, textTransform: 'uppercase', marginBottom: 6, display: 'block' }}>Áreas vinculadas</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+                {(estrutura.areas || []).map(a => {
+                  const isLinked = (permData.areas || []).some(ua => ua.area_id === a.id);
+                  return (
+                    <label key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.text, cursor: 'pointer', padding: '3px 0' }}>
+                      <input type="checkbox" checked={isLinked} onChange={() => handleAreaToggle(a.id)} disabled={saving} />
+                      {a.nome} <span style={{ fontSize: 10, color: C.text3 }}>({a.setores?.nome})</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Permissões por módulo */}
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 600, color: C.text2, textTransform: 'uppercase', marginBottom: 8, display: 'block' }}>Permissões por módulo</label>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                  <thead>
+                    <tr>
+                      <th style={{ textAlign: 'left', padding: '6px 8px', color: C.text2, fontWeight: 600, borderBottom: `1px solid ${C.border}` }}>Módulo</th>
+                      <th style={{ textAlign: 'center', padding: '6px 8px', color: C.text2, fontWeight: 600, borderBottom: `1px solid ${C.border}` }}>Leitura</th>
+                      <th style={{ textAlign: 'center', padding: '6px 8px', color: C.text2, fontWeight: 600, borderBottom: `1px solid ${C.border}` }}>Escrita</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(estrutura.modulos || []).map(mod => {
+                      const override = (permData.overrides || []).find(o => o.modulo_id === mod.id);
+                      const cargoDefault = permData.usuario?.cargos || {};
+                      const leitura = override?.nivel_leitura ?? cargoDefault.nivel_padrao_leitura ?? 1;
+                      const escrita = override?.nivel_escrita ?? cargoDefault.nivel_padrao_escrita ?? 1;
+                      const isOverridden = !!override;
+                      return (
+                        <tr key={mod.id}>
+                          <td style={{ padding: '6px 8px', borderBottom: `1px solid ${C.border}`, fontWeight: 500, color: C.text }}>
+                            {mod.nome}
+                            {isOverridden && <span style={{ fontSize: 9, color: C.amber, marginLeft: 4 }}>override</span>}
+                          </td>
+                          <td style={{ padding: '4px 8px', borderBottom: `1px solid ${C.border}`, textAlign: 'center' }}>
+                            <select value={leitura} onChange={e => handleModuloChange(mod.id, 'leitura', parseInt(e.target.value))}
+                              disabled={saving}
+                              style={{ padding: '3px 6px', borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 11, background: 'var(--cbrio-card)', color: NIVEL_COLORS[leitura], fontWeight: 600, cursor: 'pointer' }}>
+                              {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n} — {NIVEL_LABELS[n]}</option>)}
+                            </select>
+                          </td>
+                          <td style={{ padding: '4px 8px', borderBottom: `1px solid ${C.border}`, textAlign: 'center' }}>
+                            <select value={escrita} onChange={e => handleModuloChange(mod.id, 'escrita', parseInt(e.target.value))}
+                              disabled={saving}
+                              style={{ padding: '3px 6px', borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 11, background: 'var(--cbrio-card)', color: NIVEL_COLORS[escrita], fontWeight: 600, cursor: 'pointer' }}>
+                              {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n} — {NIVEL_LABELS[n]}</option>)}
+                            </select>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div style={{ fontSize: 10, color: C.text3, marginTop: 8 }}>
+                Níveis: 1=Sem acesso | 2=Pessoal | 3=Área | 4=Setor | 5=Admin
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-    </Modal>
+
+      {/* Actions */}
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 16, borderTop: `1px solid ${C.border}`, marginTop: 16 }}>
+        <Button variant="destructive" size="sm" className="gap-1.5" onClick={() => onDelete(data.id)}><Trash2 className="h-3.5 w-3.5" />Remover Colaborador</Button>
+      </div>
+        </div>{/* end padding div */}
+      </div>{/* end panel */}
+    </div>
   );
 }
 
@@ -1210,7 +2010,7 @@ function DocumentoFormModal({ open, data, onClose, onSave }) {
 
   return (
     <Modal open={open} onClose={onClose} title="📄 Novo Documento"
-      footer={<button style={styles.btn('primary')} onClick={() => onSave(data?.funcionario_id, f)}>Salvar</button>}>
+      footer={<Button onClick={() => onSave(data?.funcionario_id, f)}>Salvar</Button>}>
       <Input label="Nome do Documento *" value={f.nome || ''} onChange={e => upd('nome', e.target.value)} />
       <Select label="Tipo" value={f.tipo} onChange={e => upd('tipo', e.target.value)}>
         <option value="contrato">Contrato</option>

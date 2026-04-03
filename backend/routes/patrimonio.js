@@ -122,6 +122,23 @@ router.get('/bens', async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'Erro ao listar bens' }); }
 });
 
+// ── BUSCA POR CÓDIGO DE BARRAS (deve vir ANTES de /bens/:id) ──
+router.get('/bens/barcode/:codigo', async (req, res) => {
+  try {
+    const { data: bem, error } = await supabase.from('pat_bens')
+      .select('*, pat_categorias(nome), pat_localizacoes(nome)')
+      .eq('codigo_barras', req.params.codigo).single();
+    if (error || !bem) return res.status(404).json({ error: 'Bem não encontrado com este código de barras' });
+    const { data: movs } = await supabase.from('pat_movimentacoes')
+      .select('*, profiles!responsavel_id(name), origem:pat_localizacoes!localizacao_origem_id(nome), destino:pat_localizacoes!localizacao_destino_id(nome)')
+      .eq('bem_id', bem.id).order('data_movimentacao', { ascending: false }).limit(20);
+    res.json({ ...bem, movimentacoes: movs || [] });
+  } catch (e) {
+    console.error('[PAT] Busca por código:', e.message);
+    res.status(500).json({ error: 'Erro ao buscar por código de barras' });
+  }
+});
+
 router.get('/bens/:id', async (req, res) => {
   try {
     const { data: bem, error } = await supabase.from('pat_bens')

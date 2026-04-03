@@ -23,12 +23,39 @@ async function getToken() {
   return session?.access_token;
 }
 
+/**
+ * Calcula saldo de férias CLT: 30 dias a cada 12 meses trabalhados.
+ * Subtrai dias de férias já aprovadas.
+ */
+function calcSaldoFerias(func, feriasAprovadas) {
+  if (!func.data_admissao) return null;
+  const admissao = new Date(func.data_admissao + 'T12:00:00');
+  const hoje = new Date();
+  const mesesTrab = Math.floor((hoje - admissao) / (30.44 * 86400000));
+  const periodos = Math.floor(mesesTrab / 12); // períodos aquisitivos completos
+  const diasAdquiridos = periodos * 30;
+
+  // Dias já usados (aprovados, tipo férias)
+  const diasUsados = (feriasAprovadas || [])
+    .filter(f => f.funcionario_id === func.id && f.tipo === 'ferias' && f.status === 'aprovado')
+    .reduce((sum, f) => {
+      const d = Math.ceil((new Date(f.data_fim) - new Date(f.data_inicio)) / 86400000);
+      return sum + d;
+    }, 0);
+
+  const saldo = diasAdquiridos - diasUsados;
+  const mesesProxPeriodo = 12 - (mesesTrab % 12);
+  return { mesesTrab, periodos, diasAdquiridos, diasUsados, saldo, mesesProxPeriodo };
+}
+
 export default function TabFerias() {
   const [ferias, setFerias] = useState([]);
+  const [allFerias, setAllFerias] = useState([]); // todas aprovadas p/ cálculo de saldo
   const [loading, setLoading] = useState(true);
   const [filtroStatus, setFiltroStatus] = useState('pendente');
   const [mostrarForm, setMostrarForm] = useState(false);
   const [funcionarios, setFuncionarios] = useState([]);
+  const [showSaldos, setShowSaldos] = useState(false);
   const [form, setForm] = useState({ funcionario_id: '', tipo: 'ferias', data_inicio: '', data_fim: '', observacoes: '' });
 
   async function fetchFerias() {
@@ -48,8 +75,15 @@ export default function TabFerias() {
     setFuncionarios(Array.isArray(data) ? data : []);
   }
 
+  async function fetchAllAprovadas() {
+    const token = await getToken();
+    const res = await fetch(`${API}/api/rh/ferias?status=aprovado`, { headers: { Authorization: `Bearer ${token}` } });
+    const data = await res.json();
+    setAllFerias(Array.isArray(data) ? data : []);
+  }
+
   useEffect(() => { fetchFerias(); }, [filtroStatus]);
-  useEffect(() => { fetchFuncionarios(); }, []);
+  useEffect(() => { fetchFuncionarios(); fetchAllAprovadas(); }, []);
 
   async function handleSalvar(e) {
     e.preventDefault();
@@ -96,6 +130,51 @@ export default function TabFerias() {
           {mostrarForm ? 'Cancelar' : '+ Solicitar'}
         </button>
       </div>
+
+      {/* Saldo de Férias */}
+      <button onClick={() => setShowSaldos(!showSaldos)}
+        style={{ background: 'var(--cbrio-input-bg)', border: '1px solid var(--cbrio-border)', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, color: 'var(--cbrio-text2)', cursor: 'pointer', marginBottom: 16, width: '100%', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span>📊 Saldo de Férias por Colaborador (CLT)</span>
+        <span style={{ fontSize: 12, transform: showSaldos ? 'rotate(180deg)' : '', transition: 'transform 0.2s' }}>▼</span>
+      </button>
+      {showSaldos && (
+        <div style={{ background: 'var(--cbrio-card)', borderRadius: 12, boxShadow: '0 1px 4px rgba(0,0,0,0.2)', marginBottom: 20, overflow: 'hidden' }}>
+          <table style={s.table}>
+            <thead><tr>
+              <th style={s.th}>Colaborador</th>
+              <th style={s.th}>Meses Trab.</th>
+              <th style={s.th}>Períodos</th>
+              <th style={s.th}>Adquiridos</th>
+              <th style={s.th}>Usados</th>
+              <th style={s.th}>Saldo</th>
+              <th style={s.th}>Próx. Período</th>
+            </tr></thead>
+            <tbody>
+              {funcionarios
+                .filter(f => f.tipo_contrato === 'clt' && f.status === 'ativo')
+                .map(func => {
+                  const sal = calcSaldoFerias(func, allFerias);
+                  if (!sal) return null;
+                  const saldoColor = sal.saldo > 20 ? '#ef4444' : sal.saldo > 0 ? '#f59e0b' : '#10b981';
+                  return (
+                    <tr key={func.id}>
+                      <td style={s.td}>
+                        <div style={{ fontWeight: 600 }}>{func.nome}</div>
+                        <div style={{ fontSize: 12, color: 'var(--cbrio-text3)' }}>{func.cargo}</div>
+                      </td>
+                      <td style={s.td}>{sal.mesesTrab}</td>
+                      <td style={s.td}>{sal.periodos}</td>
+                      <td style={s.td}>{sal.diasAdquiridos} dias</td>
+                      <td style={s.td}>{sal.diasUsados} dias</td>
+                      <td style={{ ...s.td, fontWeight: 700, color: saldoColor }}>{sal.saldo} dias</td>
+                      <td style={s.td}><span style={{ fontSize: 12, color: 'var(--cbrio-text3)' }}>em {sal.mesesProxPeriodo} meses</span></td>
+                    </tr>
+                  );
+                })}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {mostrarForm && (
         <form onSubmit={handleSalvar} style={{ background: 'var(--cbrio-card)', borderRadius: 12, padding: 20, marginBottom: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>

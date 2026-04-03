@@ -8,7 +8,7 @@ import {
   Users, DollarSign, Truck, Tag,
   CalendarDays, FolderKanban, Map,
   UserCheck, UsersRound, Heart, HandHelping, BookOpen,
-  Megaphone,
+  Megaphone, BrainCircuit,
   Sun, Moon, Bell, LogOut, Check,
 } from 'lucide-react';
 
@@ -24,6 +24,12 @@ const NAV_ITEMS = [
           { label: 'Financeiro', description: 'Contas, transações e reembolsos', icon: DollarSign, path: '/admin/financeiro' },
           { label: 'Logística', description: 'Fornecedores, compras e pedidos', icon: Truck, path: '/admin/logistica' },
           { label: 'Patrimônio', description: 'Bens, localizações e inventário', icon: Tag, path: '/admin/patrimonio' },
+        ],
+      },
+      {
+        title: 'Inteligência',
+        items: [
+          { label: 'Assistente IA', description: 'Agentes de auditoria e análise', icon: BrainCircuit, path: '/assistente-ia' },
         ],
       },
     ],
@@ -211,28 +217,52 @@ export default function AppShell() {
                       Nenhuma notificação
                     </div>
                   ) : (
-                    notifs.slice(0, 20).map(n => (
-                      <div
-                        key={n.id}
-                        onClick={() => !n.lida && markRead(n.id)}
-                        style={{
-                          padding: '14px 20px', borderBottom: '1px solid var(--cbrio-border)',
-                          cursor: n.lida ? 'default' : 'pointer',
-                          background: n.lida ? 'transparent' : '#00B39D08',
-                        }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: 8 }}>
-                          <div style={{ flex: 1 }}>
-                            <p style={{ fontSize: 13, fontWeight: n.lida ? 400 : 600, color: 'var(--cbrio-text)', margin: 0 }}>{n.titulo}</p>
-                            <p style={{ fontSize: 12, color: 'var(--cbrio-text2)', margin: '4px 0 0', lineHeight: 1.4 }}>{n.mensagem}</p>
+                    notifs.slice(0, 20).map(n => {
+                      const MOD_COLORS = { rh: '#8b5cf6', financeiro: '#10b981', logistica: '#3b82f6', patrimonio: '#f59e0b', eventos: '#ec4899', projetos: '#06b6d4', sistema: '#6b7280' };
+                      const MOD_LABELS = { rh: 'RH', financeiro: 'Financeiro', logistica: 'Logística', patrimonio: 'Patrimônio', eventos: 'Eventos', projetos: 'Projetos', sistema: 'Sistema' };
+                      const SEV_COLORS = { urgente: '#ef4444', aviso: '#f59e0b', info: '#00B39D' };
+                      const modColor = MOD_COLORS[n.modulo] || '#6b7280';
+                      const sevColor = SEV_COLORS[n.severidade] || '#00B39D';
+                      return (
+                        <div
+                          key={n.id}
+                          onClick={() => {
+                            if (!n.lida) markRead(n.id);
+                            if (n.link) { navigate(n.link); setShowNotifs(false); }
+                          }}
+                          style={{
+                            padding: '14px 20px', borderBottom: '1px solid var(--cbrio-border)',
+                            cursor: 'pointer',
+                            background: n.lida ? 'transparent' : '#00B39D08',
+                            borderLeft: `3px solid ${sevColor}`,
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: 8 }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                                {n.modulo && (
+                                  <span style={{
+                                    fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5,
+                                    padding: '1px 6px', borderRadius: 4, color: '#fff', background: modColor,
+                                  }}>
+                                    {MOD_LABELS[n.modulo] || n.modulo}
+                                  </span>
+                                )}
+                                {n.severidade === 'urgente' && (
+                                  <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 4, color: '#fff', background: '#ef4444' }}>URGENTE</span>
+                                )}
+                              </div>
+                              <p style={{ fontSize: 13, fontWeight: n.lida ? 400 : 600, color: 'var(--cbrio-text)', margin: 0 }}>{n.titulo}</p>
+                              <p style={{ fontSize: 12, color: 'var(--cbrio-text2)', margin: '4px 0 0', lineHeight: 1.4 }}>{n.mensagem}</p>
+                            </div>
+                            {!n.lida && <div style={{ width: 8, height: 8, borderRadius: '50%', background: sevColor, flexShrink: 0, marginTop: 4 }} />}
                           </div>
-                          {!n.lida && <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#00B39D', flexShrink: 0, marginTop: 4 }} />}
+                          <p style={{ fontSize: 10, color: 'var(--cbrio-text3)', marginTop: 6 }}>
+                            {new Date(n.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          </p>
                         </div>
-                        <p style={{ fontSize: 10, color: 'var(--cbrio-text3)', marginTop: 6 }}>
-                          {new Date(n.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </>
@@ -266,7 +296,7 @@ export default function AppShell() {
       </header>
 
       {/* Main content with page transition */}
-      <main className="flex-1 overflow-y-auto p-8">
+      <main className="flex-1 overflow-y-auto px-6 py-6">
         <div key={location.pathname} style={{
           animation: 'fadeInUp 0.25s ease-out',
         }}>

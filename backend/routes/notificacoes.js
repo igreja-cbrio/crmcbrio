@@ -1,18 +1,24 @@
 const router = require('express').Router();
-const { authenticate } = require('../middleware/auth');
+const { authenticate, authorize } = require('../middleware/auth');
 const { supabase } = require('../utils/supabase');
+const { gerarTodasNotificacoes } = require('../services/notificacaoGenerator');
 
 router.use(authenticate);
 
 // GET /api/notificacoes — listar notificações do usuário logado
 router.get('/', async (req, res) => {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('notificacoes')
       .select('*')
       .eq('usuario_id', req.user.id)
       .order('created_at', { ascending: false })
       .limit(50);
+
+    if (req.query.modulo) query = query.eq('modulo', req.query.modulo);
+    if (req.query.severidade) query = query.eq('severidade', req.query.severidade);
+
+    const { data, error } = await query;
     if (error) return res.status(400).json({ error: error.message });
     res.json(data);
   } catch (e) {
@@ -32,6 +38,17 @@ router.get('/count', async (req, res) => {
     res.json({ count: count || 0 });
   } catch (e) {
     res.status(500).json({ error: 'Erro ao contar notificações' });
+  }
+});
+
+// POST /api/notificacoes/gerar — gerar notificações automáticas (admin/diretor)
+router.post('/gerar', authorize('admin', 'diretor'), async (req, res) => {
+  try {
+    const total = await gerarTodasNotificacoes();
+    res.json({ success: true, geradas: total });
+  } catch (e) {
+    console.error('[Notificações] Erro ao gerar:', e.message);
+    res.status(500).json({ error: e.message });
   }
 });
 
@@ -62,6 +79,52 @@ router.patch('/ler-todas', async (req, res) => {
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: 'Erro ao marcar notificações' });
+  }
+});
+
+// ── Regras de notificação ────────────────────────────────
+
+// GET /api/notificacoes/regras — listar regras
+router.get('/regras', authorize('admin', 'diretor'), async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('notificacao_regras')
+      .select('*, profiles(name, email)')
+      .order('modulo');
+    if (error) return res.status(400).json({ error: error.message });
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: 'Erro ao buscar regras' });
+  }
+});
+
+// POST /api/notificacoes/regras — criar regra
+router.post('/regras', authorize('admin', 'diretor'), async (req, res) => {
+  try {
+    const { modulo, profile_id } = req.body;
+    const { data, error } = await supabase
+      .from('notificacao_regras')
+      .upsert({ modulo, profile_id, ativo: true }, { onConflict: 'modulo,profile_id' })
+      .select()
+      .single();
+    if (error) return res.status(400).json({ error: error.message });
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: 'Erro ao criar regra' });
+  }
+});
+
+// DELETE /api/notificacoes/regras/:id
+router.delete('/regras/:id', authorize('admin', 'diretor'), async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('notificacao_regras')
+      .delete()
+      .eq('id', req.params.id);
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Erro ao remover regra' });
   }
 });
 
