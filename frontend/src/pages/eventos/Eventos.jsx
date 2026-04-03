@@ -103,6 +103,13 @@ const styles = {
 function normDate(d) { return d ? (typeof d === 'string' ? d.slice(0, 10) : '') : ''; }
 const fmtDate = (d) => { const s = normDate(d); if (!s) return '—'; const [y, m, day] = s.split('-'); return `${day}/${m}/${y}`; };
 const fmtMoney = (v) => v != null ? `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '—';
+function sortByUrgency(tasks) {
+  return [...tasks].sort((a, b) => {
+    const pa = normDate(a.prazo || a.deadline); const pb = normDate(b.prazo || b.deadline);
+    if (!pa && !pb) return 0; if (!pa) return 1; if (!pb) return -1;
+    return pa.localeCompare(pb);
+  });
+}
 
 function DaysCounter({ date, status }) {
   const s = normDate(date);
@@ -732,7 +739,7 @@ export default function Eventos() {
         {/* Kanban 4 colunas (nível 2) */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, minHeight: 300 }}>
           {COLS.map(col => {
-            const colTasks = phaseTasks.filter(t => t.status === col.key);
+            const colTasks = sortByUrgency(phaseTasks.filter(t => t.status === col.key));
             return (
               <div key={col.key} style={{ background: 'var(--cbrio-bg)', borderRadius: 10, padding: 8 }}
                 onDragOver={e => e.preventDefault()}

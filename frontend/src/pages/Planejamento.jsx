@@ -27,6 +27,14 @@ const COLS = [
 function normDate(d) { return d ? (typeof d === 'string' ? d.slice(0, 10) : '') : ''; }
 function fmtDate(d) { const s = normDate(d); if (!s) return ''; const [y, m, day] = s.split('-'); return `${day}/${m}`; }
 function getCat(t) { if (t.area === 'marketing') return 'marketing'; const m = (t.observacoes || '').match(/Área:\s*(\w+)/i); return m ? m[1] : 'outros'; }
+// Ordenar por urgência: prazo mais próximo de vencer primeiro, sem prazo por último
+function sortByUrgency(tasks) {
+  return [...tasks].sort((a, b) => {
+    const pa = normDate(a.prazo); const pb = normDate(b.prazo);
+    if (!pa && !pb) return 0; if (!pa) return 1; if (!pb) return -1;
+    return pa.localeCompare(pb);
+  });
+}
 
 export default function Planejamento() {
   const [tab, setTab] = useState(0); // 0=Dashboard, 1=Kanban, 2=Gantt
@@ -35,6 +43,7 @@ export default function Planejamento() {
   const [cycleData, setCycleData] = useState(null);
   const [kanbanPhase, setKanbanPhase] = useState(null);
   const [areaFilter, setAreaFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all'); // 'all', 'eventos', 'projetos', 'estrategico'
   const [eventFilter, setEventFilter] = useState('all');
   const [expanded, setExpanded] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -184,13 +193,55 @@ export default function Planejamento() {
         <div>
           {/* Filtros */}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
-            <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Evento:</span>
-            <select value={eventFilter} onChange={e => setEventFilter(e.target.value)}
-              style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card }}>
-              <option value="all">Todos</option>
-              {allEvents.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
-            </select>
+            {/* Tipo */}
+            <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Tipo:</span>
+            {[
+              { key: 'all', label: 'Todos', color: C.accent },
+              { key: 'eventos', label: 'Eventos', color: '#00B39D' },
+              { key: 'projetos', label: 'Projetos', color: '#8b5cf6' },
+              { key: 'estrategico', label: 'Planejamento', color: '#f59e0b' },
+            ].map(f => (
+              <button key={f.key} onClick={() => { setTypeFilter(f.key); setEventFilter('all'); }} style={{
+                padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: typeFilter === f.key ? 600 : 400, cursor: 'pointer',
+                border: typeFilter === f.key ? `2px solid ${f.color}` : `1px solid ${C.border}`,
+                background: typeFilter === f.key ? `${f.color}15` : 'transparent',
+                color: typeFilter === f.key ? f.color : C.t3,
+              }}>{f.label}</button>
+            ))}
+
             <span style={{ width: 1, height: 20, background: C.border }} />
+
+            {/* Dropdown contextual por tipo */}
+            {(typeFilter === 'all' || typeFilter === 'eventos') && allEvents.length > 0 && (
+              <>
+                <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>{typeFilter === 'eventos' ? 'Evento:' : 'Evento/Projeto:'}</span>
+                <select value={eventFilter} onChange={e => setEventFilter(e.target.value)}
+                  style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card }}>
+                  <option value="all">Todos</option>
+                  {allEvents.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+                </select>
+              </>
+            )}
+            {typeFilter === 'projetos' && (
+              <>
+                <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Projeto:</span>
+                <select style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card }}>
+                  <option value="all">Todos os projetos</option>
+                </select>
+              </>
+            )}
+            {typeFilter === 'estrategico' && (
+              <>
+                <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Marco:</span>
+                <select style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card }}>
+                  <option value="all">Todos os marcos</option>
+                </select>
+              </>
+            )}
+
+            <span style={{ width: 1, height: 20, background: C.border }} />
+
+            {/* Área */}
             <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Área:</span>
             {[{ key: 'all', label: 'Todas' }, ...Object.entries(CAT).filter(([k]) => k !== 'outros').map(([k, v]) => ({ key: k, label: v.label, color: v.color, bg: v.bg }))].map(f => (
               <button key={f.key} onClick={() => setAreaFilter(f.key)} style={{
@@ -246,7 +297,7 @@ export default function Planejamento() {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, minHeight: 300 }}>
                 {COLS.map(col => {
-                  const colT = phaseTasks.filter(t => t.status === col.key);
+                  const colT = sortByUrgency(phaseTasks.filter(t => t.status === col.key));
                   return (
                     <div key={col.key} style={{ background: C.bg, borderRadius: 10, padding: 8 }}
                       onDragOver={e => e.preventDefault()}
