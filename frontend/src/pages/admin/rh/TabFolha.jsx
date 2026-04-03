@@ -59,7 +59,13 @@ export default function TabFolha() {
   const totINSS = filtered.reduce((s, f) => s + Number(f.inss || 0), 0);
   const totIR = filtered.reduce((s, f) => s + Number(f.ir || 0), 0);
   const totDescontos = totFGTS + totINSS + totIR;
-  const totCusto = filtered.reduce((s, f) => s + Number(f.custo_total_mensal || f.salario || 0), 0);
+  const totCusto = filtered.reduce((s, f) => {
+    if (f.tipo_contrato === 'pj') {
+      const benPJ = Number(f.alimentacao || 0) + Number(f.transporte || 0) + Number(f.saude || 0) + Number(f.plano_saude || 0) + Number(f.seguro_vida || 0) + Number(f.educacao || 0) + Number(f.gratificacao || 0) + Number(f.complemento_salario || 0);
+      return s + Number(f.salario || 0) + benPJ;
+    }
+    return s + Number(f.custo_total_mensal || f.salario || 0);
+  }, 0);
 
   function printHolerite(func) {
     const beneficios = [
@@ -119,7 +125,7 @@ export default function TabFolha() {
     </table>` : '<p style="color:#d97706;"><em>Colaborador PJ — sem descontos legais</em></p>'}
 
     <table>
-      <tr class="total"><td>VALOR LÍQUIDO</td><td class="r" style="font-size:16px;">${fmtMoney(isPJ ? func.salario : func.remuneracao_liquida)}</td></tr>
+      <tr class="total"><td>VALOR LÍQUIDO</td><td class="r" style="font-size:16px;">${fmtMoney(isPJ ? Number(func.salario || 0) + totalBenef : func.remuneracao_liquida)}</td></tr>
     </table>
 
     <div class="footer">
@@ -186,7 +192,7 @@ export default function TabFolha() {
                   <td style={{ ...s.tdR, color: isPJ ? C.text3 : C.red }}>{isPJ ? '—' : fmtMoney(f.inss)}</td>
                   <td style={{ ...s.tdR, color: isPJ ? C.text3 : C.red }}>{isPJ ? '—' : fmtMoney(f.ir)}</td>
                   <td style={{ ...s.tdR, color: isPJ ? C.text3 : C.amber }}>{isPJ ? '—' : fmtMoney(f.fgts)}</td>
-                  <td style={{ ...s.tdR, fontWeight: 700, color: C.green }}>{fmtMoney(isPJ ? f.salario : f.remuneracao_liquida)}</td>
+                  <td style={{ ...s.tdR, fontWeight: 700, color: C.green }}>{fmtMoney(isPJ ? Number(f.salario || 0) + benef : f.remuneracao_liquida)}</td>
                   <td style={s.td}><Button variant="ghost" size="xs" onClick={() => printHolerite(f)}>Imprimir</Button></td>
                 </tr>
               );
