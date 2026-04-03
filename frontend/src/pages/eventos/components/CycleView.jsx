@@ -34,8 +34,10 @@ export default function CycleView({ eventId }) {
   const [activating, setActivating] = useState(false);
   const [activePhase, setActivePhase] = useState(null);
   const [areaFilter, setAreaFilter] = useState('all');
-  const [viewMode, setViewMode] = useState('kanban'); // 'kanban' ou 'lista'
+  const [viewMode, setViewMode] = useState('kanban');
   const [expandedTask, setExpandedTask] = useState(null);
+  const [showNewPhase, setShowNewPhase] = useState(false);
+  const [showNewTask, setShowNewTask] = useState(false);
 
   const load = async () => {
     try {
@@ -65,6 +67,38 @@ export default function CycleView({ eventId }) {
 
   const handlePhaseStatus = async (phaseId, status) => {
     await api.updatePhase(phaseId, { status });
+    load();
+  };
+
+  const handleDeletePhase = async (phaseId) => {
+    if (!window.confirm('Excluir esta fase e todas as suas tarefas?')) return;
+    await api.deletePhase(phaseId);
+    setActivePhase(null);
+    load();
+  };
+
+  const handleDeleteTask = async (taskId) => {
+    if (!window.confirm('Excluir esta tarefa?')) return;
+    await api.deleteTask(taskId);
+    load();
+  };
+
+  const handleCreatePhase = async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const d = Object.fromEntries(fd.entries());
+    const maxNum = Math.max(0, ...phases.map(p => p.numero_fase));
+    await api.createPhase({ event_id: eventId, numero_fase: maxNum + 1, nome_fase: d.nome_fase, area: d.area, data_inicio_prevista: d.data_inicio || null, data_fim_prevista: d.data_fim || null });
+    setShowNewPhase(false);
+    load();
+  };
+
+  const handleCreateTask = async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const d = Object.fromEntries(fd.entries());
+    await api.createTask({ event_phase_id: activePhase, event_id: eventId, titulo: d.titulo, area: d.area, prazo: d.prazo || null, responsavel_nome: d.responsavel || null, status: 'a_fazer', prioridade: 'normal', observacoes: d.categoria ? `Área: ${d.categoria}` : '' });
+    setShowNewTask(false);
     load();
   };
 
@@ -144,12 +178,25 @@ export default function CycleView({ eventId }) {
                   <div style={{ height: 3, borderRadius: 2, background: 'var(--cbrio-border)', marginTop: 4 }}>
                     <div style={{ height: 3, borderRadius: 2, width: `${pPct}%`, background: progColor, transition: 'width .3s' }} />
                   </div>
-                  <div style={{ fontSize: 9, color: C.t3, marginTop: 3 }}>{pTasks.length > 0 ? `${pDone}/${pTasks.length}` : 'vazia'}</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: C.t3, marginTop: 3 }}>
+                    <span>{pTasks.length > 0 ? `${pDone}/${pTasks.length}` : 'vazia'}</span>
+                    <button onClick={e => { e.stopPropagation(); handleDeletePhase(phase.id); }}
+                      style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 10, padding: 0, lineHeight: 1 }}>✕</button>
+                  </div>
                 </div>
                 {i < phases.length - 1 && <div style={{ width: 12, height: 2, background: isDone ? '#10b981' : 'var(--cbrio-border)', flexShrink: 0 }} />}
               </div>
             );
           })}
+          {/* Botão + Fase */}
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <div style={{ width: 12, height: 2, background: 'var(--cbrio-border)', flexShrink: 0 }} />
+            <button onClick={() => setShowNewPhase(true)} style={{
+              borderRadius: 8, padding: '8px 10px', cursor: 'pointer', minWidth: 60,
+              border: '2px dashed var(--cbrio-border)', background: 'transparent', color: C.accent,
+              fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
+            }}>+ Fase</button>
+          </div>
         </div>
       </div>
 
@@ -167,6 +214,7 @@ export default function CycleView({ eventId }) {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <button onClick={() => setShowNewTask(true)} style={{ padding: '4px 10px', fontSize: 11, border: 'none', cursor: 'pointer', fontWeight: 600, background: C.accent, color: '#fff', borderRadius: 6 }}>+ Tarefa</button>
             <div style={{ display: 'flex', borderRadius: 6, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
               <button onClick={() => setViewMode('kanban')} style={{ padding: '4px 10px', fontSize: 11, border: 'none', cursor: 'pointer', fontWeight: 600, background: viewMode === 'kanban' ? C.accent : 'transparent', color: viewMode === 'kanban' ? '#fff' : C.t3 }}>Kanban</button>
               <button onClick={() => setViewMode('lista')} style={{ padding: '4px 10px', fontSize: 11, border: 'none', cursor: 'pointer', fontWeight: 600, background: viewMode === 'lista' ? C.accent : 'transparent', color: viewMode === 'lista' ? '#fff' : C.t3 }}>Lista</button>
@@ -220,10 +268,13 @@ export default function CycleView({ eventId }) {
                       onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 3 }}>
                         <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 99, background: cat.bg, color: cat.color, fontWeight: 500 }}>{cat.label}</span>
-                        <select value={task.status} onClick={e => e.stopPropagation()} onChange={e => { e.stopPropagation(); handleTaskStatus(task.id, e.target.value); }}
-                          style={{ fontSize: 9, padding: '1px 4px', borderRadius: 4, border: `1px solid ${C.border}`, background: 'var(--cbrio-card)' }}>
-                          {Object.entries(TASK_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                        </select>
+                        <div style={{ display: 'flex', gap: 3, alignItems: 'center' }} onClick={e => e.stopPropagation()}>
+                          <select value={task.status} onChange={e => handleTaskStatus(task.id, e.target.value)}
+                            style={{ fontSize: 9, padding: '1px 4px', borderRadius: 4, border: `1px solid ${C.border}`, background: 'var(--cbrio-card)' }}>
+                            {Object.entries(TASK_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                          </select>
+                          <button onClick={() => handleDeleteTask(task.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 10, padding: 0 }}>✕</button>
+                        </div>
                       </div>
                       <div style={{ fontSize: 11, fontWeight: 500, color: C.dark, lineHeight: 1.3, marginBottom: 3 }}>{task.titulo}</div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 9, color: C.t3 }}>
@@ -304,6 +355,7 @@ export default function CycleView({ eventId }) {
                             <select value={task.status} onChange={e => handleTaskStatus(task.id, e.target.value)} style={{ fontSize: 10, padding: '2px 4px', borderRadius: 6, border: `1px solid ${C.border}` }}>
                               {Object.entries(TASK_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                             </select>
+                            <button onClick={() => handleDeleteTask(task.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 11, padding: '0 2px' }}>✕</button>
                           </div>
                         </div>
                         {isOpen && subs.length > 0 && (
@@ -330,6 +382,82 @@ export default function CycleView({ eventId }) {
       })()}
 
       <div style={{ height: 60 }} />
+
+      {/* Modal: Nova Fase */}
+      {showNewPhase && (
+        <div style={modalOverlay} onClick={() => setShowNewPhase(false)}>
+          <div style={modalBox} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+              <span style={{ fontSize: 16, fontWeight: 700, color: C.dark }}>Nova Fase</span>
+              <button onClick={() => setShowNewPhase(false)} style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: C.t3 }}>✕</button>
+            </div>
+            <form onSubmit={handleCreatePhase}>
+              <div style={{ marginBottom: 10 }}>
+                <label style={lblStyle}>Nome da fase *</label>
+                <input name="nome_fase" required style={inputStyle} />
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ flex: 1, marginBottom: 10 }}>
+                  <label style={lblStyle}>Área</label>
+                  <select name="area" style={inputStyle}><option value="ambos">Ambos</option><option value="marketing">Marketing</option></select>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ flex: 1, marginBottom: 10 }}><label style={lblStyle}>Data início</label><input type="date" name="data_inicio" style={inputStyle} /></div>
+                <div style={{ flex: 1, marginBottom: 10 }}><label style={lblStyle}>Data fim</label><input type="date" name="data_fim" style={inputStyle} /></div>
+              </div>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <button type="button" onClick={() => setShowNewPhase(false)} style={{ padding: '6px 14px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', cursor: 'pointer', fontSize: 12 }}>Cancelar</button>
+                <button type="submit" style={{ padding: '6px 14px', borderRadius: 6, border: 'none', background: C.accent, color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>Criar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Nova Tarefa */}
+      {showNewTask && currentPhase && (
+        <div style={modalOverlay} onClick={() => setShowNewTask(false)}>
+          <div style={modalBox} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+              <span style={{ fontSize: 16, fontWeight: 700, color: C.dark }}>Nova Tarefa — {currentPhase.nome_fase}</span>
+              <button onClick={() => setShowNewTask(false)} style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: C.t3 }}>✕</button>
+            </div>
+            <form onSubmit={handleCreateTask}>
+              <div style={{ marginBottom: 10 }}>
+                <label style={lblStyle}>Título *</label>
+                <input name="titulo" required style={inputStyle} />
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ flex: 1, marginBottom: 10 }}>
+                  <label style={lblStyle}>Área</label>
+                  <select name="area" style={inputStyle}><option value="adm">Administrativo</option><option value="marketing">Marketing</option></select>
+                </div>
+                <div style={{ flex: 1, marginBottom: 10 }}>
+                  <label style={lblStyle}>Categoria</label>
+                  <select name="categoria" style={inputStyle}>
+                    <option value="">Nenhuma</option><option value="compras">Compras</option><option value="financeiro">Financeiro</option>
+                    <option value="manutencao">Manutenção</option><option value="limpeza">Limpeza</option><option value="cozinha">Cozinha</option>
+                  </select>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ flex: 1, marginBottom: 10 }}><label style={lblStyle}>Prazo</label><input type="date" name="prazo" style={inputStyle} /></div>
+                <div style={{ flex: 1, marginBottom: 10 }}><label style={lblStyle}>Responsável</label><input name="responsavel" style={inputStyle} /></div>
+              </div>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <button type="button" onClick={() => setShowNewTask(false)} style={{ padding: '6px 14px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', cursor: 'pointer', fontSize: 12 }}>Cancelar</button>
+                <button type="submit" style={{ padding: '6px 14px', borderRadius: 6, border: 'none', background: C.accent, color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>Criar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+const modalOverlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 };
+const modalBox = { background: 'var(--cbrio-card, #fff)', borderRadius: 12, padding: '20px 24px', width: '100%', maxWidth: 460, maxHeight: '90vh', overflowY: 'auto' };
+const lblStyle = { fontSize: 11, fontWeight: 600, color: 'var(--cbrio-text2)', display: 'block', marginBottom: 4 };
+const inputStyle = { width: '100%', padding: '6px 10px', borderRadius: 6, border: '1px solid var(--cbrio-border)', fontSize: 12, color: 'var(--cbrio-text)', outline: 'none' };
