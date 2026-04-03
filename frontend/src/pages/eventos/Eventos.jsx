@@ -856,12 +856,16 @@ export default function Eventos() {
             <div style={{ display: 'flex' }}>
               <div style={{ width: NW, flexShrink: 0, borderRight: '1px solid var(--cbrio-border)' }}>
                 <div style={{ height: 28, borderBottom: '1px solid var(--cbrio-border)', background: 'var(--cbrio-table-header, #fafafa)' }} />
-                {group.phases.map(ph => (
+                {group.phases.map(ph => {
+                  const eiN = normDate(ph.data_fim_prevista);
+                  const diffN = eiN ? Math.ceil((new Date(eiN + 'T12:00:00') - new Date()) / 86400000) : null;
+                  const dotC = ph.status === 'concluida' ? '#10b981' : diffN !== null && diffN < 0 ? '#ef4444' : diffN !== null && diffN <= 3 ? '#f59e0b' : '#9ca3af';
+                  return (
                   <div key={ph.id} style={{ height: BH, padding: '0 10px', display: 'flex', alignItems: 'center', gap: 6, borderBottom: '1px solid var(--cbrio-border)' }}>
-                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: ST_COLORS[ph.status] || '#9ca3af', flexShrink: 0 }} />
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: dotC, flexShrink: 0 }} />
                     <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--cbrio-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>F{ph.numero_fase} {ph.nome_fase}</span>
                   </div>
-                ))}
+                  ); })}
               </div>
               <div style={{ flex: 1, overflowX: 'auto' }}>
                 <div style={{ minWidth: 600, position: 'relative' }}>
@@ -874,17 +878,18 @@ export default function Eventos() {
                     const si = normDate(ph.data_inicio_prevista); const ei = normDate(ph.data_fim_prevista);
                     if (!si || !ei) return <div key={ph.id} style={{ height: BH, borderBottom: '1px solid var(--cbrio-border)' }} />;
                     const lp = dPct(si); const rp = dPct(ei); const wp = Math.max(rp - lp, 2);
-                    const sc = ST_COLORS[ph.status] || '#9ca3af'; const isDone = ph.status === 'concluida';
-                    const pT = aTasks.filter(t => t.event_phase_id === ph.id);
-                    const tD = pT.filter(t => t.status === 'concluida').length;
+                    const isDone = ph.status === 'concluida';
+                    const endD = new Date(ei + 'T12:00:00');
+                    const diff2 = Math.ceil((endD - new Date()) / 86400000);
+                    const barC = isDone ? '#d1d5db' : diff2 < 0 ? '#ef4444' : diff2 <= 3 ? '#f59e0b' : '#10b981';
+                    const dTxt = isDone ? '✓' : diff2 < 0 ? `${Math.abs(diff2)}d atrás` : diff2 === 0 ? 'Hoje' : `${diff2}d`;
                     return (
                       <div key={ph.id} style={{ position: 'relative', height: BH, borderBottom: '1px solid var(--cbrio-border)' }}>
                         {mL.map((m, i) => (<div key={i} style={{ position: 'absolute', left: `${m.pct}%`, top: 0, width: 1, height: '100%', background: 'var(--cbrio-border)', opacity: 0.3 }} />))}
                         <div style={{ position: 'absolute', left: `${tPct}%`, top: 0, width: 2, height: '100%', background: '#ef4444', zIndex: 2, opacity: 0.4 }} />
-                        <div title={`${ph.nome_fase}\n${fmtDate(si)} → ${fmtDate(ei)}\n${tD}/${pT.length} tarefas`}
-                          style={{ position: 'absolute', top: 4, height: BH - 8, borderRadius: 6, left: `${lp}%`, width: `${wp}%`, minWidth: 50, background: isDone ? '#d1d5db' : sc, opacity: isDone ? 0.5 : 0.85, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px', overflow: 'hidden' }}>
-                          <span style={{ fontSize: 10, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ph.nome_fase}</span>
-                          {pT.length > 0 && <span style={{ fontSize: 9, fontWeight: 700, color: '#fff', opacity: 0.8, flexShrink: 0, marginLeft: 4 }}>{tD}/{pT.length}</span>}
+                        <div title={`${ph.nome_fase}\n${fmtDate(si)} → ${fmtDate(ei)}\n${dTxt}`}
+                          style={{ position: 'absolute', top: 4, height: BH - 8, borderRadius: 6, left: `${lp}%`, width: `${wp}%`, minWidth: 50, background: barC, opacity: isDone ? 0.5 : 0.9, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 6px', overflow: 'hidden' }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap' }}>{dTxt}</span>
                         </div>
                       </div>
                     );
@@ -896,11 +901,14 @@ export default function Eventos() {
         ))}
 
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', padding: '8px 0' }}>
-          {[{ l: 'Pendente', c: '#9ca3af' }, { l: 'Em andamento', c: '#3b82f6' }, { l: 'Concluída', c: '#10b981' }, { l: 'Em risco', c: '#f59e0b' }, { l: 'Atrasada', c: '#ef4444' }].map(x => (
+          {[{ l: 'No prazo (>3d)', c: '#10b981' }, { l: 'Urgente (≤3d)', c: '#f59e0b' }, { l: 'Atrasada', c: '#ef4444' }, { l: 'Concluída', c: '#d1d5db' }].map(x => (
             <div key={x.l} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ width: 16, height: 8, borderRadius: 4, background: x.c }} /><span style={{ fontSize: 11, color: 'var(--cbrio-text2)' }}>{x.l}</span>
+              <div style={{ width: 20, height: 10, borderRadius: 4, background: x.c }} /><span style={{ fontSize: 12, color: 'var(--cbrio-text2)' }}>{x.l}</span>
             </div>
           ))}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 2, height: 14, background: '#ef4444' }} /><span style={{ fontSize: 12, color: 'var(--cbrio-text2)' }}>Hoje</span>
+          </div>
         </div>
         <div style={{ height: 40 }} />
       </div>
