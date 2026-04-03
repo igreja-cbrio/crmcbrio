@@ -1011,11 +1011,11 @@ export default function Eventos() {
             if (!item) return <div key={i} style={{ width: 1, height: 24, background: 'var(--cbrio-border, #e5e7eb)' }} />;
             return (
               <div key={item.label} onClick={item.action}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '4px 8px', borderRadius: 8, transition: 'background .15s' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '2px 4px', borderRadius: 6, transition: 'background .15s' }}
                 onMouseEnter={e => e.currentTarget.style.background = `${item.color}15`}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                 <span style={{ fontSize: 20, fontWeight: 800, color: item.color }}>{item.value}</span>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--cbrio-text3, #9ca3af)', textTransform: 'uppercase', letterSpacing: 0.3 }}>{item.label}</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--cbrio-text3, #9ca3af)', textTransform: 'uppercase', letterSpacing: 0.3, whiteSpace: 'nowrap' }}>{item.label}</span>
               </div>
             );
           })}
@@ -1120,16 +1120,35 @@ export default function Eventos() {
   function renderList() {
     return (
       <>
-        {/* KPIs */}
-        {kpis.length > 0 && (
-          <div style={styles.kpiGrid}>
-            {kpis.map((k, i) => (
-              <div key={k.label} onClick={k.action} style={{ cursor: 'pointer' }}>
-                <EvStatCard label={k.label} value={k.value} bg={k.color} svg={EV_STAT_SVGS[i % EV_STAT_SVGS.length]} />
+        {/* KPIs — barra inline compacta (mesmo formato da Home) */}
+        <div style={{
+          background: 'var(--cbrio-card, #fff)', borderRadius: 12, border: `1px solid ${C.border}`,
+          padding: '14px 24px', marginBottom: 20, display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+        }}>
+          {[
+            { label: 'Eventos', value: counts.total, color: C.primary, action: () => kpiDrillDown('') },
+            { label: 'No Prazo', value: counts['no-prazo'], color: C.green, action: () => kpiDrillDown('no-prazo') },
+            { label: 'Em Risco', value: counts['em-risco'], color: C.amber, action: () => kpiDrillDown('em-risco') },
+            { label: 'Atrasados', value: counts['atrasado'], color: C.red, action: () => kpiDrillDown('atrasado') },
+            { label: 'Concluídos', value: counts['concluido'], color: C.blue, action: () => kpiDrillDown('concluido') },
+            null,
+            { label: 'Tarefas abertas', value: k.tasks_open || 0, color: C.text2, action: () => {} },
+            { label: 'Tarefas atrasadas', value: k.tasks_overdue || 0, color: C.red, action: () => {} },
+            { label: 'Riscos', value: k.risks_open || 0, color: C.amber, action: () => {} },
+          ].map((item, i) => {
+            if (!item) return <div key={i} style={{ width: 1, height: 24, background: 'var(--cbrio-border, #e5e7eb)' }} />;
+            return (
+              <div key={item.label} onClick={item.action}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '2px 4px', borderRadius: 6, transition: 'background .15s' }}
+                onMouseEnter={e => e.currentTarget.style.background = `${item.color}15`}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                <span style={{ fontSize: 20, fontWeight: 800, color: item.color }}>{item.value}</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--cbrio-text3, #9ca3af)', textTransform: 'uppercase', letterSpacing: 0.3, whiteSpace: 'nowrap' }}>{item.label}</span>
               </div>
-            ))}
-          </div>
-        )}
+            );
+          })}
+        </div>
 
         {/* Filtros */}
         <div style={styles.filterRow}>
