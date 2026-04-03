@@ -14,6 +14,7 @@ const Financeiro   = lazy(() => import('./pages/admin/financeiro/Financeiro'));
 const Logistica    = lazy(() => import('./pages/admin/logistica/Logistica'));
 const Patrimonio   = lazy(() => import('./pages/admin/patrimonio/Patrimonio'));
 const Membresia    = lazy(() => import('./pages/ministerial/Membresia'));
+const AssistenteIA = lazy(() => import('./pages/admin/AssistenteIA'));
 
 const Loading = () => (
   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 300, gap: 16 }}>
@@ -106,6 +107,13 @@ function AppRoutes() {
         <Route path="ministerial/membresia" element={
           <ProtectedRoute roles={['admin', 'diretor']}>
             <Suspense fallback={<Loading />}><Membresia /></Suspense>
+          </ProtectedRoute>
+        } />
+
+        {/* Assistente IA */}
+        <Route path="assistente-ia" element={
+          <ProtectedRoute roles={['admin', 'diretor']}>
+            <Suspense fallback={<Loading />}><AssistenteIA /></Suspense>
           </ProtectedRoute>
         } />
 

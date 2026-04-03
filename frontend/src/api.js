@@ -181,6 +181,13 @@ export const agents = {
   approve: (id) => patch(`/agents/queue/${id}/approve`),
   reject: (id) => patch(`/agents/queue/${id}/reject`),
   log: () => get('/agents/log'),
+  // Framework de agentes
+  run: (data) => post('/agents/run', data),
+  runs: (params) => get('/agents/runs' + (params ? '?' + new URLSearchParams(params) : '')),
+  runDetail: (id) => get(`/agents/runs/${id}`),
+  runSteps: (id) => get(`/agents/runs/${id}/steps`),
+  cancelRun: (id) => post(`/agents/runs/${id}/cancel`),
+  stats: () => get('/agents/stats'),
 };
 
 export const financeiro = {
