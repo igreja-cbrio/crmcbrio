@@ -1,7 +1,7 @@
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 export type MegaMenuItem = {
   id: number;
@@ -27,6 +27,7 @@ export default function MegaMenu({ items, role }: MegaMenuProps) {
   const [openMenu, setOpenMenu] = React.useState<string | null>(null);
   const [isHover, setIsHover] = React.useState<number | null>(null);
   const location = useLocation();
+  const navigate = useNavigate();
   const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleEnter = (label: string) => {
@@ -87,7 +88,7 @@ export default function MegaMenu({ items, role }: MegaMenuProps) {
               style={{ color: openMenu === navItem.label ? 'var(--cbrio-text)' : 'var(--cbrio-text2)' }}
               onMouseEnter={() => setIsHover(navItem.id)}
               onMouseLeave={() => setIsHover(null)}
-              onClick={() => { if (navItem.path) { window.location.href = navItem.path; } }}
+              onClick={() => { if (navItem.path) { setOpenMenu(null); navigate(navItem.path); } }}
             >
               <span className="relative z-10">{navItem.label}</span>
               <ChevronDown
