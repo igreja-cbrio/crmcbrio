@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { logistica, ml, arquivei } from '../../../api';
 import { supabase } from '../../../supabaseClient';
+import { Button } from '../../../components/ui/button';
 
 // ── Tema ────────────────────────────────────────────────────
 const C = {
@@ -101,7 +102,7 @@ function Modal({ open, onClose, title, children, footer, wide }) {
       <div style={{ ...styles.modal, ...(wide ? { maxWidth: 720 } : {}) }} onClick={e => e.stopPropagation()}>
         <div style={styles.modalHeader}>
           <div style={styles.modalTitle}>{title}</div>
-          <button style={{ ...styles.btn('ghost'), fontSize: 18 }} onClick={onClose}>&#x2715;</button>
+          <Button variant="ghost" className="text-lg" onClick={onClose}>&#x2715;</Button>
         </div>
         <div style={styles.modalBody}>{children}</div>
         {footer && <div style={styles.modalFooter}>{footer}</div>}
@@ -202,6 +203,9 @@ export default function Logistica() {
 
   // ── Fornecedor CRUD ────────────────────────────────────
   const saveFornecedor = async () => {
+    if (!modalForn?.razao_social?.trim()) { setError('Razão Social é obrigatória'); return; }
+    if (modalForn.cnpj && modalForn.cnpj.replace(/\D/g, '').length > 0 && modalForn.cnpj.replace(/\D/g, '').length !== 14) { setError('CNPJ deve ter 14 dígitos'); return; }
+    if (modalForn.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(modalForn.email)) { setError('Email inválido'); return; }
     setSaving(true);
     try {
       const { id, ...rest } = modalForn;
@@ -223,6 +227,8 @@ export default function Logistica() {
 
   // ── Solicitação ────────────────────────────────────────
   const saveSolicitacao = async () => {
+    if (!modalSol?.titulo?.trim()) { setError('Título é obrigatório'); return; }
+    if (modalSol.valor_estimado && Number(modalSol.valor_estimado) < 0) { setError('Valor não pode ser negativo'); return; }
     setSaving(true);
     try {
       const { id, profiles, ...rest } = modalSol;
@@ -239,6 +245,8 @@ export default function Logistica() {
 
   // ── Pedido CRUD ────────────────────────────────────────
   const savePedido = async () => {
+    if (!modalPed?.descricao?.trim()) { setError('Descrição é obrigatória'); return; }
+    if (modalPed.valor_total && Number(modalPed.valor_total) < 0) { setError('Valor não pode ser negativo'); return; }
     setSaving(true);
     try {
       const { id, log_fornecedores, ...rest } = modalPed;
@@ -297,7 +305,7 @@ export default function Logistica() {
       {error && (
         <div style={{ background: C.redBg, color: C.red, padding: '10px 16px', borderRadius: 8, marginBottom: 16, fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           {error}
-          <button style={styles.btn('ghost')} onClick={() => setError('')}>&#x2715;</button>
+          <Button variant="ghost" onClick={() => setError('')}>&#x2715;</Button>
         </div>
       )}
 
@@ -319,6 +327,7 @@ export default function Logistica() {
         <SolicitacoesTab data={solicitacoes} loading={loading} isDiretor={isDiretor}
           filtroStatus={filtroSolStatus} setFiltroStatus={setFiltroSolStatus}
           onNew={() => setModalSol({ titulo: '', descricao: '', justificativa: '', valor_estimado: '', urgencia: 'normal', area: '' })}
+          onEdit={(s) => setModalSol({ ...s })}
           onAprovar={(id) => atualizarStatusSolicitacao(id, 'aprovado')}
           onRejeitar={(id) => atualizarStatusSolicitacao(id, 'rejeitado')}
         />
@@ -348,7 +357,7 @@ export default function Logistica() {
 
       {/* Fornecedor */}
       <Modal open={modalForn !== null} onClose={() => setModalForn(null)} title={modalForn?.id ? 'Editar Fornecedor' : 'Novo Fornecedor'}
-        footer={<><button style={styles.btn('secondary')} onClick={() => setModalForn(null)}>Cancelar</button><button style={styles.btn('primary')} onClick={saveFornecedor} disabled={saving}>{saving ? 'Salvando...' : 'Salvar'}</button></>}>
+        footer={<><Button variant="outline" onClick={() => setModalForn(null)}>Cancelar</Button><Button onClick={saveFornecedor} disabled={saving}>{saving ? 'Salvando...' : 'Salvar'}</Button></>}>
         {modalForn && (<>
           <Input label="Razão Social *" value={modalForn.razao_social || ''} onChange={e => upForn('razao_social', e.target.value)} />
           <Input label="Nome Fantasia" value={modalForn.nome_fantasia || ''} onChange={e => upForn('nome_fantasia', e.target.value)} />
@@ -369,8 +378,8 @@ export default function Logistica() {
       </Modal>
 
       {/* Solicitação */}
-      <Modal open={modalSol !== null} onClose={() => setModalSol(null)} title="Nova Solicitação de Compra"
-        footer={<><button style={styles.btn('secondary')} onClick={() => setModalSol(null)}>Cancelar</button><button style={styles.btn('primary')} onClick={saveSolicitacao} disabled={saving}>{saving ? 'Salvando...' : 'Salvar'}</button></>}>
+      <Modal open={modalSol !== null} onClose={() => setModalSol(null)} title={modalSol?.id ? 'Editar Solicitação' : 'Nova Solicitação de Compra'}
+        footer={<><Button variant="outline" onClick={() => setModalSol(null)}>Cancelar</Button><Button onClick={saveSolicitacao} disabled={saving}>{saving ? 'Salvando...' : 'Salvar'}</Button></>}>
         {modalSol && (<>
           <Input label="Título *" value={modalSol.titulo || ''} onChange={e => upSol('titulo', e.target.value)} />
           <Textarea label="Descrição" value={modalSol.descricao || ''} onChange={e => upSol('descricao', e.target.value)} />
@@ -387,7 +396,7 @@ export default function Logistica() {
 
       {/* Pedido */}
       <Modal open={modalPed !== null} onClose={() => setModalPed(null)} title={modalPed?.id ? 'Editar Pedido' : 'Novo Pedido'}
-        footer={<><button style={styles.btn('secondary')} onClick={() => setModalPed(null)}>Cancelar</button><button style={styles.btn('primary')} onClick={savePedido} disabled={saving}>{saving ? 'Salvando...' : 'Salvar'}</button></>}>
+        footer={<><Button variant="outline" onClick={() => setModalPed(null)}>Cancelar</Button><Button onClick={savePedido} disabled={saving}>{saving ? 'Salvando...' : 'Salvar'}</Button></>}>
         {modalPed && (<>
           <Textarea label="Descrição *" value={modalPed.descricao || ''} onChange={e => upPed('descricao', e.target.value)} />
           <div style={styles.formRow}>
@@ -412,7 +421,7 @@ export default function Logistica() {
 
       {/* Recebimento */}
       <Modal open={modalReceber !== null} onClose={() => setModalReceber(null)} title="Registrar Recebimento"
-        footer={<><button style={styles.btn('secondary')} onClick={() => setModalReceber(null)}>Cancelar</button><button style={styles.btn('success')} onClick={receberPedido} disabled={saving}>{saving ? 'Registrando...' : 'Confirmar Recebimento'}</button></>}>
+        footer={<><Button variant="outline" onClick={() => setModalReceber(null)}>Cancelar</Button><Button className="bg-emerald-500 hover:bg-emerald-600 text-white" onClick={receberPedido} disabled={saving}>{saving ? 'Registrando...' : 'Confirmar Recebimento'}</Button></>}>
         {modalReceber && (<>
           <Select label="Status do recebimento" value={modalReceber.status || 'ok'} onChange={e => upRec('status', e.target.value)}>
             <option value="ok">OK — Tudo certo</option><option value="com_avaria">Com avaria</option><option value="incompleto">Incompleto</option>
@@ -487,7 +496,7 @@ function FornecedoresTab({ data, loading, isDiretor, filtroAtivo, setFiltroAtivo
       <select style={styles.select} value={filtroAtivo} onChange={e => setFiltroAtivo(e.target.value)}>
         <option value="">Todos</option><option value="true">Ativos</option><option value="false">Inativos</option>
       </select>
-      {isDiretor && <button style={styles.btn('primary')} onClick={onNew}>+ Novo Fornecedor</button>}
+      {isDiretor && <Button onClick={onNew}>+ Novo Fornecedor</Button>}
     </div>
     <div style={styles.card}><table style={styles.table}><thead><tr>
       <th style={styles.th}>Nome</th><th style={styles.th}>CNPJ</th><th style={styles.th}>Categoria</th><th style={styles.th}>Contato</th><th style={styles.th}>Status</th>
@@ -503,9 +512,9 @@ function FornecedoresTab({ data, loading, isDiretor, filtroAtivo, setFiltroAtivo
           <td style={styles.td}><div>{f.contato || '—'}</div>{f.email && <div style={{ fontSize: 11, color: C.text3 }}>{f.email}</div>}{f.telefone && <div style={{ fontSize: 11, color: C.text3 }}>{f.telefone}</div>}</td>
           <td style={styles.td}><span style={styles.badge(f.ativo ? C.green : C.text3, f.ativo ? C.greenBg : '#73737318')}>{f.ativo ? 'Ativo' : 'Inativo'}</span></td>
           {isDiretor && <td style={styles.td}><div style={{ display: 'flex', gap: 4 }}>
-            <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => onToggle(f)}>{f.ativo ? '⏸' : '▶'}</button>
-            <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => onEdit(f)}>✏️</button>
-            <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => onDelete(f.id)}>🗑</button>
+            <Button variant="ghost" size="sm" onClick={() => onToggle(f)}>{f.ativo ? '⏸' : '▶'}</Button>
+            <Button variant="ghost" size="sm" onClick={() => onEdit(f)}>✏️</Button>
+            <Button variant="ghost" size="sm" onClick={() => onDelete(f.id)}>🗑</Button>
           </div></td>}
         </tr>
       ))}
@@ -516,18 +525,18 @@ function FornecedoresTab({ data, loading, isDiretor, filtroAtivo, setFiltroAtivo
 // ═══════════════════════════════════════════════════════════
 // TAB: Solicitações
 // ═══════════════════════════════════════════════════════════
-function SolicitacoesTab({ data, loading, isDiretor, filtroStatus, setFiltroStatus, onNew, onAprovar, onRejeitar }) {
+function SolicitacoesTab({ data, loading, isDiretor, filtroStatus, setFiltroStatus, onNew, onEdit, onAprovar, onRejeitar }) {
   return (<>
     <div style={styles.filterRow}>
       <select style={styles.select} value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
         <option value="">Todos</option>
         {Object.entries(SOLICITACAO_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
       </select>
-      <button style={styles.btn('primary')} onClick={onNew}>+ Nova Solicitação</button>
+      <Button onClick={onNew}>+ Nova Solicitação</Button>
     </div>
     <div style={styles.card}><table style={styles.table}><thead><tr>
       <th style={styles.th}>Título</th><th style={styles.th}>Solicitante</th><th style={styles.th}>Área</th><th style={styles.th}>Valor Est.</th><th style={styles.th}>Urgência</th><th style={styles.th}>Status</th>
-      {isDiretor && <th style={styles.th}>Ações</th>}
+      <th style={styles.th}>Ações</th>
     </tr></thead><tbody>
       {loading ? <tr><td style={styles.td} colSpan={7}>Carregando...</td></tr>
       : data.length === 0 ? <tr><td style={styles.td} colSpan={7}><div style={styles.empty}>Nenhuma solicitação</div></td></tr>
@@ -539,10 +548,15 @@ function SolicitacoesTab({ data, loading, isDiretor, filtroStatus, setFiltroStat
           <td style={styles.td}>{fmtMoney(s.valor_estimado)}</td>
           <td style={styles.td}><Badge status={s.urgencia} map={URGENCIA_COLORS} /></td>
           <td style={styles.td}><Badge status={s.status} map={SOLICITACAO_STATUS} /></td>
-          {isDiretor && <td style={styles.td}>{s.status === 'pendente' && <div style={{ display: 'flex', gap: 4 }}>
-            <button style={{ ...styles.btn('success'), ...styles.btnSm }} onClick={() => onAprovar(s.id)}>✓</button>
-            <button style={{ ...styles.btn('danger'), ...styles.btnSm }} onClick={() => onRejeitar(s.id)}>✕</button>
-          </div>}</td>}
+          <td style={styles.td}>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {s.status === 'pendente' && onEdit && <Button variant="ghost" size="xs" onClick={() => onEdit(s)}>Editar</Button>}
+              {s.status === 'pendente' && isDiretor && <>
+                <Button size="xs" className="bg-emerald-500 hover:bg-emerald-600 text-white" onClick={() => onAprovar(s.id)}>✓</Button>
+                <Button variant="destructive" size="xs" onClick={() => onRejeitar(s.id)}>✕</Button>
+              </>}
+            </div>
+          </td>
         </tr>
       ))}
     </tbody></table></div>
@@ -553,21 +567,47 @@ function SolicitacoesTab({ data, loading, isDiretor, filtroStatus, setFiltroStat
 // TAB: Pedidos
 // ═══════════════════════════════════════════════════════════
 function PedidosTab({ data, loading, isDiretor, filtroStatus, setFiltroStatus, onNew, onEdit, onDelete, onReceber, onItens, fornecedores }) {
+  const [selected, setSelected] = useState([]);
+
+  function toggleSelect(id) { setSelected(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]); }
+  function toggleAll() { setSelected(s => s.length === data.length ? [] : data.map(p => p.id)); }
+
+  async function bulkDelete() {
+    if (!selected.length || !confirm(`Excluir ${selected.length} pedido(s)?`)) return;
+    for (const id of selected) { try { await onDelete(id); } catch {} }
+    setSelected([]);
+  }
+
+  function exportPedidosCSV() {
+    const headers = ['Descrição','Fornecedor','Valor','Data Prevista','Rastreio','Transportadora','Status'];
+    const rows = data.map(p => [p.descricao, p.log_fornecedores?.nome_fantasia||p.log_fornecedores?.razao_social||'', p.valor_total||0, p.data_prevista||'', p.codigo_rastreio||'', p.transportadora||'', p.status]);
+    const csv = [headers,...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+    const blob = new Blob(['\uFEFF'+csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = `pedidos_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+  }
+
   return (<>
     <div style={styles.filterRow}>
       <select style={styles.select} value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
         <option value="">Todos</option>
         {Object.entries(PEDIDO_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
       </select>
-      {isDiretor && <button style={styles.btn('primary')} onClick={onNew}>+ Novo Pedido</button>}
+      <div style={{ display: 'flex', gap: 8, marginLeft: 'auto', alignItems: 'center' }}>
+        {selected.length > 0 && <Button variant="destructive" size="sm" onClick={bulkDelete}>{selected.length} selecionado(s) — Excluir</Button>}
+        <Button variant="outline" size="sm" onClick={exportPedidosCSV}>Exportar CSV</Button>
+        {isDiretor && <Button onClick={onNew}>+ Novo Pedido</Button>}
+      </div>
     </div>
     <div style={styles.card}><table style={styles.table}><thead><tr>
+      <th style={{ ...styles.th, width: 36 }}><input type="checkbox" checked={selected.length === data.length && data.length > 0} onChange={toggleAll} /></th>
       <th style={styles.th}>Descrição</th><th style={styles.th}>Fornecedor</th><th style={styles.th}>Valor</th><th style={styles.th}>Data Prev.</th><th style={styles.th}>Rastreio</th><th style={styles.th}>Status</th><th style={styles.th}>Ações</th>
     </tr></thead><tbody>
-      {loading ? <tr><td style={styles.td} colSpan={7}>Carregando...</td></tr>
-      : data.length === 0 ? <tr><td style={styles.td} colSpan={7}><div style={styles.empty}>Nenhum pedido</div></td></tr>
+      {loading ? <tr><td style={styles.td} colSpan={8}>Carregando...</td></tr>
+      : data.length === 0 ? <tr><td style={styles.td} colSpan={8}><div style={styles.empty}>Nenhum pedido</div></td></tr>
       : data.map(p => (
-        <tr key={p.id}>
+        <tr key={p.id} style={{ background: selected.includes(p.id) ? '#00B39D08' : 'transparent' }}>
+          <td style={{ ...styles.td, width: 36 }}><input type="checkbox" checked={selected.includes(p.id)} onChange={() => toggleSelect(p.id)} /></td>
           <td style={{ ...styles.td, fontWeight: 600, maxWidth: 200 }}>{p.descricao}</td>
           <td style={styles.td}>{p.log_fornecedores?.nome_fantasia || p.log_fornecedores?.razao_social || '—'}</td>
           <td style={styles.td}>{fmtMoney(p.valor_total)}</td>
@@ -575,12 +615,12 @@ function PedidosTab({ data, loading, isDiretor, filtroStatus, setFiltroStatus, o
           <td style={styles.td}>{p.codigo_rastreio || '—'}</td>
           <td style={styles.td}><Badge status={p.status} map={PEDIDO_STATUS} /></td>
           <td style={styles.td}><div style={{ display: 'flex', gap: 4 }}>
-            <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => onItens(p)} title="Itens">📦</button>
+            <Button variant="ghost" size="sm" onClick={() => onItens(p)} title="Itens">📦</Button>
             {['aguardando', 'em_transito'].includes(p.status) && <>
-              <button style={{ ...styles.btn('success'), ...styles.btnSm }} onClick={() => onReceber(p)} title="Receber">✓</button>
-              <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => onEdit(p)}>✏️</button>
+              <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600 text-white" onClick={() => onReceber(p)} title="Receber">✓</Button>
+              <Button variant="ghost" size="sm" onClick={() => onEdit(p)}>✏️</Button>
             </>}
-            {p.status !== 'recebido' && <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => onDelete(p.id)}>🗑</button>}
+            {p.status !== 'recebido' && <Button variant="ghost" size="sm" onClick={() => onDelete(p.id)}>🗑</Button>}
           </div></td>
         </tr>
       ))}
@@ -615,7 +655,7 @@ function NotasFiscaisTab({ data, loading, onNew, onDelete, onReload }) {
       const result = await ml.syncNotas();
       alert(`${result.imported} nota(s) importada(s) do Mercado Livre`);
       onReload();
-    } catch (e) { alert('Erro: ' + e.message); }
+    } catch (e) { setError(e.message); }
     setSyncing(false);
   }
 
@@ -625,7 +665,7 @@ function NotasFiscaisTab({ data, loading, onNew, onDelete, onReload }) {
       const result = await arquivei.sync();
       alert(`${result.imported} nota(s) importada(s) do Arquivei`);
       onReload();
-    } catch (e) { alert('Erro: ' + e.message); }
+    } catch (e) { setError(e.message); }
     setSyncing(false);
   }
 
@@ -635,25 +675,25 @@ function NotasFiscaisTab({ data, loading, onNew, onDelete, onReload }) {
       await arquivei.config(arquiveiForm);
       checkArquivei();
       alert('Arquivei conectado com sucesso!');
-    } catch (e) { alert('Erro: ' + e.message); }
+    } catch (e) { setError(e.message); }
     setConfiguring(false);
   }
 
   return (<>
     {/* Barra de ações */}
     <div style={styles.filterRow}>
-      <button style={styles.btn('primary')} onClick={onNew}>+ Nova Nota Fiscal</button>
-      <button style={styles.btn('secondary')} onClick={syncML} disabled={syncing}>
+      <Button onClick={onNew}>+ Nova Nota Fiscal</Button>
+      <Button variant="outline" onClick={syncML} disabled={syncing}>
         {syncing ? '⏳ Sincronizando...' : '🛒 Importar do Mercado Livre'}
-      </button>
+      </Button>
       {arquiveiStatus?.connected ? (
-        <button style={styles.btn('secondary')} onClick={syncArquiveiNFs} disabled={syncing}>
+        <Button variant="outline" onClick={syncArquiveiNFs} disabled={syncing}>
           {syncing ? '⏳ Sincronizando...' : '📋 Importar do Arquivei'}
-        </button>
+        </Button>
       ) : (
-        <button style={styles.btn('ghost')} onClick={() => setConfiguring(c => !c)}>
+        <Button variant="ghost" onClick={() => setConfiguring(c => !c)}>
           ⚙️ Configurar Arquivei
-        </button>
+        </Button>
       )}
     </div>
 
@@ -671,8 +711,8 @@ function NotasFiscaisTab({ data, loading, onNew, onDelete, onReload }) {
           <Input label="CNPJ" value={arquiveiForm.cnpj} onChange={e => setArquiveiForm(f => ({ ...f, cnpj: e.target.value }))} />
         </div>
         <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-          <button style={styles.btn('primary')} onClick={connectArquivei} disabled={!arquiveiForm.api_id || !arquiveiForm.api_key}>Conectar</button>
-          <button style={styles.btn('ghost')} onClick={() => setConfiguring(false)}>Cancelar</button>
+          <Button onClick={connectArquivei} disabled={!arquiveiForm.api_id || !arquiveiForm.api_key}>Conectar</Button>
+          <Button variant="ghost" onClick={() => setConfiguring(false)}>Cancelar</Button>
         </div>
       </div>
     )}
@@ -710,7 +750,7 @@ function NotasFiscaisTab({ data, loading, onNew, onDelete, onReload }) {
             : n.origem === 'mercadolivre' && n.ml_order_id ? <a href={`https://www.mercadolivre.com.br/purchases/${n.ml_order_id}`} target="_blank" rel="noopener noreferrer" style={{ color: C.primary, fontSize: 12 }}>🛒 Ver no ML</a>
             : '—'}
           </td>
-          <td style={styles.td}><button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => onDelete(n.id)}>🗑</button></td>
+          <td style={styles.td}><Button variant="ghost" size="sm" onClick={() => onDelete(n.id)}>🗑</Button></td>
         </tr>
       ))}
     </tbody></table></div>
@@ -733,13 +773,13 @@ function NotaFiscalModal({ open, data, onClose, onSave, saving, fornecedores, pe
       if (error) throw error;
       const { data: { publicUrl } } = supabase.storage.from('log-arquivos').getPublicUrl(filePath);
       upNota('storage_path', publicUrl);
-    } catch (e) { alert('Erro ao enviar arquivo: ' + e.message); }
+    } catch (e) { setError('Erro ao enviar arquivo: ' + e.message); }
     finally { setUploading(false); }
   }
 
   return (
     <Modal open={open} onClose={onClose} title="Nova Nota Fiscal"
-      footer={<><button style={styles.btn('secondary')} onClick={onClose}>Cancelar</button><button style={styles.btn('primary')} onClick={onSave} disabled={saving || uploading}>{saving ? 'Salvando...' : 'Salvar'}</button></>}>
+      footer={<><Button variant="outline" onClick={onClose}>Cancelar</Button><Button onClick={onSave} disabled={saving || uploading}>{saving ? 'Salvando...' : 'Salvar'}</Button></>}>
       {data && (<>
         <div style={styles.formRow}>
           <Input label="Número *" value={data.numero || ''} onChange={e => upNota('numero', e.target.value)} />
@@ -774,7 +814,7 @@ function NotaFiscalModal({ open, data, onClose, onSave, saving, fornecedores, pe
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}>
                 <span style={{ fontSize: 20 }}>📄</span>
                 <a href={data.storage_path} target="_blank" rel="noopener noreferrer" style={{ color: C.primary, fontSize: 13 }}>PDF enviado ↗</a>
-                <button type="button" onClick={e => { e.stopPropagation(); upNota('storage_path', ''); }} style={{ ...styles.btn('ghost'), color: C.red, fontSize: 12 }}>Remover</button>
+                <Button type="button" variant="ghost" className="text-red-500 text-xs" onClick={e => { e.stopPropagation(); upNota('storage_path', ''); }}>Remover</Button>
               </div>
             ) : uploading ? (
               <div style={{ color: C.primary, fontSize: 13 }}>Enviando...</div>
@@ -814,12 +854,12 @@ function ItensPedidoModal({ open, pedidoId, onClose }) {
       await logistica.pedidos.addItem(pedidoId, form);
       setForm({ descricao: '', quantidade: '', unidade: 'un', valor_unit: '' });
       loadItens();
-    } catch (e) { alert(e.message); }
+    } catch (e) { setError(e.message); }
     setAdding(false);
   }
 
   async function removeItem(id) {
-    try { await logistica.pedidos.removeItem(id); loadItens(); } catch (e) { alert(e.message); }
+    try { await logistica.pedidos.removeItem(id); loadItens(); } catch (e) { setError(e.message); }
   }
 
   const total = itens.reduce((s, i) => s + Number(i.valor_total || 0), 0);
@@ -837,7 +877,7 @@ function ItensPedidoModal({ open, pedidoId, onClose }) {
               <td style={styles.td}>{i.unidade}</td>
               <td style={styles.td}>{fmtMoney(i.valor_unit)}</td>
               <td style={styles.td}>{fmtMoney(i.valor_total)}</td>
-              <td style={styles.td}><button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => removeItem(i.id)}>🗑</button></td>
+              <td style={styles.td}><Button variant="ghost" size="sm" onClick={() => removeItem(i.id)}>🗑</Button></td>
             </tr>
           ))}
           {itens.length > 0 && <tr><td colSpan={4} style={{ ...styles.td, textAlign: 'right', fontWeight: 700 }}>Total:</td><td style={{ ...styles.td, fontWeight: 700 }}>{fmtMoney(total)}</td><td style={styles.td}></td></tr>}
@@ -853,7 +893,7 @@ function ItensPedidoModal({ open, pedidoId, onClose }) {
             <Input label="Unidade" value={form.unidade} onChange={e => setForm(f => ({ ...f, unidade: e.target.value }))} />
             <Input label="Valor Unitário" type="number" step="0.01" value={form.valor_unit} onChange={e => setForm(f => ({ ...f, valor_unit: e.target.value }))} />
           </div>
-          <button style={styles.btn('primary')} onClick={addItem} disabled={adding}>{adding ? 'Adicionando...' : 'Adicionar Item'}</button>
+          <Button onClick={addItem} disabled={adding}>{adding ? 'Adicionando...' : 'Adicionar Item'}</Button>
         </div>
       </>)}
     </Modal>
@@ -942,13 +982,13 @@ function ComprasMLTab() {
     try {
       const data = await ml.config(configForm);
       if (data.auth_url) window.location.href = data.auth_url;
-    } catch (e) { alert(e.message); }
+    } catch (e) { setError(e.message); }
     setConfiguring(false);
   }
 
   async function handleDisconnect() {
     if (!confirm('Desconectar do Mercado Livre?')) return;
-    try { await ml.disconnect(); checkStatus(); } catch (e) { alert(e.message); }
+    try { await ml.disconnect(); checkStatus(); } catch (e) { setError(e.message); }
   }
 
   if (mlStatus && !mlStatus.connected) {
@@ -961,10 +1001,10 @@ function ComprasMLTab() {
           <Input label="Client ID (App ID)" value={configForm.client_id} onChange={e => setConfigForm(f => ({ ...f, client_id: e.target.value }))} />
           <Input label="Client Secret" type="password" value={configForm.client_secret} onChange={e => setConfigForm(f => ({ ...f, client_secret: e.target.value }))} />
         </div>
-        <button style={{ ...styles.btn('primary'), width: '100%', marginTop: 8, padding: '12px 24px', fontSize: 15 }}
+        <Button className="w-full mt-2 py-3 px-6 text-[15px]"
           onClick={handleConfig} disabled={configuring || !configForm.client_id || !configForm.client_secret}>
           {configuring ? 'Configurando...' : '🔗 Conectar ao Mercado Livre'}
-        </button>
+        </Button>
         <div style={{ fontSize: 11, color: C.text3, marginTop: 16 }}>
           Crie seu app em <a href="https://developers.mercadolivre.com.br" target="_blank" rel="noopener noreferrer" style={{ color: C.primary }}>developers.mercadolivre.com.br</a>
         </div>
@@ -992,8 +1032,8 @@ function ComprasMLTab() {
           <option value="confirmed">Confirmados</option>
           <option value="cancelled">Cancelados</option>
         </select>
-        <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => loadOrders(0)}>🔄</button>
-        <button style={{ ...styles.btn('ghost'), ...styles.btnSm, color: C.red }} onClick={handleDisconnect}>Desconectar</button>
+        <Button variant="ghost" size="sm" onClick={() => loadOrders(0)}>🔄</Button>
+        <Button variant="ghost" size="sm" className="text-red-500" onClick={handleDisconnect}>Desconectar</Button>
       </div>
     </div>
 
@@ -1130,8 +1170,8 @@ function ComprasMLTab() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
         <span style={{ fontSize: 12, color: C.text2 }}>Mostrando {paging.offset + 1}–{Math.min(paging.offset + 20, paging.total)} de {paging.total}</span>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} disabled={paging.offset === 0} onClick={() => loadOrders(paging.offset - 20)}>← Anterior</button>
-          <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} disabled={paging.offset + 20 >= paging.total} onClick={() => loadOrders(paging.offset + 20)}>Próximo →</button>
+          <Button variant="ghost" size="sm" disabled={paging.offset === 0} onClick={() => loadOrders(paging.offset - 20)}>← Anterior</Button>
+          <Button variant="ghost" size="sm" disabled={paging.offset + 20 >= paging.total} onClick={() => loadOrders(paging.offset + 20)}>Próximo →</Button>
         </div>
       </div>
     )}
@@ -1148,6 +1188,14 @@ function RastreioMLTab() {
   const [detail, setDetail] = useState(null);
 
   useEffect(() => { loadShipments(); }, []);
+
+  // Auto-refresh a cada 60s quando há envios em trânsito
+  useEffect(() => {
+    const hasActive = shipments.some(s => !['delivered', 'cancelled'].includes(s.status));
+    if (!hasActive) return;
+    const interval = setInterval(loadShipments, 60000);
+    return () => clearInterval(interval);
+  }, [shipments]);
 
   async function loadShipments() {
     setLoading(true);
@@ -1181,7 +1229,7 @@ function RastreioMLTab() {
   return (<>
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
       <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>📦 {emTransito.length} envio(s) em andamento</div>
-      <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={loadShipments}>🔄 Atualizar</button>
+      <Button variant="ghost" size="sm" onClick={loadShipments}>🔄 Atualizar</Button>
     </div>
 
     {/* Em trânsito */}
