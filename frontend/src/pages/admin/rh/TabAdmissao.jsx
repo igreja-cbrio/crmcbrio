@@ -49,7 +49,7 @@ const styles = {
   sectionTitle: { fontSize: 13, fontWeight: 700, color: C.primary, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
 };
 
-function Input({ label, ...props }) { return (<div style={styles.formGroup}>{label && <label style={styles.label}>{label}</label>}<input style={styles.input} {...props} /></div>); }
+function Input({ label, error, ...props }) { return (<div style={styles.formGroup}>{label && <label style={styles.label}>{label}</label>}<input style={{ ...styles.input, ...(error ? { borderColor: '#ef4444' } : {}) }} {...props} />{error && <div style={{ fontSize: 11, color: '#ef4444', marginTop: 2 }}>{error}</div>}</div>); }
 function Select({ label, children, ...props }) { return (<div style={styles.formGroup}>{label && <label style={styles.label}>{label}</label>}<select style={styles.select} {...props}>{children}</select></div>); }
 
 // ── Template de contrato PJ ──────────────────────────────
@@ -304,7 +304,25 @@ export default function TabAdmissao() {
 // ═══════════════════════════════════════════════════════════
 function AdmissaoFormModal({ data, onClose, onSave, saving }) {
   const [f, setF] = useState({ ...data });
-  const upd = (k, v) => setF(p => ({ ...p, [k]: v }));
+  const [errors, setErrors] = useState({});
+  const upd = (k, v) => { setF(p => ({ ...p, [k]: v })); setErrors(e => ({ ...e, [k]: '' })); };
+
+  function validate() {
+    const errs = {};
+    if (!f.nome?.trim()) errs.nome = 'Nome é obrigatório';
+    if (!f.cargo?.trim()) errs.cargo = 'Cargo é obrigatório';
+    if (!f.data_inicio) errs.data_inicio = 'Data de início é obrigatória';
+    if (f.tipo_contrato === 'pj') {
+      if (!f.pj_razao_social?.trim()) errs.pj_razao_social = 'Razão social é obrigatória';
+      if (!f.pj_cnpj?.trim()) errs.pj_cnpj = 'CNPJ é obrigatório';
+    }
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  }
+
+  function handleSave() {
+    if (validate()) onSave(f);
+  }
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex' }}>
@@ -324,7 +342,7 @@ function AdmissaoFormModal({ data, onClose, onSave, saving }) {
 
           <div style={styles.section}>
             <div style={styles.sectionTitle}>Dados Pessoais</div>
-            <Input label="Nome Completo *" value={f.nome || ''} onChange={e => upd('nome', e.target.value)} />
+            <Input label="Nome Completo *" value={f.nome || ''} onChange={e => upd('nome', e.target.value)} error={errors.nome} />
             <div style={styles.formRow}>
               <Input label="CPF" value={f.cpf || ''} onChange={e => upd('cpf', e.target.value)} />
               <Input label="RG" value={f.rg || ''} onChange={e => upd('rg', e.target.value)} />
@@ -340,10 +358,10 @@ function AdmissaoFormModal({ data, onClose, onSave, saving }) {
           {f.tipo_contrato === 'pj' && (
             <div style={styles.section}>
               <div style={styles.sectionTitle}>Dados da Empresa (PJ)</div>
-              <Input label="Razão Social *" value={f.pj_razao_social || ''} onChange={e => upd('pj_razao_social', e.target.value)} />
+              <Input label="Razão Social *" value={f.pj_razao_social || ''} onChange={e => upd('pj_razao_social', e.target.value)} error={errors.pj_razao_social} />
               <div style={styles.formRow}>
                 <Input label="Nome Fantasia" value={f.pj_nome_fantasia || ''} onChange={e => upd('pj_nome_fantasia', e.target.value)} />
-                <Input label="CNPJ *" value={f.pj_cnpj || ''} onChange={e => upd('pj_cnpj', e.target.value)} />
+                <Input label="CNPJ *" value={f.pj_cnpj || ''} onChange={e => upd('pj_cnpj', e.target.value)} error={errors.pj_cnpj} />
               </div>
               <Input label="Inscrição Municipal" value={f.pj_inscricao_municipal || ''} onChange={e => upd('pj_inscricao_municipal', e.target.value)} />
               <Input label="Endereço da Empresa" value={f.pj_endereco_empresa || ''} onChange={e => upd('pj_endereco_empresa', e.target.value)} />
@@ -363,12 +381,12 @@ function AdmissaoFormModal({ data, onClose, onSave, saving }) {
           <div style={styles.section}>
             <div style={styles.sectionTitle}>Cargo e Remuneração</div>
             <div style={styles.formRow}>
-              <Input label="Cargo *" value={f.cargo || ''} onChange={e => upd('cargo', e.target.value)} />
+              <Input label="Cargo *" value={f.cargo || ''} onChange={e => upd('cargo', e.target.value)} error={errors.cargo} />
               <Input label="Área" value={f.area || ''} onChange={e => upd('area', e.target.value)} />
             </div>
             <div style={styles.formRow}>
               <Input label="Salário / Valor Mensal (R$)" type="number" step="0.01" value={f.salario || ''} onChange={e => upd('salario', e.target.value)} />
-              <Input label="Data de Início *" type="date" value={f.data_inicio || ''} onChange={e => upd('data_inicio', e.target.value)} />
+              <Input label="Data de Início *" type="date" value={f.data_inicio || ''} onChange={e => upd('data_inicio', e.target.value)} error={errors.data_inicio} />
             </div>
           </div>
 
@@ -381,7 +399,7 @@ function AdmissaoFormModal({ data, onClose, onSave, saving }) {
         {/* Footer sticky */}
         <div style={{ position: 'sticky', bottom: 0, background: 'var(--cbrio-modal-bg)', padding: '16px 28px', borderTop: `1px solid ${C.border}`, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-          <Button onClick={() => onSave(f)} disabled={saving}>
+          <Button onClick={handleSave} disabled={saving}>
             {saving ? 'Salvando...' : f.id ? 'Salvar' : 'Criar Admissão'}
           </Button>
         </div>

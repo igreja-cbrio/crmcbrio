@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { rh } from '../../../api';
+import { Button } from '../../../components/ui/button';
 import { Plus, X, Clock, Settings, Trash2, CalendarDays } from 'lucide-react';
 
 const C = {
@@ -17,6 +18,8 @@ const STATUS_MAP = {
   realizado: { c: C.green, bg: C.greenBg, label: 'Realizado' },
   cancelado: { c: C.red, bg: C.redBg, label: 'Cancelado' },
 };
+
+const inputStyle = { width: '100%', padding: '10px 12px', background: 'var(--cbrio-input-bg)', border: '1px solid var(--cbrio-border)', borderRadius: 8, color: 'var(--cbrio-text)', fontSize: 13, outline: 'none' };
 
 export default function TabExtras({ funcionarios, onRefresh }) {
   const [extras, setExtras] = useState([]);
@@ -39,16 +42,14 @@ export default function TabExtras({ funcionarios, onRefresh }) {
       setExtras(data);
     } catch (e) {
       setError(e.message || 'Erro ao buscar extras');
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }
 
   async function loadConfig() {
     try {
       const cfg = await rh.config.get();
       if (cfg.valor_extra_padrao) setValorPadrao(cfg.valor_extra_padrao);
-    } catch { /* config is optional */ }
+    } catch { }
   }
 
   async function handleSubmit(e) {
@@ -80,20 +81,18 @@ export default function TabExtras({ funcionarios, onRefresh }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 13, color: C.text2 }}>Valor padrão: <strong style={{ color: C.primary }}>R$ {Number(valorPadrao).toFixed(2)}</strong></span>
-          <button onClick={() => setShowConfig(!showConfig)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.text3 }}><Settings style={{ width: 14, height: 14 }} /></button>
+          <Button variant="ghost" size="icon-xs" onClick={() => setShowConfig(!showConfig)}><Settings className="h-3.5 w-3.5" /></Button>
         </div>
-        <button onClick={() => { setForm(f => ({ ...f, valor: valorPadrao })); setShowModal(true); }}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, background: C.primary, color: '#0a0a0a', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-          <Plus style={{ width: 14, height: 14 }} /> Nova Escala
-        </button>
+        <Button className="gap-1.5" onClick={() => { setForm(f => ({ ...f, valor: valorPadrao })); setShowModal(true); }}>
+          <Plus className="h-4 w-4" /> Nova Escala
+        </Button>
       </div>
 
       {showConfig && (
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, padding: '12px 16px', background: 'var(--cbrio-input-bg)', borderRadius: 10, border: `1px solid ${C.border}` }}>
           <label style={{ fontSize: 13, color: C.text2 }}>Valor padrão R$</label>
-          <input type="number" step="0.01" value={valorPadrao} onChange={e => setValorPadrao(e.target.value)}
-            style={{ width: 100, padding: '6px 10px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, color: C.text, fontSize: 13 }} />
-          <button onClick={saveValorPadrao} style={{ padding: '6px 14px', background: C.primary, color: '#0a0a0a', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Salvar</button>
+          <input type="number" step="0.01" value={valorPadrao} onChange={e => setValorPadrao(e.target.value)} style={{ ...inputStyle, width: 100 }} />
+          <Button size="xs" onClick={saveValorPadrao}>Salvar</Button>
         </div>
       )}
 
@@ -154,7 +153,7 @@ export default function TabExtras({ funcionarios, onRefresh }) {
                     </select>
                   </td>
                   <td style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}` }}>
-                    <button onClick={() => remove(ex.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.text3 }}><Trash2 style={{ width: 14, height: 14 }} /></button>
+                    <Button variant="ghost" size="icon-xs" onClick={() => remove(ex.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
                   </td>
                 </tr>
               );
@@ -168,52 +167,43 @@ export default function TabExtras({ funcionarios, onRefresh }) {
           <div style={{ background: 'var(--cbrio-modal-bg)', borderRadius: 16, width: '100%', maxWidth: 500, padding: 28, border: `1px solid ${C.border}` }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <h3 style={{ fontSize: 18, fontWeight: 700, color: C.text, margin: 0 }}>Nova Escala de Extra</h3>
-              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', color: C.text3, cursor: 'pointer' }}><X style={{ width: 18, height: 18 }} /></button>
+              <Button variant="ghost" size="icon-xs" onClick={() => setShowModal(false)}><X className="h-4 w-4" /></Button>
             </div>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: C.text2, display: 'block', marginBottom: 4 }}>Colaborador *</label>
-                <select required value={form.funcionario_id} onChange={e => setForm(f => ({ ...f, funcionario_id: e.target.value }))}
-                  style={{ width: '100%', padding: '10px 12px', background: 'var(--cbrio-input-bg)', border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13 }}>
+                <select required value={form.funcionario_id} onChange={e => setForm(f => ({ ...f, funcionario_id: e.target.value }))} style={inputStyle}>
                   <option value="">Selecione...</option>
                   {funcionarios.filter(f => f.status === 'ativo').map(f => <option key={f.id} value={f.id}>{f.nome} — {f.cargo}</option>)}
                 </select>
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: C.text2, display: 'block', marginBottom: 4 }}>Título do serviço *</label>
-                <input required value={form.titulo} onChange={e => setForm(f => ({ ...f, titulo: e.target.value }))} placeholder="Ex: Plantão Domingo Páscoa"
-                  style={{ width: '100%', padding: '10px 12px', background: 'var(--cbrio-input-bg)', border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13 }} />
+                <input required value={form.titulo} onChange={e => setForm(f => ({ ...f, titulo: e.target.value }))} placeholder="Ex: Plantão Domingo Páscoa" style={inputStyle} />
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: C.text2, display: 'block', marginBottom: 4 }}>Descrição</label>
-                <textarea value={form.descricao} onChange={e => setForm(f => ({ ...f, descricao: e.target.value }))} rows={2}
-                  style={{ width: '100%', padding: '10px 12px', background: 'var(--cbrio-input-bg)', border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13, resize: 'vertical' }} />
+                <textarea value={form.descricao} onChange={e => setForm(f => ({ ...f, descricao: e.target.value }))} rows={2} style={{ ...inputStyle, resize: 'vertical' }} />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: C.text2, display: 'block', marginBottom: 4 }}>Data *</label>
-                  <input required type="date" value={form.data} onChange={e => setForm(f => ({ ...f, data: e.target.value }))}
-                    style={{ width: '100%', padding: '10px 12px', background: 'var(--cbrio-input-bg)', border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13 }} />
+                  <input required type="date" value={form.data} onChange={e => setForm(f => ({ ...f, data: e.target.value }))} style={inputStyle} />
                 </div>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: C.text2, display: 'block', marginBottom: 4 }}>Início *</label>
-                  <input required type="time" value={form.horario_inicio} onChange={e => setForm(f => ({ ...f, horario_inicio: e.target.value }))}
-                    style={{ width: '100%', padding: '10px 12px', background: 'var(--cbrio-input-bg)', border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13 }} />
+                  <input required type="time" value={form.horario_inicio} onChange={e => setForm(f => ({ ...f, horario_inicio: e.target.value }))} style={inputStyle} />
                 </div>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: C.text2, display: 'block', marginBottom: 4 }}>Fim *</label>
-                  <input required type="time" value={form.horario_fim} onChange={e => setForm(f => ({ ...f, horario_fim: e.target.value }))}
-                    style={{ width: '100%', padding: '10px 12px', background: 'var(--cbrio-input-bg)', border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13 }} />
+                  <input required type="time" value={form.horario_fim} onChange={e => setForm(f => ({ ...f, horario_fim: e.target.value }))} style={inputStyle} />
                 </div>
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: C.text2, display: 'block', marginBottom: 4 }}>Valor R$ *</label>
-                <input required type="number" step="0.01" value={form.valor} onChange={e => setForm(f => ({ ...f, valor: e.target.value }))} placeholder={valorPadrao}
-                  style={{ width: '100%', padding: '10px 12px', background: 'var(--cbrio-input-bg)', border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13 }} />
+                <input required type="number" step="0.01" value={form.valor} onChange={e => setForm(f => ({ ...f, valor: e.target.value }))} placeholder={valorPadrao} style={inputStyle} />
               </div>
-              <button type="submit" style={{ width: '100%', padding: '12px', background: C.primary, color: '#0a0a0a', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', marginTop: 4 }}>
-                Escalar Colaborador
-              </button>
+              <Button type="submit" className="w-full mt-1">Escalar Colaborador</Button>
               <p style={{ fontSize: 11, color: C.text3, textAlign: 'center', margin: 0 }}>O colaborador receberá uma notificação com os detalhes.</p>
             </form>
           </div>
