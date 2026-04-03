@@ -241,6 +241,41 @@ router.patch('/phases/:phaseId', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// POST /api/cycles/phases — criar fase custom
+router.post('/phases', async (req, res) => {
+  try {
+    const d = req.body;
+    const { data, error } = await supabase.from('event_cycle_phases').insert({
+      event_id: d.event_id, template_id: d.template_id || null,
+      numero_fase: d.numero_fase || 99, nome_fase: d.nome_fase,
+      area: d.area || 'ambos', momento_chave: d.momento_chave || false,
+      data_inicio_prevista: d.data_inicio_prevista || null,
+      data_fim_prevista: d.data_fim_prevista || null,
+      status: 'pendente',
+    }).select().single();
+    if (error) throw error;
+    res.json(data);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// DELETE /api/cycles/phases/:phaseId — excluir fase (cascade exclui tarefas)
+router.delete('/phases/:phaseId', async (req, res) => {
+  try {
+    await supabase.from('cycle_phase_tasks').delete().eq('event_phase_id', req.params.phaseId);
+    await supabase.from('event_cycle_phases').delete().eq('id', req.params.phaseId);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// DELETE /api/cycles/tasks/:taskId — excluir tarefa
+router.delete('/tasks/:taskId', async (req, res) => {
+  try {
+    await supabase.from('cycle_task_subtasks').delete().eq('task_id', req.params.taskId);
+    await supabase.from('cycle_phase_tasks').delete().eq('id', req.params.taskId);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // POST /api/cycles/tasks
 router.post('/tasks', async (req, res) => {
   try {
