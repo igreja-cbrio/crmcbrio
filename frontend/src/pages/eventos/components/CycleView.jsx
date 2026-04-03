@@ -404,41 +404,94 @@ export default function CycleView({ eventId }) {
         </div>
       )}
 
-      {/* Tab: Fases Administração */}
-      {tab === 'Fases Administração' && (
-        <div>
-          {[-5, -4, -3, -2, -1, 0].map(semana => {
-            const items = admTrack.filter(a => a.semana === semana);
-            if (items.length === 0) return null;
-            return (
-              <div key={semana} style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: C.dark, marginBottom: 6 }}>
-                  {semana === 0 ? 'Dia D' : `Semana ${semana}`}
-                  <span style={{ fontSize: 11, fontWeight: 400, color: C.t3, marginLeft: 8 }}>
-                    {items[0]?.data_prevista && fmtDate(items[0].data_prevista)}
-                  </span>
-                </div>
-                {items.map(item => {
-                  const st = ADM_STATUS[item.status] || ADM_STATUS.pendente;
-                  return (
-                    <div key={item.id} style={{ background: 'var(--cbrio-card)', borderRadius: 8, padding: 10, border: `1px solid ${C.border}`, marginBottom: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: C.dark }}>{item.titulo}</div>
-                        <div style={{ fontSize: 11, color: C.t2 }}>{item.area} · {item.entrega_esperada}</div>
+      {/* Tab: Fases Administração — tarefas ADM com subtarefas */}
+      {tab === 'Fases Administração' && (() => {
+        const admTasks = tasks.filter(t => t.area === 'adm');
+        // Extrair sub-área do campo observacoes: "Área: compras | ..."
+        const getSubArea = (t) => { const m = (t.observacoes || '').match(/Área:\s*(\w+)/i); return m ? m[1] : 'outros'; };
+        const AREAS = ['compras', 'financeiro', 'manutencao', 'limpeza', 'cozinha'];
+        const AREA_LABELS = { compras: 'Compras', financeiro: 'Financeiro', manutencao: 'Manutenção', limpeza: 'Limpeza', cozinha: 'Cozinha', outros: 'Outros' };
+        const AREA_COLORS = { compras: '#3b82f6', financeiro: '#10b981', manutencao: '#f59e0b', limpeza: '#8b5cf6', cozinha: '#ec4899' };
+
+        return (
+          <div>
+            {(admTasks.length === 0) && <div style={{ padding: 20, textAlign: 'center', color: C.t3, fontSize: 13 }}>Nenhuma tarefa administrativa</div>}
+            {AREAS.map(area => {
+              const areaTasks = admTasks.filter(t => getSubArea(t) === area);
+              if (areaTasks.length === 0) return null;
+              const done = areaTasks.filter(t => t.status === 'concluida').length;
+              return (
+                <div key={area} style={{ marginBottom: 20 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <div style={{ width: 12, height: 12, borderRadius: '50%', background: AREA_COLORS[area] || C.t3 }} />
+                    <span style={{ fontSize: 15, fontWeight: 700, color: C.dark }}>{AREA_LABELS[area] || area}</span>
+                    <span style={{ fontSize: 12, color: C.t3 }}>({done}/{areaTasks.length} concluídas)</span>
+                  </div>
+                  {areaTasks.map(task => {
+                    const isOpen = selectedPhase?.id === `adm-${task.id}`;
+                    const subs = task.subtasks || [];
+                    const subsDone = subs.filter(s => s.done).length;
+                    const ts = TASK_STATUS[task.status] || TASK_STATUS.a_fazer;
+                    return (
+                      <div key={task.id} style={{
+                        background: 'var(--cbrio-card)', borderRadius: 8, padding: '10px 14px',
+                        border: isOpen ? `1.5px solid ${C.accent}` : `1px solid ${C.border}`,
+                        marginBottom: 6, cursor: 'pointer', transition: 'box-shadow 0.15s',
+                      }}
+                      onClick={() => setSelectedPhase(isOpen ? null : { id: `adm-${task.id}` })}
+                      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'}
+                      onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
+                        {/* Resumo */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+                            <span style={{ color: C.t3, fontSize: 11 }}>{isOpen ? '▼' : '▶'}</span>
+                            <div>
+                              <div style={{ fontWeight: 600, fontSize: 13, color: C.dark }}>{task.titulo}</div>
+                              <div style={{ fontSize: 11, color: C.t2, marginTop: 2 }}>
+                                {task.prazo && fmtDate(task.prazo)}
+                                {subs.length > 0 && ` · ${subsDone}/${subs.length} subtarefas`}
+                              </div>
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }} onClick={e => e.stopPropagation()}>
+                            <Badge text={ts.label} color={ts.color} />
+                            <select value={task.status} onChange={e => handleTaskStatusChange(task.id, e.target.value)}
+                              style={{ fontSize: 11, padding: '2px 6px', borderRadius: 6, border: `1px solid ${C.border}` }}>
+                              {Object.entries(TASK_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* Expandido: subtarefas */}
+                        {isOpen && (
+                          <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.border}` }} onClick={e => e.stopPropagation()}>
+                            {subs.length === 0 && <div style={{ fontSize: 11, color: C.t3 }}>Sem subtarefas</div>}
+                            {subs.length > 0 && (
+                              <div>
+                                <div style={{ fontSize: 11, fontWeight: 600, color: C.t2, marginBottom: 4 }}>Subtarefas ({subsDone}/{subs.length})</div>
+                                {subs.map(sub => (
+                                  <div key={sub.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '3px 0', color: C.dark }}>
+                                    <input type="checkbox" checked={sub.done} onChange={async () => {
+                                      await api.updateTask(task.id, {}); // trigger reload
+                                      sub.done = !sub.done;
+                                      load();
+                                    }} style={{ cursor: 'pointer' }} />
+                                    <span style={sub.done ? { textDecoration: 'line-through', color: C.t3 } : {}}>{sub.name}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      <select value={item.status} onChange={e => handleAdmStatusChange(item.id, e.target.value)}
-                        style={{ fontSize: 11, padding: '2px 6px', borderRadius: 6, border: `1px solid ${C.border}`, color: st.color }}
-                        onClick={e => e.stopPropagation()}>
-                        {Object.entries(ADM_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                      </select>
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
-        </div>
-      )}
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       {/* Modal: Detalhe da fase */}
       {selectedPhase && (
