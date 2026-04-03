@@ -41,4 +41,53 @@ router.post('/sync-areas', async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ error: e.message }); }
 });
 
+// GET /api/dashboard/projects-kanban — projetos com tarefas para kanban
+router.get('/projects-kanban', async (req, res) => {
+  try {
+    const { data: projects } = await supabase.from('projects')
+      .select('*, project_categories(name, color)').neq('status', 'concluido').order('date_start');
+    const { data: tasks } = await supabase.from('project_tasks').select('*');
+    const { data: milestones } = await supabase.from('project_milestones').select('*').order('sort_order');
+
+    // Agrupar por área (da categoria)
+    const AREA_MAP = { 'Infraestrutura': 'Gestão', 'Administrativo': 'Gestão', 'Tecnologia': 'Gestão', 'Ministerial': 'Ministerial', 'Social': 'Ministerial' };
+    const result = (projects || []).map(p => {
+      const pTasks = (tasks || []).filter(t => t.project_id === p.id);
+      const done = pTasks.filter(t => t.status === 'concluida').length;
+      const catName = p.project_categories?.name || '';
+      return {
+        ...p, category_name: catName, category_color: p.project_categories?.color,
+        area_group: AREA_MAP[catName] || 'Criativo',
+        tasks_total: pTasks.length, tasks_done: done,
+        milestones: (milestones || []).filter(m => m.project_id === p.id),
+      };
+    });
+    res.json(result);
+  } catch (e) { console.error(e); res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/dashboard/strategic-kanban — planos estratégicos com tarefas para kanban
+router.get('/strategic-kanban', async (req, res) => {
+  try {
+    const { data: plans } = await supabase.from('strategic_plans')
+      .select('*, strategic_categories(name, color)').neq('status', 'concluido').order('date_start');
+    const { data: tasks } = await supabase.from('strategic_tasks').select('*');
+    const { data: milestones } = await supabase.from('strategic_milestones').select('*').order('sort_order');
+
+    const AREA_MAP = { 'Crescimento': 'Ministerial', 'Expansão Física': 'Gestão', 'Capacitação': 'Gestão', 'Financeiro': 'Gestão', 'Missões': 'Ministerial' };
+    const result = (plans || []).map(p => {
+      const pTasks = (tasks || []).filter(t => t.plan_id === p.id);
+      const done = pTasks.filter(t => t.status === 'concluida').length;
+      const catName = p.strategic_categories?.name || '';
+      return {
+        ...p, category_name: catName, category_color: p.strategic_categories?.color,
+        area_group: AREA_MAP[catName] || 'Gestão',
+        tasks_total: pTasks.length, tasks_done: done,
+        milestones: (milestones || []).filter(m => m.plan_id === p.id),
+      };
+    });
+    res.json(result);
+  } catch (e) { console.error(e); res.status(500).json({ error: e.message }); }
+});
+
 module.exports = router;
