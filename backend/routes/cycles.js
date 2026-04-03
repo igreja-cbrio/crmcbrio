@@ -54,6 +54,39 @@ router.get('/summary/all', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// GET /api/cycles/kanban/all — todos os ciclos com fases + tarefas + subtarefas
+router.get('/kanban/all', async (req, res) => {
+  try {
+    const { data: cycles } = await supabase.from('event_cycles').select('event_id, status, events(name)').eq('status', 'ativo');
+    if (!cycles || cycles.length === 0) return res.json({ events: [], phases: [], tasks: [] });
+
+    const eventIds = cycles.map(c => c.event_id);
+
+    const [phasesRes, tasksRes] = await Promise.all([
+      supabase.from('event_cycle_phases').select('*').in('event_id', eventIds).order('numero_fase'),
+      supabase.from('cycle_phase_tasks').select('*').in('event_id', eventIds),
+    ]);
+
+    // Subtarefas
+    const taskIds = (tasksRes.data || []).map(t => t.id);
+    const { data: allSubs } = taskIds.length > 0
+      ? await supabase.from('cycle_task_subtasks').select('*').in('task_id', taskIds).order('sort_order')
+      : { data: [] };
+    const subsMap = {};
+    (allSubs || []).forEach(s => { if (!subsMap[s.task_id]) subsMap[s.task_id] = []; subsMap[s.task_id].push(s); });
+
+    const tasksWithSubs = (tasksRes.data || []).map(t => ({ ...t, subtasks: subsMap[t.id] || [] }));
+
+    const events = cycles.map(c => ({ id: c.event_id, name: c.events?.name || '—' }));
+
+    res.json({
+      events,
+      phases: phasesRes.data || [],
+      tasks: tasksWithSubs,
+    });
+  } catch (err) { console.error(err); res.status(500).json({ error: err.message }); }
+});
+
 // POST /api/cycles/activate/:eventId
 router.post('/activate/:eventId', async (req, res) => {
   const { eventId } = req.params;
