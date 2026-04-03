@@ -53,11 +53,54 @@ router.get('/dashboard', async (req, res) => {
       .gte('data_expiracao', hoje)
       .order('data_expiracao');
 
+    // Custo total mensal (salários ativos)
+    const { data: salarios } = await supabase
+      .from('rh_funcionarios')
+      .select('salario, custo_total_mensal')
+      .eq('status', 'ativo');
+    const custoMensal = (salarios || []).reduce((sum, f) => sum + Number(f.custo_total_mensal || f.salario || 0), 0);
+    const totalSalarios = (salarios || []).reduce((sum, f) => sum + Number(f.salario || 0), 0);
+
+    // Admissões nos últimos 12 meses (para turnover)
+    const umAnoAtras = new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10);
+    const { count: admissoesAno } = await supabase
+      .from('rh_funcionarios')
+      .select('id', { count: 'exact', head: true })
+      .gte('data_admissao', umAnoAtras);
+
+    // Desligamentos nos últimos 12 meses
+    const { count: desligamentosAno } = await supabase
+      .from('rh_funcionarios')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'inativo')
+      .gte('data_demissao', umAnoAtras);
+
+    // Admissões pendentes
+    const { count: admissoesPendentes } = await supabase
+      .from('rh_admissoes')
+      .select('id', { count: 'exact', head: true })
+      .not('status', 'in', '("concluido","cancelado")');
+
+    // Treinamentos pendentes
+    const { count: treinosPendentes } = await supabase
+      .from('rh_treinamentos_funcionarios')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'inscrito');
+
+    // Taxa de turnover = desligamentos / média headcount * 100
+    const turnover = total > 0 ? Math.round((desligamentosAno || 0) / total * 100) : 0;
+
     res.json({
       total, ativos, ferias, licenca, inativos,
       porContrato, porArea,
       feriasProximas: feriasProximas || [],
       docsVencendo: docsVencendo || [],
+      custoMensal, totalSalarios,
+      admissoesAno: admissoesAno || 0,
+      desligamentosAno: desligamentosAno || 0,
+      turnover,
+      admissoesPendentes: admissoesPendentes || 0,
+      treinosPendentes: treinosPendentes || 0,
     });
   } catch (e) {
     console.error('[RH] Dashboard:', e.message);

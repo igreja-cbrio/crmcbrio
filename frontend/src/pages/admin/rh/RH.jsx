@@ -349,12 +349,15 @@ function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
 
   const goTo = (tab, status) => { if (setFiltroStatus) setFiltroStatus(status || ''); if (onNavigate) onNavigate(tab); };
 
+  const fmtM = (v) => v != null ? `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}` : '—';
   const kpis = [
     { label: 'Total Colaboradores', value: dash.total, bg: '#0a0a0a', onClick: () => goTo(1) },
     { label: 'Ativos', value: dash.ativos, bg: '#00B39D', onClick: () => goTo(1, 'ativo') },
     { label: 'Em Férias', value: dash.ferias, bg: '#3b82f6', onClick: () => goTo(4) },
     { label: 'Em Licença', value: dash.licenca, bg: '#f59e0b', onClick: () => goTo(4) },
     { label: 'Inativos', value: dash.inativos, bg: '#6b7280', onClick: () => goTo(1, 'inativo') },
+    { label: 'Custo Mensal', value: fmtM(dash.custoMensal), bg: '#dc2626' },
+    { label: 'Turnover', value: `${dash.turnover || 0}%`, bg: dash.turnover > 15 ? '#ef4444' : '#10b981' },
   ];
 
   return (
@@ -362,6 +365,27 @@ function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
       <div style={styles.kpiGrid}>
         {kpis.map((k, i) => (
           <StatCard key={k.label} label={k.label} value={k.value} bg={k.bg} svg={kpiSvgs[i]} onClick={k.onClick} />
+        ))}
+      </div>
+
+      {/* Métricas extras */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 24 }}>
+        {[
+          { label: 'Admissões (12m)', value: dash.admissoesAno, icon: '📥', color: C.green },
+          { label: 'Desligamentos (12m)', value: dash.desligamentosAno, icon: '📤', color: C.red },
+          { label: 'Admissões Pendentes', value: dash.admissoesPendentes, icon: '📋', color: C.amber },
+          { label: 'Treinamentos Pendentes', value: dash.treinosPendentes, icon: '🎓', color: C.blue },
+          { label: 'Folha Salarial', value: fmtM(dash.totalSalarios), icon: '💵', color: C.primary },
+        ].map(m => (
+          <div key={m.label} style={{ ...styles.card, padding: '14px 16px', borderLeft: `3px solid ${m.color}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 20 }}>{m.icon}</span>
+              <div>
+                <div style={{ fontSize: 10, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>{m.label}</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: C.text }}>{m.value ?? 0}</div>
+              </div>
+            </div>
+          </div>
         ))}
       </div>
 
