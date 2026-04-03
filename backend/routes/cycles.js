@@ -57,10 +57,12 @@ router.get('/summary/all', async (req, res) => {
 // GET /api/cycles/kanban/all — todos os ciclos com fases + tarefas + subtarefas
 router.get('/kanban/all', async (req, res) => {
   try {
-    const { data: cycles } = await supabase.from('event_cycles').select('event_id, status, events(name)').eq('status', 'ativo');
-    if (!cycles || cycles.length === 0) return res.json({ events: [], phases: [], tasks: [] });
+    const { data: cycles } = await supabase.from('event_cycles').select('event_id, status, events(name, status)').eq('status', 'ativo');
+    // Filtrar eventos concluídos
+    const activeCycles = (cycles || []).filter(c => c.events?.status !== 'concluido');
+    if (!activeCycles || activeCycles.length === 0) return res.json({ events: [], phases: [], tasks: [] });
 
-    const eventIds = cycles.map(c => c.event_id);
+    const eventIds = activeCycles.map(c => c.event_id);
 
     const [phasesRes, tasksRes] = await Promise.all([
       supabase.from('event_cycle_phases').select('*').in('event_id', eventIds).order('numero_fase'),
@@ -77,7 +79,7 @@ router.get('/kanban/all', async (req, res) => {
 
     const tasksWithSubs = (tasksRes.data || []).map(t => ({ ...t, subtasks: subsMap[t.id] || [] }));
 
-    const events = cycles.map(c => ({ id: c.event_id, name: c.events?.name || '—' }));
+    const events = activeCycles.map(c => ({ id: c.event_id, name: c.events?.name || '—' }));
 
     res.json({
       events,

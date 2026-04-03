@@ -200,17 +200,40 @@ export default function CycleView({ eventId }) {
                 {colTasks.map(task => {
                   const cat = CAT[getCategory(task)] || CAT.outros;
                   const isLate = task.prazo && new Date(normDate(task.prazo)) < new Date() && task.status !== 'concluida';
+                  const subs = task.subtasks || [];
+                  const subsDone = subs.filter(s => s.done).length;
+                  const isOpen = expandedTask === `kb-${task.id}`;
                   return (
                     <div key={task.id} draggable onDragStart={e => e.dataTransfer.setData('cycleTaskId', task.id)}
-                      style={{ background: 'var(--cbrio-card)', borderRadius: 8, padding: 8, marginBottom: 4, border: `1px solid ${C.border}`, cursor: 'grab', transition: 'box-shadow .15s' }}
+                      onClick={() => setExpandedTask(isOpen ? null : `kb-${task.id}`)}
+                      style={{ background: 'var(--cbrio-card)', borderRadius: 8, padding: 8, marginBottom: 4, border: isOpen ? `1.5px solid ${C.accent}` : `1px solid ${C.border}`, cursor: 'pointer', transition: 'box-shadow .15s' }}
                       onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'}
                       onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
-                      <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 99, background: cat.bg, color: cat.color, fontWeight: 500, display: 'inline-block', marginBottom: 4 }}>{cat.label}</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 3 }}>
+                        <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 99, background: cat.bg, color: cat.color, fontWeight: 500 }}>{cat.label}</span>
+                        <select value={task.status} onClick={e => e.stopPropagation()} onChange={e => { e.stopPropagation(); handleTaskStatus(task.id, e.target.value); }}
+                          style={{ fontSize: 9, padding: '1px 4px', borderRadius: 4, border: `1px solid ${C.border}`, background: 'var(--cbrio-card)' }}>
+                          {Object.entries(TASK_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                        </select>
+                      </div>
                       <div style={{ fontSize: 11, fontWeight: 500, color: C.dark, lineHeight: 1.3, marginBottom: 3 }}>{task.titulo}</div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: C.t3 }}>
                         <span>{task.responsavel_nome || '—'}</span>
-                        {task.prazo && <span style={{ color: isLate ? '#ef4444' : C.t3, fontWeight: isLate ? 600 : 400 }}>{fmtDate(task.prazo)}{isLate ? ' !' : ''}</span>}
+                        <span>
+                          {task.prazo && <span style={{ color: isLate ? '#ef4444' : 'inherit', fontWeight: isLate ? 600 : 400 }}>{fmtDate(task.prazo)}{isLate ? ' !' : ''}</span>}
+                          {subs.length > 0 && ` · ${subsDone}/${subs.length}`}
+                        </span>
                       </div>
+                      {isOpen && subs.length > 0 && (
+                        <div style={{ marginTop: 6, paddingTop: 6, borderTop: `1px solid ${C.border}` }} onClick={e => e.stopPropagation()}>
+                          {subs.map(sub => (
+                            <div key={sub.id} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, padding: '2px 0', color: C.dark }}>
+                              <input type="checkbox" checked={sub.done} onChange={() => { sub.done = !sub.done; setData({ ...data }); }} style={{ cursor: 'pointer', width: 13, height: 13 }} />
+                              <span style={sub.done ? { textDecoration: 'line-through', color: C.t3 } : {}}>{sub.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
