@@ -14,6 +14,7 @@ const Financeiro   = lazy(() => import('./pages/admin/financeiro/Financeiro'));
 const Logistica    = lazy(() => import('./pages/admin/logistica/Logistica'));
 const Patrimonio   = lazy(() => import('./pages/admin/patrimonio/Patrimonio'));
 const Membresia    = lazy(() => import('./pages/ministerial/Membresia'));
+const Planejamento = lazy(() => import('./pages/Planejamento'));
 const AssistenteIA = lazy(() => import('./pages/admin/AssistenteIA'));
 
 const Loading = () => (
@@ -61,6 +62,9 @@ function AppRoutes() {
         }
       >
         <Route index element={<Navigate to="/eventos" replace />} />
+
+        {/* Planejamento (hub PMO) */}
+        <Route path="planejamento" element={<Suspense fallback={<Loading />}><Planejamento /></Suspense>} />
 
         {/* Projetos e Eventos */}
         <Route path="eventos" element={<Suspense fallback={<Loading />}><Eventos /></Suspense>} />
