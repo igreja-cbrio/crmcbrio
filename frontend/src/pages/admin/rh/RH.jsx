@@ -5,6 +5,7 @@ import { rh, permissoes } from '../../../api';
 import { supabase } from '../../../supabaseClient';
 import TabAdmissao from './TabAdmissao';
 import TabFolha from './TabFolha';
+import TabAvaliacoes from './TabAvaliacoes';
 import TabExtras from './TabExtras';
 
 // ── Tema ────────────────────────────────────────────────────
@@ -144,7 +145,7 @@ function Badge({ status, map }) {
 }
 
 // ── TABS ────────────────────────────────────────────────────
-const TABS = ['Dashboard', 'Colaboradores', 'Admissão', 'Organograma', 'Folha', 'Treinamentos', 'Férias/Licenças', 'Extras'];
+const TABS = ['Dashboard', 'Colaboradores', 'Admissão', 'Organograma', 'Folha', 'Avaliações', 'Treinamentos', 'Férias/Licenças', 'Extras'];
 
 // ═══════════════════════════════════════════════════════════
 // COMPONENTE PRINCIPAL
@@ -284,18 +285,19 @@ export default function RH() {
       {tab === 2 && <TabAdmissao />}
       {tab === 3 && <OrgChartTab funcs={funcs} onDetail={openDetail} />}
       {tab === 4 && <TabFolha />}
-      {tab === 5 && (
+      {tab === 5 && <TabAvaliacoes funcionarios={funcs} />}
+      {tab === 6 && (
         <TreinamentosTab treinos={treinos} funcs={funcs}
           onNew={() => setModalTreino({})} onEdit={(t) => setModalTreino(t)} onDelete={deleteTreinamento}
           onInscrever={async (treinoId, funcId) => { await rh.treinamentos.inscrever(treinoId, { funcionario_id: funcId }); loadTreinos(); }}
         />
       )}
-      {tab === 6 && (
+      {tab === 7 && (
         <FeriasTab dash={dash} funcs={funcs}
           onNew={() => setModalFerias({})} onAprovar={aprovarFerias}
         />
       )}
-      {tab === 7 && (
+      {tab === 8 && (
         <div style={{ minHeight: 200, padding: '4px 0' }}>
           <TabExtras funcionarios={funcs} onRefresh={() => { loadDash(); loadFuncs(); }} />
         </div>
@@ -356,8 +358,8 @@ function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
   const kpis = [
     { label: 'Total Colaboradores', value: dash.total, bg: '#0a0a0a', onClick: () => goTo(1) },
     { label: 'Ativos', value: dash.ativos, bg: '#00B39D', onClick: () => goTo(1, 'ativo') },
-    { label: 'Em Férias', value: dash.ferias, bg: '#3b82f6', onClick: () => goTo(6) },
-    { label: 'Em Licença', value: dash.licenca, bg: '#f59e0b', onClick: () => goTo(6) },
+    { label: 'Em Férias', value: dash.ferias, bg: '#3b82f6', onClick: () => goTo(7) },
+    { label: 'Em Licença', value: dash.licenca, bg: '#f59e0b', onClick: () => goTo(7) },
     { label: 'Inativos', value: dash.inativos, bg: '#6b7280', onClick: () => goTo(1, 'inativo') },
     { label: 'Custo Mensal', value: fmtM(dash.custoMensal), bg: '#dc2626' },
     { label: 'Turnover', value: `${dash.turnover || 0}%`, bg: dash.turnover > 15 ? '#ef4444' : '#10b981' },

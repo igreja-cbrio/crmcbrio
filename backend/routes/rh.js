@@ -882,4 +882,52 @@ router.post('/admissoes/:id/concluir', async (req, res) => {
   }
 });
 
+// ═══════════════════════════════════════════════════════════
+// AVALIAÇÕES DE DESEMPENHO
+// ═══════════════════════════════════════════════════════════
+
+router.get('/avaliacoes', async (req, res) => {
+  try {
+    let query = supabase.from('rh_avaliacoes')
+      .select('*, rh_funcionarios(nome, cargo, area, foto_url)')
+      .order('created_at', { ascending: false });
+    if (req.query.funcionario_id) query = query.eq('funcionario_id', req.query.funcionario_id);
+    if (req.query.periodo) query = query.eq('periodo', req.query.periodo);
+    const { data, error } = await query;
+    if (error) throw error;
+    res.json(data);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/avaliacoes', async (req, res) => {
+  try {
+    const body = { ...req.body, avaliador_id: req.user.id };
+    // Calcular nota geral
+    const notas = [body.nota_produtividade, body.nota_qualidade, body.nota_pontualidade, body.nota_trabalho_equipe, body.nota_iniciativa, body.nota_comunicacao].filter(n => n);
+    if (notas.length) body.nota_geral = (notas.reduce((a, b) => a + b, 0) / notas.length).toFixed(1);
+    const { data, error } = await supabase.from('rh_avaliacoes').insert(body).select().single();
+    if (error) throw error;
+    res.json(data);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.patch('/avaliacoes/:id', async (req, res) => {
+  try {
+    const body = { ...req.body };
+    const notas = [body.nota_produtividade, body.nota_qualidade, body.nota_pontualidade, body.nota_trabalho_equipe, body.nota_iniciativa, body.nota_comunicacao].filter(n => n);
+    if (notas.length) body.nota_geral = (notas.reduce((a, b) => a + b, 0) / notas.length).toFixed(1);
+    const { data, error } = await supabase.from('rh_avaliacoes').update(body).eq('id', req.params.id).select().single();
+    if (error) throw error;
+    res.json(data);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.delete('/avaliacoes/:id', async (req, res) => {
+  try {
+    const { error } = await supabase.from('rh_avaliacoes').delete().eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 module.exports = router;

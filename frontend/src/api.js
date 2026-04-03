@@ -352,6 +352,12 @@ export const rh = {
     get: () => get('/rh/config'),
     set: (chave, valor) => put(`/rh/config/${chave}`, { valor }),
   },
+  avaliacoes: {
+    list: (params) => get('/rh/avaliacoes' + (params ? '?' + new URLSearchParams(params) : '')),
+    create: (data) => post('/rh/avaliacoes', data),
+    update: (id, data) => patch(`/rh/avaliacoes/${id}`, data),
+    remove: (id) => del(`/rh/avaliacoes/${id}`),
+  },
   admissoes: {
     list: (params) => get('/rh/admissoes' + (params ? '?' + new URLSearchParams(params) : '')),
     get: (id) => get(`/rh/admissoes/${id}`),
