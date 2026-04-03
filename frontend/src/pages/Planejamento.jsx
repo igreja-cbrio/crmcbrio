@@ -29,6 +29,16 @@ function normDate(d) { return d ? (typeof d === 'string' ? d.slice(0, 10) : '') 
 function fmtDate(d) { const s = normDate(d); if (!s) return ''; const [y, m, day] = s.split('-'); return `${day}/${m}`; }
 function getCat(t) { if (t.area === 'marketing') return 'marketing'; const m = (t.observacoes || '').match(/Área:\s*(\w+)/i); return m ? m[1] : 'outros'; }
 // Ordenar por urgência: prazo mais próximo de vencer primeiro, sem prazo por último
+function filterByHorizon(items, days, dateField = 'prazo') {
+  if (!days) return items; // 0 = sem filtro
+  const limit = new Date(); limit.setDate(limit.getDate() + days);
+  return items.filter(t => {
+    const d = normDate(t[dateField]);
+    if (!d) return true; // sem data = mostrar sempre
+    return new Date(d + 'T12:00:00') <= limit;
+  });
+}
+
 function sortByUrgency(tasks) {
   return [...tasks].sort((a, b) => {
     const pa = normDate(a.prazo); const pb = normDate(b.prazo);
@@ -55,6 +65,9 @@ export default function Planejamento() {
   const [eventFilter, setEventFilter] = useState('all');
   const [expanded, setExpanded] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Horizonte temporal (dias)
+  const [horizon, setHorizon] = useState(15); // 15, 30, 0 (sem filtro)
 
   // Projetos + Estratégico
   const [projectsData, setProjectsData] = useState([]);
@@ -117,6 +130,7 @@ export default function Planejamento() {
     return true;
   });
   if (areaFilter !== 'all') phaseTasks = phaseTasks.filter(t => getCat(t) === areaFilter);
+  phaseTasks = filterByHorizon(phaseTasks, horizon, 'prazo');
 
   // Gantt
   const MONTHS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -294,6 +308,17 @@ export default function Planejamento() {
                 color: areaFilter === f.key ? (f.color || C.accent) : C.t3,
               }}>{f.label}</button>
             ))}
+
+            <span style={{ width: 1, height: 20, background: C.border }} />
+
+            {/* Horizonte temporal */}
+            <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Horizonte:</span>
+            <select value={horizon} onChange={e => setHorizon(parseInt(e.target.value))}
+              style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card }}>
+              <option value={15}>Próx. 15 dias</option>
+              <option value={30}>Próx. 30 dias</option>
+              <option value={0}>Sem filtro</option>
+            </select>
           </div>
 
           {/* ══ KANBAN EVENTOS (fases do ciclo) ══ */}
@@ -408,7 +433,8 @@ export default function Planejamento() {
               { key: 'Gestão', label: 'Gestão', color: '#3b82f6' },
               { key: 'Ministerial', label: 'Ministerial', color: '#8b5cf6' },
             ];
-            const filtered = selectedAreaGroup === 'all' ? projectsData : projectsData.filter(p => p.area_group === selectedAreaGroup);
+            let filtered = selectedAreaGroup === 'all' ? projectsData : projectsData.filter(p => p.area_group === selectedAreaGroup);
+            filtered = filterByHorizon(filtered, horizon, 'date_end');
             const STATUS_COLS = [
               { key: 'no-prazo', label: 'No prazo', color: '#10b981' },
               { key: 'em-risco', label: 'Em risco', color: '#f59e0b' },
@@ -417,16 +443,28 @@ export default function Planejamento() {
 
             return (
               <div>
-                {/* Faixa de áreas */}
-                <div style={{ display: 'flex', gap: 5, marginBottom: 16 }}>
-                  {AREAS.map(a => (
-                    <button key={a.key} onClick={() => setSelectedAreaGroup(a.key)} style={{
-                      borderRadius: 8, padding: '8px 16px', cursor: 'pointer', fontSize: 12, fontWeight: selectedAreaGroup === a.key ? 700 : 400,
-                      border: selectedAreaGroup === a.key ? `2px solid ${a.color}` : `1px solid ${C.border}`,
-                      background: selectedAreaGroup === a.key ? `${a.color}15` : C.card,
-                      color: selectedAreaGroup === a.key ? a.color : C.t3,
-                    }}>{a.label} ({a.key === 'all' ? projectsData.length : projectsData.filter(p => p.area_group === a.key).length})</button>
-                  ))}
+                {/* Faixa de áreas (cards centralizados) */}
+                <div style={{ overflowX: 'auto', marginBottom: 16, paddingBottom: 6 }}>
+                  <div style={{ display: 'flex', gap: 5, minWidth: 'max-content', justifyContent: 'center' }}>
+                    {AREAS.map((a, i) => {
+                      const count = a.key === 'all' ? projectsData.length : projectsData.filter(p => p.area_group === a.key).length;
+                      const isActive = selectedAreaGroup === a.key;
+                      return (
+                        <div key={a.key} style={{ display: 'flex', alignItems: 'center' }}>
+                          <div onClick={() => setSelectedAreaGroup(a.key)} style={{
+                            borderRadius: 8, padding: '10px 20px', cursor: 'pointer', minWidth: 120, textAlign: 'center',
+                            border: isActive ? `2px solid ${a.color}` : `1px solid ${C.border}`,
+                            background: isActive ? `${a.color}10` : C.card,
+                            transition: 'all .15s',
+                          }}>
+                            <div style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? a.color : C.text }}>{a.label}</div>
+                            <div style={{ fontSize: 10, color: C.t3, marginTop: 2 }}>{count} projetos</div>
+                          </div>
+                          {i < AREAS.length - 1 && <div style={{ width: 12, height: 2, background: C.border, flexShrink: 0 }} />}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* Cards épicos de projetos */}
@@ -484,7 +522,8 @@ export default function Planejamento() {
               { key: 'Gestão', label: 'Gestão', color: '#3b82f6' },
               { key: 'Ministerial', label: 'Ministerial', color: '#8b5cf6' },
             ];
-            const filtered = selectedAreaGroup === 'all' ? strategicData : strategicData.filter(p => p.area_group === selectedAreaGroup);
+            let filtered = selectedAreaGroup === 'all' ? strategicData : strategicData.filter(p => p.area_group === selectedAreaGroup);
+            filtered = filterByHorizon(filtered, horizon, 'date_end');
             const STATUS_COLS = [
               { key: 'no-prazo', label: 'No prazo', color: '#10b981' },
               { key: 'em-risco', label: 'Em risco', color: '#f59e0b' },
@@ -493,15 +532,26 @@ export default function Planejamento() {
 
             return (
               <div>
-                <div style={{ display: 'flex', gap: 5, marginBottom: 16 }}>
-                  {AREAS.map(a => (
-                    <button key={a.key} onClick={() => setSelectedAreaGroup(a.key)} style={{
-                      borderRadius: 8, padding: '8px 16px', cursor: 'pointer', fontSize: 12, fontWeight: selectedAreaGroup === a.key ? 700 : 400,
-                      border: selectedAreaGroup === a.key ? `2px solid ${a.color}` : `1px solid ${C.border}`,
-                      background: selectedAreaGroup === a.key ? `${a.color}15` : C.card,
-                      color: selectedAreaGroup === a.key ? a.color : C.t3,
-                    }}>{a.label} ({a.key === 'all' ? strategicData.length : strategicData.filter(p => p.area_group === a.key).length})</button>
-                  ))}
+                <div style={{ overflowX: 'auto', marginBottom: 16, paddingBottom: 6 }}>
+                  <div style={{ display: 'flex', gap: 5, minWidth: 'max-content', justifyContent: 'center' }}>
+                    {AREAS.map((a, i) => {
+                      const count = a.key === 'all' ? strategicData.length : strategicData.filter(p => p.area_group === a.key).length;
+                      const isActive = selectedAreaGroup === a.key;
+                      return (
+                        <div key={a.key} style={{ display: 'flex', alignItems: 'center' }}>
+                          <div onClick={() => setSelectedAreaGroup(a.key)} style={{
+                            borderRadius: 8, padding: '10px 20px', cursor: 'pointer', minWidth: 120, textAlign: 'center',
+                            border: isActive ? `2px solid ${a.color}` : `1px solid ${C.border}`,
+                            background: isActive ? `${a.color}10` : C.card,
+                          }}>
+                            <div style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? a.color : C.text }}>{a.label}</div>
+                            <div style={{ fontSize: 10, color: C.t3, marginTop: 2 }}>{count} marcos</div>
+                          </div>
+                          {i < AREAS.length - 1 && <div style={{ width: 12, height: 2, background: C.border, flexShrink: 0 }} />}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {filtered.length === 0 && <div style={{ padding: 40, textAlign: 'center', color: C.t3, fontSize: 13 }}>Nenhum marco estratégico cadastrado. Crie planos para vê-los aqui.</div>}

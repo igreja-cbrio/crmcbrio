@@ -103,6 +103,11 @@ const styles = {
 function normDate(d) { return d ? (typeof d === 'string' ? d.slice(0, 10) : '') : ''; }
 const fmtDate = (d) => { const s = normDate(d); if (!s) return '—'; const [y, m, day] = s.split('-'); return `${day}/${m}/${y}`; };
 const fmtMoney = (v) => v != null ? `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '—';
+function filterByHorizon(items, days, dateField = 'prazo') {
+  if (!days) return items;
+  const limit = new Date(); limit.setDate(limit.getDate() + days);
+  return items.filter(t => { const d = normDate(t[dateField]); if (!d) return true; return new Date(d + 'T12:00:00') <= limit; });
+}
 function sortByUrgency(tasks) {
   return [...tasks].sort((a, b) => {
     const pa = normDate(a.prazo || a.deadline); const pb = normDate(b.prazo || b.deadline);
@@ -591,8 +596,9 @@ export default function Eventos() {
   ];
 
   // ── Kanban (dois níveis)
-  const [kanbanViewMode, setKanbanViewMode] = useState('pmo'); // 'pmo', 'area', 'minhas'
+  const [kanbanViewMode, setKanbanViewMode] = useState('pmo');
   const [kanbanArea, setKanbanArea] = useState('all');
+  const [kanbanHorizon, setKanbanHorizon] = useState(15);
   const [kanbanExpanded, setKanbanExpanded] = useState(null);
   const [kanbanCycleData, setKanbanCycleData] = useState(null);
   const [kanbanPhase, setKanbanPhase] = useState(null);
@@ -673,6 +679,7 @@ export default function Eventos() {
       return true;
     });
     if (kanbanArea !== 'all') phaseTasks = phaseTasks.filter(t => getCat(t) === kanbanArea);
+    phaseTasks = filterByHorizon(phaseTasks, kanbanHorizon, 'prazo');
 
     return (
       <div style={{ margin: '0 -32px', padding: '0 16px' }}>
@@ -691,6 +698,14 @@ export default function Eventos() {
               color: kanbanViewMode === v.key ? '#00B39D' : 'var(--cbrio-text3)',
             }}>{v.label}</button>
           ))}
+          <span style={{ width: 1, height: 20, background: 'var(--cbrio-border)' }} />
+          <span style={{ fontSize: 11, color: 'var(--cbrio-text2)', fontWeight: 600 }}>Horizonte:</span>
+          <select value={kanbanHorizon} onChange={e => setKanbanHorizon(parseInt(e.target.value))}
+            style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, border: '1px solid var(--cbrio-border)', background: 'var(--cbrio-card)' }}>
+            <option value={15}>15 dias</option>
+            <option value={30}>30 dias</option>
+            <option value={0}>Sem filtro</option>
+          </select>
         </div>
 
         {/* Filtros */}
