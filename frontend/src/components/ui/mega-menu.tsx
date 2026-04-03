@@ -87,6 +87,7 @@ export default function MegaMenu({ items, role }: MegaMenuProps) {
               style={{ color: openMenu === navItem.label ? 'var(--cbrio-text)' : 'var(--cbrio-text2)' }}
               onMouseEnter={() => setIsHover(navItem.id)}
               onMouseLeave={() => setIsHover(null)}
+              onClick={() => { if (navItem.path) { window.location.href = navItem.path; } }}
             >
               <span className="relative z-10">{navItem.label}</span>
               <ChevronDown
