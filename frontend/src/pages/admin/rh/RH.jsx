@@ -1052,83 +1052,97 @@ function FeriasTab({ funcs, onNew, onAprovar }) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// TAB: ORGANOGRAMA
+// TAB: ORGANOGRAMA (visual flowchart)
 // ═══════════════════════════════════════════════════════════
 function OrgChartTab({ funcs, onDetail }) {
   const ativos = funcs.filter(f => f.status === 'ativo');
 
-  // Montar árvore hierárquica
-  function buildTree(gestorId) {
-    return ativos
-      .filter(f => (f.gestor_id || null) === gestorId)
-      .sort((a, b) => a.nome.localeCompare(b.nome));
+  function getChildren(gestorId) {
+    return ativos.filter(f => (f.gestor_id || null) === gestorId).sort((a, b) => a.nome.localeCompare(b.nome));
   }
 
-  function OrgNode({ func, level = 0 }) {
-    const subordinados = buildTree(func.id);
-    const statusColor = STATUS_COLORS[func.status] || STATUS_COLORS.ativo;
+  // Card do colaborador
+  function OrgCard({ func, highlight }) {
     return (
-      <div style={{ marginLeft: level > 0 ? 32 : 0 }}>
-        <div
-          onClick={() => onDetail(func.id)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px',
-            background: C.card, borderRadius: 10, border: `1px solid ${C.border}`,
-            marginBottom: 8, cursor: 'pointer', transition: 'all 0.15s',
-            borderLeft: `3px solid ${statusColor.c}`,
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = C.primaryBg; }}
-          onMouseLeave={e => { e.currentTarget.style.background = C.card; }}
-        >
-          {func.foto_url ? (
-            <img src={func.foto_url} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-          ) : (
-            <div style={{ width: 36, height: 36, borderRadius: '50%', background: C.primaryBg, color: C.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, flexShrink: 0 }}>
-              {func.nome[0].toUpperCase()}
+      <div
+        onClick={() => onDetail(func.id)}
+        style={{
+          background: 'var(--cbrio-card)', border: `2px solid ${highlight ? C.primary : C.border}`,
+          borderRadius: 12, padding: '14px 20px', textAlign: 'center', cursor: 'pointer',
+          minWidth: 140, maxWidth: 200, transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.25)'; e.currentTarget.style.borderColor = C.primary; }}
+        onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = highlight ? C.primary : C.border; }}
+      >
+        {func.foto_url ? (
+          <img src={func.foto_url} alt="" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', margin: '0 auto 8px', display: 'block', border: `2px solid ${C.primary}` }} />
+        ) : (
+          <div style={{ width: 44, height: 44, borderRadius: '50%', background: C.primaryBg, color: C.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, margin: '0 auto 8px' }}>
+            {func.nome[0].toUpperCase()}
+          </div>
+        )}
+        <div style={{ fontSize: 12, fontWeight: 700, color: C.text, lineHeight: 1.3 }}>{func.cargo || func.area || '—'}</div>
+        <div style={{ fontSize: 11, color: C.text2, marginTop: 2 }}>{func.nome}</div>
+      </div>
+    );
+  }
+
+  // Nó recursivo da árvore visual
+  function OrgTreeNode({ func }) {
+    const children = getChildren(func.id);
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <OrgCard func={func} highlight={children.length > 0} />
+        {children.length > 0 && (
+          <>
+            {/* Linha vertical descendo do pai */}
+            <div style={{ width: 2, height: 24, background: C.primary, opacity: 0.4 }} />
+            {/* Container dos filhos */}
+            <div style={{ position: 'relative', display: 'flex', gap: 16, justifyContent: 'center' }}>
+              {/* Linha horizontal conectando filhos */}
+              {children.length > 1 && (
+                <div style={{
+                  position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
+                  width: `calc(100% - 140px)`, height: 2, background: C.primary, opacity: 0.4,
+                }} />
+              )}
+              {children.map(child => (
+                <div key={child.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  {/* Linha vertical subindo para conectar */}
+                  <div style={{ width: 2, height: 24, background: C.primary, opacity: 0.4 }} />
+                  <OrgTreeNode func={child} />
+                </div>
+              ))}
             </div>
-          )}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{func.nome}</div>
-            <div style={{ fontSize: 12, color: C.text2 }}>{func.cargo}{func.area ? ` · ${func.area}` : ''}</div>
-          </div>
-          {subordinados.length > 0 && (
-            <span style={{ fontSize: 11, color: C.text3, background: `${C.primary}18`, padding: '2px 8px', borderRadius: 10, fontWeight: 600 }}>
-              {subordinados.length} subordinado{subordinados.length > 1 ? 's' : ''}
-            </span>
-          )}
-        </div>
-        {subordinados.length > 0 && (
-          <div style={{ borderLeft: `2px solid ${C.border}`, marginLeft: 18, paddingLeft: 0 }}>
-            {subordinados.map(sub => <OrgNode key={sub.id} func={sub} level={level + 1} />)}
-          </div>
+          </>
         )}
       </div>
     );
   }
 
-  // Roots = colaboradores sem gestor
-  const roots = buildTree(null);
-  const semGestor = ativos.filter(f => !f.gestor_id);
-  const comGestor = ativos.filter(f => f.gestor_id);
+  const roots = getChildren(null);
+  const comGestor = ativos.filter(f => f.gestor_id).length;
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div style={{ fontSize: 13, color: C.text2 }}>
-          {ativos.length} colaboradores ativos · {comGestor.length} com gestor · {semGestor.length} sem gestor definido
+          {ativos.length} colaboradores · {comGestor} com gestor definido
         </div>
         <div style={{ fontSize: 12, color: C.text3 }}>
-          Clique para ver detalhes · Defina gestores em "Editar Colaborador"
+          Clique em um card para ver detalhes
         </div>
       </div>
       {roots.length === 0 ? (
         <div style={styles.empty}>
           <div style={{ fontSize: 28, marginBottom: 8 }}>🏢</div>
-          Nenhum colaborador ativo. Defina o campo "Gestor Direto" em cada colaborador para montar o organograma.
+          Defina o campo "Gestor Direto" em cada colaborador para montar o organograma.
         </div>
       ) : (
-        <div style={{ maxWidth: 800 }}>
-          {roots.map(r => <OrgNode key={r.id} func={r} level={0} />)}
+        <div style={{ overflowX: 'auto', padding: '20px 0 40px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 'max-content', margin: '0 auto' }}>
+            {roots.map(r => <OrgTreeNode key={r.id} func={r} />)}
+          </div>
         </div>
       )}
     </>
