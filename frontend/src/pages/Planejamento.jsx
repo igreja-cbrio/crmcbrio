@@ -357,50 +357,138 @@ export default function Planejamento() {
         </div>
       )}
 
-      {/* ═══ TAB: Gantt ═══ */}
-      {tab === 2 && (
-        <div>
-          <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
-            <div style={{ position: 'relative', height: 36, borderBottom: `1px solid ${C.border}`, background: 'var(--cbrio-table-header, #fafafa)' }}>
-              {monthLabels.map((m, i) => (
-                <div key={i} style={{ position: 'absolute', left: `${m.pct}%`, top: 0, height: '100%', borderLeft: `1px solid ${C.border}`, padding: '8px 8px', fontSize: 12, fontWeight: 600, color: C.t2, whiteSpace: 'nowrap' }}>{m.label}</div>
-              ))}
-              <div style={{ position: 'absolute', left: `${todayPct}%`, top: 0, width: 2, height: '100%', background: '#ef4444', zIndex: 2 }} />
-              <div style={{ position: 'absolute', left: `${todayPct}%`, top: 0, transform: 'translateX(-50%)', fontSize: 9, fontWeight: 700, color: '#ef4444', background: C.card, padding: '0 4px', borderRadius: 4, zIndex: 3 }}>hoje</div>
-            </div>
-            {ganttList.length === 0 && <div style={{ padding: 40, textAlign: 'center', color: C.t3, fontSize: 13 }}>Nenhuma tarefa com prazo</div>}
-            {ganttList.map((g, gi) => (
-              <div key={gi}>
-                <div style={{ padding: '10px 16px', fontWeight: 700, fontSize: 13, color: C.text, borderBottom: `1px solid ${C.border}`, background: C.bg }}>{g.name}</div>
-                {g.tasks.map(task => {
-                  const dl = normDate(task.deadline);
-                  if (!dl) return null;
-                  const dd = new Date(dl + 'T12:00:00');
-                  const sd = task.start_date ? new Date(normDate(task.start_date) + 'T12:00:00') : new Date(dd.getTime() - 14 * 86400000);
-                  const lp = dayPct(sd), rp = dayPct(dd), wp = Math.max(rp - lp, 1);
-                  const bc = task.area ? (CAT[task.area]?.color || SOURCE_COLORS[task.source]) : SOURCE_COLORS[task.source] || '#9ca3af';
-                  const late = dd < today && task.status !== 'concluida';
-                  const done = task.status === 'concluida';
-                  return (
-                    <div key={`${task.source}-${task.id}`} style={{ position: 'relative', height: 40, borderBottom: `1px solid ${C.border}` }}>
-                      {monthLabels.map((m, i) => (<div key={i} style={{ position: 'absolute', left: `${m.pct}%`, top: 0, width: 1, height: '100%', background: C.border, opacity: 0.4 }} />))}
-                      <div style={{ position: 'absolute', left: `${todayPct}%`, top: 0, width: 2, height: '100%', background: '#ef4444', zIndex: 2, opacity: 0.6 }} />
-                      <div title={`${task.name}\n${task.responsible || ''}\n${fmtDate(task.deadline)}`} style={{
-                        position: 'absolute', top: 8, height: 24, borderRadius: 6, left: `${lp}%`, width: `${wp}%`, minWidth: 40,
-                        background: done ? '#d1d5db' : late ? '#ef4444' : bc, opacity: done ? 0.5 : 0.85,
-                        display: 'flex', alignItems: 'center', padding: '0 8px', overflow: 'hidden',
-                      }}>
-                        <span style={{ fontSize: 10, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{task.name}</span>
+      {/* ═══ TAB: Gantt (por fases do ciclo) ═══ */}
+      {tab === 2 && (() => {
+        const STATUS_COLORS = { pendente: '#9ca3af', em_andamento: '#3b82f6', concluida: '#10b981', atrasada: '#ef4444', em_risco: '#f59e0b' };
+
+        // Agrupar fases por evento
+        const eventGroups = {};
+        allEvents.forEach(ev => { eventGroups[ev.id] = { name: ev.name, phases: [] }; });
+        allPhases.forEach(ph => {
+          if (eventGroups[ph.event_id]) eventGroups[ph.event_id].phases.push(ph);
+        });
+        const groups = Object.values(eventGroups).filter(g => g.phases.length > 0);
+        groups.forEach(g => g.phases.sort((a, b) => a.numero_fase - b.numero_fase));
+
+        // Range de datas
+        const allDates = allPhases.flatMap(p => [p.data_inicio_prevista, p.data_fim_prevista].filter(Boolean)).map(d => new Date(d));
+        const gS = allDates.length > 0 ? new Date(Math.min(...allDates, today) - 14 * 86400000) : new Date(today.getFullYear(), 0, 1);
+        const gE = allDates.length > 0 ? new Date(Math.max(...allDates, today) + 14 * 86400000) : new Date(today.getFullYear(), 11, 31);
+        gS.setDate(1); gE.setDate(1); gE.setMonth(gE.getMonth() + 1);
+        const dPct = (date) => Math.max(0, Math.min(100, ((new Date(date) - gS) / (gE - gS)) * 100));
+        const tPct = dPct(today);
+
+        const mLabels = [];
+        const mc2 = new Date(gS);
+        while (mc2 < gE) { mLabels.push({ label: MONTHS[mc2.getMonth()] + (mc2.getMonth() === 0 ? ' ' + mc2.getFullYear() : ''), pct: dPct(mc2) }); mc2.setMonth(mc2.getMonth() + 1); }
+
+        const NAME_W = 200;
+        const BAR_H = 32;
+
+        return (
+          <div>
+            {groups.length === 0 && <div style={{ padding: 40, textAlign: 'center', color: C.t3, fontSize: 13 }}>Nenhum ciclo criativo ativo</div>}
+
+            {groups.map((group, gi) => (
+              <div key={gi} style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, marginBottom: 16, overflow: 'hidden' }}>
+                {/* Header do evento */}
+                <div style={{ padding: '10px 16px', background: `${C.accent}10`, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: C.accent }} />
+                  <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{group.name}</span>
+                  <span style={{ fontSize: 11, color: C.t3 }}>({group.phases.filter(p => p.status === 'concluida').length}/{group.phases.length} fases)</span>
+                </div>
+
+                {/* Gantt */}
+                <div style={{ display: 'flex' }}>
+                  {/* Coluna fixa: nomes das fases */}
+                  <div style={{ width: NAME_W, flexShrink: 0, borderRight: `1px solid ${C.border}` }}>
+                    <div style={{ height: 28, borderBottom: `1px solid ${C.border}`, background: 'var(--cbrio-table-header, #fafafa)' }} />
+                    {group.phases.map(ph => (
+                      <div key={ph.id} style={{ height: BAR_H, padding: '0 10px', display: 'flex', alignItems: 'center', gap: 6, borderBottom: `1px solid ${C.border}` }}>
+                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: STATUS_COLORS[ph.status] || '#9ca3af', flexShrink: 0 }} />
+                        <span style={{ fontSize: 11, fontWeight: 500, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          F{ph.numero_fase} {ph.nome_fase}
+                        </span>
                       </div>
+                    ))}
+                  </div>
+
+                  {/* Área scrollável: barras */}
+                  <div style={{ flex: 1, overflowX: 'auto' }}>
+                    <div style={{ minWidth: 600, position: 'relative' }}>
+                      {/* Header meses */}
+                      <div style={{ height: 28, position: 'relative', borderBottom: `1px solid ${C.border}`, background: 'var(--cbrio-table-header, #fafafa)' }}>
+                        {mLabels.map((m, i) => (
+                          <div key={i} style={{ position: 'absolute', left: `${m.pct}%`, top: 0, height: '100%', borderLeft: `1px solid ${C.border}`, padding: '5px 6px', fontSize: 10, fontWeight: 600, color: C.t2, whiteSpace: 'nowrap' }}>{m.label}</div>
+                        ))}
+                        <div style={{ position: 'absolute', left: `${tPct}%`, top: 0, width: 2, height: '100%', background: '#ef4444', zIndex: 2 }} />
+                        <div style={{ position: 'absolute', left: `${tPct}%`, top: -1, transform: 'translateX(-50%)', fontSize: 8, fontWeight: 700, color: '#ef4444', background: C.card, padding: '0 3px', borderRadius: 3, zIndex: 3 }}>hoje</div>
+                      </div>
+
+                      {/* Barras das fases */}
+                      {group.phases.map(ph => {
+                        const si = normDate(ph.data_inicio_prevista);
+                        const ei = normDate(ph.data_fim_prevista);
+                        if (!si || !ei) return <div key={ph.id} style={{ height: BAR_H, borderBottom: `1px solid ${C.border}` }} />;
+                        const lp = dPct(si); const rp = dPct(ei); const wp = Math.max(rp - lp, 2);
+                        const sc = STATUS_COLORS[ph.status] || '#9ca3af';
+                        const isDone = ph.status === 'concluida';
+                        const isLate = ph.status === 'atrasada';
+
+                        // Contagem de tarefas
+                        const pTasks = allTasks.filter(t => t.event_phase_id === ph.id);
+                        const tDone = pTasks.filter(t => t.status === 'concluida').length;
+
+                        return (
+                          <div key={ph.id} style={{ position: 'relative', height: BAR_H, borderBottom: `1px solid ${C.border}` }}>
+                            {mLabels.map((m, i) => (<div key={i} style={{ position: 'absolute', left: `${m.pct}%`, top: 0, width: 1, height: '100%', background: C.border, opacity: 0.3 }} />))}
+                            <div style={{ position: 'absolute', left: `${tPct}%`, top: 0, width: 2, height: '100%', background: '#ef4444', zIndex: 2, opacity: 0.4 }} />
+                            <div title={`${ph.nome_fase}\n${fmtDate(si)} → ${fmtDate(ei)}\n${tDone}/${pTasks.length} tarefas`}
+                              style={{
+                                position: 'absolute', top: 4, height: BAR_H - 8, borderRadius: 6,
+                                left: `${lp}%`, width: `${wp}%`, minWidth: 50,
+                                background: isDone ? '#d1d5db' : sc, opacity: isDone ? 0.5 : 0.85,
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px', overflow: 'hidden',
+                                border: isLate ? '1px solid #fecaca' : 'none',
+                              }}>
+                              <span style={{ fontSize: 10, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {ph.nome_fase}
+                              </span>
+                              {pTasks.length > 0 && (
+                                <span style={{ fontSize: 9, fontWeight: 700, color: '#fff', opacity: 0.8, flexShrink: 0, marginLeft: 4 }}>
+                                  {tDone}/{pTasks.length}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
+                  </div>
+                </div>
               </div>
             ))}
+
+            {/* Legenda */}
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', padding: '8px 0', marginBottom: 20 }}>
+              {[
+                { label: 'Pendente', color: '#9ca3af' },
+                { label: 'Em andamento', color: '#3b82f6' },
+                { label: 'Concluída', color: '#10b981' },
+                { label: 'Em risco', color: '#f59e0b' },
+                { label: 'Atrasada', color: '#ef4444' },
+              ].map(l => (
+                <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ width: 16, height: 8, borderRadius: 4, background: l.color }} />
+                  <span style={{ fontSize: 11, color: C.t2 }}>{l.label}</span>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ height: 40 }} />
           </div>
-          <div style={{ height: 60 }} />
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
