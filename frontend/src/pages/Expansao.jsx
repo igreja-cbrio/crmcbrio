@@ -26,7 +26,7 @@ const TASK_STATUS = {
 
 // ── Estilos ─────────────────────────────────────────────────
 const styles = {
-  page: { maxWidth: 1200, margin: '0 auto' },
+  page: { maxWidth: 1600, margin: '0 auto', padding: '0 24px' },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 },
   title: { fontSize: 28, fontWeight: 800, color: C.text, letterSpacing: -0.5 },
   subtitle: { fontSize: 13, color: C.text2, marginTop: 2 },

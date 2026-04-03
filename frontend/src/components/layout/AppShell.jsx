@@ -296,7 +296,7 @@ export default function AppShell() {
       </header>
 
       {/* Main content with page transition */}
-      <main className="flex-1 overflow-y-auto p-8">
+      <main className="flex-1 overflow-y-auto px-6 py-6">
         <div key={location.pathname} style={{
           animation: 'fadeInUp 0.25s ease-out',
         }}>
