@@ -403,14 +403,18 @@ export default function Planejamento() {
                   {/* Coluna fixa: nomes das fases */}
                   <div style={{ width: NAME_W, flexShrink: 0, borderRight: `1px solid ${C.border}` }}>
                     <div style={{ height: 28, borderBottom: `1px solid ${C.border}`, background: 'var(--cbrio-table-header, #fafafa)' }} />
-                    {group.phases.map(ph => (
+                    {group.phases.map(ph => {
+                      const eiN = normDate(ph.data_fim_prevista);
+                      const diffN = eiN ? Math.ceil((new Date(eiN + 'T12:00:00') - new Date()) / 86400000) : null;
+                      const dotColor = ph.status === 'concluida' ? '#10b981' : diffN !== null && diffN < 0 ? '#ef4444' : diffN !== null && diffN <= 3 ? '#f59e0b' : '#9ca3af';
+                      return (
                       <div key={ph.id} style={{ height: BAR_H, padding: '0 10px', display: 'flex', alignItems: 'center', gap: 6, borderBottom: `1px solid ${C.border}` }}>
-                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: STATUS_COLORS[ph.status] || '#9ca3af', flexShrink: 0 }} />
+                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
                         <span style={{ fontSize: 11, fontWeight: 500, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           F{ph.numero_fase} {ph.nome_fase}
                         </span>
                       </div>
-                    ))}
+                    ); })}
                   </div>
 
                   {/* Área scrollável: barras */}
@@ -431,34 +435,26 @@ export default function Planejamento() {
                         const ei = normDate(ph.data_fim_prevista);
                         if (!si || !ei) return <div key={ph.id} style={{ height: BAR_H, borderBottom: `1px solid ${C.border}` }} />;
                         const lp = dPct(si); const rp = dPct(ei); const wp = Math.max(rp - lp, 2);
-                        const sc = STATUS_COLORS[ph.status] || '#9ca3af';
                         const isDone = ph.status === 'concluida';
-                        const isLate = ph.status === 'atrasada';
-
-                        // Contagem de tarefas
-                        const pTasks = allTasks.filter(t => t.event_phase_id === ph.id);
-                        const tDone = pTasks.filter(t => t.status === 'concluida').length;
+                        const endDate = new Date(ei + 'T12:00:00');
+                        const diff = Math.ceil((endDate - new Date()) / 86400000);
+                        const barColor = isDone ? '#d1d5db' : diff < 0 ? '#ef4444' : diff <= 3 ? '#f59e0b' : '#10b981';
+                        const daysText = isDone ? '✓' : diff < 0 ? `${Math.abs(diff)}d atrás` : diff === 0 ? 'Hoje' : `${diff}d`;
 
                         return (
                           <div key={ph.id} style={{ position: 'relative', height: BAR_H, borderBottom: `1px solid ${C.border}` }}>
                             {mLabels.map((m, i) => (<div key={i} style={{ position: 'absolute', left: `${m.pct}%`, top: 0, width: 1, height: '100%', background: C.border, opacity: 0.3 }} />))}
                             <div style={{ position: 'absolute', left: `${tPct}%`, top: 0, width: 2, height: '100%', background: '#ef4444', zIndex: 2, opacity: 0.4 }} />
-                            <div title={`${ph.nome_fase}\n${fmtDate(si)} → ${fmtDate(ei)}\n${tDone}/${pTasks.length} tarefas`}
+                            <div title={`${ph.nome_fase}\n${fmtDate(si)} → ${fmtDate(ei)}\n${daysText}`}
                               style={{
                                 position: 'absolute', top: 4, height: BAR_H - 8, borderRadius: 6,
                                 left: `${lp}%`, width: `${wp}%`, minWidth: 50,
-                                background: isDone ? '#d1d5db' : sc, opacity: isDone ? 0.5 : 0.85,
-                                display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px', overflow: 'hidden',
-                                border: isLate ? '1px solid #fecaca' : 'none',
+                                background: barColor, opacity: isDone ? 0.5 : 0.9,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 6px', overflow: 'hidden',
                               }}>
-                              <span style={{ fontSize: 10, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {ph.nome_fase}
+                              <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap' }}>
+                                {daysText}
                               </span>
-                              {pTasks.length > 0 && (
-                                <span style={{ fontSize: 9, fontWeight: 700, color: '#fff', opacity: 0.8, flexShrink: 0, marginLeft: 4 }}>
-                                  {tDone}/{pTasks.length}
-                                </span>
-                              )}
                             </div>
                           </div>
                         );
@@ -470,19 +466,22 @@ export default function Planejamento() {
             ))}
 
             {/* Legenda */}
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', padding: '8px 0', marginBottom: 20 }}>
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', padding: '12px 0', marginBottom: 20 }}>
               {[
-                { label: 'Pendente', color: '#9ca3af' },
-                { label: 'Em andamento', color: '#3b82f6' },
-                { label: 'Concluída', color: '#10b981' },
-                { label: 'Em risco', color: '#f59e0b' },
+                { label: 'No prazo (>3 dias)', color: '#10b981' },
+                { label: 'Urgente (≤3 dias)', color: '#f59e0b' },
                 { label: 'Atrasada', color: '#ef4444' },
+                { label: 'Concluída', color: '#d1d5db' },
               ].map(l => (
                 <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <div style={{ width: 16, height: 8, borderRadius: 4, background: l.color }} />
-                  <span style={{ fontSize: 11, color: C.t2 }}>{l.label}</span>
+                  <div style={{ width: 20, height: 10, borderRadius: 4, background: l.color }} />
+                  <span style={{ fontSize: 12, color: C.t2 }}>{l.label}</span>
                 </div>
               ))}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ width: 2, height: 14, background: '#ef4444' }} />
+                <span style={{ fontSize: 12, color: C.t2 }}>Hoje</span>
+              </div>
             </div>
 
             <div style={{ height: 40 }} />
