@@ -277,7 +277,11 @@ function EvStatCard({ label, value, bg, svg }) {
 // COMPONENTE PRINCIPAL
 // ═══════════════════════════════════════════════════════════
 export default function Eventos() {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
+  const userRole = profile?.role || '';
+  const userArea = profile?.area || '';
+  const userId = user?.id || '';
+  const isPMO = ['diretor', 'admin'].includes(userRole);
   const [tab, setTab] = useState(0);
   const [eventList, setEventList] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -587,6 +591,7 @@ export default function Eventos() {
   ];
 
   // ── Kanban (dois níveis)
+  const [kanbanViewMode, setKanbanViewMode] = useState('pmo'); // 'pmo', 'area', 'minhas'
   const [kanbanArea, setKanbanArea] = useState('all');
   const [kanbanExpanded, setKanbanExpanded] = useState(null);
   const [kanbanCycleData, setKanbanCycleData] = useState(null);
@@ -651,17 +656,43 @@ export default function Eventos() {
     const filteredPhases = kanbanEvent === 'all' ? allPhases : allPhases.filter(p => p.event_id === kanbanEvent);
     const phaseIds = new Set(filteredPhases.map(p => p.id));
 
-    // Tarefas da fase selecionada + filtros
+    // Tarefas da fase selecionada + filtros + visão
     let phaseTasks = allTasks.filter(t => {
-      const ph = allPhases.find(p => p.id === t.event_phase_id);
-      if (!ph || ph.numero_fase !== kanbanPhase) return false;
+      if (kanbanViewMode === 'pmo') {
+        const ph = allPhases.find(p => p.id === t.event_phase_id);
+        if (!ph || ph.numero_fase !== kanbanPhase) return false;
+      }
       if (kanbanEvent !== 'all' && t.event_id !== kanbanEvent) return false;
+      if (kanbanViewMode === 'area' && userArea) {
+        const cat = getCat(t);
+        if (cat !== userArea && t.area !== userArea) return false;
+      }
+      if (kanbanViewMode === 'minhas') {
+        if (t.responsavel_id !== userId && t.responsavel_nome !== profile?.name) return false;
+      }
       return true;
     });
     if (kanbanArea !== 'all') phaseTasks = phaseTasks.filter(t => getCat(t) === kanbanArea);
 
     return (
       <div style={{ margin: '0 -32px', padding: '0 16px' }}>
+        {/* Toggle visão */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 10, alignItems: 'center' }}>
+          <span style={{ fontSize: 11, color: 'var(--cbrio-text2)', fontWeight: 600 }}>Visão:</span>
+          {[
+            { key: 'pmo', label: 'PMO (por fase)' },
+            ...(userArea ? [{ key: 'area', label: `Minha área (${userArea})` }] : []),
+            { key: 'minhas', label: 'Minhas tarefas' },
+          ].map(v => (
+            <button key={v.key} onClick={() => setKanbanViewMode(v.key)} style={{
+              padding: '5px 14px', borderRadius: 8, fontSize: 12, fontWeight: kanbanViewMode === v.key ? 700 : 400, cursor: 'pointer',
+              border: kanbanViewMode === v.key ? '2px solid #00B39D' : '1px solid var(--cbrio-border)',
+              background: kanbanViewMode === v.key ? '#00B39D15' : 'transparent',
+              color: kanbanViewMode === v.key ? '#00B39D' : 'var(--cbrio-text3)',
+            }}>{v.label}</button>
+          ))}
+        </div>
+
         {/* Filtros */}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
           {/* Filtro evento */}

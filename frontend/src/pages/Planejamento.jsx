@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import { dashboard as dashApi, cycles as cyclesApi, tasks as tasksApi } from '../api';
 
 const C = {
@@ -37,7 +38,14 @@ function sortByUrgency(tasks) {
 }
 
 export default function Planejamento() {
+  const { profile, user } = useAuth();
+  const userRole = profile?.role || '';
+  const userArea = profile?.area || '';
+  const userId = user?.id || '';
+  const isPMO = ['diretor', 'admin'].includes(userRole);
+
   const [tab, setTab] = useState(0); // 0=Dashboard, 1=Kanban, 2=Gantt
+  const [viewMode, setViewMode] = useState(isPMO ? 'pmo' : 'minhas'); // 'pmo' = por fase, 'area' = por área, 'minhas' = só minhas
   const [kpis, setKpis] = useState(null);
   const [workload, setWorkload] = useState([]);
   const [cycleData, setCycleData] = useState(null);
@@ -85,9 +93,20 @@ export default function Planejamento() {
   const filteredPhases = eventFilter === 'all' ? allPhases : allPhases.filter(p => p.event_id === eventFilter);
 
   let phaseTasks = allTasks.filter(t => {
-    const ph = allPhases.find(p => p.id === t.event_phase_id);
-    if (!ph || ph.numero_fase !== kanbanPhase) return false;
+    // Filtro por fase (visão PMO) ou todas as tarefas (visão pessoal)
+    if (viewMode === 'pmo') {
+      const ph = allPhases.find(p => p.id === t.event_phase_id);
+      if (!ph || ph.numero_fase !== kanbanPhase) return false;
+    }
     if (eventFilter !== 'all' && t.event_id !== eventFilter) return false;
+    // Filtro por visão
+    if (viewMode === 'area' && userArea) {
+      const cat = getCat(t);
+      if (cat !== userArea && t.area !== userArea) return false;
+    }
+    if (viewMode === 'minhas') {
+      if (t.responsavel_id !== userId && t.responsavel_nome !== profile?.name) return false;
+    }
     return true;
   });
   if (areaFilter !== 'all') phaseTasks = phaseTasks.filter(t => getCat(t) === areaFilter);
@@ -191,6 +210,23 @@ export default function Planejamento() {
       {/* ═══ TAB: Kanban ═══ */}
       {tab === 1 && (
         <div>
+          {/* Toggle de visão */}
+          <div style={{ display: 'flex', gap: 6, marginBottom: 12, alignItems: 'center' }}>
+            <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Visão:</span>
+            {[
+              { key: 'pmo', label: 'PMO (por fase)', desc: 'Todas as fases e tarefas' },
+              ...(userArea ? [{ key: 'area', label: `Minha área (${userArea})`, desc: `Tarefas de ${userArea}` }] : []),
+              { key: 'minhas', label: 'Minhas tarefas', desc: 'Apenas tarefas atribuídas a mim' },
+            ].map(v => (
+              <button key={v.key} onClick={() => setViewMode(v.key)} title={v.desc} style={{
+                padding: '5px 14px', borderRadius: 8, fontSize: 12, fontWeight: viewMode === v.key ? 700 : 400, cursor: 'pointer',
+                border: viewMode === v.key ? `2px solid ${C.accent}` : `1px solid ${C.border}`,
+                background: viewMode === v.key ? `${C.accent}15` : 'transparent',
+                color: viewMode === v.key ? C.accent : C.t3,
+              }}>{v.label}</button>
+            ))}
+          </div>
+
           {/* Filtros */}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
             {/* Tipo */}
