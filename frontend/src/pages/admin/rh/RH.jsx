@@ -1230,13 +1230,50 @@ const BENEFICIOS_FIELDS = [
   { key: 'adicional_pulpito', label: 'Adicional Púlpito' },
 ];
 
-function BeneficiosSection({ data }) {
+const DESCONTOS_FIELDS = [
+  { key: 'fgts', label: 'FGTS' },
+  { key: 'ir', label: 'IR' },
+  { key: 'inss', label: 'INSS' },
+];
+
+const TOTAIS_FIELDS = [
+  { key: 'remuneracao_bruta', label: 'Remuneração Bruta' },
+  { key: 'remuneracao_liquida', label: 'Remuneração Líquida' },
+  { key: 'custo_total_mensal', label: 'Custo Total Mensal' },
+];
+
+const BONUS_FIELDS = [
+  { key: 'bonus_anual_50', label: 'Bônus Anual 50%' },
+  { key: 'bonus_anual_integral', label: 'Bônus Anual Integral' },
+  { key: 'ferias_integral', label: 'Férias Integral' },
+];
+
+function BeneficiosSection({ data, onSave }) {
   const [expanded, setExpanded] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({});
+  const [saving, setSaving] = useState(false);
   const activeBenefits = BENEFICIOS_FIELDS.filter(b => Number(data[b.key]) > 0);
   const isPJ = data.tipo_contrato === 'pj';
-  // PJ: remuneração líquida = salário base (sem descontos)
   const remLiquida = isPJ ? data.salario : data.remuneracao_liquida;
-  if (activeBenefits.length === 0 && !data.salario) return null;
+
+  function startEdit() {
+    const f = {};
+    [...BENEFICIOS_FIELDS, ...DESCONTOS_FIELDS, ...TOTAIS_FIELDS, ...BONUS_FIELDS].forEach(b => {
+      f[b.key] = data[b.key] || '';
+    });
+    f.salario = data.salario || '';
+    setForm(f);
+    setEditing(true);
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    const updates = {};
+    Object.entries(form).forEach(([k, v]) => { updates[k] = v === '' ? 0 : Number(v); });
+    try { await onSave(updates); setEditing(false); } catch { }
+    setSaving(false);
+  }
 
   return (
     <div style={{ marginBottom: 16 }}>
@@ -1247,60 +1284,131 @@ function BeneficiosSection({ data }) {
       </button>
       {expanded && (
         <div style={{ background: 'var(--cbrio-input-bg)', borderRadius: 10, padding: 16 }}>
+          {/* Toolbar */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+            {!editing ? (
+              <button onClick={startEdit} style={{ fontSize: 12, color: C.primary, background: 'none', border: `1px solid ${C.primary}`, borderRadius: 6, padding: '4px 12px', cursor: 'pointer', fontWeight: 600 }}>
+                <Pencil style={{ width: 12, height: 12, display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Editar Benefícios
+              </button>
+            ) : (
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button onClick={() => setEditing(false)} style={{ fontSize: 12, color: C.text2, background: 'none', border: 'none', cursor: 'pointer' }}>Cancelar</button>
+                <button onClick={handleSave} disabled={saving} style={{ fontSize: 12, color: '#fff', background: C.primary, border: 'none', borderRadius: 6, padding: '4px 14px', cursor: 'pointer', fontWeight: 600 }}>
+                  {saving ? 'Salvando...' : 'Salvar'}
+                </button>
+              </div>
+            )}
+          </div>
+
           {isPJ && (
             <div style={{ padding: '8px 12px', background: '#f59e0b18', borderRadius: 8, marginBottom: 12, fontSize: 12, color: C.amber, border: '1px solid #f59e0b30' }}>
               Vínculo PJ — sem descontos de FGTS, IR e INSS. Remuneração líquida = salário base.
             </div>
           )}
-          {/* Resumo financeiro */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: 12 }}>
-            {[
-              { label: 'Salário Base', value: data.salario, color: C.primary },
-              ...(!isPJ ? [{ label: 'Rem. Bruta', value: data.remuneracao_bruta, color: C.blue }] : []),
-              { label: 'Rem. Líquida', value: remLiquida, color: C.green },
-              { label: 'Custo Total', value: isPJ ? data.salario : data.custo_total_mensal, color: C.amber },
-            ].map(item => (
-              <div key={item.label} style={{ padding: '10px 12px', borderRadius: 8, border: `1px solid ${C.border}`, borderLeft: `3px solid ${item.color}` }}>
-                <div style={{ fontSize: 10, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>{item.label}</div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{fmtMoney(item.value)}</div>
-              </div>
-            ))}
-          </div>
 
-          {/* Benefícios ativos */}
-          {activeBenefits.length > 0 && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px' }}>
-              {activeBenefits.map(b => (
-                <div key={b.key} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: `1px solid ${C.border}` }}>
-                  <span style={{ fontSize: 12, color: C.text2 }}>{b.label}</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{fmtMoney(data[b.key])}</span>
+          {/* Modo de edição */}
+          {editing ? (
+            <>
+              <div style={{ fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 6, textTransform: 'uppercase' }}>Salário Base</div>
+              <input type="number" step="0.01" value={form.salario} onChange={e => setForm(f => ({ ...f, salario: e.target.value }))}
+                style={{ ...styles.input, marginBottom: 12, maxWidth: 220 }} placeholder="R$" />
+
+              <div style={{ fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 6, textTransform: 'uppercase' }}>Benefícios</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px', marginBottom: 12 }}>
+                {BENEFICIOS_FIELDS.map(b => (
+                  <div key={b.key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <label style={{ fontSize: 11, color: C.text2, width: 120, flexShrink: 0 }}>{b.label}</label>
+                    <input type="number" step="0.01" value={form[b.key]} onChange={e => setForm(f => ({ ...f, [b.key]: e.target.value }))}
+                      style={{ ...styles.input, padding: '4px 8px', fontSize: 12 }} placeholder="0" />
+                  </div>
+                ))}
+              </div>
+
+              {!isPJ && (<>
+                <div style={{ fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 6, textTransform: 'uppercase' }}>Descontos (CLT)</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px 12px', marginBottom: 12 }}>
+                  {DESCONTOS_FIELDS.map(b => (
+                    <div key={b.key} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <label style={{ fontSize: 11, color: C.text2, width: 40, flexShrink: 0 }}>{b.label}</label>
+                      <input type="number" step="0.01" value={form[b.key]} onChange={e => setForm(f => ({ ...f, [b.key]: e.target.value }))}
+                        style={{ ...styles.input, padding: '4px 8px', fontSize: 12 }} placeholder="0" />
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
+              </>)}
 
-          {/* Descontos (apenas CLT) */}
-          {!isPJ && (Number(data.fgts) > 0 || Number(data.ir) > 0 || Number(data.inss) > 0) && (
-            <div style={{ marginTop: 10, paddingTop: 8, borderTop: `1px solid ${C.border}` }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 4 }}>Descontos</div>
-              <div style={{ display: 'flex', gap: 16 }}>
-                {Number(data.fgts) > 0 && <span style={{ fontSize: 12, color: C.red }}>FGTS: {fmtMoney(data.fgts)}</span>}
-                {Number(data.ir) > 0 && <span style={{ fontSize: 12, color: C.red }}>IR: {fmtMoney(data.ir)}</span>}
-                {Number(data.inss) > 0 && <span style={{ fontSize: 12, color: C.red }}>INSS: {fmtMoney(data.inss)}</span>}
+              <div style={{ fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 6, textTransform: 'uppercase' }}>Totais</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px', marginBottom: 12 }}>
+                {TOTAIS_FIELDS.map(b => (
+                  <div key={b.key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <label style={{ fontSize: 11, color: C.text2, width: 120, flexShrink: 0 }}>{b.label}</label>
+                    <input type="number" step="0.01" value={form[b.key]} onChange={e => setForm(f => ({ ...f, [b.key]: e.target.value }))}
+                      style={{ ...styles.input, padding: '4px 8px', fontSize: 12 }} placeholder="0" />
+                  </div>
+                ))}
               </div>
-            </div>
-          )}
 
-          {/* Bônus anuais */}
-          {(Number(data.bonus_anual_50) > 0 || Number(data.bonus_anual_integral) > 0 || Number(data.ferias_integral) > 0) && (
-            <div style={{ marginTop: 10, paddingTop: 8, borderTop: `1px solid ${C.border}` }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 4 }}>Provisões Anuais</div>
-              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                {Number(data.bonus_anual_50) > 0 && <span style={{ fontSize: 12, color: C.text }}>Bônus 50%: {fmtMoney(data.bonus_anual_50)}</span>}
-                {Number(data.bonus_anual_integral) > 0 && <span style={{ fontSize: 12, color: C.text }}>Bônus Integral: {fmtMoney(data.bonus_anual_integral)}</span>}
-                {Number(data.ferias_integral) > 0 && <span style={{ fontSize: 12, color: C.text }}>Férias: {fmtMoney(data.ferias_integral)}</span>}
+              <div style={{ fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 6, textTransform: 'uppercase' }}>Provisões Anuais</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px' }}>
+                {BONUS_FIELDS.map(b => (
+                  <div key={b.key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <label style={{ fontSize: 11, color: C.text2, width: 120, flexShrink: 0 }}>{b.label}</label>
+                    <input type="number" step="0.01" value={form[b.key]} onChange={e => setForm(f => ({ ...f, [b.key]: e.target.value }))}
+                      style={{ ...styles.input, padding: '4px 8px', fontSize: 12 }} placeholder="0" />
+                  </div>
+                ))}
               </div>
-            </div>
+            </>
+          ) : (
+            <>
+              {/* Resumo financeiro */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: 12 }}>
+                {[
+                  { label: 'Salário Base', value: data.salario, color: C.primary },
+                  ...(!isPJ ? [{ label: 'Rem. Bruta', value: data.remuneracao_bruta, color: C.blue }] : []),
+                  { label: 'Rem. Líquida', value: remLiquida, color: C.green },
+                  { label: 'Custo Total', value: isPJ ? data.salario : data.custo_total_mensal, color: C.amber },
+                ].map(item => (
+                  <div key={item.label} style={{ padding: '10px 12px', borderRadius: 8, border: `1px solid ${C.border}`, borderLeft: `3px solid ${item.color}` }}>
+                    <div style={{ fontSize: 10, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>{item.label}</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{fmtMoney(item.value)}</div>
+                  </div>
+                ))}
+              </div>
+
+              {activeBenefits.length > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px' }}>
+                  {activeBenefits.map(b => (
+                    <div key={b.key} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: `1px solid ${C.border}` }}>
+                      <span style={{ fontSize: 12, color: C.text2 }}>{b.label}</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{fmtMoney(data[b.key])}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {!isPJ && (Number(data.fgts) > 0 || Number(data.ir) > 0 || Number(data.inss) > 0) && (
+                <div style={{ marginTop: 10, paddingTop: 8, borderTop: `1px solid ${C.border}` }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 4 }}>Descontos</div>
+                  <div style={{ display: 'flex', gap: 16 }}>
+                    {Number(data.fgts) > 0 && <span style={{ fontSize: 12, color: C.red }}>FGTS: {fmtMoney(data.fgts)}</span>}
+                    {Number(data.ir) > 0 && <span style={{ fontSize: 12, color: C.red }}>IR: {fmtMoney(data.ir)}</span>}
+                    {Number(data.inss) > 0 && <span style={{ fontSize: 12, color: C.red }}>INSS: {fmtMoney(data.inss)}</span>}
+                  </div>
+                </div>
+              )}
+
+              {(Number(data.bonus_anual_50) > 0 || Number(data.bonus_anual_integral) > 0 || Number(data.ferias_integral) > 0) && (
+                <div style={{ marginTop: 10, paddingTop: 8, borderTop: `1px solid ${C.border}` }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 4 }}>Provisões Anuais</div>
+                  <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                    {Number(data.bonus_anual_50) > 0 && <span style={{ fontSize: 12, color: C.text }}>Bônus 50%: {fmtMoney(data.bonus_anual_50)}</span>}
+                    {Number(data.bonus_anual_integral) > 0 && <span style={{ fontSize: 12, color: C.text }}>Bônus Integral: {fmtMoney(data.bonus_anual_integral)}</span>}
+                    {Number(data.ferias_integral) > 0 && <span style={{ fontSize: 12, color: C.text }}>Férias: {fmtMoney(data.ferias_integral)}</span>}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
@@ -1523,7 +1631,9 @@ function FuncionarioDetailPanel({ open, data, onClose, onEdit, onDelete, onNewDo
       <NotasColaborador funcId={data.id} initialValue={data.observacoes || ''} />
 
       {/* Benefícios e Remuneração */}
-      <BeneficiosSection data={data} />
+      <BeneficiosSection data={data} onSave={async (updated) => {
+        try { await rh.funcionarios.update(data.id, updated); onClose(); } catch (e) { alert(e.message); }
+      }} />
 
       {/* Documentos com upload */}
       <DocumentosSection data={data} onNewDoc={onNewDoc} onDeleteDoc={onDeleteDoc} onRefresh={() => onClose()} />
