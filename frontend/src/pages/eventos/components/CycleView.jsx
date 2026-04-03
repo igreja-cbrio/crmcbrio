@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '../../../contexts/AuthContext';
 import { cycles as api } from '../../../api';
 
 const C = { dark: 'var(--cbrio-text)', t2: 'var(--cbrio-text2)', t3: 'var(--cbrio-text3)', border: 'var(--cbrio-border)', accent: '#00B39D' };
@@ -36,11 +37,18 @@ function getCategory(task) {
 }
 
 export default function CycleView({ eventId }) {
+  const { profile, user } = useAuth();
+  const userRole = profile?.role || '';
+  const userArea = profile?.area || '';
+  const userId = user?.id || '';
+  const isPMO = ['diretor', 'admin'].includes(userRole);
+
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activating, setActivating] = useState(false);
   const [activePhase, setActivePhase] = useState(null);
   const [areaFilter, setAreaFilter] = useState('all');
+  const [cycleViewMode, setCycleViewMode] = useState('pmo');
   const [viewMode, setViewMode] = useState('kanban');
   const [expandedTask, setExpandedTask] = useState(null);
   const [showNewPhase, setShowNewPhase] = useState(false);
@@ -126,9 +134,10 @@ export default function CycleView({ eventId }) {
 
   // Filtrar tarefas da fase + área
   let phaseTasks = currentPhase ? tasks.filter(t => t.event_phase_id === currentPhase.id) : [];
-  if (areaFilter !== 'all') {
-    phaseTasks = phaseTasks.filter(t => getCategory(t) === areaFilter);
-  }
+  if (areaFilter !== 'all') phaseTasks = phaseTasks.filter(t => getCategory(t) === areaFilter);
+  // Filtro por visão
+  if (cycleViewMode === 'area' && userArea) phaseTasks = phaseTasks.filter(t => getCategory(t) === userArea || t.area === userArea);
+  if (cycleViewMode === 'minhas') phaseTasks = phaseTasks.filter(t => t.responsavel_id === userId || t.responsavel_nome === profile?.name);
 
   return (
     <div>
@@ -139,6 +148,23 @@ export default function CycleView({ eventId }) {
       </div>
       <div style={{ height: 6, background: 'var(--cbrio-border)', borderRadius: 3, marginBottom: 16 }}>
         <div style={{ height: '100%', width: `${pctDone}%`, background: C.accent, borderRadius: 3, transition: 'width 0.3s' }} />
+      </div>
+
+      {/* ── Toggle visão ── */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 10, alignItems: 'center' }}>
+        <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Visão:</span>
+        {[
+          { key: 'pmo', label: 'Todas as tarefas' },
+          ...(userArea ? [{ key: 'area', label: `${userArea}` }] : []),
+          { key: 'minhas', label: 'Minhas' },
+        ].map(v => (
+          <button key={v.key} onClick={() => setCycleViewMode(v.key)} style={{
+            padding: '4px 12px', borderRadius: 8, fontSize: 11, fontWeight: cycleViewMode === v.key ? 700 : 400, cursor: 'pointer',
+            border: cycleViewMode === v.key ? `2px solid ${C.accent}` : `1px solid ${C.border}`,
+            background: cycleViewMode === v.key ? `${C.accent}15` : 'transparent',
+            color: cycleViewMode === v.key ? C.accent : C.t3,
+          }}>{v.label}</button>
+        ))}
       </div>
 
       {/* ── Filtro de área ── */}
