@@ -1,15 +1,7 @@
 import { useState, useEffect } from 'react';
 import { cycles as api, users as usersApi } from '../../../api';
 
-const C = { dark: 'var(--cbrio-text)', t2: 'var(--cbrio-text2)', t3: 'var(--cbrio-text3)', border: 'var(--cbrio-border)', accent: '#00B39D', accentBg: '#f3e8ff' };
-
-const PHASE_STATUS = {
-  pendente:     { label: 'Pendente',     color: 'var(--cbrio-text3)', bg: 'var(--cbrio-bg)' },
-  em_andamento: { label: 'Em andamento', color: '#3b82f6', bg: '#eff6ff' },
-  concluida:    { label: 'Concluída',    color: '#10b981', bg: '#ecfdf5' },
-  atrasada:     { label: 'Atrasada',     color: '#ef4444', bg: '#fef2f2' },
-  em_risco:     { label: 'Em risco',     color: '#f59e0b', bg: '#fffbeb' },
-};
+const C = { dark: 'var(--cbrio-text)', t2: 'var(--cbrio-text2)', t3: 'var(--cbrio-text3)', border: 'var(--cbrio-border)', accent: '#00B39D' };
 
 const TASK_STATUS = {
   a_fazer:       { label: 'A fazer',       color: 'var(--cbrio-text3)' },
@@ -18,234 +10,31 @@ const TASK_STATUS = {
   concluida:     { label: 'Concluída',     color: '#10b981' },
 };
 
-const ADM_STATUS = {
-  pendente:       { label: 'Pendente',       color: 'var(--cbrio-text3)' },
-  em_andamento:   { label: 'Em andamento',   color: '#3b82f6' },
-  concluido:      { label: 'Concluído',      color: '#10b981' },
-  nao_aplicavel:  { label: 'N/A',            color: 'var(--cbrio-text2)' },
+const CAT_COLORS = {
+  marketing: { label: 'Marketing', color: '#00B39D', bg: '#d1fae5' },
+  compras: { label: 'Compras', color: '#3b82f6', bg: '#dbeafe' },
+  financeiro: { label: 'Financeiro', color: '#10b981', bg: '#d1fae5' },
+  manutencao: { label: 'Manutenção', color: '#f59e0b', bg: '#fef3c7' },
+  limpeza: { label: 'Limpeza', color: '#8b5cf6', bg: '#ede9fe' },
+  cozinha: { label: 'Cozinha', color: '#ec4899', bg: '#fce7f3' },
+  outros: { label: 'Outros', color: 'var(--cbrio-text3)', bg: 'var(--cbrio-bg)' },
 };
-
-function Badge({ text, color, bg }) {
-  return <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 6, color, background: bg || `${color}15` }}>{text}</span>;
-}
 
 function normDate(d) { return d ? (typeof d === 'string' ? d.slice(0, 10) : '') : ''; }
 function fmtDate(d) { const s = normDate(d); if (!s) return ''; const [y, m, day] = s.split('-'); return `${day}/${m}/${y}`; }
 
-function DelayBadge({ prazo, status, fimFase }) {
-  if (status === 'concluida') return null;
-  const p = normDate(prazo);
-  const fim = normDate(fimFase);
-  if (!p) return null;
-  const today = new Date().toISOString().slice(0, 10);
-  const diasAtraso = Math.ceil((new Date(today) - new Date(p)) / 86400000);
-  const diasAlemFase = fim ? Math.ceil((new Date(p) - new Date(fim)) / 86400000) : 0;
-  return (
-    <div style={{ display: 'flex', gap: 4, marginTop: 2 }}>
-      {diasAtraso > 0 && (
-        <span style={{ fontSize: 10, fontWeight: 600, color: '#ef4444', padding: '1px 6px', borderRadius: 4, background: '#fef2f2' }}>
-          {diasAtraso}d atrasado
-        </span>
-      )}
-      {diasAlemFase > 0 && (
-        <span style={{ fontSize: 10, fontWeight: 600, color: '#f59e0b', padding: '1px 6px', borderRadius: 4, background: '#fffbeb' }}>
-          {diasAlemFase}d além da fase
-        </span>
-      )}
-    </div>
-  );
+function getCategory(task) {
+  if (task.area === 'marketing') return 'marketing';
+  const m = (task.observacoes || '').match(/Área:\s*(\w+)/i);
+  return m ? m[1] : 'outros';
 }
 
-// ── Modal de detalhe da fase ────────────────────────────────
-function PhaseDetailModal({ phase, tasks, onClose, onCreateTask, onTaskStatusChange }) {
-  const phaseTasks = tasks.filter(t => t.event_phase_id === phase.id);
-  const done = phaseTasks.filter(t => t.status === 'concluida').length;
-  const pending = phaseTasks.length - done;
-  const st = PHASE_STATUS[phase.status] || PHASE_STATUS.pendente;
-
-  return (
-    <div style={overlay} onClick={onClose}>
-      <div style={modal} onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: C.accent }}>Fase {phase.numero_fase}</div>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: C.dark, margin: '4px 0' }}>{phase.nome_fase}</h2>
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <Badge text={st.label} color={st.color} bg={st.bg} />
-              {phase.momento_chave && <Badge text="Momento-chave" color="#f59e0b" bg="#fffbeb" />}
-              <Badge text={phase.area} color={phase.area === 'marketing' ? '#00B39D' : '#3b82f6'} />
-            </div>
-          </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: C.t2 }}>×</button>
-        </div>
-
-        {/* Info */}
-        <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
-          <div style={{ background: 'var(--cbrio-table-header)', borderRadius: 8, padding: '10px 14px', flex: 1, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: C.t2, fontWeight: 600 }}>Período</div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: C.dark, marginTop: 2 }}>
-              {fmtDate(phase.data_inicio_prevista)} → {fmtDate(phase.data_fim_prevista)}
-            </div>
-          </div>
-          <div style={{ background: '#ecfdf5', borderRadius: 8, padding: '10px 14px', flex: 1, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: '#10b981', fontWeight: 600 }}>Concluídas</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: '#10b981' }}>{done}</div>
-          </div>
-          <div style={{ background: 'var(--cbrio-bg)', borderRadius: 8, padding: '10px 14px', flex: 1, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: C.t2, fontWeight: 600 }}>Pendentes</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: C.t2 }}>{pending}</div>
-          </div>
-        </div>
-
-        {/* Progress */}
-        {phaseTasks.length > 0 && (
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ height: 6, background: 'var(--cbrio-border)', borderRadius: 3 }}>
-              <div style={{ height: '100%', width: `${phaseTasks.length > 0 ? Math.round((done / phaseTasks.length) * 100) : 0}%`, background: '#10b981', borderRadius: 3, transition: 'width 0.3s' }} />
-            </div>
-          </div>
-        )}
-
-        {/* Botão criar tarefa */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: C.dark }}>Tarefas ({phaseTasks.length})</span>
-          <button onClick={() => onCreateTask(phase)} style={btnPrimary}>+ Nova Tarefa</button>
-        </div>
-
-        {/* Lista de tarefas */}
-        {phaseTasks.length === 0 && <div style={{ color: C.t3, fontSize: 12, padding: 12, textAlign: 'center' }}>Nenhuma tarefa nesta fase</div>}
-        {phaseTasks.map(task => {
-          const ts = TASK_STATUS[task.status] || TASK_STATUS.a_fazer;
-          return (
-            <div key={task.id} style={{ background: 'var(--cbrio-card)', borderRadius: 8, padding: 10, border: `1px solid ${C.border}`, marginBottom: 6 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: 13, color: C.dark }}>{task.titulo}</div>
-                  <div style={{ fontSize: 11, color: C.t2, marginTop: 2 }}>
-                    {task.responsavel_nome || 'Sem responsável'}
-                    {task.prazo && ` · Prazo: ${fmtDate(task.prazo)}`}
-                  </div>
-                  <DelayBadge prazo={task.prazo} status={task.status} fimFase={phase.data_fim_prevista} />
-                </div>
-                <select value={task.status} onChange={e => onTaskStatusChange(task.id, e.target.value)}
-                  style={{ fontSize: 11, padding: '2px 6px', borderRadius: 6, border: `1px solid ${C.border}`, color: ts.color }}>
-                  {Object.entries(TASK_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                </select>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ── Modal de criar tarefa ───────────────────────────────────
-function CreateTaskModal({ phase, eventId, usersList, onSave, onClose }) {
-  const [f, setF] = useState({ titulo: '', prazo_inicio: '', prazo: '', responsavel_id: '', area: phase.area === 'ambos' ? 'marketing' : phase.area });
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-
-  const maxDate = normDate(phase.data_fim_prevista);
-  const minDate = normDate(phase.data_inicio_prevista);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!f.titulo) { setError('Nome é obrigatório'); return; }
-    setSaving(true);
-    setError('');
-    try {
-      const selectedUser = usersList.find(u => u.id === f.responsavel_id);
-      await onSave({
-        event_phase_id: phase.id,
-        event_id: eventId,
-        titulo: f.titulo,
-        prazo: f.prazo || null,
-        area: f.area,
-        responsavel_id: f.responsavel_id || null,
-        responsavel_nome: selectedUser?.name || null,
-        prioridade: 'normal',
-        status: 'a_fazer',
-      });
-    } catch (err) {
-      setError(err.message);
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div style={overlay} onClick={onClose}>
-      <div style={{ ...modal, maxWidth: 460 }} onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: C.dark, margin: 0 }}>
-            Nova Tarefa — Fase {phase.numero_fase}
-          </h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: C.t2 }}>×</button>
-        </div>
-
-        {error && <div style={errBox}>{error}</div>}
-
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: 12 }}>
-            <label style={labelStyle}>Nome da tarefa *</label>
-            <input value={f.titulo} onChange={e => setF(p => ({ ...p, titulo: e.target.value }))} style={inputStyle} />
-          </div>
-
-          <div style={{ display: 'flex', gap: 8 }}>
-            <div style={{ flex: 1, marginBottom: 12 }}>
-              <label style={labelStyle}>Prazo início</label>
-              <input type="date" value={f.prazo_inicio}
-                onChange={e => setF(p => ({ ...p, prazo_inicio: e.target.value }))} style={inputStyle} />
-            </div>
-            <div style={{ flex: 1, marginBottom: 12 }}>
-              <label style={labelStyle}>Prazo fim</label>
-              <input type="date" value={f.prazo}
-                onChange={e => setF(p => ({ ...p, prazo: e.target.value }))} style={inputStyle} />
-              {f.prazo && maxDate && f.prazo > maxDate && (
-                <div style={{ fontSize: 10, color: '#ef4444', fontWeight: 600, marginTop: 2 }}>
-                  Atenção: {Math.ceil((new Date(f.prazo) - new Date(maxDate)) / 86400000)}d além do fim da fase ({fmtDate(maxDate)})
-                </div>
-              )}
-              <div style={{ fontSize: 10, color: C.t3, marginTop: 2 }}>Fim da fase: {fmtDate(maxDate)}</div>
-            </div>
-          </div>
-
-          <div style={{ marginBottom: 12 }}>
-            <label style={labelStyle}>Responsável</label>
-            <select value={f.responsavel_id} onChange={e => setF(p => ({ ...p, responsavel_id: e.target.value }))} style={inputStyle}>
-              <option value="">Selecionar...</option>
-              {usersList.map(u => <option key={u.id} value={u.id}>{u.name} ({u.email})</option>)}
-            </select>
-          </div>
-
-          <div style={{ marginBottom: 12 }}>
-            <label style={labelStyle}>Área</label>
-            <select value={f.area} onChange={e => setF(p => ({ ...p, area: e.target.value }))} style={inputStyle}>
-              <option value="marketing">Marketing</option>
-              <option value="adm">Administrativo</option>
-            </select>
-          </div>
-
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
-            <button type="button" onClick={onClose} style={btnCancel}>Cancelar</button>
-            <button type="submit" disabled={saving} style={{ ...btnPrimary, opacity: saving ? 0.6 : 1 }}>
-              {saving ? 'Salvando...' : 'Criar Tarefa'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-// ── Componente principal ────────────────────────────────────
 export default function CycleView({ eventId }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activating, setActivating] = useState(false);
-  const [tab, setTab] = useState('Fases Marketing');
-  const [selectedPhase, setSelectedPhase] = useState(null);
-  const [createTaskForPhase, setCreateTaskForPhase] = useState(null);
+  const [activePhase, setActivePhase] = useState(null);
+  const [expandedTask, setExpandedTask] = useState(null);
   const [usersList, setUsersList] = useState([]);
 
   const load = async () => {
@@ -253,11 +42,13 @@ export default function CycleView({ eventId }) {
       const [res, usrs] = await Promise.all([api.get(eventId), usersApi.list()]);
       setData(res);
       setUsersList(usrs);
-    } catch {
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
+      // Auto-selecionar primeira fase não concluída
+      if (res?.phases?.length > 0 && !activePhase) {
+        const first = res.phases.find(p => p.status !== 'concluida') || res.phases[0];
+        setActivePhase(first.id);
+      }
+    } catch { setData(null); }
+    finally { setLoading(false); }
   };
 
   useEffect(() => { load(); }, [eventId]);
@@ -269,24 +60,13 @@ export default function CycleView({ eventId }) {
     finally { setActivating(false); }
   };
 
-  const handlePhaseStatusChange = async (phaseId, status) => {
-    await api.updatePhase(phaseId, { status });
-    load();
-  };
-
   const handleTaskStatusChange = async (taskId, status) => {
     await api.updateTask(taskId, { status });
     load();
   };
 
-  const handleAdmStatusChange = async (itemId, status) => {
-    await api.updateAdmItem(itemId, { status });
-    load();
-  };
-
-  const handleCreateTask = async (taskData) => {
-    await api.createTask(taskData);
-    setCreateTaskForPhase(null);
+  const handlePhaseStatusChange = async (phaseId, status) => {
+    await api.updatePhase(phaseId, { status });
     load();
   };
 
@@ -303,279 +83,205 @@ export default function CycleView({ eventId }) {
     );
   }
 
-  const { phases, tasks, admTrack } = data;
+  const { phases, tasks } = data;
   const phasesDone = phases.filter(p => p.status === 'concluida').length;
   const pctDone = phases.length > 0 ? Math.round((phasesDone / phases.length) * 100) : 0;
 
+  // Tarefas da fase selecionada
+  const currentPhase = phases.find(p => p.id === activePhase);
+  const phaseTasks = currentPhase ? tasks.filter(t => t.event_phase_id === currentPhase.id) : [];
+
+  // Agrupar por categoria
+  const tasksByCategory = {};
+  phaseTasks.forEach(t => {
+    const cat = getCategory(t);
+    if (!tasksByCategory[cat]) tasksByCategory[cat] = [];
+    tasksByCategory[cat].push(t);
+  });
+  const categories = Object.keys(tasksByCategory).sort((a, b) => {
+    const order = ['marketing', 'compras', 'financeiro', 'manutencao', 'limpeza', 'cozinha', 'outros'];
+    return order.indexOf(a) - order.indexOf(b);
+  });
+
   return (
     <div>
-      {/* Progress bar */}
-      <div style={{ background: 'var(--cbrio-card)', borderRadius: 10, padding: 14, border: `1px solid ${C.border}`, marginBottom: 12 }}>
+      {/* Barra de progresso */}
+      <div style={{ background: 'var(--cbrio-card)', borderRadius: 10, padding: 14, border: `1px solid ${C.border}`, marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: C.t2, marginBottom: 6 }}>
           <span>Progresso do Ciclo</span>
           <span>{phasesDone}/{phases.length} fases ({pctDone}%)</span>
         </div>
         <div style={{ height: 8, background: 'var(--cbrio-border)', borderRadius: 4 }}>
-          <div style={{ height: '100%', width: `${pctDone}%`, background: '#00B39D', borderRadius: 4, transition: 'width 0.3s' }} />
+          <div style={{ height: '100%', width: `${pctDone}%`, background: C.accent, borderRadius: 4, transition: 'width 0.3s' }} />
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="tab-bar" style={{ marginBottom: 12 }}>
-        {['Fases Marketing', 'Tarefas', 'Fases Administração'].map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{
-            padding: '8px 16px', border: 'none', background: 'none', cursor: 'pointer',
-            fontSize: 13, fontWeight: 600, color: tab === t ? C.accent : C.t3,
-            borderBottom: tab === t ? `2px solid ${C.accent}` : '2px solid transparent',
-          }}>
-            {t.charAt(0).toUpperCase() + t.slice(1)}
-          </button>
-        ))}
-      </div>
+      {/* Layout: Trilha lateral + Tarefas */}
+      <div style={{ display: 'flex', gap: 16, minHeight: 400 }}>
 
-      {/* Tab: Fases Marketing (expandem inline) */}
-      {tab === 'Fases Marketing' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {phases.map(phase => {
-            const st = PHASE_STATUS[phase.status] || PHASE_STATUS.pendente;
-            const phaseTasks = tasks.filter(t => t.event_phase_id === phase.id && t.area !== 'adm');
-            const tasksDone = phaseTasks.filter(t => t.status === 'concluida').length;
-            const isOpen = selectedPhase?.id === phase.id;
+        {/* ── Trilha lateral (stepper) ── */}
+        <div style={{ width: 260, flexShrink: 0 }}>
+          {phases.map((phase, i) => {
+            const isActive = phase.id === activePhase;
+            const isDone = phase.status === 'concluida';
+            const pTasks = tasks.filter(t => t.event_phase_id === phase.id);
+            const pDone = pTasks.filter(t => t.status === 'concluida').length;
+            const stepColor = isDone ? '#10b981' : isActive ? C.accent : 'var(--cbrio-text3)';
+
             return (
-              <div key={phase.id}>
-                <div onClick={() => setSelectedPhase(isOpen ? null : phase)} style={{
-                  background: 'var(--cbrio-card)', borderRadius: isOpen ? '10px 10px 0 0' : 10, padding: 12,
-                  border: isOpen ? `1.5px solid ${C.accent}` : `1px solid ${C.border}`, cursor: 'pointer',
-                  borderLeft: phase.momento_chave ? '4px solid #f59e0b' : `4px solid ${st.color}`,
-                  transition: 'box-shadow 0.15s',
-                }}
-                onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'}
-                onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
-                      <span style={{ color: C.t3, fontSize: 11 }}>{isOpen ? '▼' : '▶'}</span>
-                      <div>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: C.accent }}>Fase {phase.numero_fase}</span>
-                        <span style={{ fontSize: 14, fontWeight: 600, color: C.dark, marginLeft: 8 }}>{phase.nome_fase}</span>
-                        {phase.momento_chave && <span style={{ marginLeft: 6 }}><Badge text="Momento-chave" color="#f59e0b" /></span>}
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
-                      {phaseTasks.length > 0 && (
-                        <span style={{ fontSize: 10, color: C.t2, fontWeight: 600 }}>{tasksDone}/{phaseTasks.length} tarefas</span>
-                      )}
-                      <span style={{ fontSize: 10, color: C.t3 }}>{fmtDate(phase.data_inicio_prevista)} → {fmtDate(phase.data_fim_prevista)}</span>
-                      <Badge text={st.label} color={st.color} bg={st.bg} />
-                    </div>
+              <div key={phase.id} style={{ display: 'flex', gap: 0, cursor: 'pointer' }}
+                onClick={() => { setActivePhase(phase.id); setExpandedTask(null); }}>
+                {/* Linha + círculo */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 28, flexShrink: 0 }}>
+                  <div style={{
+                    width: 20, height: 20, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: isDone ? '#10b981' : isActive ? C.accent : 'transparent',
+                    border: `2px solid ${stepColor}`, color: isDone || isActive ? '#fff' : stepColor,
+                    fontSize: 10, fontWeight: 700, flexShrink: 0,
+                  }}>
+                    {isDone ? '✓' : phase.numero_fase}
                   </div>
-                  <div style={{ fontSize: 11, color: C.t2, marginTop: 2 }}>Área: {phase.area}</div>
+                  {i < phases.length - 1 && (
+                    <div style={{ width: 2, flex: 1, minHeight: 20, background: isDone ? '#10b981' : 'var(--cbrio-border)' }} />
+                  )}
                 </div>
 
-                {/* Tarefas da fase (inline) */}
-                {isOpen && (
-                  <div style={{ border: `1px solid ${C.border}`, borderTop: 'none', borderRadius: '0 0 10px 10px', padding: '12px 16px', background: 'var(--cbrio-bg, #fafafa)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: C.dark }}>Tarefas ({phaseTasks.length})</span>
-                      <button onClick={() => { setSelectedPhase(null); setCreateTaskForPhase(phase); }} style={btnPrimary}>+ Tarefa</button>
+                {/* Label */}
+                <div style={{ padding: '0 8px 12px', flex: 1 }}>
+                  <div style={{
+                    fontSize: 12, fontWeight: isActive ? 700 : 500,
+                    color: isActive ? C.accent : isDone ? '#10b981' : C.dark,
+                  }}>
+                    {phase.nome_fase}
+                  </div>
+                  <div style={{ fontSize: 10, color: C.t3, marginTop: 1 }}>
+                    {fmtDate(phase.data_inicio_prevista)} → {fmtDate(phase.data_fim_prevista)}
+                    {pTasks.length > 0 && ` · ${pDone}/${pTasks.length}`}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ── Tarefas da fase selecionada ── */}
+        <div style={{ flex: 1 }}>
+          {currentPhase && (
+            <div>
+              {/* Header da fase */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                <div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: C.dark }}>
+                    Fase {currentPhase.numero_fase} — {currentPhase.nome_fase}
+                  </div>
+                  <div style={{ fontSize: 12, color: C.t2, marginTop: 4 }}>
+                    {fmtDate(currentPhase.data_inicio_prevista)} → {fmtDate(currentPhase.data_fim_prevista)}
+                    {currentPhase.momento_chave && <span style={{ marginLeft: 8, color: '#f59e0b', fontWeight: 600 }}>★ Momento-chave</span>}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <select value={currentPhase.status} onChange={e => handlePhaseStatusChange(currentPhase.id, e.target.value)}
+                    style={{ fontSize: 12, padding: '4px 8px', borderRadius: 6, border: `1px solid ${C.border}` }}>
+                    <option value="pendente">Pendente</option>
+                    <option value="em_andamento">Em andamento</option>
+                    <option value="concluida">Concluída</option>
+                    <option value="atrasada">Atrasada</option>
+                    <option value="em_risco">Em risco</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Tarefas agrupadas por categoria */}
+              {phaseTasks.length === 0 && <div style={{ color: C.t3, fontSize: 13, padding: 20, textAlign: 'center' }}>Nenhuma tarefa nesta fase</div>}
+
+              {categories.map(cat => {
+                const catTasks = tasksByCategory[cat];
+                const catInfo = CAT_COLORS[cat] || CAT_COLORS.outros;
+                const catDone = catTasks.filter(t => t.status === 'concluida').length;
+
+                return (
+                  <div key={cat} style={{ marginBottom: 20 }}>
+                    {/* Header da categoria */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                      <div style={{ width: 10, height: 10, borderRadius: '50%', background: catInfo.color }} />
+                      <span style={{ fontSize: 14, fontWeight: 700, color: C.dark }}>{catInfo.label}</span>
+                      <span style={{ fontSize: 11, color: C.t3 }}>({catDone}/{catTasks.length})</span>
                     </div>
-                    {phaseTasks.length === 0 && <div style={{ fontSize: 12, color: C.t3, padding: 8 }}>Nenhuma tarefa nesta fase</div>}
-                    {phaseTasks.map(task => {
-                      const ts = TASK_STATUS[task.status] || TASK_STATUS.a_fazer;
+
+                    {/* Lista de tarefas */}
+                    {catTasks.map(task => {
+                      const isOpen = expandedTask === task.id;
                       const subs = task.subtasks || [];
                       const subsDone = subs.filter(s => s.done).length;
-                      const taskOpen = createTaskForPhase?.id === `inline-${task.id}`;
+                      const ts = TASK_STATUS[task.status] || TASK_STATUS.a_fazer;
+
                       return (
-                        <div key={task.id} style={{ background: 'var(--cbrio-card)', borderRadius: 8, padding: '10px 12px', border: `1px solid ${C.border}`, marginBottom: 4, cursor: 'pointer' }}
-                          onClick={() => setCreateTaskForPhase(taskOpen ? null : { id: `inline-${task.id}` })}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div key={task.id} style={{
+                          background: 'var(--cbrio-card)', borderRadius: 8, padding: '10px 14px',
+                          border: isOpen ? `1.5px solid ${C.accent}` : `1px solid ${C.border}`,
+                          marginBottom: 4, cursor: 'pointer', transition: 'box-shadow 0.15s',
+                        }}
+                        onClick={() => setExpandedTask(isOpen ? null : task.id)}
+                        onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'}
+                        onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
+                          {/* Resumo */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
-                              <span style={{ color: C.t3, fontSize: 10 }}>{taskOpen ? '▼' : '▶'}</span>
-                              <span style={{ fontWeight: 600, fontSize: 13, color: C.dark }}>{task.titulo}</span>
-                              {subs.length > 0 && <span style={{ fontSize: 10, color: C.t3 }}>{subsDone}/{subs.length}</span>}
+                              <span style={{ color: C.t3, fontSize: 10 }}>{isOpen ? '▼' : '▶'}</span>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontWeight: 600, fontSize: 13, color: C.dark }}>{task.titulo}</div>
+                                <div style={{ fontSize: 11, color: C.t2, marginTop: 1 }}>
+                                  {task.responsavel_nome || 'Sem responsável'}
+                                  {task.prazo && ` · ${fmtDate(task.prazo)}`}
+                                  {subs.length > 0 && ` · ${subsDone}/${subs.length} subtarefas`}
+                                </div>
+                              </div>
                             </div>
-                            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }} onClick={e => e.stopPropagation()}>
+                            <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                              <span style={{ fontSize: 10, fontWeight: 600, color: ts.color, padding: '2px 8px', borderRadius: 10, background: `${ts.color}15` }}>{ts.label}</span>
                               <select value={task.status} onChange={e => handleTaskStatusChange(task.id, e.target.value)}
                                 style={{ fontSize: 11, padding: '2px 6px', borderRadius: 6, border: `1px solid ${C.border}` }}>
                                 {Object.entries(TASK_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                               </select>
                             </div>
                           </div>
-                          {task.prazo && <div style={{ fontSize: 11, color: C.t3, marginTop: 2 }}>{task.responsavel_nome || 'Sem responsável'} · {fmtDate(task.prazo)}</div>}
-                          <DelayBadge prazo={task.prazo} status={task.status} fimFase={phase.data_fim_prevista} />
 
-                          {taskOpen && subs.length > 0 && (
-                            <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${C.border}` }} onClick={e => e.stopPropagation()}>
+                          {/* Expandido: subtarefas */}
+                          {isOpen && subs.length > 0 && (
+                            <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.border}` }} onClick={e => e.stopPropagation()}>
+                              <div style={{ fontSize: 11, fontWeight: 600, color: C.t2, marginBottom: 4 }}>Subtarefas ({subsDone}/{subs.length})</div>
+                              {/* Barra de progresso das subtarefas */}
+                              <div style={{ height: 4, background: 'var(--cbrio-border)', borderRadius: 2, marginBottom: 8 }}>
+                                <div style={{ height: '100%', width: `${subs.length > 0 ? (subsDone / subs.length) * 100 : 0}%`, background: '#10b981', borderRadius: 2, transition: 'width 0.3s' }} />
+                              </div>
                               {subs.map(sub => (
-                                <div key={sub.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '3px 0', color: C.dark }}>
-                                  <input type="checkbox" checked={sub.done} onChange={() => { sub.done = !sub.done; load(); }} style={{ cursor: 'pointer' }} />
+                                <div key={sub.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '4px 0', color: C.dark }}>
+                                  <input type="checkbox" checked={sub.done} onChange={() => { sub.done = !sub.done; setData({ ...data }); }}
+                                    style={{ cursor: 'pointer', width: 16, height: 16 }} />
                                   <span style={sub.done ? { textDecoration: 'line-through', color: C.t3 } : {}}>{sub.name}</span>
                                 </div>
                               ))}
                             </div>
                           )}
+                          {isOpen && subs.length === 0 && (
+                            <div style={{ marginTop: 8, fontSize: 11, color: C.t3 }}>Sem subtarefas</div>
+                          )}
                         </div>
                       );
                     })}
-
-                    {/* Status da fase */}
-                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 8 }} onClick={e => e.stopPropagation()}>
-                      <span style={{ fontSize: 11, color: C.t2 }}>Status da fase:</span>
-                      <select value={phase.status} onChange={e => handlePhaseStatusChange(phase.id, e.target.value)}
-                        style={{ fontSize: 11, padding: '2px 6px', borderRadius: 6, border: `1px solid ${C.border}` }}>
-                        {Object.entries(PHASE_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                      </select>
-                    </div>
                   </div>
-                )}
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          )}
+          {!currentPhase && <div style={{ color: C.t3, fontSize: 13, padding: 20 }}>Selecione uma fase na trilha</div>}
         </div>
-      )}
-
-      {/* Tab: Tarefas (Kanban) */}
-      {tab === 'Tarefas' && (
-        <div className="kanban-grid">
-          {Object.entries(TASK_STATUS).map(([status, meta]) => {
-            const colTasks = tasks.filter(t => t.status === status);
-            return (
-              <div key={status} style={{ background: 'var(--cbrio-table-header)', borderRadius: 10, padding: 10 }}
-                onDragOver={e => e.preventDefault()}
-                onDrop={e => { const tid = e.dataTransfer.getData('cycleTaskId'); if (tid) handleTaskStatusChange(tid, status); }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: meta.color, marginBottom: 8 }}>
-                  {meta.label} ({colTasks.length})
-                </div>
-                {colTasks.map(task => (
-                  <div key={task.id} draggable onDragStart={e => e.dataTransfer.setData('cycleTaskId', task.id)}
-                    style={{ background: 'var(--cbrio-card)', borderRadius: 8, padding: 10, marginBottom: 6, border: `1px solid ${C.border}`, cursor: 'grab' }}>
-                    <div style={{ fontWeight: 600, fontSize: 13, color: C.dark }}>{task.titulo}</div>
-                    <div style={{ fontSize: 11, color: C.t2, marginTop: 2 }}>
-                      {task.responsavel_nome || 'Sem responsável'}
-                      {task.prazo && ` · ${fmtDate(task.prazo)}`}
-                    </div>
-                    <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
-                      <Badge text={task.area === 'marketing' ? 'MKT' : 'ADM'} color={task.area === 'marketing' ? '#00B39D' : '#f59e0b'} />
-                      <Badge text={task.prioridade} color={task.prioridade === 'alta' ? '#ef4444' : task.prioridade === 'normal' ? '#3b82f6' : 'var(--cbrio-text3)'} />
-                    </div>
-                    <DelayBadge prazo={task.prazo} status={task.status} fimFase={phases.find(p => p.id === task.event_phase_id)?.data_fim_prevista} />
-                  </div>
-                ))}
-                {colTasks.length === 0 && <div style={{ fontSize: 11, color: C.t3, padding: 8 }}>Nenhuma tarefa</div>}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Tab: Fases Administração — tarefas ADM com subtarefas */}
-      {tab === 'Fases Administração' && (() => {
-        const admTasks = tasks.filter(t => t.area === 'adm');
-        // Extrair sub-área do campo observacoes: "Área: compras | ..."
-        const getSubArea = (t) => { const m = (t.observacoes || '').match(/Área:\s*(\w+)/i); return m ? m[1] : 'outros'; };
-        const AREAS = ['compras', 'financeiro', 'manutencao', 'limpeza', 'cozinha'];
-        const AREA_LABELS = { compras: 'Compras', financeiro: 'Financeiro', manutencao: 'Manutenção', limpeza: 'Limpeza', cozinha: 'Cozinha', outros: 'Outros' };
-        const AREA_COLORS = { compras: '#3b82f6', financeiro: '#10b981', manutencao: '#f59e0b', limpeza: '#8b5cf6', cozinha: '#ec4899' };
-
-        return (
-          <div>
-            {(admTasks.length === 0) && <div style={{ padding: 20, textAlign: 'center', color: C.t3, fontSize: 13 }}>Nenhuma tarefa administrativa</div>}
-            {AREAS.map(area => {
-              const areaTasks = admTasks.filter(t => getSubArea(t) === area);
-              if (areaTasks.length === 0) return null;
-              const done = areaTasks.filter(t => t.status === 'concluida').length;
-              return (
-                <div key={area} style={{ marginBottom: 20 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                    <div style={{ width: 12, height: 12, borderRadius: '50%', background: AREA_COLORS[area] || C.t3 }} />
-                    <span style={{ fontSize: 15, fontWeight: 700, color: C.dark }}>{AREA_LABELS[area] || area}</span>
-                    <span style={{ fontSize: 12, color: C.t3 }}>({done}/{areaTasks.length} concluídas)</span>
-                  </div>
-                  {areaTasks.map(task => {
-                    const isOpen = selectedPhase?.id === `adm-${task.id}`;
-                    const subs = task.subtasks || [];
-                    const subsDone = subs.filter(s => s.done).length;
-                    const ts = TASK_STATUS[task.status] || TASK_STATUS.a_fazer;
-                    return (
-                      <div key={task.id} style={{
-                        background: 'var(--cbrio-card)', borderRadius: 8, padding: '10px 14px',
-                        border: isOpen ? `1.5px solid ${C.accent}` : `1px solid ${C.border}`,
-                        marginBottom: 6, cursor: 'pointer', transition: 'box-shadow 0.15s',
-                      }}
-                      onClick={() => setSelectedPhase(isOpen ? null : { id: `adm-${task.id}` })}
-                      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'}
-                      onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
-                        {/* Resumo */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
-                            <span style={{ color: C.t3, fontSize: 11 }}>{isOpen ? '▼' : '▶'}</span>
-                            <div>
-                              <div style={{ fontWeight: 600, fontSize: 13, color: C.dark }}>{task.titulo}</div>
-                              <div style={{ fontSize: 11, color: C.t2, marginTop: 2 }}>
-                                {task.prazo && fmtDate(task.prazo)}
-                                {subs.length > 0 && ` · ${subsDone}/${subs.length} subtarefas`}
-                              </div>
-                            </div>
-                          </div>
-                          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }} onClick={e => e.stopPropagation()}>
-                            <Badge text={ts.label} color={ts.color} />
-                            <select value={task.status} onChange={e => handleTaskStatusChange(task.id, e.target.value)}
-                              style={{ fontSize: 11, padding: '2px 6px', borderRadius: 6, border: `1px solid ${C.border}` }}>
-                              {Object.entries(TASK_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                            </select>
-                          </div>
-                        </div>
-
-                        {/* Expandido: subtarefas */}
-                        {isOpen && (
-                          <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.border}` }} onClick={e => e.stopPropagation()}>
-                            {subs.length === 0 && <div style={{ fontSize: 11, color: C.t3 }}>Sem subtarefas</div>}
-                            {subs.length > 0 && (
-                              <div>
-                                <div style={{ fontSize: 11, fontWeight: 600, color: C.t2, marginBottom: 4 }}>Subtarefas ({subsDone}/{subs.length})</div>
-                                {subs.map(sub => (
-                                  <div key={sub.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '3px 0', color: C.dark }}>
-                                    <input type="checkbox" checked={sub.done} onChange={async () => {
-                                      await api.updateTask(task.id, {}); // trigger reload
-                                      sub.done = !sub.done;
-                                      load();
-                                    }} style={{ cursor: 'pointer' }} />
-                                    <span style={sub.done ? { textDecoration: 'line-through', color: C.t3 } : {}}>{sub.name}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
-          </div>
-        );
-      })()}
-
-      {/* Modal de detalhe removido — fases expandem inline agora */}
-
-      {/* Modal: Criar tarefa */}
-      {createTaskForPhase && (
-        <CreateTaskModal
-          phase={createTaskForPhase}
-          eventId={eventId}
-          usersList={usersList}
-          onSave={handleCreateTask}
-          onClose={() => setCreateTaskForPhase(null)}
-        />
-      )}
+      </div>
     </div>
   );
 }
 
-const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 };
-const modal = { background: 'var(--cbrio-card)', borderRadius: 12, padding: '24px 28px', width: '100%', maxWidth: 600, maxHeight: '90vh', overflowY: 'auto' };
-const labelStyle = { fontSize: 12, fontWeight: 600, color: 'var(--cbrio-text2)', display: 'block', marginBottom: 4 };
-const inputStyle = { width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--cbrio-border)', fontSize: 13, color: 'var(--cbrio-text)', outline: 'none' };
-const errBox = { background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', padding: '8px 12px', borderRadius: 8, fontSize: 12, marginBottom: 12 };
-const btnPrimary = { padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', background: '#00B39D', color: '#fff', fontWeight: 600, fontSize: 12 };
-const btnCancel = { padding: '8px 16px', borderRadius: 8, border: '1px solid var(--cbrio-border)', background: 'var(--cbrio-card)', color: 'var(--cbrio-text2)', cursor: 'pointer', fontWeight: 600, fontSize: 12 };
+const btnPrimary = {
+  padding: '10px 24px', borderRadius: 8, border: 'none', cursor: 'pointer',
+  background: '#00B39D', color: '#fff', fontWeight: 600, fontSize: 14,
+};
