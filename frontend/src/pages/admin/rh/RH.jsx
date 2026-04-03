@@ -1056,6 +1056,40 @@ function FeriasTab({ funcs, onNew, onAprovar }) {
 // ═══════════════════════════════════════════════════════════
 function OrgChartTab({ funcs, onDetail }) {
   const ativos = funcs.filter(f => f.status === 'ativo');
+  const containerRef = useRef(null);
+  const [zoom, setZoom] = useState(0.85);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const dragStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
+
+  function handleWheel(e) {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.05 : 0.05;
+    setZoom(z => Math.max(0.3, Math.min(2, z + delta)));
+  }
+
+  function handleMouseDown(e) {
+    if (e.target.closest('[data-orgcard]')) return; // don't drag when clicking cards
+    setDragging(true);
+    dragStart.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y };
+  }
+
+  function handleMouseMove(e) {
+    if (!dragging) return;
+    setPan({
+      x: dragStart.current.panX + (e.clientX - dragStart.current.x),
+      y: dragStart.current.panY + (e.clientY - dragStart.current.y),
+    });
+  }
+
+  function handleMouseUp() { setDragging(false); }
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
+  }, []);
 
   function getChildren(gestorId) {
     return ativos.filter(f => (f.gestor_id || null) === gestorId).sort((a, b) => a.nome.localeCompare(b.nome));
@@ -1065,6 +1099,7 @@ function OrgChartTab({ funcs, onDetail }) {
   function OrgCard({ func, highlight }) {
     return (
       <div
+        data-orgcard
         onClick={() => onDetail(func.id)}
         style={{
           background: 'var(--cbrio-card)', border: `2px solid ${highlight ? C.primary : C.border}`,
@@ -1125,22 +1160,43 @@ function OrgChartTab({ funcs, onDetail }) {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <div style={{ fontSize: 13, color: C.text2 }}>
           {ativos.length} colaboradores · {comGestor} com gestor definido
         </div>
-        <div style={{ fontSize: 12, color: C.text3 }}>
-          Clique em um card para ver detalhes
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Button variant="outline" size="icon-xs" onClick={() => setZoom(z => Math.max(0.3, z - 0.1))}>−</Button>
+          <span style={{ fontSize: 12, color: C.text3, minWidth: 40, textAlign: 'center' }}>{Math.round(zoom * 100)}%</span>
+          <Button variant="outline" size="icon-xs" onClick={() => setZoom(z => Math.min(2, z + 0.1))}>+</Button>
+          <Button variant="ghost" size="xs" onClick={() => { setZoom(0.85); setPan({ x: 0, y: 0 }); }}>Reset</Button>
         </div>
       </div>
+      <div style={{ fontSize: 11, color: C.text3, marginBottom: 8 }}>Scroll para zoom · Arraste para mover · Clique no card para detalhes</div>
       {roots.length === 0 ? (
         <div style={styles.empty}>
           <div style={{ fontSize: 28, marginBottom: 8 }}>🏢</div>
           Defina o campo "Gestor Direto" em cada colaborador para montar o organograma.
         </div>
       ) : (
-        <div style={{ overflowX: 'auto', padding: '20px 0 40px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 'max-content', margin: '0 auto' }}>
+        <div
+          ref={containerRef}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          style={{
+            overflow: 'hidden', borderRadius: 12, border: `1px solid ${C.border}`,
+            background: 'var(--cbrio-input-bg)', cursor: dragging ? 'grabbing' : 'grab',
+            height: 'calc(100vh - 280px)', minHeight: 400, position: 'relative',
+          }}
+        >
+          <div style={{
+            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+            transformOrigin: 'top center',
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            minWidth: 'max-content', padding: '40px 60px 80px',
+            transition: dragging ? 'none' : 'transform 0.1s ease-out',
+          }}>
             {roots.map(r => <OrgTreeNode key={r.id} func={r} />)}
           </div>
         </div>
