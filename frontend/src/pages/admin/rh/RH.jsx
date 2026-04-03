@@ -1416,9 +1416,42 @@ function BeneficiosSection({ data, onSave }) {
   );
 }
 
+const DOCS_OBRIGATORIOS = {
+  clt: [
+    { tipo: 'contrato', label: 'Contrato de Trabalho' },
+    { tipo: 'rg', label: 'RG' },
+    { tipo: 'cpf', label: 'CPF' },
+    { tipo: 'ctps', label: 'CTPS' },
+    { tipo: 'comprovante_residencia', label: 'Comprovante de Residência' },
+  ],
+  pj: [
+    { tipo: 'contrato', label: 'Contrato de Prestação de Serviços' },
+    { tipo: 'cnpj', label: 'Cartão CNPJ' },
+    { tipo: 'cpf', label: 'CPF do Representante' },
+    { tipo: 'rg', label: 'RG do Representante' },
+  ],
+  voluntario: [
+    { tipo: 'contrato', label: 'Termo de Voluntariado' },
+    { tipo: 'rg', label: 'RG' },
+  ],
+  estagiario: [
+    { tipo: 'contrato', label: 'Contrato de Estágio' },
+    { tipo: 'rg', label: 'RG' },
+    { tipo: 'cpf', label: 'CPF' },
+    { tipo: 'comprovante_matricula', label: 'Comprovante de Matrícula' },
+  ],
+};
+
 function DocumentosSection({ data, onNewDoc, onDeleteDoc }) {
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef(null);
+
+  // Verificar docs obrigatórios faltando
+  const obrigatorios = DOCS_OBRIGATORIOS[data.tipo_contrato] || [];
+  const docsExistentes = (data.documentos || []).map(d => d.tipo?.toLowerCase());
+  const docsFaltando = obrigatorios.filter(req => !docsExistentes.some(t => t === req.tipo || t?.includes(req.tipo)));
+  const today = new Date().toISOString().slice(0, 10);
+  const docsVencidos = (data.documentos || []).filter(d => d.data_expiracao && d.data_expiracao < today);
 
   async function handleUploadDoc(file) {
     if (!file) return;
@@ -1454,6 +1487,28 @@ function DocumentosSection({ data, onNewDoc, onDeleteDoc }) {
           <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => onNewDoc(data.id)}>+ Manual</button>
         </div>
       </div>
+      {/* Alertas de documentos */}
+      {docsFaltando.length > 0 && (
+        <div style={{ padding: '10px 14px', background: '#f59e0b12', border: '1px solid #f59e0b30', borderRadius: 8, marginBottom: 10 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.amber, marginBottom: 4 }}>Documentos obrigatórios faltando ({docsFaltando.length})</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {docsFaltando.map(d => (
+              <span key={d.tipo} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, background: '#f59e0b20', color: C.amber, fontWeight: 500 }}>{d.label}</span>
+            ))}
+          </div>
+        </div>
+      )}
+      {docsVencidos.length > 0 && (
+        <div style={{ padding: '10px 14px', background: '#ef444412', border: '1px solid #ef444430', borderRadius: 8, marginBottom: 10 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.red, marginBottom: 4 }}>Documentos VENCIDOS ({docsVencidos.length})</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {docsVencidos.map(d => (
+              <span key={d.id} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, background: '#ef444420', color: C.red, fontWeight: 500 }}>{d.nome} (exp: {fmtDate(d.data_expiracao)})</span>
+            ))}
+          </div>
+        </div>
+      )}
+
       {(data.documentos || []).map(d => (
         <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: `1px solid ${C.border}` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
