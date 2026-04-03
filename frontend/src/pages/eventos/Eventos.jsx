@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { events, meetings, cycles as cyclesApi, occurrences as occApi, tasks as tasksApi, dashboard as dashApi, risks as risksApi, retrospective as retroApi, history as historyApi } from '../../api';
+import { events, meetings, cycles as cyclesApi, occurrences as occApi, tasks as tasksApi, dashboard as dashApi, risks as risksApi, retrospective as retroApi, history as historyApi, users as usersApi } from '../../api';
 import CycleView from './components/CycleView';
 import BudgetPanel from './components/BudgetPanel';
 
@@ -287,7 +287,13 @@ export default function Eventos() {
   const userArea = profile?.area || '';
   const userId = user?.id || '';
   const isPMO = ['diretor', 'admin'].includes(userRole);
-  const [tab, setTab] = useState(0);
+
+  // URL params para drill-down (ex: /eventos?status=atrasado&id=xxx)
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlStatus = urlParams.get('status') || '';
+  const urlEventId = urlParams.get('id') || '';
+
+  const [tab, setTab] = useState(urlStatus ? 1 : urlEventId ? 4 : 0); // 0=Home, 1=Lista, 4=Detail
   const [eventList, setEventList] = useState([]);
   const [categories, setCategories] = useState([]);
   const [dash, setDash] = useState(null);
@@ -296,7 +302,7 @@ export default function Eventos() {
   const [error, setError] = useState('');
 
   // Filtros
-  const [filtroStatus, setFiltroStatus] = useState('');
+  const [filtroStatus, setFiltroStatus] = useState(urlStatus);
   const [filtroCategoria, setFiltroCategoria] = useState('');
 
   // PMO KPIs + workload
@@ -343,6 +349,9 @@ export default function Eventos() {
   // Inline inputs
   const [newSubtask, setNewSubtask] = useState({});
   const [newComment, setNewComment] = useState({});
+
+  // People list for responsible picker
+  const [usersList, setUsersList] = useState([]);
 
   // ── Loaders ──
   const loadCategories = useCallback(async () => {
@@ -402,6 +411,9 @@ export default function Eventos() {
     loadCategories(); loadDash(); loadEvents();
     dashApi.pmo().then(d => setPmoKpis(d)).catch(() => {});
     dashApi.workload().then(d => setWorkload(d)).catch(() => {});
+    usersApi.list().then(d => setUsersList(Array.isArray(d) ? d : [])).catch(() => setUsersList([]));
+    // Abrir evento direto se veio via URL param
+    if (urlEventId) loadDetail(urlEventId);
   }, []);
   useEffect(() => { loadEvents(); }, [filtroStatus, filtroCategoria]);
 
@@ -583,17 +595,23 @@ export default function Eventos() {
   const counts = { total: eventList.length, 'no-prazo': 0, 'em-risco': 0, 'atrasado': 0, 'concluido': 0 };
   eventList.forEach(e => { if (counts[e.status] !== undefined) counts[e.status]++; });
   const k = pmoKpis || {};
+  // Helper: navegar do KPI para a Lista com filtro de status
+  const kpiDrillDown = (status) => {
+    setFiltroStatus(status || '');
+    setHideDone(status !== 'concluido');
+    setTab(1); // Lista
+  };
   const kpis = [
-    { label: 'Eventos', value: counts.total, color: C.primary },
-    { label: 'No Prazo', value: counts['no-prazo'], color: C.green },
-    { label: 'Em Risco', value: counts['em-risco'], color: C.amber },
-    { label: 'Atrasados', value: counts['atrasado'], color: C.red },
-    { label: 'Concluídos', value: counts['concluido'], color: C.blue },
-    { label: 'Próx. 7 dias', value: k.events_next_7d || 0, color: '#8b5cf6' },
-    { label: 'Tarefas abertas', value: k.tasks_open || 0, color: '#6b7280' },
-    { label: 'Tarefas atrasadas', value: k.tasks_overdue || 0, color: C.red },
-    { label: 'Riscos abertos', value: k.risks_open || 0, color: '#f59e0b' },
-    { label: 'Sem responsável', value: k.events_no_owner || 0, color: '#9ca3af' },
+    { label: 'Eventos', value: counts.total, color: C.primary, action: () => kpiDrillDown('') },
+    { label: 'No Prazo', value: counts['no-prazo'], color: C.green, action: () => kpiDrillDown('no-prazo') },
+    { label: 'Em Risco', value: counts['em-risco'], color: C.amber, action: () => kpiDrillDown('em-risco') },
+    { label: 'Atrasados', value: counts['atrasado'], color: C.red, action: () => kpiDrillDown('atrasado') },
+    { label: 'Concluídos', value: counts['concluido'], color: C.blue, action: () => kpiDrillDown('concluido') },
+    { label: 'Próx. 7 dias', value: k.events_next_7d || 0, color: '#8b5cf6', action: () => kpiDrillDown('') },
+    { label: 'Tarefas abertas', value: k.tasks_open || 0, color: '#6b7280', action: () => { setTab(2); } },
+    { label: 'Tarefas atrasadas', value: k.tasks_overdue || 0, color: C.red, action: () => { setTab(2); } },
+    { label: 'Riscos abertos', value: k.risks_open || 0, color: '#f59e0b', action: () => { setTab(2); } },
+    { label: 'Sem responsável', value: k.events_no_owner || 0, color: '#9ca3af', action: () => kpiDrillDown('') },
   ];
 
   // ── Kanban (dois níveis)
@@ -978,21 +996,24 @@ export default function Eventos() {
           boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
         }}>
           {[
-            { label: 'Eventos', value: counts.total, color: C.primary },
-            { label: 'No Prazo', value: counts['no-prazo'], color: C.green },
-            { label: 'Em Risco', value: counts['em-risco'], color: C.amber },
-            { label: 'Atrasados', value: counts['atrasado'], color: C.red },
-            { label: 'Concluídos', value: counts['concluido'], color: C.blue },
+            { label: 'Eventos', value: counts.total, color: C.primary, action: () => kpiDrillDown('') },
+            { label: 'No Prazo', value: counts['no-prazo'], color: C.green, action: () => kpiDrillDown('no-prazo') },
+            { label: 'Em Risco', value: counts['em-risco'], color: C.amber, action: () => kpiDrillDown('em-risco') },
+            { label: 'Atrasados', value: counts['atrasado'], color: C.red, action: () => kpiDrillDown('atrasado') },
+            { label: 'Concluídos', value: counts['concluido'], color: C.blue, action: () => kpiDrillDown('concluido') },
             null,
-            { label: 'Próx. 7d', value: k.events_next_7d || 0, color: '#8b5cf6' },
-            { label: 'Tarefas abertas', value: k.tasks_open || 0, color: C.text2 },
-            { label: 'Tarefas atrasadas', value: k.tasks_overdue || 0, color: C.red },
-            { label: 'Riscos', value: k.risks_open || 0, color: C.amber },
-            { label: 'Sem dono', value: k.events_no_owner || 0, color: C.text3 },
+            { label: 'Próx. 7d', value: k.events_next_7d || 0, color: '#8b5cf6', action: () => kpiDrillDown('') },
+            { label: 'Tarefas abertas', value: k.tasks_open || 0, color: C.text2, action: () => { setTab(2); } },
+            { label: 'Tarefas atrasadas', value: k.tasks_overdue || 0, color: C.red, action: () => { setTab(2); } },
+            { label: 'Riscos', value: k.risks_open || 0, color: C.amber, action: () => { setTab(2); } },
+            { label: 'Sem dono', value: k.events_no_owner || 0, color: C.text3, action: () => kpiDrillDown('') },
           ].map((item, i) => {
             if (!item) return <div key={i} style={{ width: 1, height: 24, background: 'var(--cbrio-border, #e5e7eb)' }} />;
             return (
-              <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div key={item.label} onClick={item.action}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '4px 8px', borderRadius: 8, transition: 'background .15s' }}
+                onMouseEnter={e => e.currentTarget.style.background = `${item.color}15`}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                 <span style={{ fontSize: 20, fontWeight: 800, color: item.color }}>{item.value}</span>
                 <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--cbrio-text3, #9ca3af)', textTransform: 'uppercase', letterSpacing: 0.3 }}>{item.label}</span>
               </div>
@@ -1024,8 +1045,11 @@ export default function Eventos() {
               <div style={{ ...styles.card, flex: '1 1 320px', minWidth: 280 }}>
                 <div style={{ padding: '20px 24px' }}>
                   <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--cbrio-text, #1a1a2e)', marginBottom: 12 }}>Carga de Trabalho</div>
-                  {workload.slice(0, 6).map((w, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                  {workload.slice(0, 10).map((w, i) => (
+                    <div key={i} onClick={() => { window.location.href = `/planejamento?person=${encodeURIComponent(w.responsible)}`; }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, cursor: 'pointer', padding: '3px 4px', borderRadius: 6, transition: 'background .1s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--cbrio-bg, #f3f4f6)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                       <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--cbrio-text, #1a1a2e)', width: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.responsible}</span>
                       <div style={{ flex: 1, height: 8, background: 'var(--cbrio-border, #e5e7eb)', borderRadius: 4 }}>
                         <div style={{ height: '100%', width: `${Math.min((w.total_tasks / Math.max(...workload.map(x => x.total_tasks), 1)) * 100, 100)}%`, borderRadius: 4, background: w.atrasadas > 0 ? '#ef4444' : '#10b981', transition: 'width 0.3s' }} />
@@ -1100,7 +1124,9 @@ export default function Eventos() {
         {kpis.length > 0 && (
           <div style={styles.kpiGrid}>
             {kpis.map((k, i) => (
-              <EvStatCard key={k.label} label={k.label} value={k.value} bg={k.color} svg={EV_STAT_SVGS[i % EV_STAT_SVGS.length]} />
+              <div key={k.label} onClick={k.action} style={{ cursor: 'pointer' }}>
+                <EvStatCard label={k.label} value={k.value} bg={k.color} svg={EV_STAT_SVGS[i % EV_STAT_SVGS.length]} />
+              </div>
             ))}
           </div>
         )}
@@ -1881,7 +1907,13 @@ export default function Eventos() {
         <form id="task-form" onSubmit={e => e.preventDefault()}>
           <Input label="Nome" name="name" defaultValue={modalTask?.name || ''} required />
           <div style={styles.formRow}>
-            <Input label="Responsável" name="responsible" defaultValue={modalTask?.responsible || ''} />
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Responsável</label>
+              <input list="people-list" style={styles.input} name="responsible" defaultValue={modalTask?.responsible || ''} placeholder="Buscar pessoa..." autoComplete="off" />
+              <datalist id="people-list">
+                {usersList.map(u => <option key={u.id} value={u.name || u.full_name || u.email} />)}
+              </datalist>
+            </div>
             <Input label="Área" name="area" defaultValue={modalTask?.area || ''} />
           </div>
           <div style={styles.formRow}>

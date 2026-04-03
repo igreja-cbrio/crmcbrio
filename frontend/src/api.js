@@ -174,6 +174,7 @@ export const cycles = {
   deletePhase: (phaseId) => del(`/cycles/phases/${phaseId}`),
   createTask: (data) => post('/cycles/tasks', data),
   updateTask: (taskId, data) => patch(`/cycles/tasks/${taskId}`, data),
+  updateSubtask: (subId, data) => patch(`/cycles/subtasks/${subId}`, data),
   deleteTask: (taskId) => del(`/cycles/tasks/${taskId}`),
   updateAdmItem: (itemId, data) => patch(`/cycles/adm/${itemId}`, data),
   registerExpense: (data) => post('/cycles/expenses', data),

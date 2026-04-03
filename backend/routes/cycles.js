@@ -308,6 +308,16 @@ router.post('/tasks', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// PATCH /api/cycles/subtasks/:subId — toggle subtarefa done
+router.patch('/subtasks/:subId', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('cycle_task_subtasks')
+      .update({ done: req.body.done }).eq('id', req.params.subId).select().single();
+    if (error) throw error;
+    res.json(data);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // PATCH /api/cycles/tasks/:taskId
 router.patch('/tasks/:taskId', async (req, res) => {
   try {

@@ -30,11 +30,7 @@ function sortByUrgency(tasks) {
     return pa.localeCompare(pb);
   });
 }
-function getCategory(task) {
-  if (task.area === 'marketing') return 'marketing';
-  const m = (task.observacoes || '').match(/Área:\s*(\w+)/i);
-  return m ? m[1] : 'outros';
-}
+function getCategory(task) { return (task.area || '').toLowerCase() || 'outros'; }
 
 export default function CycleView({ eventId }) {
   const { profile, user } = useAuth();
@@ -194,7 +190,10 @@ export default function CycleView({ eventId }) {
 
             return (
               <div key={phase.id} style={{ display: 'flex', alignItems: 'center' }}>
-                <div onClick={() => { setActivePhase(phase.id); setExpandedTask(null); }} style={{
+                <div onClick={() => { setActivePhase(phase.id); setExpandedTask(null); }}
+                  onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = `${C.accent}08`; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                  onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = isDone ? 'var(--cbrio-bg)' : 'var(--cbrio-card)'; e.currentTarget.style.transform = ''; }}
+                  style={{
                   borderRadius: 8, padding: '8px 10px', cursor: 'pointer', minWidth: 100, maxWidth: 120,
                   border: isActive ? `2px solid ${C.accent}` : `1px solid ${C.border}`,
                   background: isActive ? `${C.accent}10` : isDone ? 'var(--cbrio-bg)' : 'var(--cbrio-card)',
@@ -270,14 +269,16 @@ export default function CycleView({ eventId }) {
           {Object.entries(TASK_STATUS).map(([status, meta]) => {
             const colTasks = sortByUrgency(phaseTasks.filter(t => t.status === status));
             return (
-              <div key={status} style={{ background: 'var(--cbrio-bg)', borderRadius: 10, padding: 8 }}
+              <div key={status} style={{ background: 'var(--cbrio-bg)', borderRadius: 10, padding: 8, transition: 'background .15s' }}
                 onDragOver={e => e.preventDefault()}
-                onDrop={e => { const id = e.dataTransfer.getData('cycleTaskId'); if (id) handleTaskStatus(id, status); }}>
+                onDragEnter={e => { e.currentTarget.style.background = `${meta.color}15`; }}
+                onDragLeave={e => { e.currentTarget.style.background = 'var(--cbrio-bg)'; }}
+                onDrop={e => { e.currentTarget.style.background = 'var(--cbrio-bg)'; const id = e.dataTransfer.getData('cycleTaskId'); if (id) handleTaskStatus(id, status); }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                   <span style={{ fontSize: 10, fontWeight: 600, color: meta.color, textTransform: 'uppercase', letterSpacing: 0.4 }}>{meta.label}</span>
                   <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 99, background: 'var(--cbrio-card)', border: `1px solid ${C.border}`, color: C.t3 }}>{colTasks.length}</span>
                 </div>
-                {colTasks.length === 0 && <div style={{ padding: 12, textAlign: 'center', fontSize: 10, color: C.t3, border: '1.5px dashed var(--cbrio-border)', borderRadius: 8 }}>—</div>}
+                {colTasks.length === 0 && <div style={{ padding: 16, textAlign: 'center', fontSize: 10, color: C.t3, border: '1.5px dashed var(--cbrio-border)', borderRadius: 8 }}>Arraste tarefas aqui</div>}
                 {colTasks.map(task => {
                   const cat = CAT[getCategory(task)] || CAT.outros;
                   const subs = task.subtasks || [];
@@ -290,12 +291,14 @@ export default function CycleView({ eventId }) {
                   const daysText = diff === null ? '' : diff < 0 ? `${Math.abs(diff)}d atrás` : diff === 0 ? 'Hoje' : `${diff}d`;
 
                   return (
-                    <div key={task.id} draggable onDragStart={e => e.dataTransfer.setData('cycleTaskId', task.id)}
+                    <div key={task.id} draggable
+                      onDragStart={e => { e.dataTransfer.setData('cycleTaskId', task.id); e.currentTarget.style.opacity = '0.4'; }}
+                      onDragEnd={e => { e.currentTarget.style.opacity = '1'; }}
                       onClick={() => setExpandedTask(isOpen ? null : `kb-${task.id}`)}
                       style={{
                         background: 'var(--cbrio-card)', borderRadius: 8, padding: 8, marginBottom: 4,
                         border: isOpen ? `1.5px solid ${C.accent}` : daysColor === '#ef4444' ? '1px solid #fecaca' : `1px solid ${C.border}`,
-                        cursor: 'pointer', transition: 'box-shadow .15s',
+                        cursor: 'grab', transition: 'opacity .15s, box-shadow .15s',
                       }}
                       onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'}
                       onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
@@ -325,7 +328,7 @@ export default function CycleView({ eventId }) {
                         <div style={{ marginTop: 6, paddingTop: 6, borderTop: `1px solid ${C.border}` }} onClick={e => e.stopPropagation()}>
                           {subs.map(sub => (
                             <div key={sub.id} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, padding: '2px 0', color: C.dark }}>
-                              <input type="checkbox" checked={sub.done} onChange={() => { sub.done = !sub.done; setData({ ...data }); }} style={{ cursor: 'pointer', width: 13, height: 13 }} />
+                              <input type="checkbox" checked={sub.done} onChange={async () => { await api.updateSubtask(sub.id, { done: !sub.done }); load(); }} style={{ cursor: 'pointer', width: 13, height: 13 }} />
                               <span style={sub.done ? { textDecoration: 'line-through', color: C.t3 } : {}}>{sub.name}</span>
                             </div>
                           ))}
@@ -398,7 +401,7 @@ export default function CycleView({ eventId }) {
                             </div>
                             {subs.map(sub => (
                               <div key={sub.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, padding: '3px 0', color: C.dark }}>
-                                <input type="checkbox" checked={sub.done} onChange={() => { sub.done = !sub.done; setData({ ...data }); }} style={{ cursor: 'pointer', width: 14, height: 14 }} />
+                                <input type="checkbox" checked={sub.done} onChange={async () => { await api.updateSubtask(sub.id, { done: !sub.done }); load(); }} style={{ cursor: 'pointer', width: 14, height: 14 }} />
                                 <span style={sub.done ? { textDecoration: 'line-through', color: C.t3 } : {}}>{sub.name}</span>
                               </div>
                             ))}
