@@ -992,8 +992,8 @@ export default function Eventos() {
         {/* Barra de status compacta */}
         <div style={{
           background: 'var(--cbrio-card, #fff)', borderRadius: 12, border: `1px solid ${C.border}`,
-          padding: '14px 24px', marginBottom: 20, display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+          padding: '14px 24px', marginBottom: 20, display: 'flex', gap: 16, alignItems: 'center',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)', overflowX: 'auto',
         }}>
           {[
             { label: 'Eventos', value: counts.total, color: C.primary, action: () => kpiDrillDown('') },
