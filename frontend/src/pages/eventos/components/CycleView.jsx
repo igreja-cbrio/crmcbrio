@@ -22,6 +22,13 @@ const CAT = {
 
 function normDate(d) { return d ? (typeof d === 'string' ? d.slice(0, 10) : '') : ''; }
 function fmtDate(d) { const s = normDate(d); if (!s) return ''; const [y, m, day] = s.split('-'); return `${day}/${m}`; }
+function sortByUrgency(tasks) {
+  return [...tasks].sort((a, b) => {
+    const pa = normDate(a.prazo); const pb = normDate(b.prazo);
+    if (!pa && !pb) return 0; if (!pa) return 1; if (!pb) return -1;
+    return pa.localeCompare(pb);
+  });
+}
 function getCategory(task) {
   if (task.area === 'marketing') return 'marketing';
   const m = (task.observacoes || '').match(/Área:\s*(\w+)/i);
@@ -235,7 +242,7 @@ export default function CycleView({ eventId }) {
       {viewMode === 'kanban' && currentPhase && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, minHeight: 200 }}>
           {Object.entries(TASK_STATUS).map(([status, meta]) => {
-            const colTasks = phaseTasks.filter(t => t.status === status);
+            const colTasks = sortByUrgency(phaseTasks.filter(t => t.status === status));
             return (
               <div key={status} style={{ background: 'var(--cbrio-bg)', borderRadius: 10, padding: 8 }}
                 onDragOver={e => e.preventDefault()}
