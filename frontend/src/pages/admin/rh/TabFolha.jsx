@@ -46,6 +46,30 @@ export default function TabFolha() {
 
   const filtered = filtroTipo ? funcs.filter(f => f.tipo_contrato === filtroTipo) : funcs;
 
+  function exportCSV(data) {
+    const headers = ['Nome','Cargo','Área','Tipo','Salário','Alimentação','Transporte','Saúde','Plano Saúde','INSS','IR','FGTS','Rem. Bruta','Rem. Líquida','Custo Total'];
+    const rows = data.map(f => {
+      const isPJ = f.tipo_contrato === 'pj';
+      const benef = Number(f.alimentacao||0)+Number(f.transporte||0)+Number(f.saude||0)+Number(f.plano_saude||0);
+      return [
+        f.nome, f.cargo, f.area||'', TIPO_LABEL[f.tipo_contrato]||f.tipo_contrato,
+        f.salario||0, f.alimentacao||0, f.transporte||0, f.saude||0, f.plano_saude||0,
+        isPJ?'':f.inss||0, isPJ?'':f.ir||0, isPJ?'':f.fgts||0,
+        isPJ?'':f.remuneracao_bruta||0,
+        isPJ?Number(f.salario||0)+benef:f.remuneracao_liquida||0,
+        isPJ?Number(f.salario||0)+benef:f.custo_total_mensal||0,
+      ];
+    });
+    const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+    const blob = new Blob(['\uFEFF'+csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `folha_pagamento_${new Date().toISOString().slice(0,7)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   // Totais
   const totSalario = filtered.reduce((s, f) => s + Number(f.salario || 0), 0);
   const totBeneficios = filtered.reduce((s, f) => {
@@ -147,13 +171,14 @@ export default function TabFolha() {
       <div style={s.kpi(C.green)}><div style={{ fontSize: 10, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>Colaboradores</div><div style={{ fontSize: 18, fontWeight: 800, color: C.text }}>{filtered.length}</div></div>
     </div>
 
-    {/* Filtro */}
-    <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+    {/* Filtro + Export */}
+    <div style={{ display: 'flex', gap: 8, marginBottom: 16, justifyContent: 'space-between', alignItems: 'center' }}>
       <select style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: 'var(--cbrio-input-bg)', color: C.text }}
         value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}>
         <option value="">Todos os tipos</option>
         {Object.entries(TIPO_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
       </select>
+      <Button variant="outline" size="sm" onClick={() => exportCSV(filtered)}>Exportar CSV</Button>
     </div>
 
     {/* Tabela */}

@@ -171,6 +171,83 @@ function gerarContratoCLT(adm) {
 `.trim();
 }
 
+function gerarContratoVoluntario(adm) {
+  const hoje = new Date().toLocaleDateString('pt-BR');
+  return `
+<h2 style="text-align:center;margin-bottom:24px;">TERMO DE ADESÃO AO SERVIÇO VOLUNTÁRIO</h2>
+<p>Pelo presente instrumento:</p>
+<p><strong>ENTIDADE:</strong> Igreja Comunidade Batista do Rio de Janeiro — CBRio, pessoa jurídica de direito privado, com sede na cidade do Rio de Janeiro/RJ;</p>
+<p><strong>VOLUNTÁRIO(A):</strong> ${adm.nome || '_______________'}, portador(a) do CPF nº ${adm.cpf || '_______________'}${adm.rg ? ', RG nº ' + adm.rg : ''}, residente em ${adm.endereco || '_______________'};</p>
+<p>Firmam o presente Termo de Adesão ao Serviço Voluntário, nos termos da Lei nº 9.608/98:</p>
+
+<h3>CLÁUSULA 1ª — DO OBJETO</h3>
+<p>O(A) VOLUNTÁRIO(A) prestará, de forma gratuita e espontânea, serviços de <strong>${adm.cargo || '_______________'}</strong>${adm.area ? ', na área de ' + adm.area : ''}, sem qualquer vínculo empregatício ou obrigação de natureza trabalhista, previdenciária ou afim.</p>
+
+<h3>CLÁUSULA 2ª — DO PERÍODO</h3>
+<p>O serviço voluntário terá início em <strong>${adm.data_inicio ? new Date(adm.data_inicio + 'T12:00:00').toLocaleDateString('pt-BR') : '___/___/______'}</strong>, com prazo indeterminado, podendo ser encerrado a qualquer momento por qualquer das partes, sem necessidade de aviso prévio.</p>
+
+<h3>CLÁUSULA 3ª — DA GRATUIDADE</h3>
+<p>O serviço voluntário NÃO gera vínculo empregatício nem obrigação de natureza trabalhista, previdenciária ou afim. O(A) VOLUNTÁRIO(A) não receberá remuneração pelos serviços prestados, podendo receber apenas ressarcimento de despesas comprovadamente realizadas no desempenho das atividades.</p>
+
+<h3>CLÁUSULA 4ª — DAS OBRIGAÇÕES</h3>
+<p>O(A) VOLUNTÁRIO(A) compromete-se a:<br/>
+a) Desempenhar as atividades com dedicação e responsabilidade;<br/>
+b) Respeitar as normas internas da ENTIDADE;<br/>
+c) Manter sigilo sobre informações confidenciais.</p>
+
+<br/>
+<p>Rio de Janeiro, ${hoje}.</p>
+<br/><br/>
+<div style="display:flex;justify-content:space-between;margin-top:40px;">
+  <div style="text-align:center;width:45%;"><div style="border-top:1px solid #333;padding-top:8px;"><strong>ENTIDADE</strong><br/>Igreja CBRio</div></div>
+  <div style="text-align:center;width:45%;"><div style="border-top:1px solid #333;padding-top:8px;"><strong>VOLUNTÁRIO(A)</strong><br/>${adm.nome || '_______________'}</div></div>
+</div>`.trim();
+}
+
+function gerarContratoEstagiario(adm) {
+  const hoje = new Date().toLocaleDateString('pt-BR');
+  const salario = adm.salario ? Number(adm.salario).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'R$ ___________';
+  return `
+<h2 style="text-align:center;margin-bottom:24px;">TERMO DE COMPROMISSO DE ESTÁGIO</h2>
+<p>Pelo presente instrumento, celebram o presente Termo de Compromisso de Estágio, nos termos da Lei nº 11.788/2008:</p>
+
+<p><strong>CONCEDENTE:</strong> Igreja Comunidade Batista do Rio de Janeiro — CBRio, com sede na cidade do Rio de Janeiro/RJ;</p>
+<p><strong>ESTAGIÁRIO(A):</strong> ${adm.nome || '_______________'}, portador(a) do CPF nº ${adm.cpf || '_______________'}${adm.rg ? ', RG nº ' + adm.rg : ''}, residente em ${adm.endereco || '_______________'};</p>
+
+<h3>CLÁUSULA 1ª — DO OBJETO</h3>
+<p>O estágio tem por objetivo proporcionar ao(à) ESTAGIÁRIO(A) experiência prática na área de <strong>${adm.cargo || '_______________'}</strong>${adm.area ? ', no setor de ' + adm.area : ''}, complementando sua formação acadêmica.</p>
+
+<h3>CLÁUSULA 2ª — DO PERÍODO E HORÁRIO</h3>
+<p>O estágio terá início em <strong>${adm.data_inicio ? new Date(adm.data_inicio + 'T12:00:00').toLocaleDateString('pt-BR') : '___/___/______'}</strong>, com duração de 12 (doze) meses, podendo ser renovado até o limite de 2 (dois) anos. A jornada será de 6 (seis) horas diárias e 30 (trinta) horas semanais.</p>
+
+<h3>CLÁUSULA 3ª — DA BOLSA-AUXÍLIO</h3>
+<p>O(A) ESTAGIÁRIO(A) receberá bolsa-auxílio mensal no valor de <strong>${salario}</strong>, além de auxílio-transporte conforme legislação vigente.</p>
+
+<h3>CLÁUSULA 4ª — DOS DIREITOS DO ESTAGIÁRIO</h3>
+<p>a) Recesso remunerado de 30 dias a cada 12 meses de estágio;<br/>
+b) Seguro contra acidentes pessoais;<br/>
+c) Jornada reduzida em períodos de avaliação escolar.</p>
+
+<h3>CLÁUSULA 5ª — DAS OBRIGAÇÕES</h3>
+<p>O(A) ESTAGIÁRIO(A) deverá:<br/>
+a) Cumprir a jornada estabelecida;<br/>
+b) Apresentar relatórios periódicos de atividades;<br/>
+c) Manter matrícula regular na instituição de ensino;<br/>
+d) Zelar pelas informações e patrimônio da CONCEDENTE.</p>
+
+<h3>CLÁUSULA 6ª — DA RESCISÃO</h3>
+<p>O presente termo poderá ser rescindido a qualquer momento por qualquer das partes.</p>
+
+<br/>
+<p>Rio de Janeiro, ${hoje}.</p>
+<br/><br/>
+<div style="display:flex;justify-content:space-between;margin-top:40px;">
+  <div style="text-align:center;width:30%;"><div style="border-top:1px solid #333;padding-top:8px;"><strong>CONCEDENTE</strong><br/>Igreja CBRio</div></div>
+  <div style="text-align:center;width:30%;"><div style="border-top:1px solid #333;padding-top:8px;"><strong>ESTAGIÁRIO(A)</strong><br/>${adm.nome || '_______________'}</div></div>
+  <div style="text-align:center;width:30%;"><div style="border-top:1px solid #333;padding-top:8px;"><strong>INSTITUIÇÃO DE ENSINO</strong><br/>_______________</div></div>
+</div>`.trim();
+}
+
 // ═══════════════════════════════════════════════════════════
 // COMPONENTE PRINCIPAL: TabAdmissao
 // ═══════════════════════════════════════════════════════════
@@ -216,8 +293,9 @@ export default function TabAdmissao() {
 
   function abrirContrato(adm) {
     if (!adm.contrato_editado) {
-      const html = adm.tipo_contrato === 'pj' ? gerarContratoPJ(adm) : gerarContratoCLT(adm);
-      setModalContrato({ ...adm, contrato_editado: html });
+      const generators = { pj: gerarContratoPJ, clt: gerarContratoCLT, voluntario: gerarContratoVoluntario, estagiario: gerarContratoEstagiario };
+      const gen = generators[adm.tipo_contrato] || gerarContratoCLT;
+      setModalContrato({ ...adm, contrato_editado: gen(adm) });
     } else {
       setModalContrato(adm);
     }

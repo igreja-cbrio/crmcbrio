@@ -280,7 +280,7 @@ export default function RH() {
           funcs={funcs} loading={loading} busca={busca} setBusca={setBusca}
           filtroStatus={filtroStatus} setFiltroStatus={setFiltroStatus}
           filtroArea={filtroArea} setFiltroArea={setFiltroArea}
-          onNew={() => setModalFunc({})} onEdit={(f) => setModalFunc(f)} onDetail={openDetail} onDelete={deleteFuncionario}
+          onNew={() => setModalFunc({})} onEdit={(f) => setModalFunc(f)} onDetail={openDetail} onDelete={deleteFuncionario} onImport={() => { loadFuncs(); loadDash(); }}
         />
       )}
       {tab === 2 && <TabAdmissao />}
@@ -449,8 +449,41 @@ function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
 // ═══════════════════════════════════════════════════════════
 // TAB: FUNCIONÁRIOS
 // ═══════════════════════════════════════════════════════════
-function FuncionariosTab({ funcs, loading, busca, setBusca, filtroStatus, setFiltroStatus, filtroArea, setFiltroArea, onNew, onDetail, onDelete }) {
+function FuncionariosTab({ funcs, loading, busca, setBusca, filtroStatus, setFiltroStatus, filtroArea, setFiltroArea, onNew, onDetail, onDelete, onImport }) {
   const areas = [...new Set(funcs.map(f => f.area).filter(Boolean))];
+  const csvRef = useRef(null);
+
+  async function handleCSVImport(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const text = await file.text();
+    const lines = text.split('\n').map(l => l.split(',').map(c => c.replace(/^"|"$/g, '').trim()));
+    if (lines.length < 2) { alert('CSV vazio ou inválido'); return; }
+    const header = lines[0].map(h => h.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
+    const map = (name) => header.indexOf(name);
+    const iNome = map('nome'); const iCargo = map('cargo'); const iArea = map('area');
+    const iEmail = map('email'); const iTel = map('telefone'); const iCpf = map('cpf');
+    const iTipo = map('tipo_contrato'); const iAdm = map('data_admissao'); const iSal = map('salario');
+    if (iNome < 0) { alert('CSV precisa ter coluna "Nome"'); return; }
+    let ok = 0, errs = 0;
+    for (let i = 1; i < lines.length; i++) {
+      const r = lines[i];
+      if (!r[iNome]) continue;
+      try {
+        await rh.funcionarios.create({
+          nome: r[iNome], cargo: r[iCargo] || 'A definir', area: r[iArea] || '',
+          email: iEmail >= 0 ? r[iEmail] : '', telefone: iTel >= 0 ? r[iTel] : '',
+          cpf: iCpf >= 0 ? r[iCpf] : '', tipo_contrato: iTipo >= 0 ? r[iTipo] || 'clt' : 'clt',
+          data_admissao: iAdm >= 0 && r[iAdm] ? r[iAdm] : new Date().toISOString().slice(0, 10),
+          salario: iSal >= 0 ? r[iSal] || null : null, status: 'ativo',
+        });
+        ok++;
+      } catch { errs++; }
+    }
+    alert(`Importação concluída: ${ok} importados, ${errs} erros`);
+    if (csvRef.current) csvRef.current.value = '';
+    onImport?.();
+  }
 
   return (
     <>
@@ -464,7 +497,9 @@ function FuncionariosTab({ funcs, loading, busca, setBusca, filtroStatus, setFil
           <option value="">Todas as áreas</option>
           {areas.map(a => <option key={a} value={a}>{a}</option>)}
         </select>
-        <div style={{ marginLeft: 'auto' }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+          <input ref={csvRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={handleCSVImport} />
+          <Button variant="outline" size="sm" onClick={() => csvRef.current?.click()}>Importar CSV</Button>
           <Button onClick={onNew}>+ Novo Colaborador</Button>
         </div>
       </div>
@@ -627,6 +662,47 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
     setEnviarSel(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
+  function gerarCertificado(treino, func) {
+    if (!func) return;
+    const w = window.open('', '_blank');
+    w.document.write(`<html><head><title>Certificado — ${func.nome}</title>
+    <style>
+      body { font-family: 'Georgia', serif; max-width: 800px; margin: 60px auto; text-align: center; color: #1a1a1a; }
+      .border { border: 3px double #00B39D; padding: 60px 50px; border-radius: 12px; }
+      h1 { font-size: 32px; color: #00B39D; margin-bottom: 8px; letter-spacing: 4px; }
+      h2 { font-size: 20px; font-weight: 400; color: #666; margin-bottom: 40px; }
+      .nome { font-size: 28px; font-weight: 700; color: #1a1a1a; border-bottom: 2px solid #00B39D; display: inline-block; padding-bottom: 8px; margin: 20px 0; }
+      .desc { font-size: 16px; color: #444; line-height: 1.8; margin: 24px 0; }
+      .treino { font-size: 18px; font-weight: 700; color: #00B39D; }
+      .footer { display: flex; justify-content: space-around; margin-top: 60px; }
+      .sig { text-align: center; width: 200px; }
+      .sig-line { border-top: 1px solid #333; padding-top: 8px; font-size: 13px; }
+      @media print { body { margin: 20px; } }
+    </style></head><body>
+    <div class="border">
+      <h1>CERTIFICADO</h1>
+      <h2>Igreja Comunidade Batista do Rio de Janeiro — CBRio</h2>
+      <p style="font-size:14px;color:#888;">Certificamos que</p>
+      <div class="nome">${func.nome}</div>
+      <p class="desc">concluiu com êxito o treinamento</p>
+      <div class="treino">${treino.titulo}</div>
+      ${treino.descricao ? `<p style="font-size:14px;color:#666;margin-top:8px;">${treino.descricao}</p>` : ''}
+      <p style="font-size:14px;color:#888;margin-top:16px;">
+        Período: ${treino.data_inicio ? new Date(treino.data_inicio + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}
+        ${treino.data_fim ? ' a ' + new Date(treino.data_fim + 'T12:00:00').toLocaleDateString('pt-BR') : ''}
+        ${treino.instrutor ? '<br/>Instrutor(a): ' + treino.instrutor : ''}
+      </p>
+      <p style="font-size:14px;color:#888;margin-top:24px;">Rio de Janeiro, ${new Date().toLocaleDateString('pt-BR')}</p>
+      <div class="footer">
+        <div class="sig"><div class="sig-line">Coordenação de RH</div></div>
+        <div class="sig"><div class="sig-line">${treino.instrutor || 'Instrutor(a)'}</div></div>
+      </div>
+    </div>
+    </body></html>`);
+    w.document.close();
+    w.print();
+  }
+
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
@@ -660,6 +736,24 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
 
               {/* Inscritos */}
               <div style={{ padding: '8px 20px 12px' }}>
+                {/* Barra de progresso */}
+                {(() => {
+                  const inscritos = t.rh_treinamentos_funcionarios || [];
+                  const total = inscritos.length;
+                  const concluidos = inscritos.filter(tf => tf.status === 'concluido').length;
+                  const pct = total > 0 ? Math.round(concluidos / total * 100) : 0;
+                  return total > 0 ? (
+                    <div style={{ marginBottom: 10 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: C.text2, marginBottom: 4 }}>
+                        <span>Progresso: {concluidos}/{total} concluídos</span>
+                        <span style={{ fontWeight: 700, color: pct === 100 ? C.green : C.primary }}>{pct}%</span>
+                      </div>
+                      <div style={{ height: 6, background: C.border, borderRadius: 3, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${pct}%`, background: pct === 100 ? C.green : C.primary, borderRadius: 3, transition: 'width 0.3s' }} />
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
                 <div style={{ fontSize: 11, fontWeight: 700, color: C.text2, marginBottom: 6, textTransform: 'uppercase' }}>
                   Inscritos ({(t.rh_treinamentos_funcionarios || []).length})
                 </div>
@@ -675,11 +769,18 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
                       )}
                       <span style={{ fontSize: 13 }}>{tf.rh_funcionarios?.nome || '—'}</span>
                     </div>
-                    <Badge status={tf.status} map={{
-                      inscrito: { c: C.blue, bg: C.blueBg, label: 'Inscrito' },
-                      concluido: { c: C.green, bg: C.greenBg, label: 'Concluído' },
-                      cancelado: { c: C.red, bg: C.redBg, label: 'Cancelado' },
-                    }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Badge status={tf.status} map={{
+                        inscrito: { c: C.blue, bg: C.blueBg, label: 'Inscrito' },
+                        concluido: { c: C.green, bg: C.greenBg, label: 'Concluído' },
+                        cancelado: { c: C.red, bg: C.redBg, label: 'Cancelado' },
+                      }} />
+                      {tf.status === 'concluido' && (
+                        <Button variant="ghost" size="xs" className="text-[10px]" onClick={() => gerarCertificado(t, tf.rh_funcionarios)}>
+                          Certificado
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ))}
                 {inscrevendo === t.id ? (
