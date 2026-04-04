@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Tag, ClipboardList, Trash2, Pencil, MapPin } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { patrimonio } from '../../../api';
+import { Button } from '../../../components/ui/button';
 
 const C = {
   bg: 'var(--cbrio-bg)', card: 'var(--cbrio-card)', primary: '#00B39D', primaryBg: '#00B39D18',
@@ -75,7 +76,7 @@ function Modal({ open, onClose, title, children, footer }) {
       <div style={styles.modal} onClick={e => e.stopPropagation()}>
         <div style={styles.modalHeader}>
           <div style={styles.modalTitle}>{title}</div>
-          <button style={{ ...styles.btn('ghost'), fontSize: 18 }} onClick={onClose}>✕</button>
+          <Button variant="ghost" onClick={onClose} style={{ fontSize: 18 }}>✕</Button>
         </div>
         <div style={styles.modalBody}>{children}</div>
         {footer && <div style={styles.modalFooter}>{footer}</div>}
@@ -110,6 +111,7 @@ export default function Patrimonio() {
   const [modalInv, setModalInv] = useState(null);
   const [newCat, setNewCat] = useState('');
   const [newLoc, setNewLoc] = useState('');
+  const [error, setError] = useState('');
 
   const loadDash = useCallback(async () => { try { setDash(await patrimonio.dashboard()); } catch (e) { console.error(e); } }, []);
   const loadBens = useCallback(async () => {
@@ -124,25 +126,31 @@ export default function Patrimonio() {
   useEffect(() => { loadBens(); }, [filtroStatus, filtroCat, filtroLoc, busca]);
 
   async function saveBem(data) {
-    try { if (data.id) await patrimonio.bens.update(data.id, data); else await patrimonio.bens.create(data); setModalBem(null); loadBens(); loadDash(); } catch (e) { alert(e.message); }
+    try { if (data.id) await patrimonio.bens.update(data.id, data); else await patrimonio.bens.create(data); setModalBem(null); loadBens(); loadDash(); } catch (e) { setError(e.message); }
   }
-  async function deleteBem(id) { if (!confirm('Remover este bem?')) return; try { await patrimonio.bens.remove(id); loadBens(); loadDash(); setModalDetail(null); } catch (e) { alert(e.message); } }
-  async function openDetail(id) { try { setModalDetail(await patrimonio.bens.get(id)); } catch (e) { alert(e.message); } }
+  async function deleteBem(id) { if (!confirm('Remover este bem?')) return; try { await patrimonio.bens.remove(id); loadBens(); loadDash(); setModalDetail(null); } catch (e) { setError(e.message); } }
+  async function openDetail(id) { try { setModalDetail(await patrimonio.bens.get(id)); } catch (e) { setError(e.message); } }
   async function saveMov(bemId, data) {
-    try { await patrimonio.bens.movimentar(bemId, data); setModalMov(null); openDetail(bemId); loadBens(); loadDash(); } catch (e) { alert(e.message); }
+    try { await patrimonio.bens.movimentar(bemId, data); setModalMov(null); openDetail(bemId); loadBens(); loadDash(); } catch (e) { setError(e.message); }
   }
-  async function addCat() { if (!newCat.trim()) return; try { await patrimonio.categorias.create({ nome: newCat }); setNewCat(''); loadCats(); loadDash(); } catch (e) { alert(e.message); } }
-  async function removeCat(id) { if (!confirm('Remover categoria?')) return; try { await patrimonio.categorias.remove(id); loadCats(); } catch (e) { alert(e.message); } }
-  async function addLoc() { if (!newLoc.trim()) return; try { await patrimonio.localizacoes.create({ nome: newLoc }); setNewLoc(''); loadLocs(); loadDash(); } catch (e) { alert(e.message); } }
-  async function removeLoc(id) { if (!confirm('Remover localização?')) return; try { await patrimonio.localizacoes.remove(id); loadLocs(); } catch (e) { alert(e.message); } }
-  async function saveInv(data) { try { await patrimonio.inventarios.create(data); setModalInv(null); loadInvs(); loadDash(); } catch (e) { alert(e.message); } }
-  async function updateInvStatus(id, status) { try { const upd = { status }; if (status === 'concluido') upd.data_fim = new Date().toISOString().slice(0, 10); await patrimonio.inventarios.atualizar(id, upd); loadInvs(); loadDash(); } catch (e) { alert(e.message); } }
+  async function addCat() { if (!newCat.trim()) return; try { await patrimonio.categorias.create({ nome: newCat }); setNewCat(''); loadCats(); loadDash(); } catch (e) { setError(e.message); } }
+  async function removeCat(id) { if (!confirm('Remover categoria?')) return; try { await patrimonio.categorias.remove(id); loadCats(); } catch (e) { setError(e.message); } }
+  async function addLoc() { if (!newLoc.trim()) return; try { await patrimonio.localizacoes.create({ nome: newLoc }); setNewLoc(''); loadLocs(); loadDash(); } catch (e) { setError(e.message); } }
+  async function removeLoc(id) { if (!confirm('Remover localização?')) return; try { await patrimonio.localizacoes.remove(id); loadLocs(); } catch (e) { setError(e.message); } }
+  async function saveInv(data) { try { await patrimonio.inventarios.create(data); setModalInv(null); loadInvs(); loadDash(); } catch (e) { setError(e.message); } }
+  async function updateInvStatus(id, status) { try { const upd = { status }; if (status === 'concluido') upd.data_fim = new Date().toISOString().slice(0, 10); await patrimonio.inventarios.atualizar(id, upd); loadInvs(); loadDash(); } catch (e) { setError(e.message); } }
 
   return (
     <div style={styles.page}>
       <div style={styles.header}>
         <div><div style={{ ...styles.title, display: 'flex', alignItems: 'center', gap: 10 }}><Tag className="h-7 w-7" style={{ color: '#00B39D' }} /> Patrimônio</div><div style={styles.subtitle}>Gestão de bens, localizações e inventários</div></div>
       </div>
+      {error && (
+        <div style={{ background: '#ef444418', border: '1px solid #ef4444', borderRadius: 8, padding: '12px 16px', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#ef4444', fontSize: 13 }}>
+          <span>{error}</span>
+          <button onClick={() => setError('')} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 16, fontWeight: 700, padding: '0 4px' }}>&#10005;</button>
+        </div>
+      )}
       <div style={styles.tabs}>{TABS.map((t, i) => <button key={t} style={styles.tab(tab === i)} onClick={() => setTab(i)}>{t}</button>)}</div>
 
       {tab === 0 && <DashboardTab dash={dash} />}
@@ -256,7 +264,7 @@ function BensTab({ bens, loading, busca, setBusca, filtroStatus, setFiltroStatus
           <option value="">Todas localizações</option>
           {localizacoes.map(l => <option key={l.id} value={l.id}>{l.nome}</option>)}
         </select>
-        {isDiretor && <div style={{ marginLeft: 'auto' }}><button style={styles.btn('primary')} onClick={onNew}>+ Novo Bem</button></div>}
+        {isDiretor && <div style={{ marginLeft: 'auto' }}><Button onClick={onNew}>+ Novo Bem</Button></div>}
       </div>
       <div style={styles.card}>
         <div style={{ overflowX: 'auto' }}>
@@ -278,7 +286,7 @@ function BensTab({ bens, loading, busca, setBusca, filtroStatus, setFiltroStatus
                   <td style={styles.td}>{[b.marca, b.modelo].filter(Boolean).join(' ') || '—'}</td>
                   <td style={styles.td}>{fmtMoney(b.valor_aquisicao)}</td>
                   <td style={styles.td}><Badge status={b.status} map={STATUS_BEM} /></td>
-                  {isDiretor && <td style={styles.td}><button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={e => { e.stopPropagation(); onDelete(b.id); }}><Trash2 style={{ width: 14, height: 14 }} /></button></td>}
+                  {isDiretor && <td style={styles.td}><Button variant="ghost" size="xs" onClick={e => { e.stopPropagation(); onDelete(b.id); }}><Trash2 style={{ width: 14, height: 14 }} /></Button></td>}
                 </tr>
               ))}
             </tbody>
@@ -298,14 +306,14 @@ function CatLocTab({ categorias, localizacoes, newCat, setNewCat, addCat, remove
           {isDiretor && (
             <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
               <input style={{ ...styles.input, flex: 1 }} placeholder="Nova categoria..." value={newCat} onChange={e => setNewCat(e.target.value)} onKeyDown={e => e.key === 'Enter' && addCat()} />
-              <button style={{ ...styles.btn('primary'), ...styles.btnSm }} onClick={addCat}>+</button>
+              <Button size="xs" onClick={addCat}>+</Button>
             </div>
           )}
           {categorias.length === 0 && <div style={styles.empty}>Nenhuma categoria</div>}
           {categorias.map(c => (
             <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: `1px solid ${C.border}` }}>
               <span style={{ fontSize: 13 }}>{c.icone && `${c.icone} `}{c.nome}</span>
-              {isDiretor && <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => removeCat(c.id)}><Trash2 style={{ width: 14, height: 14 }} /></button>}
+              {isDiretor && <Button variant="ghost" size="xs" onClick={() => removeCat(c.id)}><Trash2 style={{ width: 14, height: 14 }} /></Button>}
             </div>
           ))}
         </div>
@@ -316,14 +324,14 @@ function CatLocTab({ categorias, localizacoes, newCat, setNewCat, addCat, remove
           {isDiretor && (
             <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
               <input style={{ ...styles.input, flex: 1 }} placeholder="Nova localização..." value={newLoc} onChange={e => setNewLoc(e.target.value)} onKeyDown={e => e.key === 'Enter' && addLoc()} />
-              <button style={{ ...styles.btn('primary'), ...styles.btnSm }} onClick={addLoc}>+</button>
+              <Button size="xs" onClick={addLoc}>+</Button>
             </div>
           )}
           {localizacoes.length === 0 && <div style={styles.empty}>Nenhuma localização</div>}
           {localizacoes.map(l => (
             <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: `1px solid ${C.border}` }}>
               <span style={{ fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 4 }}><MapPin style={{ width: 14, height: 14, color: '#00B39D' }} /> {l.nome}</span>
-              {isDiretor && <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => removeLoc(l.id)}><Trash2 style={{ width: 14, height: 14 }} /></button>}
+              {isDiretor && <Button variant="ghost" size="xs" onClick={() => removeLoc(l.id)}><Trash2 style={{ width: 14, height: 14 }} /></Button>}
             </div>
           ))}
         </div>
@@ -335,7 +343,7 @@ function CatLocTab({ categorias, localizacoes, newCat, setNewCat, addCat, remove
 function InventariosTab({ inventarios, onNew, onUpdate, isDiretor }) {
   return (
     <>
-      {isDiretor && <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}><button style={styles.btn('primary')} onClick={onNew}>+ Novo Inventário</button></div>}
+      {isDiretor && <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}><Button onClick={onNew}>+ Novo Inventário</Button></div>}
       <div style={styles.card}>
         <div style={{ overflowX: 'auto' }}>
           <table style={styles.table}>
@@ -356,8 +364,8 @@ function InventariosTab({ inventarios, onNew, onUpdate, isDiretor }) {
                     <td style={styles.td}>
                       {inv.status === 'em_andamento' && (
                         <div style={{ display: 'flex', gap: 4 }}>
-                          <button style={{ ...styles.btn('primary'), ...styles.btnSm }} onClick={() => onUpdate(inv.id, 'concluido')}>✓ Concluir</button>
-                          <button style={{ ...styles.btn('danger'), ...styles.btnSm }} onClick={() => onUpdate(inv.id, 'cancelado')}>✕ Cancelar</button>
+                          <Button size="xs" onClick={() => onUpdate(inv.id, 'concluido')}>✓ Concluir</Button>
+                          <Button variant="destructive" size="xs" onClick={() => onUpdate(inv.id, 'cancelado')}>✕ Cancelar</Button>
                         </div>
                       )}
                     </td>
@@ -374,11 +382,25 @@ function InventariosTab({ inventarios, onNew, onUpdate, isDiretor }) {
 
 function BemFormModal({ open, data, categorias, localizacoes, onClose, onSave }) {
   const [f, setF] = useState({});
-  useEffect(() => { if (data) setF({ ...data }); }, [data]);
+  const [formError, setFormError] = useState('');
+  useEffect(() => { if (data) { setF({ ...data }); setFormError(''); } }, [data]);
   const upd = (k, v) => setF(p => ({ ...p, [k]: v }));
+  function handleSave() {
+    if (!f.nome || !f.nome.trim()) { setFormError('Nome é obrigatório.'); return; }
+    if (!f.codigo_barras || !f.codigo_barras.trim()) { setFormError('Código de barras é obrigatório.'); return; }
+    if (f.valor_aquisicao !== undefined && f.valor_aquisicao !== '' && Number(f.valor_aquisicao) < 0) { setFormError('Valor de aquisição deve ser >= 0.'); return; }
+    setFormError('');
+    onSave(f);
+  }
   return (
     <Modal open={open} onClose={onClose} title={f?.id ? 'Editar Bem' : 'Novo Bem'}
-      footer={<button style={styles.btn('primary')} onClick={() => onSave(f)}>Salvar</button>}>
+      footer={<Button onClick={handleSave}>Salvar</Button>}>
+      {formError && (
+        <div style={{ background: '#ef444418', border: '1px solid #ef4444', borderRadius: 8, padding: '10px 14px', marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#ef4444', fontSize: 13 }}>
+          <span>{formError}</span>
+          <button onClick={() => setFormError('')} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 16, fontWeight: 700, padding: '0 4px' }}>&#10005;</button>
+        </div>
+      )}
       <div style={styles.formRow}>
         <Input label="Código de Barras *" value={f.codigo_barras || ''} onChange={e => upd('codigo_barras', e.target.value)} />
         <Input label="Nome *" value={f.nome || ''} onChange={e => upd('nome', e.target.value)} />
@@ -439,7 +461,7 @@ function BemDetailModal({ open, data, onClose, onEdit, onDelete, onMov, isDireto
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: C.text2, textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: 6 }}><ClipboardList style={{ width: 14, height: 14, color: '#00B39D' }} /> Movimentações ({(data.movimentacoes || []).length})</span>
-          {isDiretor && <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => onMov(data.id)}>+ Registrar</button>}
+          {isDiretor && <Button variant="ghost" size="xs" onClick={() => onMov(data.id)}>+ Registrar</Button>}
         </div>
         {(data.movimentacoes || []).length === 0 && <div style={{ fontSize: 13, color: C.text3 }}>Nenhuma movimentação registrada</div>}
         {(data.movimentacoes || []).map(m => (
@@ -452,8 +474,8 @@ function BemDetailModal({ open, data, onClose, onEdit, onDelete, onMov, isDireto
 
       {isDiretor && (
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 12, borderTop: `1px solid ${C.border}` }}>
-          <button style={styles.btn('secondary')} onClick={() => onEdit(data)}><Pencil style={{ width: 14, height: 14, display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Editar</button>
-          <button style={styles.btn('danger')} onClick={() => onDelete(data.id)}><Trash2 style={{ width: 14, height: 14, display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Remover</button>
+          <Button variant="outline" onClick={() => onEdit(data)}><Pencil style={{ width: 14, height: 14, display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Editar</Button>
+          <Button variant="destructive" onClick={() => onDelete(data.id)}><Trash2 style={{ width: 14, height: 14, display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Remover</Button>
         </div>
       )}
     </Modal>
@@ -466,7 +488,7 @@ function MovFormModal({ open, data, localizacoes, onClose, onSave }) {
   const upd = (k, v) => setF(p => ({ ...p, [k]: v }));
   return (
     <Modal open={open} onClose={onClose} title="Registrar Movimentação"
-      footer={<button style={styles.btn('primary')} onClick={() => onSave(data?.bem_id, f)}>Registrar</button>}>
+      footer={<Button onClick={() => onSave(data?.bem_id, f)}>Registrar</Button>}>
       <Select label="Tipo *" value={f.tipo} onChange={e => upd('tipo', e.target.value)}>
         {Object.entries(TIPO_MOV).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
       </Select>
@@ -496,7 +518,7 @@ function InvFormModal({ open, onClose, onSave }) {
   const upd = (k, v) => setF(p => ({ ...p, [k]: v }));
   return (
     <Modal open={open} onClose={onClose} title="Novo Inventário"
-      footer={<button style={styles.btn('primary')} onClick={() => onSave(f)}>Criar</button>}>
+      footer={<Button onClick={() => onSave(f)}>Criar</Button>}>
       <Input label="Nome *" value={f.nome || ''} onChange={e => upd('nome', e.target.value)} />
       <Input label="Data Início *" type="date" value={f.data_inicio || ''} onChange={e => upd('data_inicio', e.target.value)} />
       <div style={styles.formGroup}>
@@ -528,6 +550,7 @@ function ScannerTab({ localizacoes, onMov, onDetail }) {
   const [movForm, setMovForm] = useState({ tipo: 'transferencia', localizacao_origem_id: '', localizacao_destino_id: '', motivo: '' });
   const [saving, setSaving] = useState(false);
   const [recentScans, setRecentScans] = useState([]);
+  const [scanError, setScanError] = useState('');
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const inputRef = useRef(null);
@@ -570,7 +593,7 @@ function ScannerTab({ localizacoes, onMov, onDetail }) {
         requestAnimationFrame(detectLoop);
       }
     } catch (e) {
-      alert('Não foi possível acessar a câmera. Verifique as permissões do navegador.');
+      setScanError('Não foi possível acessar a câmera. Verifique as permissões do navegador.');
       setScanning(false);
     }
   }
@@ -595,12 +618,18 @@ function ScannerTab({ localizacoes, onMov, onDetail }) {
       setMovForm({ tipo: 'transferencia', localizacao_origem_id: '', localizacao_destino_id: '', motivo: '' });
       // Recarregar o bem para ver movimentação atualizada
       buscarPorCodigo(codigo);
-    } catch (e) { alert(e.message); }
+    } catch (e) { setScanError(e.message); }
     setSaving(false);
   }
 
   return (
     <>
+      {scanError && (
+        <div style={{ background: '#ef444418', border: '1px solid #ef4444', borderRadius: 8, padding: '12px 16px', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#ef4444', fontSize: 13 }}>
+          <span>{scanError}</span>
+          <button onClick={() => setScanError('')} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 16, fontWeight: 700, padding: '0 4px' }}>&#10005;</button>
+        </div>
+      )}
       {/* Barra de busca + botão scanner */}
       <div style={{ ...styles.card, marginBottom: 16, padding: 20 }}>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: scanning ? 16 : 0 }}>
@@ -614,9 +643,9 @@ function ScannerTab({ localizacoes, onMov, onDetail }) {
             onKeyDown={handleKeyDown}
             autoFocus
           />
-          <button style={styles.btn(scanning ? 'danger' : 'primary')} onClick={scanning ? stopScan : startScan}>
+          <Button variant={scanning ? 'destructive' : 'default'} onClick={scanning ? stopScan : startScan}>
             {scanning ? '⏹ Parar' : '📷 Escanear'}
-          </button>
+          </Button>
         </div>
 
         {/* Camera preview */}
@@ -672,12 +701,12 @@ function ScannerTab({ localizacoes, onMov, onDetail }) {
 
             {/* Ações */}
             <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
-              <button style={styles.btn('primary')} onClick={() => { setShowMov(true); setMovForm({ tipo: 'transferencia', localizacao_origem_id: bem.localizacao_id || '', localizacao_destino_id: '', motivo: '' }); }}>
+              <Button onClick={() => { setShowMov(true); setMovForm({ tipo: 'transferencia', localizacao_origem_id: bem.localizacao_id || '', localizacao_destino_id: '', motivo: '' }); }}>
                 🔄 Registrar Movimentação
-              </button>
-              <button style={styles.btn('secondary')} onClick={() => onDetail(bem.id)}>
+              </Button>
+              <Button variant="outline" onClick={() => onDetail(bem.id)}>
                 📋 Ver Detalhes Completos
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -722,10 +751,10 @@ function ScannerTab({ localizacoes, onMov, onDetail }) {
                   value={movForm.motivo || ''} onChange={e => setMovForm(f => ({ ...f, motivo: e.target.value }))} />
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button style={styles.btn('primary')} onClick={handleRegistrarMov} disabled={saving}>
+                <Button onClick={handleRegistrarMov} disabled={saving}>
                   {saving ? 'Registrando...' : 'Confirmar Movimentação'}
-                </button>
-                <button style={styles.btn('ghost')} onClick={() => setShowMov(false)}>Cancelar</button>
+                </Button>
+                <Button variant="ghost" onClick={() => setShowMov(false)}>Cancelar</Button>
               </div>
             </div>
           )}
