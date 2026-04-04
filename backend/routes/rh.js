@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const { authenticate, authorize } = require('../middleware/auth');
 const { supabase } = require('../utils/supabase');
+const { notificar } = require('../services/notificar');
 
 // Todas as rotas exigem admin ou diretor
 router.use(authenticate, authorize('admin', 'diretor'));
@@ -452,6 +453,23 @@ router.post('/funcionarios/:id/ferias', async (req, res) => {
       .single();
 
     if (error) return res.status(400).json({ error: error.message });
+
+    // Notificar RH sobre solicitação de férias
+    try {
+      const { data: func } = await supabase.from('rh_funcionarios').select('nome').eq('id', req.params.id).single();
+      await notificar({
+        modulo: 'rh',
+        tipo: 'ferias_solicitada',
+        titulo: 'Solicitação de férias',
+        mensagem: `Solicitação de férias de ${func?.nome || 'Funcionário'}`,
+        link: '/admin/rh?tab=ferias',
+        severidade: 'info',
+        chaveDedup: `ferias-solicitada-${data.id}`,
+      });
+    } catch (notifErr) {
+      console.error('[RH] Erro ao notificar férias:', notifErr.message);
+    }
+
     res.json(data);
   } catch (e) {
     console.error('[RH] Solicitar férias:', e.message);
@@ -480,6 +498,24 @@ router.patch('/ferias/:id', async (req, res) => {
     if (status === 'aprovado') {
       const tipo = data.tipo === 'ferias' ? 'ferias' : 'licenca';
       await supabase.from('rh_funcionarios').update({ status: tipo }).eq('id', data.funcionario_id);
+    }
+
+    // Notificar o funcionário sobre aprovação/rejeição
+    try {
+      const statusTexto = status === 'aprovado' ? 'aprovadas' : 'rejeitadas';
+      const { data: func } = await supabase.from('rh_funcionarios').select('user_id').eq('id', data.funcionario_id).single();
+      await notificar({
+        modulo: 'rh',
+        tipo: 'ferias_status',
+        titulo: `Férias ${statusTexto}`,
+        mensagem: `Suas férias foram ${statusTexto}`,
+        link: '/admin/rh?tab=ferias',
+        severidade: status === 'aprovado' ? 'info' : 'aviso',
+        chaveDedup: `ferias-status-${data.id}`,
+        targetIds: func?.user_id ? [func.user_id] : undefined,
+      });
+    } catch (notifErr) {
+      console.error('[RH] Erro ao notificar status férias:', notifErr.message);
     }
 
     res.json(data);
@@ -875,6 +911,21 @@ router.post('/admissoes/:id/concluir', async (req, res) => {
       .update({ status: 'concluido', funcionario_id: func.id })
       .eq('id', req.params.id);
 
+    // Notificar RH sobre admissão concluída
+    try {
+      await notificar({
+        modulo: 'rh',
+        tipo: 'admissao_concluida',
+        titulo: 'Admissão concluída',
+        mensagem: `Admissão concluída: ${adm.nome}`,
+        link: '/admin/rh?tab=admissoes',
+        severidade: 'info',
+        chaveDedup: `admissao-concluida-${adm.id}`,
+      });
+    } catch (notifErr) {
+      console.error('[RH] Erro ao notificar admissão:', notifErr.message);
+    }
+
     res.json({ admissao: adm, funcionario: func });
   } catch (e) {
     console.error('[RH] Concluir admissão:', e.message);
@@ -907,6 +958,23 @@ router.post('/avaliacoes', async (req, res) => {
     if (notas.length) body.nota_geral = (notas.reduce((a, b) => a + b, 0) / notas.length).toFixed(1);
     const { data, error } = await supabase.from('rh_avaliacoes').insert(body).select().single();
     if (error) throw error;
+
+    // Notificar RH sobre nova avaliação
+    try {
+      const { data: func } = await supabase.from('rh_funcionarios').select('nome').eq('id', body.funcionario_id).single();
+      await notificar({
+        modulo: 'rh',
+        tipo: 'avaliacao_criada',
+        titulo: 'Nova avaliação registrada',
+        mensagem: `Nova avaliação registrada para ${func?.nome || 'Funcionário'}`,
+        link: '/admin/rh?tab=avaliacoes',
+        severidade: 'info',
+        chaveDedup: `avaliacao-criada-${data.id}`,
+      });
+    } catch (notifErr) {
+      console.error('[RH] Erro ao notificar avaliação:', notifErr.message);
+    }
+
     res.json(data);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });

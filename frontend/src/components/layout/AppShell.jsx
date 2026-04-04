@@ -207,11 +207,18 @@ export default function AppShell() {
                 }}>
                   <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--cbrio-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--cbrio-text)' }}>Notificações</span>
-                    {notifCount > 0 && (
-                      <button onClick={markAllRead} style={{ fontSize: 12, color: '#00B39D', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}>
-                        Marcar todas como lidas
-                      </button>
-                    )}
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      {role === 'diretor' && (
+                        <button onClick={async () => { try { await notifApi.gerar(); loadNotifCount(); openNotifs(); } catch {} }} style={{ fontSize: 11, color: 'var(--cbrio-text3)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                          Gerar agora
+                        </button>
+                      )}
+                      {notifCount > 0 && (
+                        <button onClick={markAllRead} style={{ fontSize: 12, color: '#00B39D', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}>
+                          Marcar todas como lidas
+                        </button>
+                      )}
+                    </div>
                   </div>
                   {notifs.length === 0 ? (
                     <div style={{ padding: 32, textAlign: 'center', color: 'var(--cbrio-text3)', fontSize: 13 }}>

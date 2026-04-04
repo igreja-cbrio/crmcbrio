@@ -3,6 +3,21 @@ const { authenticate, authorize } = require('../middleware/auth');
 const { supabase } = require('../utils/supabase');
 const { gerarTodasNotificacoes } = require('../services/notificacaoGenerator');
 
+// Endpoint de cron (sem auth, protegido por secret header)
+router.get('/cron', async (req, res) => {
+  const cronSecret = process.env.CRON_SECRET;
+  if (cronSecret && req.headers.authorization !== `Bearer ${cronSecret}`) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  try {
+    const total = await gerarTodasNotificacoes();
+    res.json({ success: true, geradas: total });
+  } catch (e) {
+    console.error('[Cron] Erro:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 router.use(authenticate);
 
 // GET /api/notificacoes — listar notificações do usuário logado

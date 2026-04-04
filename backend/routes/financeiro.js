@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const { authenticate, authorize } = require('../middleware/auth');
 const { supabase } = require('../utils/supabase');
+const { notificar } = require('../services/notificar');
 
 router.use(authenticate, authorize('admin', 'diretor'));
 
@@ -183,6 +184,22 @@ router.post('/contas-pagar', async (req, res) => {
       .insert({ descricao, fornecedor: fornecedor || null, categoria_id: categoria_id || null, valor, data_vencimento, conta_id: conta_id || null, created_by: req.user.userId })
       .select().single();
     if (error) return res.status(400).json({ error: error.message });
+
+    // Notificar Financeiro sobre nova conta a pagar
+    try {
+      await notificar({
+        modulo: 'financeiro',
+        tipo: 'conta_pagar_criada',
+        titulo: 'Nova conta a pagar',
+        mensagem: `Nova conta a pagar: ${descricao}`,
+        link: '/admin/financeiro?tab=contas-pagar',
+        severidade: 'info',
+        chaveDedup: `conta-pagar-criada-${data.id}`,
+      });
+    } catch (notifErr) {
+      console.error('[FIN] Erro ao notificar conta a pagar:', notifErr.message);
+    }
+
     res.json(data);
   } catch (e) { res.status(500).json({ error: 'Erro ao criar conta a pagar' }); }
 });
@@ -226,6 +243,22 @@ router.post('/reembolsos', async (req, res) => {
       .insert({ solicitante_id: req.user.userId, descricao, valor, data_despesa, categoria_id: categoria_id || null, observacoes: observacoes || null })
       .select().single();
     if (error) return res.status(400).json({ error: error.message });
+
+    // Notificar Financeiro sobre novo reembolso
+    try {
+      await notificar({
+        modulo: 'financeiro',
+        tipo: 'reembolso_criado',
+        titulo: 'Novo reembolso solicitado',
+        mensagem: `Novo reembolso de R$ ${Number(valor).toFixed(2)}`,
+        link: '/admin/financeiro?tab=reembolsos',
+        severidade: 'info',
+        chaveDedup: `reembolso-criado-${data.id}`,
+      });
+    } catch (notifErr) {
+      console.error('[FIN] Erro ao notificar reembolso:', notifErr.message);
+    }
+
     res.json(data);
   } catch (e) { res.status(500).json({ error: 'Erro ao criar reembolso' }); }
 });
@@ -238,6 +271,24 @@ router.patch('/reembolsos/:id', async (req, res) => {
       .update({ status, aprovado_por: req.user.userId })
       .eq('id', req.params.id).select().single();
     if (error) return res.status(400).json({ error: error.message });
+
+    // Notificar o solicitante sobre aprovação/rejeição
+    try {
+      const statusTexto = status === 'aprovado' ? 'aprovado' : status === 'rejeitado' ? 'rejeitado' : 'atualizado';
+      await notificar({
+        modulo: 'financeiro',
+        tipo: 'reembolso_status',
+        titulo: `Reembolso ${statusTexto}`,
+        mensagem: `Seu reembolso foi ${statusTexto}`,
+        link: '/admin/financeiro?tab=reembolsos',
+        severidade: status === 'rejeitado' ? 'aviso' : 'info',
+        chaveDedup: `reembolso-status-${data.id}-${status}`,
+        targetIds: data.solicitante_id ? [data.solicitante_id] : undefined,
+      });
+    } catch (notifErr) {
+      console.error('[FIN] Erro ao notificar status reembolso:', notifErr.message);
+    }
+
     res.json(data);
   } catch (e) { res.status(500).json({ error: 'Erro ao atualizar reembolso' }); }
 });
