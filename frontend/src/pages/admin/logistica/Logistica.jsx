@@ -288,6 +288,8 @@ export default function Logistica() {
 
   // ── Movimentação ───────────────────────────────────────
   const saveMovimentacao = async () => {
+    if (!modalMov?.codigo_barras?.trim()) { setError('Código de barras é obrigatório'); return; }
+    if (!modalMov?.tipo) { setError('Tipo é obrigatório'); return; }
     setSaving(true);
     try {
       await logistica.movimentacoes.create(modalMov);
@@ -299,6 +301,9 @@ export default function Logistica() {
 
   // ── Nota Fiscal ────────────────────────────────────────
   const saveNota = async () => {
+    if (!modalNota?.numero?.trim()) { setError('Número da nota é obrigatório'); return; }
+    if (!modalNota?.valor || Number(modalNota.valor) <= 0) { setError('Valor é obrigatório e deve ser positivo'); return; }
+    if (!modalNota?.data_emissao) { setError('Data de emissão é obrigatória'); return; }
     setSaving(true);
     try {
       await logistica.notas.create(modalNota);
@@ -679,6 +684,8 @@ function NotasFiscaisTab({ data, loading, onNew, onDelete, onReload }) {
   const [arquiveiStatus, setArquiveiStatus] = useState(null);
   const [arquiveiForm, setArquiveiForm] = useState({ api_id: '', api_key: '', cnpj: '07023068000135' });
   const [configuring, setConfiguring] = useState(false);
+  const [localError, setLocalError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
 
   useEffect(() => { checkArquivei(); }, []);
 
@@ -687,36 +694,48 @@ function NotasFiscaisTab({ data, loading, onNew, onDelete, onReload }) {
   }
 
   async function syncML() {
-    setSyncing(true);
+    setSyncing(true); setLocalError(''); setSuccessMsg('');
     try {
       const result = await ml.syncNotas();
-      alert(`${result.imported} nota(s) importada(s) do Mercado Livre`);
+      setSuccessMsg(`${result.imported} nota(s) importada(s) do Mercado Livre`);
       onReload();
-    } catch (e) { setError(e.message); }
+    } catch (e) { setLocalError(e.message); }
     setSyncing(false);
   }
 
   async function syncArquiveiNFs() {
-    setSyncing(true);
+    setSyncing(true); setLocalError(''); setSuccessMsg('');
     try {
       const result = await arquivei.sync();
-      alert(`${result.imported} nota(s) importada(s) do Arquivei`);
+      setSuccessMsg(`${result.imported} nota(s) importada(s) do Arquivei`);
       onReload();
-    } catch (e) { setError(e.message); }
+    } catch (e) { setLocalError(e.message); }
     setSyncing(false);
   }
 
   async function connectArquivei() {
-    setConfiguring(true);
+    setConfiguring(true); setLocalError(''); setSuccessMsg('');
     try {
       await arquivei.config(arquiveiForm);
       checkArquivei();
-      alert('Arquivei conectado com sucesso!');
-    } catch (e) { setError(e.message); }
+      setSuccessMsg('Arquivei conectado com sucesso!');
+    } catch (e) { setLocalError(e.message); }
     setConfiguring(false);
   }
 
   return (<>
+    {localError && (
+      <div style={{ background: C.redBg, color: C.red, padding: '10px 16px', borderRadius: 8, marginBottom: 12, fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        {localError}
+        <Button variant="ghost" onClick={() => setLocalError('')}>&#x2715;</Button>
+      </div>
+    )}
+    {successMsg && (
+      <div style={{ background: C.greenBg, color: C.green, padding: '10px 16px', borderRadius: 8, marginBottom: 12, fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        {successMsg}
+        <Button variant="ghost" onClick={() => setSuccessMsg('')}>&#x2715;</Button>
+      </div>
+    )}
     {/* Barra de ações */}
     <div style={styles.filterRow}>
       <Button onClick={onNew}>+ Nova Nota Fiscal</Button>
@@ -799,18 +818,19 @@ function NotasFiscaisTab({ data, loading, onNew, onDelete, onReload }) {
 // ═══════════════════════════════════════════════════════════
 function NotaFiscalModal({ open, data, onClose, onSave, saving, fornecedores, pedidos, upNota }) {
   const [uploading, setUploading] = useState(false);
+  const [localError, setLocalError] = useState('');
   const fileRef = useRef(null);
 
   async function handleUploadNF(file) {
     if (!file) return;
-    setUploading(true);
+    setUploading(true); setLocalError('');
     try {
       const filePath = `notas-fiscais/${crypto.randomUUID()}_${file.name}`;
       const { error } = await supabase.storage.from('log-arquivos').upload(filePath, file, { upsert: true });
       if (error) throw error;
       const { data: { publicUrl } } = supabase.storage.from('log-arquivos').getPublicUrl(filePath);
       upNota('storage_path', publicUrl);
-    } catch (e) { setError('Erro ao enviar arquivo: ' + e.message); }
+    } catch (e) { setLocalError('Erro ao enviar arquivo: ' + e.message); }
     finally { setUploading(false); }
   }
 
@@ -818,6 +838,12 @@ function NotaFiscalModal({ open, data, onClose, onSave, saving, fornecedores, pe
     <Modal open={open} onClose={onClose} title="Nova Nota Fiscal"
       footer={<><Button variant="outline" onClick={onClose}>Cancelar</Button><Button onClick={onSave} disabled={saving || uploading}>{saving ? 'Salvando...' : 'Salvar'}</Button></>}>
       {data && (<>
+        {localError && (
+          <div style={{ background: C.redBg, color: C.red, padding: '10px 16px', borderRadius: 8, marginBottom: 12, fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {localError}
+            <Button variant="ghost" onClick={() => setLocalError('')}>&#x2715;</Button>
+          </div>
+        )}
         <div style={styles.formRow}>
           <Input label="Número *" value={data.numero || ''} onChange={e => upNota('numero', e.target.value)} />
           <Input label="Série" value={data.serie || ''} onChange={e => upNota('serie', e.target.value)} />
@@ -873,6 +899,7 @@ function ItensPedidoModal({ open, pedidoId, onClose }) {
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ descricao: '', quantidade: '', unidade: 'un', valor_unit: '' });
   const [adding, setAdding] = useState(false);
+  const [localError, setLocalError] = useState('');
 
   useEffect(() => {
     if (pedidoId) loadItens();
@@ -885,24 +912,31 @@ function ItensPedidoModal({ open, pedidoId, onClose }) {
   }
 
   async function addItem() {
-    if (!form.descricao || !form.quantidade) { alert('Descrição e quantidade são obrigatórios'); return; }
-    setAdding(true);
+    if (!form.descricao || !form.quantidade) { setLocalError('Descrição e quantidade são obrigatórios'); return; }
+    setAdding(true); setLocalError('');
     try {
       await logistica.pedidos.addItem(pedidoId, form);
       setForm({ descricao: '', quantidade: '', unidade: 'un', valor_unit: '' });
       loadItens();
-    } catch (e) { setError(e.message); }
+    } catch (e) { setLocalError(e.message); }
     setAdding(false);
   }
 
   async function removeItem(id) {
-    try { await logistica.pedidos.removeItem(id); loadItens(); } catch (e) { setError(e.message); }
+    setLocalError('');
+    try { await logistica.pedidos.removeItem(id); loadItens(); } catch (e) { setLocalError(e.message); }
   }
 
   const total = itens.reduce((s, i) => s + Number(i.valor_total || 0), 0);
 
   return (
     <Modal open={open} onClose={onClose} title="Itens do Pedido" wide>
+      {localError && (
+        <div style={{ background: C.redBg, color: C.red, padding: '10px 16px', borderRadius: 8, marginBottom: 12, fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          {localError}
+          <Button variant="ghost" onClick={() => setLocalError('')}>&#x2715;</Button>
+        </div>
+      )}
       {loading ? <div style={styles.empty}>Carregando...</div> : (<>
         <table style={styles.table}><thead><tr>
           <th style={styles.th}>Descrição</th><th style={styles.th}>Qtd</th><th style={styles.th}>Un.</th><th style={styles.th}>V. Unit.</th><th style={styles.th}>V. Total</th><th style={styles.th}></th>
@@ -973,6 +1007,7 @@ function ComprasMLTab() {
   const [busca, setBusca] = useState('');
   const [expanded, setExpanded] = useState(null);
   const [shipDetail, setShipDetail] = useState(null);
+  const [localError, setLocalError] = useState('');
 
   useEffect(() => { checkStatus(); }, []);
 
@@ -1015,21 +1050,28 @@ function ComprasMLTab() {
   }
 
   async function handleConfig() {
-    setConfiguring(true);
+    setConfiguring(true); setLocalError('');
     try {
       const data = await ml.config(configForm);
       if (data.auth_url) window.location.href = data.auth_url;
-    } catch (e) { setError(e.message); }
+    } catch (e) { setLocalError(e.message); }
     setConfiguring(false);
   }
 
   async function handleDisconnect() {
     if (!confirm('Desconectar do Mercado Livre?')) return;
-    try { await ml.disconnect(); checkStatus(); } catch (e) { setError(e.message); }
+    setLocalError('');
+    try { await ml.disconnect(); checkStatus(); } catch (e) { setLocalError(e.message); }
   }
 
   if (mlStatus && !mlStatus.connected) {
-    return (
+    return (<>
+      {localError && (
+        <div style={{ background: C.redBg, color: C.red, padding: '10px 16px', borderRadius: 8, marginBottom: 12, fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          {localError}
+          <Button variant="ghost" onClick={() => setLocalError('')}>&#x2715;</Button>
+        </div>
+      )}
       <div style={{ ...styles.card, padding: 32, textAlign: 'center', maxWidth: 500, margin: '0 auto' }}>
         <div style={{ fontSize: 48, marginBottom: 12 }}>🛒</div>
         <div style={{ fontSize: 20, fontWeight: 700, color: C.text, marginBottom: 8 }}>Conectar ao Mercado Livre</div>
@@ -1046,10 +1088,16 @@ function ComprasMLTab() {
           Crie seu app em <a href="https://developers.mercadolivre.com.br" target="_blank" rel="noopener noreferrer" style={{ color: C.primary }}>developers.mercadolivre.com.br</a>
         </div>
       </div>
-    );
+    </>);
   }
 
   return (<>
+    {localError && (
+      <div style={{ background: C.redBg, color: C.red, padding: '10px 16px', borderRadius: 8, marginBottom: 12, fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        {localError}
+        <Button variant="ghost" onClick={() => setLocalError('')}>&#x2715;</Button>
+      </div>
+    )}
     {/* Header */}
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
