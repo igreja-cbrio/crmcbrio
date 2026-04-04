@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Tag, ClipboardList, Trash2, Pencil, MapPin } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
-import { patrimonio, logistica } from '../../../api';
+import { patrimonio } from '../../../api';
 
 const C = {
   bg: 'var(--cbrio-bg)', card: 'var(--cbrio-card)', primary: '#00B39D', primaryBg: '#00B39D18',
@@ -27,14 +27,6 @@ const INV_STATUS = {
   em_andamento: { c: C.blue, bg: C.blueBg, label: 'Em andamento' },
   concluido: { c: C.green, bg: C.greenBg, label: 'Concluído' },
   cancelado: { c: C.red, bg: C.redBg, label: 'Cancelado' },
-};
-
-const LOG_MOV_TIPO = {
-  entrada: { c: C.green, bg: C.greenBg, label: 'Entrada', icon: '📥' },
-  saida: { c: C.red, bg: C.redBg, label: 'Saída', icon: '📤' },
-  transferencia: { c: C.blue, bg: C.blueBg, label: 'Transferência', icon: '🔄' },
-  devolucao: { c: '#f59e0b', bg: '#f59e0b18', label: 'Devolução', icon: '↩️' },
-  inventario: { c: '#8b5cf6', bg: '#8b5cf618', label: 'Inventário', icon: '📋' },
 };
 
 const styles = {
@@ -95,7 +87,7 @@ function Input({ label, ...props }) { return (<div style={styles.formGroup}>{lab
 function Select({ label, children, ...props }) { return (<div style={styles.formGroup}>{label && <label style={styles.label}>{label}</label>}<select style={{ ...styles.select, width: '100%' }} {...props}>{children}</select></div>); }
 function Badge({ status, map }) { const s = map[status] || { c: C.text3, bg: '#73737318', label: status }; return <span style={styles.badge(s.c, s.bg)}>{s.label}</span>; }
 
-const TABS = ['Dashboard', 'Bens', 'Scanner', 'Categorias / Localizações', 'Inventários', 'Movimentações'];
+const TABS = ['Dashboard', 'Bens', 'Scanner', 'Categorias / Localizações', 'Inventários'];
 
 const fmtDateTime = (d) => d ? new Date(d).toLocaleString('pt-BR') : '—';
 
@@ -118,10 +110,6 @@ export default function Patrimonio() {
   const [modalInv, setModalInv] = useState(null);
   const [newCat, setNewCat] = useState('');
   const [newLoc, setNewLoc] = useState('');
-  const [logMovimentacoes, setLogMovimentacoes] = useState([]);
-  const [filtroLogMovTipo, setFiltroLogMovTipo] = useState('');
-  const [modalLogMov, setModalLogMov] = useState(null);
-  const [saving, setSaving] = useState(false);
 
   const loadDash = useCallback(async () => { try { setDash(await patrimonio.dashboard()); } catch (e) { console.error(e); } }, []);
   const loadBens = useCallback(async () => {
@@ -131,16 +119,9 @@ export default function Patrimonio() {
   const loadCats = useCallback(async () => { try { setCategorias(await patrimonio.categorias.list()); } catch (e) { console.error(e); } }, []);
   const loadLocs = useCallback(async () => { try { setLocalizacoes(await patrimonio.localizacoes.list()); } catch (e) { console.error(e); } }, []);
   const loadInvs = useCallback(async () => { try { setInventarios(await patrimonio.inventarios.list()); } catch (e) { console.error(e); } }, []);
-  const loadLogMovs = useCallback(async () => {
-    try {
-      const params = filtroLogMovTipo ? { tipo: filtroLogMovTipo } : undefined;
-      setLogMovimentacoes(await logistica.movimentacoes.list(params) || []);
-    } catch (e) { console.error(e); }
-  }, [filtroLogMovTipo]);
 
   useEffect(() => { loadDash(); loadBens(); loadCats(); loadLocs(); loadInvs(); }, []);
   useEffect(() => { loadBens(); }, [filtroStatus, filtroCat, filtroLoc, busca]);
-  useEffect(() => { if (tab === 5) loadLogMovs(); }, [tab, loadLogMovs]);
 
   async function saveBem(data) {
     try { if (data.id) await patrimonio.bens.update(data.id, data); else await patrimonio.bens.create(data); setModalBem(null); loadBens(); loadDash(); } catch (e) { alert(e.message); }
@@ -155,12 +136,6 @@ export default function Patrimonio() {
   async function addLoc() { if (!newLoc.trim()) return; try { await patrimonio.localizacoes.create({ nome: newLoc }); setNewLoc(''); loadLocs(); loadDash(); } catch (e) { alert(e.message); } }
   async function removeLoc(id) { if (!confirm('Remover localização?')) return; try { await patrimonio.localizacoes.remove(id); loadLocs(); } catch (e) { alert(e.message); } }
   async function saveInv(data) { try { await patrimonio.inventarios.create(data); setModalInv(null); loadInvs(); loadDash(); } catch (e) { alert(e.message); } }
-  async function saveLogMov() {
-    setSaving(true);
-    try { await logistica.movimentacoes.create(modalLogMov); setModalLogMov(null); loadLogMovs(); } catch (e) { alert(e.message); }
-    setSaving(false);
-  }
-  const upLogMov = (k, v) => setModalLogMov(prev => ({ ...prev, [k]: v }));
   async function updateInvStatus(id, status) { try { const upd = { status }; if (status === 'concluido') upd.data_fim = new Date().toISOString().slice(0, 10); await patrimonio.inventarios.atualizar(id, upd); loadInvs(); loadDash(); } catch (e) { alert(e.message); } }
 
   return (
@@ -182,20 +157,11 @@ export default function Patrimonio() {
       {tab === 2 && <ScannerTab localizacoes={localizacoes} onMov={saveMov} onDetail={openDetail} />}
       {tab === 3 && <CatLocTab categorias={categorias} localizacoes={localizacoes} newCat={newCat} setNewCat={setNewCat} addCat={addCat} removeCat={removeCat} newLoc={newLoc} setNewLoc={setNewLoc} addLoc={addLoc} removeLoc={removeLoc} isDiretor={isDiretor} />}
       {tab === 4 && <InventariosTab inventarios={inventarios} onNew={() => setModalInv({})} onUpdate={updateInvStatus} isDiretor={isDiretor} />}
-      {tab === 5 && (
-        <LogMovimentacoesTab data={logMovimentacoes} loading={loading}
-          filtroTipo={filtroLogMovTipo} setFiltroTipo={setFiltroLogMovTipo}
-          onNew={() => setModalLogMov({ tipo: 'entrada', codigo_barras: '', descricao: '', quantidade: 1, unidade: 'un', localizacao: '', observacoes: '' })}
-          onReload={loadLogMovs}
-        />
-      )}
 
       <BemFormModal open={!!modalBem} data={modalBem} categorias={categorias} localizacoes={localizacoes} onClose={() => setModalBem(null)} onSave={saveBem} />
       <BemDetailModal open={!!modalDetail} data={modalDetail} onClose={() => setModalDetail(null)} onEdit={(b) => { setModalDetail(null); setModalBem(b); }} onDelete={deleteBem} onMov={(bemId) => setModalMov({ bem_id: bemId })} isDiretor={isDiretor} />
       <MovFormModal open={!!modalMov} data={modalMov} localizacoes={localizacoes} onClose={() => setModalMov(null)} onSave={saveMov} />
       <InvFormModal open={!!modalInv} onClose={() => setModalInv(null)} onSave={saveInv} />
-      <LogMovimentacaoModal open={modalLogMov !== null} data={modalLogMov} onClose={() => setModalLogMov(null)}
-        onSave={saveLogMov} saving={saving} upMov={upLogMov} />
     </div>
   );
 }
@@ -813,226 +779,5 @@ function ScannerTab({ localizacoes, onMov, onDetail }) {
         </div>
       )}
     </>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════
-// TAB: Movimentações (log_movimentacoes — estoque/logística)
-// ═══════════════════════════════════════════════════════════
-function LogMovimentacoesTab({ data, loading, filtroTipo, setFiltroTipo, onNew, onReload }) {
-  const [scanning, setScanning] = useState(false);
-  const [scanResult, setScanResult] = useState(null);
-  const [historico, setHistorico] = useState([]);
-  const videoRef = useRef(null);
-  const streamRef = useRef(null);
-
-  async function startScan() {
-    setScanning(true);
-    setScanResult(null);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
-      }
-      if ('BarcodeDetector' in window) {
-        const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'qr_code', 'upc_a', 'upc_e'] });
-        const detectLoop = async () => {
-          if (!videoRef.current || !scanning) return;
-          try {
-            const barcodes = await detector.detect(videoRef.current);
-            if (barcodes.length > 0) {
-              const code = barcodes[0].rawValue;
-              setScanResult(code);
-              stopScan();
-              loadHistorico(code);
-              return;
-            }
-          } catch (e) { /* continue scanning */ }
-          requestAnimationFrame(detectLoop);
-        };
-        requestAnimationFrame(detectLoop);
-      }
-    } catch (e) {
-      alert('Não foi possível acessar a câmera. Verifique as permissões.');
-      setScanning(false);
-    }
-  }
-
-  function stopScan() {
-    setScanning(false);
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(t => t.stop());
-      streamRef.current = null;
-    }
-  }
-
-  async function loadHistorico(codigo) {
-    try { setHistorico(await logistica.movimentacoes.historico(codigo)); }
-    catch (e) { console.error(e); }
-  }
-
-  function handleManualCode(e) {
-    if (e.key === 'Enter' && e.target.value) {
-      setScanResult(e.target.value);
-      loadHistorico(e.target.value);
-    }
-  }
-
-  return (<>
-    <div style={styles.filterRow}>
-      <select style={styles.select} value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}>
-        <option value="">Todos os tipos</option>
-        {Object.entries(LOG_MOV_TIPO).map(([k, v]) => <option key={k} value={k}>{v.icon} {v.label}</option>)}
-      </select>
-      <button style={styles.btn('primary')} onClick={onNew}>+ Nova Movimentação</button>
-      <button style={styles.btn('secondary')} onClick={scanning ? stopScan : startScan}>
-        {scanning ? '⏹ Parar Scanner' : '📷 Escanear Código'}
-      </button>
-    </div>
-
-    {scanning && (
-      <div style={{ ...styles.card, marginBottom: 16, padding: 16, textAlign: 'center' }}>
-        <video ref={videoRef} style={{ width: '100%', maxWidth: 400, borderRadius: 12, background: '#000' }} autoPlay playsInline muted />
-        <div style={{ fontSize: 13, color: C.text2, marginTop: 8 }}>Aponte a câmera para o código de barras</div>
-        {!('BarcodeDetector' in window) && (
-          <div style={{ marginTop: 12 }}>
-            <div style={{ fontSize: 12, color: C.amber, marginBottom: 8 }}>Scanner automático não disponível neste navegador. Digite manualmente:</div>
-            <input style={{ ...styles.input, maxWidth: 300, margin: '0 auto' }} placeholder="Digite o código de barras e pressione Enter"
-              onKeyDown={handleManualCode} autoFocus />
-          </div>
-        )}
-      </div>
-    )}
-
-    {!scanning && (
-      <div style={{ ...styles.card, marginBottom: 16, padding: 16 }}>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <span style={{ fontSize: 20 }}>🔍</span>
-          <input style={{ ...styles.input, flex: 1 }} placeholder="Digite ou escaneie o código de barras e pressione Enter"
-            onKeyDown={handleManualCode} defaultValue={scanResult || ''} />
-        </div>
-      </div>
-    )}
-
-    {scanResult && (
-      <div style={{ ...styles.card, marginBottom: 16 }}>
-        <div style={{ ...styles.cardHeader }}>
-          <div>
-            <div style={styles.cardTitle}>Código: {scanResult}</div>
-            <div style={{ fontSize: 12, color: C.text2 }}>{historico.length} movimentação(ões) encontrada(s)</div>
-          </div>
-          <button style={styles.btn('ghost')} onClick={() => { setScanResult(null); setHistorico([]); }}>✕</button>
-        </div>
-        {historico.length > 0 ? (
-          <table style={styles.table}><thead><tr>
-            <th style={styles.th}>Data</th><th style={styles.th}>Tipo</th><th style={styles.th}>Descrição</th><th style={styles.th}>Qtd</th><th style={styles.th}>Local</th><th style={styles.th}>Responsável</th>
-          </tr></thead><tbody>
-            {historico.map(m => (
-              <tr key={m.id}>
-                <td style={styles.td}>{fmtDateTime(m.created_at)}</td>
-                <td style={styles.td}><Badge status={m.tipo} map={LOG_MOV_TIPO} /></td>
-                <td style={styles.td}>{m.descricao || '—'}</td>
-                <td style={styles.td}>{m.quantidade} {m.unidade}</td>
-                <td style={styles.td}>{m.localizacao || '—'}</td>
-                <td style={styles.td}>{m.profiles?.name || '—'}</td>
-              </tr>
-            ))}
-          </tbody></table>
-        ) : <div style={{ padding: 20, textAlign: 'center', color: C.text3 }}>Nenhuma movimentação para este código</div>}
-      </div>
-    )}
-
-    <div style={styles.card}><div style={styles.cardHeader}><div style={styles.cardTitle}>Movimentações Recentes</div></div>
-    <table style={styles.table}><thead><tr>
-      <th style={styles.th}>Data</th><th style={styles.th}>Tipo</th><th style={styles.th}>Código</th><th style={styles.th}>Descrição</th><th style={styles.th}>Qtd</th><th style={styles.th}>Local</th><th style={styles.th}>Responsável</th>
-    </tr></thead><tbody>
-      {loading ? <tr><td style={styles.td} colSpan={7}>Carregando...</td></tr>
-      : data.length === 0 ? <tr><td style={styles.td} colSpan={7}><div style={styles.empty}>Nenhuma movimentação registrada</div></td></tr>
-      : data.map(m => (
-        <tr key={m.id}>
-          <td style={styles.td}>{fmtDateTime(m.created_at)}</td>
-          <td style={styles.td}><Badge status={m.tipo} map={LOG_MOV_TIPO} /></td>
-          <td style={{ ...styles.td, fontFamily: 'monospace', fontWeight: 600 }}>{m.codigo_barras}</td>
-          <td style={styles.td}>{m.descricao || '—'}</td>
-          <td style={styles.td}>{m.quantidade} {m.unidade}</td>
-          <td style={styles.td}>{m.localizacao || '—'}</td>
-          <td style={styles.td}>{m.profiles?.name || '—'}</td>
-        </tr>
-      ))}
-    </tbody></table></div>
-  </>);
-}
-
-// ═══════════════════════════════════════════════════════════
-// MODAL: Nova Movimentação (com scanner inline)
-// ═══════════════════════════════════════════════════════════
-function LogMovimentacaoModal({ open, data, onClose, onSave, saving, upMov }) {
-  const [scanning, setScanning] = useState(false);
-  const videoRef = useRef(null);
-  const streamRef = useRef(null);
-
-  async function startScan() {
-    setScanning(true);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      streamRef.current = stream;
-      if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.play(); }
-      if ('BarcodeDetector' in window) {
-        const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'qr_code', 'upc_a', 'upc_e'] });
-        const detect = async () => {
-          if (!videoRef.current) return;
-          try {
-            const barcodes = await detector.detect(videoRef.current);
-            if (barcodes.length > 0) { upMov('codigo_barras', barcodes[0].rawValue); stopScan(); return; }
-          } catch (e) { /* continue */ }
-          if (scanning) requestAnimationFrame(detect);
-        };
-        requestAnimationFrame(detect);
-      }
-    } catch (e) { alert('Não foi possível acessar a câmera'); setScanning(false); }
-  }
-
-  function stopScan() {
-    setScanning(false);
-    if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
-  }
-
-  useEffect(() => { if (!open) stopScan(); }, [open]);
-
-  return (
-    <Modal open={open} onClose={() => { stopScan(); onClose(); }} title="Nova Movimentação"
-      footer={<><button style={styles.btn('secondary')} onClick={() => { stopScan(); onClose(); }}>Cancelar</button><button style={styles.btn('primary')} onClick={onSave} disabled={saving}>{saving ? 'Salvando...' : 'Registrar'}</button></>}>
-      {data && (<>
-        <Select label="Tipo *" value={data.tipo || 'entrada'} onChange={e => upMov('tipo', e.target.value)}>
-          {Object.entries(LOG_MOV_TIPO).map(([k, v]) => <option key={k} value={k}>{v.icon} {v.label}</option>)}
-        </Select>
-        <div style={styles.formGroup}>
-          <label style={styles.label}>Código de Barras *</label>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <input style={{ ...styles.input, flex: 1, fontFamily: 'monospace', fontSize: 16, fontWeight: 700 }}
-              value={data.codigo_barras || ''} onChange={e => upMov('codigo_barras', e.target.value)}
-              placeholder="Digite ou escaneie" />
-            <button type="button" style={styles.btn(scanning ? 'danger' : 'secondary')} onClick={scanning ? stopScan : startScan}>
-              {scanning ? '⏹' : '📷'}
-            </button>
-          </div>
-        </div>
-        {scanning && (
-          <div style={{ textAlign: 'center', marginBottom: 12 }}>
-            <video ref={videoRef} style={{ width: '100%', maxWidth: 300, borderRadius: 10, background: '#000' }} autoPlay playsInline muted />
-            <div style={{ fontSize: 12, color: C.text3, marginTop: 4 }}>Aponte para o código de barras</div>
-          </div>
-        )}
-        <Input label="Descrição" value={data.descricao || ''} onChange={e => upMov('descricao', e.target.value)} />
-        <div style={styles.formRow}>
-          <Input label="Quantidade" type="number" step="0.001" value={data.quantidade || ''} onChange={e => upMov('quantidade', e.target.value)} />
-          <Input label="Unidade" value={data.unidade || 'un'} onChange={e => upMov('unidade', e.target.value)} />
-        </div>
-        <Input label="Localização" value={data.localizacao || ''} onChange={e => upMov('localizacao', e.target.value)} placeholder="Ex: Depósito A, Sala 3" />
-        <Input label="Observações" value={data.observacoes || ''} onChange={e => upMov('observacoes', e.target.value)} />
-      </>)}
-    </Modal>
   );
 }

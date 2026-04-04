@@ -126,7 +126,7 @@ function Badge({ status, map }) {
 }
 
 // ── TABS ────────────────────────────────────────────────────
-const TABS = ['Dashboard', 'Fornecedores', 'Solicitações', 'Pedidos', 'Notas Fiscais', 'Compras ML', 'Rastreio'];
+const TABS = ['Dashboard', 'Fornecedores', 'Solicitações', 'Pedidos', 'Notas Fiscais', 'Movimentações', 'Compras ML', 'Rastreio'];
 
 // ═══════════════════════════════════════════════════════════
 // COMPONENTE PRINCIPAL
@@ -146,6 +146,11 @@ export default function Logistica() {
   const [filtroFornAtivo, setFiltroFornAtivo] = useState('');
   const [filtroSolStatus, setFiltroSolStatus] = useState('');
   const [filtroPedStatus, setFiltroPedStatus] = useState('');
+  // Movimentações
+  const [movimentacoes, setMovimentacoes] = useState([]);
+  const [filtroMovTipo, setFiltroMovTipo] = useState('');
+  const [modalMov, setModalMov] = useState(null);
+
   // Modals
   const [modalForn, setModalForn] = useState(null);
   const [modalSol, setModalSol] = useState(null);
@@ -193,13 +198,23 @@ export default function Logistica() {
     setLoading(false);
   }, []);
 
+  const fetchMovimentacoes = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = filtroMovTipo ? { tipo: filtroMovTipo } : undefined;
+      setMovimentacoes(await logistica.movimentacoes.list(params) || []);
+    } catch (e) { setError(e.message); }
+    setLoading(false);
+  }, [filtroMovTipo]);
+
   useEffect(() => {
     if (tab === 0) fetchDash();
     if (tab === 1) fetchFornecedores();
     if (tab === 2) fetchSolicitacoes();
     if (tab === 3) { fetchPedidos(); fetchFornecedores(); }
     if (tab === 4) { fetchNotas(); fetchFornecedores(); fetchPedidos(); }
-  }, [tab, fetchDash, fetchFornecedores, fetchSolicitacoes, fetchPedidos, fetchNotas]);
+    if (tab === 5) fetchMovimentacoes();
+  }, [tab, fetchDash, fetchFornecedores, fetchSolicitacoes, fetchPedidos, fetchNotas, fetchMovimentacoes]);
 
   // ── Fornecedor CRUD ────────────────────────────────────
   const saveFornecedor = async () => {
@@ -270,6 +285,17 @@ export default function Logistica() {
     } catch (e) { setError(e.message); }
     setSaving(false);
   };
+
+  // ── Movimentação ───────────────────────────────────────
+  const saveMovimentacao = async () => {
+    setSaving(true);
+    try {
+      await logistica.movimentacoes.create(modalMov);
+      setModalMov(null); fetchMovimentacoes();
+    } catch (e) { setError(e.message); }
+    setSaving(false);
+  };
+  const upMov = (k, v) => setModalMov(prev => ({ ...prev, [k]: v }));
 
   // ── Nota Fiscal ────────────────────────────────────────
   const saveNota = async () => {
@@ -350,8 +376,15 @@ export default function Logistica() {
         />
       )}
 
-      {tab === 5 && <ComprasMLTab />}
-      {tab === 6 && <RastreioMLTab />}
+      {tab === 5 && (
+        <MovimentacoesTab data={movimentacoes} loading={loading}
+          filtroTipo={filtroMovTipo} setFiltroTipo={setFiltroMovTipo}
+          onNew={() => setModalMov({ tipo: 'entrada', codigo_barras: '', descricao: '', quantidade: 1, unidade: 'un', localizacao: '', observacoes: '' })}
+          onReload={fetchMovimentacoes}
+        />
+      )}
+      {tab === 6 && <ComprasMLTab />}
+      {tab === 7 && <RastreioMLTab />}
 
       {/* ── MODAIS ─────────────────────────────────────────── */}
 
@@ -436,6 +469,10 @@ export default function Logistica() {
 
       {/* Itens do Pedido */}
       <ItensPedidoModal open={modalItens !== null} pedidoId={modalItens} onClose={() => setModalItens(null)} />
+
+      {/* Movimentação */}
+      <MovimentacaoModal open={modalMov !== null} data={modalMov} onClose={() => setModalMov(null)}
+        onSave={saveMovimentacao} saving={saving} upMov={upMov} />
     </div>
   );
 }
@@ -1402,5 +1439,199 @@ function ShipmentCard({ ship, expanded, detail, onToggle }) {
         </div>
       )}
     </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// Movimentações de Estoque
+// ═══════════════════════════════════════════════════════════
+const MOV_TIPO = {
+  entrada: { c: C.green, bg: C.greenBg, label: 'Entrada', icon: '📥' },
+  saida: { c: C.red, bg: C.redBg, label: 'Saída', icon: '📤' },
+  transferencia: { c: C.blue, bg: C.blueBg, label: 'Transferência', icon: '🔄' },
+  devolucao: { c: C.amber, bg: C.amberBg, label: 'Devolução', icon: '↩️' },
+  inventario: { c: C.purple, bg: C.purpleBg, label: 'Inventário', icon: '📋' },
+};
+
+function MovimentacoesTab({ data, loading, filtroTipo, setFiltroTipo, onNew, onReload }) {
+  const [scanning, setScanning] = useState(false);
+  const [scanResult, setScanResult] = useState(null);
+  const [historico, setHistorico] = useState([]);
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+
+  async function startScan() {
+    setScanning(true); setScanResult(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      streamRef.current = stream;
+      if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.play(); }
+      if ('BarcodeDetector' in window) {
+        const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'qr_code', 'upc_a', 'upc_e'] });
+        const detectLoop = async () => {
+          if (!videoRef.current || !scanning) return;
+          try {
+            const barcodes = await detector.detect(videoRef.current);
+            if (barcodes.length > 0) { setScanResult(barcodes[0].rawValue); stopScan(); loadHistorico(barcodes[0].rawValue); return; }
+          } catch (e) { /* continue */ }
+          requestAnimationFrame(detectLoop);
+        };
+        requestAnimationFrame(detectLoop);
+      }
+    } catch (e) { setScanning(false); }
+  }
+
+  function stopScan() {
+    setScanning(false);
+    if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
+  }
+
+  async function loadHistorico(codigo) {
+    try { setHistorico(await logistica.movimentacoes.historico(codigo)); } catch (e) { console.error(e); }
+  }
+
+  function handleManualCode(e) {
+    if (e.key === 'Enter' && e.target.value) { setScanResult(e.target.value); loadHistorico(e.target.value); }
+  }
+
+  return (<>
+    <div style={styles.filterRow}>
+      <select style={styles.select} value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}>
+        <option value="">Todos os tipos</option>
+        {Object.entries(MOV_TIPO).map(([k, v]) => <option key={k} value={k}>{v.icon} {v.label}</option>)}
+      </select>
+      <Button onClick={onNew}>+ Nova Movimentação</Button>
+      <Button variant="outline" onClick={scanning ? stopScan : startScan}>
+        {scanning ? '⏹ Parar Scanner' : '📷 Escanear Código'}
+      </Button>
+    </div>
+
+    {scanning && (
+      <div style={{ ...styles.card, marginBottom: 16, padding: 16, textAlign: 'center' }}>
+        <video ref={videoRef} style={{ width: '100%', maxWidth: 400, borderRadius: 12, background: '#000' }} autoPlay playsInline muted />
+        <div style={{ fontSize: 13, color: C.text2, marginTop: 8 }}>Aponte a câmera para o código de barras</div>
+      </div>
+    )}
+
+    {!scanning && (
+      <div style={{ ...styles.card, marginBottom: 16, padding: 16 }}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <span style={{ fontSize: 20 }}>🔍</span>
+          <input style={{ ...styles.input, flex: 1 }} placeholder="Digite ou escaneie o código de barras e pressione Enter"
+            onKeyDown={handleManualCode} defaultValue={scanResult || ''} />
+        </div>
+      </div>
+    )}
+
+    {scanResult && (
+      <div style={{ ...styles.card, marginBottom: 16 }}>
+        <div style={styles.cardHeader}>
+          <div>
+            <div style={styles.cardTitle}>Código: {scanResult}</div>
+            <div style={{ fontSize: 12, color: C.text2 }}>{historico.length} movimentação(ões)</div>
+          </div>
+          <Button variant="ghost" onClick={() => { setScanResult(null); setHistorico([]); }}>✕</Button>
+        </div>
+        {historico.length > 0 ? (
+          <table style={styles.table}><thead><tr>
+            <th style={styles.th}>Data</th><th style={styles.th}>Tipo</th><th style={styles.th}>Descrição</th><th style={styles.th}>Qtd</th><th style={styles.th}>Local</th><th style={styles.th}>Responsável</th>
+          </tr></thead><tbody>
+            {historico.map(m => (
+              <tr key={m.id}>
+                <td style={styles.td}>{fmtDateTime(m.created_at)}</td>
+                <td style={styles.td}><Badge status={m.tipo} map={MOV_TIPO} /></td>
+                <td style={styles.td}>{m.descricao || '—'}</td>
+                <td style={styles.td}>{m.quantidade} {m.unidade}</td>
+                <td style={styles.td}>{m.localizacao || '—'}</td>
+                <td style={styles.td}>{m.profiles?.name || '—'}</td>
+              </tr>
+            ))}
+          </tbody></table>
+        ) : <div style={{ padding: 20, textAlign: 'center', color: C.text3 }}>Nenhuma movimentação para este código</div>}
+      </div>
+    )}
+
+    <div style={styles.card}><div style={styles.cardHeader}><div style={styles.cardTitle}>Movimentações Recentes</div></div>
+    <table style={styles.table}><thead><tr>
+      <th style={styles.th}>Data</th><th style={styles.th}>Tipo</th><th style={styles.th}>Código</th><th style={styles.th}>Descrição</th><th style={styles.th}>Qtd</th><th style={styles.th}>Local</th><th style={styles.th}>Responsável</th>
+    </tr></thead><tbody>
+      {loading ? <tr><td style={styles.td} colSpan={7}>Carregando...</td></tr>
+      : data.length === 0 ? <tr><td style={styles.td} colSpan={7}><div style={styles.empty}>Nenhuma movimentação registrada</div></td></tr>
+      : data.map(m => (
+        <tr key={m.id}>
+          <td style={styles.td}>{fmtDateTime(m.created_at)}</td>
+          <td style={styles.td}><Badge status={m.tipo} map={MOV_TIPO} /></td>
+          <td style={{ ...styles.td, fontFamily: 'monospace', fontWeight: 600 }}>{m.codigo_barras}</td>
+          <td style={styles.td}>{m.descricao || '—'}</td>
+          <td style={styles.td}>{m.quantidade} {m.unidade}</td>
+          <td style={styles.td}>{m.localizacao || '—'}</td>
+          <td style={styles.td}>{m.profiles?.name || '—'}</td>
+        </tr>
+      ))}
+    </tbody></table></div>
+  </>);
+}
+
+function MovimentacaoModal({ open, data, onClose, onSave, saving, upMov }) {
+  const [scanning, setScanning] = useState(false);
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+
+  async function startScan() {
+    setScanning(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      streamRef.current = stream;
+      if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.play(); }
+      if ('BarcodeDetector' in window) {
+        const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'qr_code', 'upc_a', 'upc_e'] });
+        const detect = async () => {
+          if (!videoRef.current) return;
+          try { const b = await detector.detect(videoRef.current); if (b.length > 0) { upMov('codigo_barras', b[0].rawValue); stopScan(); return; } } catch {}
+          if (scanning) requestAnimationFrame(detect);
+        };
+        requestAnimationFrame(detect);
+      }
+    } catch (e) { setScanning(false); }
+  }
+
+  function stopScan() {
+    setScanning(false);
+    if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
+  }
+
+  useEffect(() => { if (!open) stopScan(); }, [open]);
+
+  return (
+    <Modal open={open} onClose={() => { stopScan(); onClose(); }} title="Nova Movimentação"
+      footer={<><Button variant="outline" onClick={() => { stopScan(); onClose(); }}>Cancelar</Button><Button onClick={onSave} disabled={saving}>{saving ? 'Salvando...' : 'Registrar'}</Button></>}>
+      {data && (<>
+        <Select label="Tipo *" value={data.tipo || 'entrada'} onChange={e => upMov('tipo', e.target.value)}>
+          {Object.entries(MOV_TIPO).map(([k, v]) => <option key={k} value={k}>{v.icon} {v.label}</option>)}
+        </Select>
+        <div style={styles.formGroup}>
+          <label style={styles.label}>Código de Barras *</label>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <input style={{ ...styles.input, flex: 1, fontFamily: 'monospace', fontSize: 16, fontWeight: 700 }}
+              value={data.codigo_barras || ''} onChange={e => upMov('codigo_barras', e.target.value)} placeholder="Digite ou escaneie" />
+            <Button variant={scanning ? 'destructive' : 'outline'} onClick={scanning ? stopScan : startScan}>
+              {scanning ? '⏹' : '📷'}
+            </Button>
+          </div>
+        </div>
+        {scanning && (
+          <div style={{ textAlign: 'center', marginBottom: 12 }}>
+            <video ref={videoRef} style={{ width: '100%', maxWidth: 300, borderRadius: 10, background: '#000' }} autoPlay playsInline muted />
+          </div>
+        )}
+        <Input label="Descrição" value={data.descricao || ''} onChange={e => upMov('descricao', e.target.value)} />
+        <div style={styles.formRow}>
+          <Input label="Quantidade" type="number" step="0.001" value={data.quantidade || ''} onChange={e => upMov('quantidade', e.target.value)} />
+          <Input label="Unidade" value={data.unidade || 'un'} onChange={e => upMov('unidade', e.target.value)} />
+        </div>
+        <Input label="Localização" value={data.localizacao || ''} onChange={e => upMov('localizacao', e.target.value)} placeholder="Ex: Depósito A, Sala 3" />
+        <Textarea label="Observações" value={data.observacoes || ''} onChange={e => upMov('observacoes', e.target.value)} />
+      </>)}
+    </Modal>
   );
 }
