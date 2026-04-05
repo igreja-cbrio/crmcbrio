@@ -1,6 +1,64 @@
 const router = require('express').Router();
 const { authenticate, authorize } = require('../middleware/auth');
 const { supabase } = require('../utils/supabase');
+const { notificar } = require('../services/notificar');
+
+// Helper: verificar se todas as tarefas de uma fase foram concluídas
+async function checkPhaseAutoComplete(task) {
+  try {
+    const phaseMatch = (task.description || '').match(/Fase:\s*(.+)/);
+    if (!phaseMatch) return;
+    const phaseName = phaseMatch[1].trim();
+
+    // Buscar todas as tarefas do mesmo projeto com mesma fase
+    const { data: allPhaseTasks } = await supabase.from('project_tasks')
+      .select('id, status, description')
+      .eq('project_id', task.project_id)
+      .like('description', `Fase: ${phaseName}`);
+
+    const total = allPhaseTasks?.length || 0;
+    const done = allPhaseTasks?.filter(t => t.status === 'concluida').length || 0;
+
+    if (total > 0 && done === total) {
+      // Buscar a fase
+      const { data: phase } = await supabase.from('project_phases')
+        .select('id, phase_order, project_id, status')
+        .eq('project_id', task.project_id)
+        .eq('name', phaseName)
+        .maybeSingle();
+
+      if (phase && phase.status !== 'concluida') {
+        // Concluir a fase
+        await supabase.from('project_phases').update({ status: 'concluida' }).eq('id', phase.id);
+
+        // Avançar próxima fase para em-andamento
+        await supabase.from('project_phases')
+          .update({ status: 'em-andamento' })
+          .eq('project_id', phase.project_id)
+          .eq('phase_order', phase.phase_order + 1)
+          .eq('status', 'pendente');
+
+        // Buscar nome do projeto
+        const { data: proj } = await supabase.from('projects')
+          .select('name').eq('id', task.project_id).single();
+
+        // Enviar notificação no sininho
+        await notificar({
+          modulo: 'projetos',
+          tipo: 'fase_concluida',
+          titulo: `Fase "${phaseName}" concluída`,
+          mensagem: `Todas as tarefas da fase "${phaseName}" foram concluídas no projeto "${proj?.name || 'Projeto'}".`,
+          link: `/projetos?id=${task.project_id}`,
+          severidade: 'info',
+          chaveDedup: `phase_done_${phase.id}`,
+        });
+        console.log(`[Projetos] Fase "${phaseName}" auto-concluída no projeto "${proj?.name}"`);
+      }
+    }
+  } catch (err) {
+    console.error('[Projetos] Erro ao verificar auto-conclusão de fase:', err.message);
+  }
+}
 
 router.use(authenticate);
 
@@ -371,6 +429,12 @@ router.patch('/tasks/:taskId/status', async (req, res) => {
       .select()
       .single();
     if (error) throw error;
+
+    // Auto-conclusão de fase + notificação
+    if (req.body.status === 'concluida') {
+      checkPhaseAutoComplete(data);
+    }
+
     res.json(data);
   } catch (e) {
     res.status(500).json({ error: 'Erro ao atualizar status da tarefa' });
