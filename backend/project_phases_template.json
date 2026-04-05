@@ -1,0 +1,86 @@
+[
+  {
+    "name": "Concepção",
+    "phase_order": 1,
+    "tasks": [
+      { "name": "Definir escopo e objetivos do projeto", "area": "gestao" },
+      { "name": "Preencher teste do Ouriço", "area": "gestao" },
+      { "name": "Realizar análise SWOT", "area": "gestao" },
+      { "name": "Definir KPIs e metas mensuráveis", "area": "gestao" },
+      { "name": "Estimar orçamento inicial", "area": "financeiro" },
+      { "name": "Identificar stakeholders e responsáveis", "area": "gestao" }
+    ]
+  },
+  {
+    "name": "Planejamento",
+    "phase_order": 2,
+    "tasks": [
+      { "name": "Elaborar cronograma detalhado", "area": "gestao" },
+      { "name": "Definir tarefas e atribuir responsáveis", "area": "gestao" },
+      { "name": "Mapear riscos e planos de mitigação", "area": "gestao" },
+      { "name": "Definir marcos e entregas", "area": "gestao" },
+      { "name": "Realizar reunião de kickoff", "area": "gestao" },
+      { "name": "Aprovar orçamento com diretoria", "area": "financeiro" }
+    ]
+  },
+  {
+    "name": "Mobilização",
+    "phase_order": 3,
+    "tasks": [
+      { "name": "Recrutar voluntários e equipe", "area": "voluntariado" },
+      { "name": "Confirmar espaço e local", "area": "infraestrutura" },
+      { "name": "Solicitar materiais e compras", "area": "compras" },
+      { "name": "Contratar fornecedores (se necessário)", "area": "compras" },
+      { "name": "Realizar reunião de alinhamento com equipe", "area": "gestao" },
+      { "name": "Treinamento e capacitação da equipe", "area": "gestao" }
+    ]
+  },
+  {
+    "name": "Comunicação",
+    "phase_order": 4,
+    "tasks": [
+      { "name": "Enviar briefing para marketing", "area": "marketing" },
+      { "name": "Criar materiais visuais e peças gráficas", "area": "marketing" },
+      { "name": "Divulgar nas redes sociais", "area": "marketing" },
+      { "name": "Enviar convites e comunicados internos", "area": "marketing" },
+      { "name": "Preparar sinalização no local", "area": "infraestrutura" },
+      { "name": "Confirmar cobertura de foto e vídeo", "area": "producao" }
+    ]
+  },
+  {
+    "name": "Execução",
+    "phase_order": 5,
+    "tasks": [
+      { "name": "Executar atividades conforme cronograma", "area": "gestao" },
+      { "name": "Acompanhar tarefas diariamente", "area": "gestao" },
+      { "name": "Resolver bloqueios e impedimentos", "area": "gestao" },
+      { "name": "Registrar presença e participação", "area": "gestao" },
+      { "name": "Coordenar equipe durante execução", "area": "gestao" },
+      { "name": "Reportar progresso ao PMO", "area": "gestao" }
+    ]
+  },
+  {
+    "name": "Monitoramento",
+    "phase_order": 6,
+    "tasks": [
+      { "name": "Atualizar status dos KPIs", "area": "gestao" },
+      { "name": "Controlar orçamento (gasto vs planejado)", "area": "financeiro" },
+      { "name": "Realizar reunião de acompanhamento", "area": "gestao" },
+      { "name": "Verificar e atualizar riscos", "area": "gestao" },
+      { "name": "Ajustar cronograma se necessário", "area": "gestao" },
+      { "name": "Elaborar relatório parcial", "area": "gestao" }
+    ]
+  },
+  {
+    "name": "Encerramento",
+    "phase_order": 7,
+    "tasks": [
+      { "name": "Aplicar pesquisa de satisfação", "area": "gestao" },
+      { "name": "Medir KPIs finais vs metas", "area": "gestao" },
+      { "name": "Prestação de contas financeira", "area": "financeiro" },
+      { "name": "Registrar lições aprendidas", "area": "gestao" },
+      { "name": "Realizar retrospectiva com equipe", "area": "gestao" },
+      { "name": "Celebrar resultados", "area": "gestao" }
+    ]
+  }
+]

@@ -51,7 +51,8 @@ const BUDGET_CATEGORIES = [
   { value: 'custo', label: 'Custo' },
 ];
 
-const PHASE_NAMES = ['Planejamento', 'Preparacao', 'Execucao', 'Avaliacao'];
+const PHASE_NAMES = ['Concepção', 'Planejamento', 'Mobilização', 'Comunicação', 'Execução', 'Monitoramento', 'Encerramento'];
+const PHASE_ABBREVS = ['CON', 'PLA', 'MOB', 'COM', 'EXE', 'MON', 'ENC'];
 
 // ── Estilos ─────────────────────────────────────────────────
 const styles = {
@@ -397,8 +398,17 @@ export default function Projetos() {
   async function initPhases() {
     if (!detail) return;
     try {
-      for (let i = 0; i < PHASE_NAMES.length; i++) {
-        await projects.createPhase(detail.id, { name: PHASE_NAMES[i], order_index: i, status: 'pendente' });
+      const defaultPhases = [
+        { name: 'Concepção', phase_order: 1 },
+        { name: 'Planejamento', phase_order: 2 },
+        { name: 'Mobilização', phase_order: 3 },
+        { name: 'Comunicação', phase_order: 4 },
+        { name: 'Execução', phase_order: 5 },
+        { name: 'Monitoramento', phase_order: 6 },
+        { name: 'Encerramento', phase_order: 7 },
+      ];
+      for (let i = 0; i < defaultPhases.length; i++) {
+        await projects.createPhase(detail.id, { name: defaultPhases[i].name, order_index: i, status: 'pendente' });
       }
       refreshDetail();
     } catch (e) { alert(e.message); }
@@ -1224,96 +1234,215 @@ export default function Projetos() {
         {/* ─── Fases ─── */}
         {detailTab === 'fases' && (
           <>
+            {/* Pulse animation for em-andamento */}
+            <style>{`
+              @keyframes phasePulse {
+                0%, 100% { box-shadow: 0 0 0 0px rgba(59,130,246,0.3); }
+                50% { box-shadow: 0 0 0 6px rgba(59,130,246,0.08); }
+              }
+            `}</style>
             {phases.length === 0 ? (
               <div style={{ textAlign: 'center', padding: 40 }}>
                 <div style={{ fontSize: 14, color: C.t3, marginBottom: 16 }}>Nenhuma fase cadastrada.</div>
-                {isDiretor && <button style={styles.btn('primary')} onClick={initPhases}>Iniciar fases</button>}
+                {isDiretor && <button style={styles.btn('primary')} onClick={initPhases}>Iniciar Fases (7 fases)</button>}
               </div>
-            ) : (
-              <>
-                {/* Horizontal stepper */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0, marginBottom: 24, overflowX: 'auto', padding: '12px 0' }}>
-                  {phases.sort((a, b) => (a.order_index || 0) - (b.order_index || 0)).map((ph, i) => {
-                    const isDone = ph.status === 'concluida';
-                    const isActive = ph.status === 'em-andamento';
-                    const isBlocked = ph.status === 'bloqueada';
-                    const circleColor = isDone ? C.green : isActive ? C.primary : isBlocked ? C.red : C.t3;
-                    const circleBg = isDone ? C.greenBg : isActive ? C.primaryBg : isBlocked ? C.redBg : 'var(--cbrio-bg)';
-                    return (
-                      <div key={ph.id} style={{ display: 'flex', alignItems: 'center' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}
-                          onClick={() => setGanttExpanded(prev => ({ ...prev, activePhase: ph.id }))}>
-                          <div style={{
-                            width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            background: circleBg, border: `3px solid ${circleColor}`,
-                            boxShadow: isActive ? `0 0 0 4px ${C.primary}30` : 'none',
-                            animation: isActive ? 'pulse 2s infinite' : 'none',
-                            transition: 'all .2s',
-                          }}>
-                            {isDone ? (
-                              <span style={{ fontSize: 18, color: C.green }}>{'\u2713'}</span>
-                            ) : (
-                              <span style={{ fontSize: 14, fontWeight: 700, color: circleColor }}>{i + 1}</span>
+            ) : (() => {
+              const sortedPhases = [...phases].sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+              const selectedPhaseId = ganttExpanded.activePhase || (sortedPhases[0] && sortedPhases[0].id);
+              const selectedPhase = sortedPhases.find(ph => ph.id === selectedPhaseId) || sortedPhases[0];
+
+              // Helper: get tasks for a phase
+              const getTasksForPhase = (ph) => {
+                if (!ph) return [];
+                const phaseName = ph.name || '';
+                const phStart = ph.date_start || ph.start_date;
+                const phEnd = ph.date_end || ph.end_date;
+                return tasks.filter(t => {
+                  // Match by description containing "Fase: {phaseName}"
+                  if (t.description && phaseName && t.description.includes('Fase: ' + phaseName)) return true;
+                  // Match by date range overlap
+                  if (phStart && phEnd && (t.start_date || t.deadline)) {
+                    const tStart = t.start_date || t.deadline;
+                    const tEnd = t.deadline || t.start_date;
+                    if (tStart && tEnd && tStart <= phEnd && tEnd >= phStart) return true;
+                  }
+                  return false;
+                });
+              };
+
+              const phaseTasks = getTasksForPhase(selectedPhase);
+              const doneTasks = phaseTasks.filter(t => t.status === 'concluida').length;
+              const totalTasks = phaseTasks.length;
+
+              return (
+                <>
+                  {/* Horizontal stepper — 7 circles */}
+                  <div style={{ overflowX: 'auto', marginBottom: 24, padding: '12px 0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0, minWidth: 'max-content' }}>
+                      {sortedPhases.map((ph, i) => {
+                        const isDone = ph.status === 'concluida';
+                        const isActive = ph.status === 'em-andamento';
+                        const isBlocked = ph.status === 'bloqueada';
+                        const isSelected = ph.id === selectedPhaseId;
+                        const circleColor = isDone ? '#10b981' : isActive ? '#3b82f6' : isBlocked ? '#ef4444' : '#9ca3af';
+                        const circleBg = isDone ? C.greenBg : isActive ? C.blueBg : isBlocked ? C.redBg : 'var(--cbrio-bg)';
+                        const abbrev = PHASE_ABBREVS[i] || `F${i + 1}`;
+                        return (
+                          <div key={ph.id} style={{ display: 'flex', alignItems: 'center' }}>
+                            <div
+                              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', padding: '0 2px' }}
+                              onClick={() => setGanttExpanded(prev => ({ ...prev, activePhase: ph.id }))}
+                            >
+                              <div style={{
+                                width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                background: circleBg, border: `3px solid ${circleColor}`,
+                                boxShadow: isSelected ? `0 0 0 4px ${circleColor}40` : 'none',
+                                animation: isActive ? 'phasePulse 2s ease-in-out infinite' : 'none',
+                                transition: 'all .2s',
+                                transform: isSelected ? 'scale(1.1)' : 'scale(1)',
+                              }}>
+                                {isDone ? (
+                                  <span style={{ fontSize: 18, color: '#10b981', fontWeight: 700 }}>{'\u2713'}</span>
+                                ) : (
+                                  <span style={{ fontSize: 13, fontWeight: 700, color: circleColor }}>{i + 1}</span>
+                                )}
+                              </div>
+                              <div style={{
+                                fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
+                                color: isSelected ? circleColor : isDone ? '#10b981' : isActive ? '#3b82f6' : '#9ca3af',
+                                marginTop: 6, textAlign: 'center',
+                              }}>
+                                {abbrev}
+                              </div>
+                              <div style={{
+                                fontSize: 9, fontWeight: 500, color: C.t3, marginTop: 1, textAlign: 'center', maxWidth: 80,
+                                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                              }}>
+                                {ph.name || PHASE_NAMES[i] || `Fase ${i + 1}`}
+                              </div>
+                            </div>
+                            {i < sortedPhases.length - 1 && (
+                              <div style={{
+                                width: 36, height: 3,
+                                background: isDone ? '#10b981' : C.border,
+                                margin: '0 2px', marginBottom: 28, borderRadius: 2,
+                              }} />
                             )}
                           </div>
-                          <div style={{ fontSize: 11, fontWeight: 600, color: isActive ? C.primary : isDone ? C.green : C.t3, marginTop: 6, textAlign: 'center', maxWidth: 90 }}>
-                            {ph.name || PHASE_NAMES[i] || `Fase ${i + 1}`}
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Selected phase detail card */}
+                  {selectedPhase && (
+                    <div style={{ ...styles.card, padding: 20, marginBottom: 16 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div style={{
+                            width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            background: selectedPhase.status === 'concluida' ? C.greenBg : selectedPhase.status === 'em-andamento' ? C.blueBg : selectedPhase.status === 'bloqueada' ? C.redBg : 'var(--cbrio-bg)',
+                            border: `2px solid ${selectedPhase.status === 'concluida' ? '#10b981' : selectedPhase.status === 'em-andamento' ? '#3b82f6' : selectedPhase.status === 'bloqueada' ? '#ef4444' : '#9ca3af'}`,
+                            fontSize: 13, fontWeight: 700,
+                            color: selectedPhase.status === 'concluida' ? '#10b981' : selectedPhase.status === 'em-andamento' ? '#3b82f6' : selectedPhase.status === 'bloqueada' ? '#ef4444' : '#9ca3af',
+                          }}>
+                            {selectedPhase.status === 'concluida' ? '\u2713' : (sortedPhases.indexOf(selectedPhase) + 1)}
+                          </div>
+                          <div style={{ fontSize: 16, fontWeight: 700, color: C.text }}>
+                            {selectedPhase.name || PHASE_NAMES[sortedPhases.indexOf(selectedPhase)] || 'Fase'}
                           </div>
                         </div>
-                        {i < phases.length - 1 && (
-                          <div style={{ width: 60, height: 3, background: isDone ? C.green : C.border, margin: '0 4px', marginBottom: 20, borderRadius: 2 }} />
-                        )}
+                        <Badge status={selectedPhase.status} map={PHASE_STATUS_MAP} />
                       </div>
-                    );
-                  })}
-                </div>
 
-                {/* Phase detail cards */}
-                {phases.map((ph, i) => {
-                  const isExpanded = ganttExpanded.activePhase === ph.id;
-                  if (!isExpanded && ganttExpanded.activePhase) return null;
-                  if (!ganttExpanded.activePhase && i > 0) return null;
-                  return (
-                    <div key={ph.id} style={{ ...styles.card, padding: 20, marginBottom: 16 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                        <div style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{ph.name || PHASE_NAMES[i]}</div>
-                        <Badge status={ph.status} map={PHASE_STATUS_MAP} />
-                      </div>
                       <div style={styles.infoGrid}>
                         <div>
                           <div style={styles.infoLabel}>Periodo</div>
-                          <div style={styles.infoValue}>{fmtDate(ph.date_start || ph.start_date)} - {fmtDate(ph.date_end || ph.end_date)}</div>
+                          <div style={styles.infoValue}>{fmtDate(selectedPhase.date_start || selectedPhase.start_date)} - {fmtDate(selectedPhase.date_end || selectedPhase.end_date)}</div>
                         </div>
                         <div>
                           <div style={styles.infoLabel}>Responsavel</div>
-                          <div style={styles.infoValue}>{ph.responsible || '\u2014'}</div>
+                          <div style={styles.infoValue}>{selectedPhase.responsible || '\u2014'}</div>
                         </div>
                       </div>
+
                       {isDiretor && (
                         <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 12 }}>
                           <label style={styles.label}>Status</label>
-                          <select style={styles.select} value={ph.status} onChange={e => updatePhaseField(ph.id, 'status', e.target.value)}>
+                          <select style={styles.select} value={selectedPhase.status} onChange={e => updatePhaseField(selectedPhase.id, 'status', e.target.value)}>
                             {Object.entries(PHASE_STATUS_MAP).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                           </select>
                         </div>
                       )}
+
                       {isDiretor && (
                         <div style={{ marginTop: 12 }}>
                           <label style={styles.label}>Notas</label>
-                          <textarea style={{ ...styles.input, minHeight: 60, resize: 'vertical' }} defaultValue={ph.notes || ''}
-                            onBlur={e => updatePhaseField(ph.id, 'notes', e.target.value)} />
+                          <textarea style={{ ...styles.input, minHeight: 60, resize: 'vertical' }} defaultValue={selectedPhase.notes || ''}
+                            onBlur={e => updatePhaseField(selectedPhase.id, 'notes', e.target.value)} />
                         </div>
                       )}
+
+                      {/* Mini task checklist for this phase */}
+                      <div style={{ marginTop: 20, borderTop: `1px solid ${C.border}`, paddingTop: 16 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+                            Tarefas da Fase ({doneTasks}/{totalTasks})
+                          </div>
+                        </div>
+
+                        {/* Progress bar */}
+                        {totalTasks > 0 && (
+                          <div style={{ marginBottom: 12 }}>
+                            <ProgressBar value={doneTasks} max={totalTasks} color={doneTasks === totalTasks ? '#10b981' : '#3b82f6'} />
+                          </div>
+                        )}
+
+                        {totalTasks === 0 ? (
+                          <div style={{ fontSize: 12, color: C.t3, textAlign: 'center', padding: 16 }}>
+                            Nenhuma tarefa associada a esta fase.
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            {phaseTasks.map(t => {
+                              const isDoneTask = t.status === 'concluida';
+                              return (
+                                <div
+                                  key={t.id}
+                                  onClick={() => changeTaskStatus(t.id, isDoneTask ? 'pendente' : 'concluida')}
+                                  style={{
+                                    display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
+                                    borderRadius: 8, cursor: 'pointer', transition: 'background .15s',
+                                    background: isDoneTask ? `${C.greenBg}` : 'transparent',
+                                    border: `1px solid ${isDoneTask ? '#10b981' + '30' : C.border}`,
+                                  }}
+                                >
+                                  <div style={{
+                                    width: 20, height: 20, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    border: `2px solid ${isDoneTask ? '#10b981' : '#9ca3af'}`,
+                                    background: isDoneTask ? '#10b981' : 'transparent',
+                                    transition: 'all .15s', flexShrink: 0,
+                                  }}>
+                                    {isDoneTask && <span style={{ color: '#fff', fontSize: 12, fontWeight: 700 }}>{'\u2713'}</span>}
+                                  </div>
+                                  <div style={{
+                                    fontSize: 13, color: isDoneTask ? C.t3 : C.text, flex: 1,
+                                    textDecoration: isDoneTask ? 'line-through' : 'none',
+                                  }}>
+                                    {t.title || t.name || 'Tarefa'}
+                                  </div>
+                                  <Badge status={t.status} map={TASK_STATUS_MAP} />
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  );
-                })}
-                {/* Show first phase by default if none selected */}
-                {!ganttExpanded.activePhase && phases.length > 0 && (() => {
-                  const ph = phases[0];
-                  return null; // Already rendered above
-                })()}
-              </>
-            )}
+                  )}
+                </>
+              );
+            })()}
           </>
         )}
 
