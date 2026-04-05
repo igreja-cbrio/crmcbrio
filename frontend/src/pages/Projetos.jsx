@@ -252,6 +252,8 @@ export default function Projetos() {
 
   // Gantt
   const [ganttExpanded, setGanttExpanded] = useState({});
+  const [ganttStatusFilter, setGanttStatusFilter] = useState('');
+  const [ganttCatFilter, setGanttCatFilter] = useState('');
 
   // Detail sub-tab
   const [detailTab, setDetailTab] = useState('info');
@@ -862,14 +864,33 @@ export default function Projetos() {
   // ═══════════════════════════════════════════════════════════
   function renderGantt() {
     const MONTHS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-    const ST_COLORS = { 'no-prazo': C.green, 'em-risco': C.amber, 'atrasado': C.red, 'concluido': '#9ca3af' };
+    const ST_COLORS = { 'no-prazo': C.green, 'em-risco': C.amber, 'atrasado': C.red, 'concluido': '#d1d5db' };
     const PHASE_COLORS = { 'pendente': '#9ca3af', 'em-andamento': C.blue, 'concluida': C.green, 'bloqueada': C.red };
 
-    const visibleProjects = list.filter(p => normDate(p.date_start) && normDate(p.date_end));
-    if (visibleProjects.length === 0) return <div style={styles.empty}>Nenhum projeto com datas definidas.</div>;
+    // Filtros do Gantt
+    const statusFilters = [
+      { key: 'all', label: 'Todos', color: C.primary },
+      { key: 'no-prazo', label: 'No Prazo', color: C.green },
+      { key: 'em-risco', label: 'Em Risco', color: C.amber },
+      { key: 'atrasado', label: 'Atrasado', color: C.red },
+      { key: 'concluido', label: 'Concluído', color: '#9ca3af' },
+    ];
 
-    // Calculate timeline bounds
-    const allDates = visibleProjects.flatMap(p => [p.date_start, p.date_end].filter(Boolean)).map(x => new Date(normDate(x) + 'T12:00:00'));
+    let visibleProjects = list.filter(p => normDate(p.date_start) && normDate(p.date_end));
+    // Aplicar filtro de status
+    if (ganttStatusFilter && ganttStatusFilter !== 'all') {
+      visibleProjects = visibleProjects.filter(p => p.status === ganttStatusFilter);
+    }
+    // Aplicar filtro de categoria
+    if (ganttCatFilter && ganttCatFilter !== 'all') {
+      visibleProjects = visibleProjects.filter(p => p.project_categories?.name === ganttCatFilter || p.category_name === ganttCatFilter);
+    }
+
+    if (list.filter(p => normDate(p.date_start) && normDate(p.date_end)).length === 0) return <div style={styles.empty}>Nenhum projeto com datas definidas.</div>;
+
+    // Calculate timeline bounds (usar lista completa para range estável)
+    const allWithDates = list.filter(p => normDate(p.date_start) && normDate(p.date_end));
+    const allDates = allWithDates.flatMap(p => [p.date_start, p.date_end].filter(Boolean)).map(x => new Date(normDate(x) + 'T12:00:00'));
     const today = new Date();
     const ganttStart = new Date(Math.min(...allDates, today) - 14 * 86400000);
     const ganttEnd = new Date(Math.max(...allDates, today) + 14 * 86400000);
@@ -885,11 +906,49 @@ export default function Projetos() {
 
     const NW = 220; const BH = 34; const PHASE_H = 26;
 
+    // Contagens para badges nos filtros
+    const statusCounts = { 'all': allWithDates.length };
+    allWithDates.forEach(p => { statusCounts[p.status] = (statusCounts[p.status] || 0) + 1; });
+
     return (
       <>
-        {/* Legend */}
-        <div style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
-          {[{ l: 'No Prazo', c: C.green }, { l: 'Em Risco', c: C.amber }, { l: 'Atrasado', c: C.red }, { l: 'Concluido', c: '#9ca3af' }].map(x => (
+        {/* Filtros */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
+          <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Status:</span>
+          {statusFilters.map(f => {
+            const isActive = (ganttStatusFilter || 'all') === f.key;
+            return (
+              <button key={f.key} onClick={() => setGanttStatusFilter(f.key === 'all' ? '' : f.key)} style={{
+                padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: isActive ? 700 : 400, cursor: 'pointer',
+                border: isActive ? `2px solid ${f.color}` : `1px solid ${C.border}`,
+                background: isActive ? `${f.color}15` : 'transparent',
+                color: isActive ? f.color : C.t3, transition: 'all .15s',
+              }}>
+                {f.label} <span style={{ fontSize: 9, opacity: 0.7 }}>({statusCounts[f.key] || 0})</span>
+              </button>
+            );
+          })}
+
+          <span style={{ width: 1, height: 20, background: C.border }} />
+
+          <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Categoria:</span>
+          <select value={ganttCatFilter || 'all'} onChange={e => setGanttCatFilter(e.target.value === 'all' ? '' : e.target.value)}
+            style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, color: C.text }}>
+            <option value="all">Todas ({allWithDates.length})</option>
+            {categories.map(c => {
+              const cnt = allWithDates.filter(p => p.project_categories?.name === c.name || p.category_name === c.name).length;
+              return cnt > 0 ? <option key={c.id} value={c.name}>{c.name} ({cnt})</option> : null;
+            })}
+          </select>
+        </div>
+
+        {/* Contagem filtrada */}
+        {visibleProjects.length === 0 && <div style={styles.empty}>Nenhum projeto corresponde aos filtros selecionados.</div>}
+        {visibleProjects.length > 0 && <div style={{ fontSize: 11, color: C.t3, marginBottom: 8 }}>{visibleProjects.length} projeto(s) exibido(s)</div>}
+
+        {/* Legenda */}
+        <div style={{ display: 'flex', gap: 16, marginBottom: 12, flexWrap: 'wrap' }}>
+          {[{ l: 'No Prazo (>7d)', c: C.green }, { l: 'Urgente (≤7d)', c: C.amber }, { l: 'Atrasado', c: C.red }, { l: 'Concluído', c: '#d1d5db' }].map(x => (
             <div key={x.l} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <div style={{ width: 20, height: 10, borderRadius: 4, background: x.c }} />
               <span style={{ fontSize: 12, color: C.t2 }}>{x.l}</span>
@@ -939,7 +998,7 @@ export default function Projetos() {
                     <div key={i} style={{ position: 'absolute', left: `${m.pct}%`, top: 0, height: '100%', borderLeft: `1px solid ${C.border}`, padding: '6px 6px', fontSize: 10, fontWeight: 600, color: C.t2, whiteSpace: 'nowrap' }}>{m.label}</div>
                   ))}
                   <div style={{ position: 'absolute', left: `${todayPct}%`, top: 0, width: 2, height: '100%', background: C.red, zIndex: 2 }} />
-                  <div style={{ position: 'absolute', left: `${todayPct}%`, top: -1, transform: 'translateX(-50%)', fontSize: 8, fontWeight: 700, color: C.red, background: C.card, padding: '0 3px', borderRadius: 3, zIndex: 3 }}>hoje</div>
+                  <div style={{ position: 'absolute', left: `${todayPct}%`, top: -1, transform: 'translateX(-50%)', fontSize: 10, fontWeight: 700, color: C.red, background: C.card, padding: '1px 5px', borderRadius: 4, zIndex: 3 }}>hoje</div>
                 </div>
 
                 {/* Project bars */}
@@ -947,7 +1006,11 @@ export default function Projetos() {
                   const isExp = ganttExpanded[p.id];
                   const phases = p.phases || [];
                   const si = normDate(p.date_start); const ei = normDate(p.date_end);
-                  const barColor = ST_COLORS[p.status] || '#9ca3af';
+                  const isDone = p.status === 'concluido';
+                  const endDate = ei ? new Date(ei + 'T12:00:00') : null;
+                  const diff = endDate ? Math.ceil((endDate - new Date()) / 86400000) : null;
+                  const barColor = isDone ? '#d1d5db' : diff !== null && diff < 0 ? C.red : diff !== null && diff <= 7 ? C.amber : C.green;
+                  const daysText = isDone ? '✓' : diff === null ? '' : diff < 0 ? `${Math.abs(diff)}d atrás` : diff === 0 ? 'Hoje' : `${diff}d`;
                   let lp = 0, wp = 0;
                   if (si && ei) { lp = dateToPct(si + 'T12:00:00'); const rp = dateToPct(ei + 'T12:00:00'); wp = Math.max(rp - lp, 1); }
 
@@ -957,16 +1020,22 @@ export default function Projetos() {
                         {monthLabels.map((m, i) => (<div key={i} style={{ position: 'absolute', left: `${m.pct}%`, top: 0, width: 1, height: '100%', background: C.border, opacity: 0.3 }} />))}
                         <div style={{ position: 'absolute', left: `${todayPct}%`, top: 0, width: 2, height: '100%', background: C.red, zIndex: 2, opacity: 0.3 }} />
                         {si && ei && (
-                          <div onClick={() => loadDetail(p.id)} title={`${p.name}\n${fmtDate(si)} - ${fmtDate(ei)}`}
-                            style={{ position: 'absolute', top: 4, height: BH - 8, borderRadius: 6, left: `${lp}%`, width: `${wp}%`, minWidth: 30, background: barColor, opacity: p.status === 'concluido' ? 0.5 : 0.85, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 6px', overflow: 'hidden', cursor: 'pointer' }}>
-                            <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</span>
+                          <div onClick={() => loadDetail(p.id)} title={`${p.name}\n${fmtDate(si)} → ${fmtDate(ei)}\n${daysText}`}
+                            style={{ position: 'absolute', top: 4, height: BH - 8, borderRadius: 6, left: `${lp}%`, width: `${wp}%`, minWidth: 50, background: barColor, opacity: isDone ? 0.5 : 0.9, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 6px', overflow: 'hidden', cursor: 'pointer', transition: 'opacity .15s' }}
+                            onMouseEnter={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.opacity = isDone ? '0.5' : '0.9'; e.currentTarget.style.boxShadow = 'none'; }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap' }}>{daysText}</span>
                           </div>
                         )}
                       </div>
                       {/* Phase sub-bars */}
                       {isExp && phases.map(ph => {
                         const psi = normDate(ph.date_start || ph.start_date); const pei = normDate(ph.date_end || ph.end_date);
-                        const phColor = PHASE_COLORS[ph.status] || '#9ca3af';
+                        const phDone = ph.status === 'concluida';
+                        const phEnd = pei ? new Date(pei + 'T12:00:00') : null;
+                        const phDiff = phEnd ? Math.ceil((phEnd - new Date()) / 86400000) : null;
+                        const phColor = phDone ? '#d1d5db' : ph.status === 'bloqueada' ? C.red : phDiff !== null && phDiff < 0 ? C.red : phDiff !== null && phDiff <= 3 ? C.amber : C.blue;
+                        const phDaysText = phDone ? '✓' : phDiff === null ? ph.name : phDiff < 0 ? `${Math.abs(phDiff)}d` : phDiff === 0 ? 'Hoje' : `${phDiff}d`;
                         let plp = 0, pwp = 0;
                         if (psi && pei) { plp = dateToPct(psi + 'T12:00:00'); const prp = dateToPct(pei + 'T12:00:00'); pwp = Math.max(prp - plp, 1); }
                         return (
@@ -974,9 +1043,9 @@ export default function Projetos() {
                             {monthLabels.map((m, i) => (<div key={i} style={{ position: 'absolute', left: `${m.pct}%`, top: 0, width: 1, height: '100%', background: C.border, opacity: 0.2 }} />))}
                             <div style={{ position: 'absolute', left: `${todayPct}%`, top: 0, width: 2, height: '100%', background: C.red, zIndex: 2, opacity: 0.2 }} />
                             {psi && pei && (
-                              <div title={`${ph.name}\n${fmtDate(psi)} - ${fmtDate(pei)}\n${ph.status}`}
-                                style={{ position: 'absolute', top: 3, height: PHASE_H - 6, borderRadius: 4, left: `${plp}%`, width: `${pwp}%`, minWidth: 20, background: phColor, opacity: ph.status === 'concluida' ? 0.5 : 0.75, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px', overflow: 'hidden' }}>
-                                <span style={{ fontSize: 9, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap' }}>{ph.name}</span>
+                              <div title={`${ph.name}\n${fmtDate(psi)} → ${fmtDate(pei)}\n${phDaysText}`}
+                                style={{ position: 'absolute', top: 3, height: PHASE_H - 6, borderRadius: 4, left: `${plp}%`, width: `${pwp}%`, minWidth: 30, background: phColor, opacity: phDone ? 0.5 : 0.75, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px', overflow: 'hidden' }}>
+                                <span style={{ fontSize: 9, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap' }}>{phDaysText}</span>
                               </div>
                             )}
                           </div>
