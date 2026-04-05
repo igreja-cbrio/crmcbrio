@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { projects, users as usersApi } from '../api';
+import { projects, users as usersApi, tasks as tasksApi } from '../api';
 
 // ── Tema (CSS vars para dark/light mode) ──────────────────
 const C = {
@@ -222,7 +222,10 @@ const TABS = ['Home', 'Lista', 'Kanban', 'Gantt'];
 // COMPONENTE PRINCIPAL
 // ═══════════════════════════════════════════════════════════
 export default function Projetos() {
-  const { isDiretor } = useAuth();
+  const { profile, user, isDiretor } = useAuth();
+  const userRole = profile?.role || '';
+  const userArea = profile?.area || '';
+  const isPMO = ['diretor', 'admin'].includes(userRole);
 
   // URL params drill-down
   const urlParams = new URLSearchParams(window.location.search);
@@ -245,9 +248,13 @@ export default function Projetos() {
   const [fSearch, setFSearch] = useState('');
   const [hideDone, setHideDone] = useState(true);
 
-  // Kanban
+  // Kanban (3 níveis: fase strip → 4 colunas tarefas → filtros)
   const [kanbanCategory, setKanbanCategory] = useState('all');
-  const [kanbanHorizon, setKanbanHorizon] = useState(0);
+  const [kanbanHorizon, setKanbanHorizon] = useState(30);
+  const [kanbanPhase, setKanbanPhase] = useState(null); // phase_order selecionada (1-7)
+  const [kanbanProject, setKanbanProject] = useState('all'); // projeto específico ou 'all'
+  const [kanbanViewMode, setKanbanViewMode] = useState(isPMO ? 'pmo' : 'minhas'); // pmo | area | minhas
+  const [kanbanExpanded, setKanbanExpanded] = useState(null);
   const [dragId, setDragId] = useState(null);
   const [dropCol, setDropCol] = useState(null);
 
@@ -279,6 +286,10 @@ export default function Projetos() {
   // Retrospectiva
   const [retroData, setRetroData] = useState(null);
   const [retroForm, setRetroForm] = useState({});
+
+  // Kanban tasks (todas as tarefas de todos os projetos)
+  const [kanbanTasks, setKanbanTasks] = useState([]);
+  const [kanbanPhases, setKanbanPhases] = useState([]);
 
   // Sort
   const [sortCol, setSortCol] = useState('name');
@@ -327,9 +338,29 @@ export default function Projetos() {
     }
   }, [detail?.id]);
 
+  const loadKanbanData = useCallback(async () => {
+    try {
+      const [tasksData, phasesRes] = await Promise.all([
+        tasksApi.all({ source: 'projeto' }),
+        // Buscar todas as fases de todos os projetos via Supabase (rota não existe, mas podemos pegar do list)
+        // Alternativa: buscar via cada projeto — mas para performance, vamos usar o que o list já traz
+        fetch('/api/projects/all-phases', { headers: { 'Authorization': `Bearer ${localStorage.getItem('sb-token')}` } }).then(r => r.ok ? r.json() : []).catch(() => []),
+      ]);
+      setKanbanTasks(Array.isArray(tasksData) ? tasksData : []);
+      setKanbanPhases(Array.isArray(phasesRes) ? phasesRes : []);
+      // Se não tiver endpoint de fases, usar dados do list
+      if (!phasesRes.length && list.length) {
+        // Pegar fases do primeiro projeto como referência para phase_order
+        const firstWithPhases = list.find(p => p.phases?.length > 0);
+        if (firstWithPhases) setKanbanPhases(firstWithPhases.phases);
+      }
+    } catch (e) { console.error('Kanban data:', e); }
+  }, [list]);
+
   useEffect(() => {
     loadCategories(); loadDash(); loadList();
     usersApi.list().then(d => setUsersList(Array.isArray(d) ? d : [])).catch(() => setUsersList([]));
+    tasksApi.all({ source: 'projeto' }).then(d => setKanbanTasks(Array.isArray(d) ? d : [])).catch(() => {});
     if (urlId) loadDetail(urlId);
   }, []);
   useEffect(() => { loadList(); }, [fStatus, fCategory, fPriority]);
@@ -431,7 +462,12 @@ export default function Projetos() {
   }
 
   async function changeTaskStatus(taskId, status) {
-    try { await projects.updateTaskStatus(taskId, status); refreshDetail(); } catch (e) { alert(e.message); }
+    try {
+      await projects.updateTaskStatus(taskId, status);
+      refreshDetail();
+      // Reload kanban tasks too
+      tasksApi.all({ source: 'projeto' }).then(d => setKanbanTasks(Array.isArray(d) ? d : [])).catch(() => {});
+    } catch (e) { alert(e.message); }
   }
 
   async function deleteTask(taskId) {
@@ -750,50 +786,120 @@ export default function Projetos() {
   // RENDER — KANBAN
   // ═══════════════════════════════════════════════════════════
   function renderKanban() {
-    const COLS = [
-      { key: 'no-prazo', label: 'No Prazo', color: C.green },
-      { key: 'em-risco', label: 'Em Risco', color: C.amber },
-      { key: 'atrasado', label: 'Atrasado', color: C.red },
+    const TASK_COLS = [
+      { key: 'pendente', label: 'A fazer', color: '#9ca3af' },
+      { key: 'em-andamento', label: 'Em andamento', color: C.blue },
+      { key: 'bloqueada', label: 'Bloqueada', color: C.red },
+      { key: 'concluida', label: 'Concluída', color: C.green },
     ];
 
-    // Category filter tabs
-    const catCountsK = { all: 0 };
-    list.forEach(p => {
-      if (p.status === 'concluido') return;
-      catCountsK.all++;
-      const cn = p.project_categories?.name || getCatName(p.category_id) || 'Sem cat.';
-      if (!catCountsK[cn]) catCountsK[cn] = 0;
-      catCountsK[cn]++;
-    });
-    const catTabs = [{ key: 'all', label: 'Todos', count: catCountsK.all }];
-    categories.forEach(c => {
-      if (catCountsK[c.name]) catTabs.push({ key: c.name, label: c.name, count: catCountsK[c.name], color: c.color });
+    // ─── NÍVEL 0: Filtros de visão (permissões) ───
+    const viewModes = [
+      { key: 'pmo', label: isPMO ? 'Todas' : (userArea ? 'Minha área + minhas' : 'Minhas tarefas'), desc: 'Visão completa' },
+      ...(userArea ? [{ key: 'area', label: `Só ${userArea}`, desc: `Tarefas da área ${userArea}` }] : []),
+      { key: 'minhas', label: 'Minhas tarefas', desc: 'Apenas tarefas atribuídas a mim' },
+    ];
+
+    // ─── Filtrar tarefas por permissão ───
+    let filteredTasks = [...kanbanTasks];
+    if (kanbanViewMode === 'minhas') {
+      filteredTasks = filteredTasks.filter(t => t.responsible === profile?.name);
+    } else if (kanbanViewMode === 'area' && userArea) {
+      filteredTasks = filteredTasks.filter(t => t.area === userArea || t.responsible === profile?.name);
+    } else if (kanbanViewMode === 'pmo' && !isPMO) {
+      if (userArea) {
+        filteredTasks = filteredTasks.filter(t => t.area === userArea || t.responsible === profile?.name);
+      } else {
+        filteredTasks = filteredTasks.filter(t => t.responsible === profile?.name);
+      }
+    }
+
+    // Filtrar por projeto
+    if (kanbanProject !== 'all') {
+      filteredTasks = filteredTasks.filter(t => t.parent_id === kanbanProject || t.project_id === kanbanProject);
+    }
+
+    // Filtrar por categoria
+    if (kanbanCategory !== 'all') {
+      const catProjectIds = list.filter(p => (p.project_categories?.name || '') === kanbanCategory).map(p => p.id);
+      filteredTasks = filteredTasks.filter(t => catProjectIds.includes(t.parent_id || t.project_id));
+    }
+
+    // Filtrar por horizonte
+    if (kanbanHorizon) {
+      filteredTasks = filterByHorizon(filteredTasks, kanbanHorizon, 'deadline');
+    }
+
+    // ─── NÍVEL 1: Phase strip (7 fases) ───
+    const phaseTaskCounts = {};
+    PHASE_NAMES.forEach((name, i) => {
+      const order = i + 1;
+      const phaseTasks = filteredTasks.filter(t => (t.description || '').includes(`Fase: ${name}`));
+      const done = phaseTasks.filter(t => t.status === 'concluida').length;
+      phaseTaskCounts[order] = { total: phaseTasks.length, done };
     });
 
-    // Filter projects
-    let items = list.filter(p => p.status !== 'concluido');
-    if (kanbanCategory !== 'all') {
-      items = items.filter(p => (p.project_categories?.name || getCatName(p.category_id)) === kanbanCategory);
+    // Auto-select first non-completed phase if none selected
+    if (!kanbanPhase) {
+      const firstActive = PHASE_NAMES.findIndex((name, i) => {
+        const c = phaseTaskCounts[i + 1];
+        return c && c.total > 0 && c.done < c.total;
+      });
+      if (firstActive >= 0) setKanbanPhase(firstActive + 1);
+      else setKanbanPhase(1);
     }
-    if (kanbanHorizon) {
-      items = filterByHorizon(items, kanbanHorizon, 'date_end');
-    }
+
+    // Tasks for selected phase
+    const selectedPhaseName = PHASE_NAMES[(kanbanPhase || 1) - 1];
+    const phaseTasks = sortByUrgency(filteredTasks.filter(t => (t.description || '').includes(`Fase: ${selectedPhaseName}`)));
+
+    // Category tabs with counts
+    const catCounts = { all: filteredTasks.length };
+    list.forEach(p => {
+      const cn = p.project_categories?.name || '';
+      if (!cn) return;
+      const projTasks = filteredTasks.filter(t => t.parent_id === p.id || t.project_id === p.id);
+      if (projTasks.length > 0) catCounts[cn] = (catCounts[cn] || 0) + projTasks.length;
+    });
 
     return (
       <>
-        {/* Category filter tabs */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-          {catTabs.map(ct => (
-            <button key={ct.key} onClick={() => setKanbanCategory(ct.key)} style={{
-              padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: kanbanCategory === ct.key ? 700 : 400, cursor: 'pointer',
-              border: kanbanCategory === ct.key ? `2px solid ${ct.color || C.primary}` : `1px solid ${C.border}`,
-              background: kanbanCategory === ct.key ? `${ct.color || C.primary}15` : 'transparent',
-              color: kanbanCategory === ct.key ? (ct.color || C.primary) : C.t3,
-            }}>
-              {ct.label} <span style={{ fontSize: 10, opacity: 0.7 }}>({ct.count})</span>
-            </button>
+        {/* ── Visão (permissões) ── */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 10, alignItems: 'center' }}>
+          <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Visão:</span>
+          {viewModes.map(v => (
+            <button key={v.key} onClick={() => setKanbanViewMode(v.key)} title={v.desc} style={{
+              padding: '5px 14px', borderRadius: 8, fontSize: 12, fontWeight: kanbanViewMode === v.key ? 700 : 400, cursor: 'pointer',
+              border: kanbanViewMode === v.key ? `2px solid ${C.primary}` : `1px solid ${C.border}`,
+              background: kanbanViewMode === v.key ? `${C.primary}15` : 'transparent',
+              color: kanbanViewMode === v.key ? C.primary : C.t3,
+            }}>{v.label}</button>
           ))}
-          <span style={{ width: 1, height: 20, background: C.border, margin: '0 4px' }} />
+        </div>
+
+        {/* ── Filtros: Categoria + Projeto + Horizonte ── */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
+          <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Categoria:</span>
+          {[{ key: 'all', label: 'Todas', color: C.primary }, ...categories.filter(c => catCounts[c.name]).map(c => ({ key: c.name, label: c.name, color: c.color }))].map(f => (
+            <button key={f.key} onClick={() => setKanbanCategory(f.key)} style={{
+              padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: kanbanCategory === f.key ? 600 : 400, cursor: 'pointer',
+              border: kanbanCategory === f.key ? `2px solid ${f.color}` : `1px solid ${C.border}`,
+              background: kanbanCategory === f.key ? `${f.color}15` : 'transparent',
+              color: kanbanCategory === f.key ? f.color : C.t3,
+            }}>{f.label}</button>
+          ))}
+
+          <span style={{ width: 1, height: 20, background: C.border }} />
+
+          <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Projeto:</span>
+          <select value={kanbanProject} onChange={e => setKanbanProject(e.target.value)}
+            style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, color: C.text, maxWidth: 200 }}>
+            <option value="all">Todos</option>
+            {list.filter(p => p.status !== 'concluido').map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+
+          <span style={{ width: 1, height: 20, background: C.border }} />
+
           <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Horizonte:</span>
           <select value={kanbanHorizon} onChange={e => setKanbanHorizon(parseInt(e.target.value))}
             style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, color: C.text }}>
@@ -803,60 +909,118 @@ export default function Projetos() {
           </select>
         </div>
 
-        {/* 3 columns */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, minHeight: 400 }}>
-          {COLS.map(col => {
-            const colItems = sortByUrgency(items.filter(p => p.status === col.key));
+        {/* ─── NÍVEL 1: Phase strip (7 fases) ─── */}
+        <div style={{ overflowX: 'auto', marginBottom: 16, paddingBottom: 6 }}>
+          <div style={{ display: 'flex', gap: 5, minWidth: 'max-content' }}>
+            {PHASE_NAMES.map((name, i) => {
+              const order = i + 1;
+              const isActive = kanbanPhase === order;
+              const c = phaseTaskCounts[order] || { total: 0, done: 0 };
+              const isDone = c.total > 0 && c.done === c.total;
+              const pct = c.total > 0 ? Math.round((c.done / c.total) * 100) : 0;
+              return (
+                <div key={order} style={{ display: 'flex', alignItems: 'center' }}>
+                  <div onClick={() => { setKanbanPhase(order); setKanbanExpanded(null); }}
+                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = `${C.primary}08`; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                    onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = isDone ? C.bg : C.card; e.currentTarget.style.transform = ''; }}
+                    style={{
+                      borderRadius: 8, padding: '8px 10px', cursor: 'pointer', minWidth: 100, maxWidth: 130, transition: 'all .15s',
+                      border: isActive ? `2px solid ${C.primary}` : `1px solid ${C.border}`,
+                      background: isActive ? `${C.primary}10` : isDone ? C.bg : C.card,
+                      opacity: isDone && !isActive ? 0.7 : 1,
+                    }}>
+                    <div style={{ fontSize: 9, color: C.t3, marginBottom: 3 }}>{PHASE_ABBREVS[i]}</div>
+                    <div style={{ fontSize: 10, fontWeight: isActive ? 700 : 500, color: isActive ? C.primary : C.text, lineHeight: 1.3, marginBottom: 4 }}>{name}</div>
+                    <div style={{ height: 3, borderRadius: 2, background: C.border }}>
+                      <div style={{ height: 3, borderRadius: 2, width: `${pct}%`, background: isDone ? C.green : C.primary, transition: 'width .3s' }} />
+                    </div>
+                    <div style={{ fontSize: 9, color: C.t3, marginTop: 3 }}>{c.total > 0 ? `${c.done}/${c.total}` : 'vazia'}</div>
+                  </div>
+                  {i < PHASE_NAMES.length - 1 && <div style={{ width: 12, height: 2, background: isDone ? C.green : C.border, flexShrink: 0 }} />}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ─── NÍVEL 2: Header da fase selecionada ─── */}
+        <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 10 }}>
+          Fase {kanbanPhase} — {selectedPhaseName}
+          <span style={{ fontSize: 12, fontWeight: 400, color: C.t3, marginLeft: 12 }}>
+            {phaseTasks.filter(t => t.status === 'concluida').length}/{phaseTasks.length} tarefas
+          </span>
+        </div>
+
+        {/* ─── NÍVEL 2: 4 colunas kanban ─── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, minHeight: 300 }}>
+          {TASK_COLS.map(col => {
+            const colTasks = sortByUrgency(phaseTasks.filter(t => t.status === col.key));
             const isDropTarget = dropCol === col.key;
             return (
               <div key={col.key}
-                onDragOver={e => { e.preventDefault(); setDropCol(col.key); }}
-                onDragLeave={() => setDropCol(null)}
-                onDrop={e => { e.preventDefault(); const id = e.dataTransfer.getData('projectKanbanId'); if (id) kanbanChangeProjectStatus(id, col.key); setDropCol(null); setDragId(null); }}
-                style={{
-                  background: isDropTarget ? `${col.color}10` : C.bg, borderRadius: 12, padding: 10,
-                  border: isDropTarget ? `2px dashed ${col.color}` : `1px solid ${C.border}`, transition: 'all .2s',
-                }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, padding: '0 4px' }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: col.color, textTransform: 'uppercase', letterSpacing: 0.5 }}>{col.label}</span>
-                  <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 99, background: C.card, border: `1px solid ${C.border}`, color: C.t3 }}>{colItems.length}</span>
+                onDragOver={e => e.preventDefault()}
+                onDragEnter={e => { e.currentTarget.style.background = `${col.color}15`; setDropCol(col.key); }}
+                onDragLeave={e => { e.currentTarget.style.background = C.bg; setDropCol(null); }}
+                onDrop={e => { e.currentTarget.style.background = C.bg; setDropCol(null); const id = e.dataTransfer.getData('taskKanbanId'); if (id) changeTaskStatus(id, col.key); setDragId(null); }}
+                style={{ background: isDropTarget ? `${col.color}10` : C.bg, borderRadius: 10, padding: 8, transition: 'background .15s' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: col.color, textTransform: 'uppercase' }}>{col.label}</span>
+                  <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 99, background: C.card, border: `1px solid ${C.border}`, color: C.t3 }}>{colTasks.length}</span>
                 </div>
-                {colItems.length === 0 && <div style={{ padding: 20, textAlign: 'center', fontSize: 11, color: C.t3, border: `1.5px dashed ${C.border}`, borderRadius: 8 }}>\u2014</div>}
-                {colItems.map(p => {
-                  const catName = p.project_categories?.name || getCatName(p.category_id);
-                  const catColor = p.project_categories?.color || getCatColor(p.category_id);
-                  const pct = p.tasks_total > 0 ? Math.round((p.tasks_done / p.tasks_total) * 100) : 0;
-                  const isDragging = dragId === p.id;
+                {colTasks.length === 0 && <div style={{ padding: 16, textAlign: 'center', fontSize: 10, color: C.t3, border: '1.5px dashed var(--cbrio-border)', borderRadius: 8 }}>Arraste tarefas aqui</div>}
+                {colTasks.map(task => {
+                  const projName = task.parent_name || list.find(p => p.id === (task.parent_id || task.project_id))?.name || '';
+                  const dl = normDate(task.deadline);
+                  const diff = dl ? Math.ceil((new Date(dl + 'T12:00:00') - new Date()) / 86400000) : null;
+                  const dc = diff === null || task.status === 'concluida' ? null : diff < 0 ? C.red : diff <= 3 ? C.amber : C.green;
+                  const dt = diff === null ? '' : diff < 0 ? `${Math.abs(diff)}d atrás` : diff === 0 ? 'Hoje' : `${diff}d`;
+                  const isDragging = dragId === task.id;
+                  const isOpen = kanbanExpanded === task.id;
                   return (
-                    <div key={p.id} draggable
-                      onDragStart={e => { e.dataTransfer.setData('projectKanbanId', p.id); setDragId(p.id); }}
-                      onDragEnd={() => { setDragId(null); setDropCol(null); }}
-                      onClick={() => loadDetail(p.id)}
+                    <div key={task.id} draggable
+                      onDragStart={e => { e.dataTransfer.setData('taskKanbanId', task.id); setDragId(task.id); e.currentTarget.style.opacity = '0.4'; }}
+                      onDragEnd={e => { setDragId(null); setDropCol(null); e.currentTarget.style.opacity = '1'; }}
+                      onClick={() => setKanbanExpanded(isOpen ? null : task.id)}
                       style={{
-                        background: C.card, borderRadius: 10, padding: '12px 14px', marginBottom: 8,
-                        border: `1px solid ${C.border}`, cursor: 'grab', transition: 'all .15s',
+                        background: C.card, borderRadius: 8, padding: 8, marginBottom: 4,
+                        border: dc === C.red ? '1px solid #fecaca' : `1px solid ${C.border}`,
+                        cursor: 'grab', transition: 'opacity .15s, box-shadow .15s',
                         opacity: isDragging ? 0.4 : 1,
                       }}
-                      onMouseEnter={e => { if (!isDragging) e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'; }}
+                      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'}
                       onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                        <span style={styles.badge(catColor, catColor + '18')}>{catName}</span>
-                        <Badge status={p.priority} map={PRIORITY_MAP} />
+                      {/* Area badge */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                        <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 99, background: `${C.primary}15`, color: C.primary, fontWeight: 500 }}>{task.area || 'gestao'}</span>
+                        {task.priority && task.priority !== 'media' && <Badge status={task.priority} map={PRIORITY_MAP} />}
                       </div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 4, lineHeight: 1.3 }}>{p.name}</div>
-                      <div style={{ fontSize: 11, color: C.t3, marginBottom: 8 }}>{p.leader || p.responsible || '\u2014'}</div>
-                      {/* Progress bar */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                        <div style={{ flex: 1, height: 5, background: C.border, borderRadius: 3 }}>
-                          <div style={{ height: '100%', borderRadius: 3, width: `${pct}%`, background: pct >= 100 ? C.green : C.primary, transition: 'width 0.3s' }} />
+                      {/* Task name */}
+                      <div style={{ fontSize: 11, fontWeight: 500, color: C.text, lineHeight: 1.3, marginBottom: 2 }}>{task.name}</div>
+                      {/* Project name */}
+                      {projName && <div style={{ fontSize: 9, color: C.t3, marginBottom: 2 }}>{projName}</div>}
+                      {/* Responsible + subtasks */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: C.t3 }}>
+                        <span>{task.responsible || '—'}</span>
+                        {task.subtasks?.length > 0 && <span>{task.subtasks.filter(s => s.done).length}/{task.subtasks.length}</span>}
+                      </div>
+                      {/* Deadline */}
+                      {dc && task.status !== 'concluida' && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, paddingTop: 6, borderTop: `1px solid ${C.border}` }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: dc }}>{fmtDate(dl)}</span>
+                          <span style={{ fontSize: 10, fontWeight: 700, color: dc, padding: '1px 6px', borderRadius: 8, background: `${dc}15` }}>{dt}</span>
                         </div>
-                        <span style={{ fontSize: 10, fontWeight: 600, color: C.t3 }}>{p.tasks_done || 0}/{p.tasks_total || 0}</span>
-                      </div>
-                      {/* DaysCounter */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: 11, color: C.t3 }}>{fmtDate(p.date_end)}</span>
-                        <DaysCounter date={p.date_end} status={p.status} />
-                      </div>
+                      )}
+                      {/* Expanded: subtasks */}
+                      {isOpen && task.subtasks?.length > 0 && (
+                        <div style={{ marginTop: 6, paddingTop: 6, borderTop: `1px solid ${C.border}` }} onClick={e => e.stopPropagation()}>
+                          {task.subtasks.map(sub => (
+                            <div key={sub.id} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, padding: '2px 0', color: C.text }}>
+                              <input type="checkbox" checked={sub.done} onChange={async () => { await projects.toggleSubtask(sub.id, !sub.done); tasksApi.all({ source: 'projeto' }).then(d => setKanbanTasks(Array.isArray(d) ? d : [])).catch(() => {}); }} style={{ cursor: 'pointer', width: 13, height: 13 }} />
+                              <span style={sub.done ? { textDecoration: 'line-through', color: C.t3 } : {}}>{sub.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
