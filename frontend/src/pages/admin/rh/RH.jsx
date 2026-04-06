@@ -188,6 +188,7 @@ export default function RH() {
   const [dash, setDash] = useState(null);
   const [funcs, setFuncs] = useState([]);
   const [treinos, setTreinos] = useState([]);
+  const [setores, setSetores] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -231,7 +232,14 @@ export default function RH() {
     try { setTreinos(await rh.treinamentos.list()); } catch (e) { console.error(e); }
   }, []);
 
-  useEffect(() => { loadDash(); loadFuncs(); loadTreinos(); }, []);
+  const loadSetores = useCallback(async () => {
+    try {
+      const { data } = await supabase.from('setores').select('*').eq('ativo', true).order('nome');
+      setSetores(data || []);
+    } catch (e) { console.error(e); }
+  }, []);
+
+  useEffect(() => { loadDash(); loadFuncs(); loadTreinos(); loadSetores(); }, []);
   useEffect(() => { loadFuncs(); }, [filtroStatus, filtroArea, busca]);
 
   // ── Handlers ──
@@ -352,7 +360,7 @@ export default function RH() {
       )}
 
       {/* Modais */}
-      <FuncionarioFormModal open={!!modalFunc} data={modalFunc} onClose={() => setModalFunc(null)} onSave={saveFuncionario} funcionarios={funcs} />
+      <FuncionarioFormModal open={!!modalFunc} data={modalFunc} onClose={() => setModalFunc(null)} onSave={saveFuncionario} funcionarios={funcs} setores={setores} />
       <TreinamentoFormModal open={!!modalTreino} data={modalTreino} onClose={() => setModalTreino(null)} onSave={saveTreinamento} />
       <FeriasFormModal open={!!modalFerias} funcs={funcs} onClose={() => setModalFerias(null)} onSave={saveFerias} />
       <FuncionarioDetailPanel
@@ -583,12 +591,10 @@ function FuncionariosTab({ funcs, loading, busca, setBusca, filtroStatus, setFil
               </tr>
             </thead>
             <tbody>
-              {loading && <tr><td colSpan={7} style={{ ...styles.td, textAlign: 'center', color: C.text3 }}>Carregando...</td></tr>}
-              {!loading && funcs.length === 0 && <tr><td colSpan={7} style={{ ...styles.td, textAlign: 'center', color: C.text3 }}>Nenhum colaborador encontrado</td></tr>}
+              {loading && <tr><td colSpan={7}><div className="flex items-center justify-center py-6 gap-2"><div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground/25 border-t-primary" /><span className="text-xs text-muted-foreground">Carregando...</span></div></td></tr>}
+              {!loading && funcs.length === 0 && <tr><td colSpan={7}><div className="flex flex-col items-center py-10 gap-2"><div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mb-1"><svg className="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg></div><span className="text-sm font-medium text-foreground">Nenhum colaborador encontrado</span><span className="text-xs text-muted-foreground">Tente ajustar os filtros</span></div></td></tr>}
               {funcs.map(f => (
-                <tr key={f.id} style={styles.clickRow}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--cbrio-input-bg)'}
-                  onMouseLeave={e => e.currentTarget.style.background = ''}
+                <tr key={f.id} className="cbrio-row"
                   onClick={() => onDetail(f.id)}>
                   <td style={{ ...styles.td, fontWeight: 600 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -1167,8 +1173,8 @@ function FeriasTab({ funcs, onNew, onAprovar }) {
               </tr>
             </thead>
             <tbody>
-              {loading && <tr><td colSpan={8} style={{ ...styles.td, textAlign: 'center', color: C.text3 }}>Carregando...</td></tr>}
-              {!loading && ferias.length === 0 && <tr><td colSpan={8} style={{ ...styles.td, textAlign: 'center', color: C.text3 }}>Nenhuma solicitação</td></tr>}
+              {loading && <tr><td colSpan={8}><div className="flex items-center justify-center py-6 gap-2"><div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground/25 border-t-primary" /><span className="text-xs text-muted-foreground">Carregando...</span></div></td></tr>}
+              {!loading && ferias.length === 0 && <tr><td colSpan={8}><div className="flex flex-col items-center py-10 gap-2"><div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mb-1"><svg className="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg></div><span className="text-sm font-medium text-foreground">Nenhuma solicitação</span><span className="text-xs text-muted-foreground">Tente ajustar os filtros</span></div></td></tr>}
               {ferias.map(f => {
                 const dias = f.data_inicio && f.data_fim ? Math.ceil((new Date(f.data_fim) - new Date(f.data_inicio)) / 86400000) : '—';
                 return (
@@ -1371,7 +1377,7 @@ function OrgChartTab({ funcs, onDetail }) {
 // MODAIS
 // ═══════════════════════════════════════════════════════════
 
-function FuncionarioFormModal({ open, data, onClose, onSave, funcionarios = [] }) {
+function FuncionarioFormModal({ open, data, onClose, onSave, funcionarios = [], setores = [] }) {
   const [f, setF] = useState({});
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -1420,10 +1426,16 @@ function FuncionarioFormModal({ open, data, onClose, onSave, funcionarios = [] }
       </div>
       <div style={styles.formRow}>
         <Input label="Telefone" value={f.telefone || ''} onChange={e => upd('telefone', e.target.value)} />
-        <Input label="Cargo *" value={f.cargo || ''} onChange={e => upd('cargo', e.target.value)} />
+        <Select label="Setor" value={f.setor_id || ''} onChange={e => upd('setor_id', e.target.value ? parseInt(e.target.value) : null)}>
+          <option value="">Selecione o setor</option>
+          {setores.map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}
+        </Select>
       </div>
       <div style={styles.formRow}>
         <Input label="Área" value={f.area || ''} onChange={e => upd('area', e.target.value)} />
+      </div>
+      <div style={styles.formRow}>
+        <Input label="Cargo *" value={f.cargo || ''} onChange={e => upd('cargo', e.target.value)} />
         <Select label="Tipo de Contrato" value={f.tipo_contrato || 'clt'} onChange={e => upd('tipo_contrato', e.target.value)}>
           {Object.entries(TIPO_CONTRATO).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </Select>
