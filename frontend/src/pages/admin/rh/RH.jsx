@@ -587,7 +587,7 @@ function FuncionariosTab({ funcs, loading, busca, setBusca, filtroStatus, setFil
               {!loading && funcs.length === 0 && <tr><td colSpan={7} style={{ ...styles.td, textAlign: 'center', color: C.text3 }}>Nenhum colaborador encontrado</td></tr>}
               {funcs.map(f => (
                 <tr key={f.id} style={styles.clickRow}
-                  onMouseEnter={e => e.currentTarget.style.background = '#1e1e1e'}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--cbrio-input-bg)'}
                   onMouseLeave={e => e.currentTarget.style.background = ''}
                   onClick={() => onDetail(f.id)}>
                   <td style={{ ...styles.td, fontWeight: 600 }}>

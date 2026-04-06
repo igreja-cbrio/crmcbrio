@@ -313,7 +313,7 @@ function BensTab({ bens, loading, busca, setBusca, filtroStatus, setFiltroStatus
               {loading && <tr><td colSpan={8} style={{ ...styles.td, textAlign: 'center', color: C.text3 }}>Carregando...</td></tr>}
               {!loading && bens.length === 0 && <tr><td colSpan={8} style={{ ...styles.td, textAlign: 'center', color: C.text3 }}>Nenhum bem encontrado</td></tr>}
               {bens.map(b => (
-                <tr key={b.id} style={styles.clickRow} onMouseEnter={e => e.currentTarget.style.background = '#1e1e1e'} onMouseLeave={e => e.currentTarget.style.background = ''} onClick={() => onDetail(b.id)}>
+                <tr key={b.id} style={styles.clickRow} onMouseEnter={e => e.currentTarget.style.background = 'var(--cbrio-input-bg)'} onMouseLeave={e => e.currentTarget.style.background = ''} onClick={() => onDetail(b.id)}>
                   <td style={{ ...styles.td, fontFamily: 'monospace', fontSize: 12 }}>{b.codigo_barras}</td>
                   <td style={{ ...styles.td, fontWeight: 600 }}>{b.nome}</td>
                   <td style={styles.td}>{b.pat_categorias?.nome || '—'}</td>
