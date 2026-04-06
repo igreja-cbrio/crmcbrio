@@ -2,6 +2,7 @@ const router = require('express').Router();
 const { authenticate, authorize } = require('../middleware/auth');
 const { supabase } = require('../utils/supabase');
 const { notificar } = require('../services/notificar');
+const PHASE_TEMPLATE = require('../project_phases_template.json');
 
 // Helper: verificar se todas as tarefas de uma fase foram concluídas
 async function checkPhaseAutoComplete(task) {
@@ -14,7 +15,7 @@ async function checkPhaseAutoComplete(task) {
     const { data: allPhaseTasks } = await supabase.from('project_tasks')
       .select('id, status, description')
       .eq('project_id', task.project_id)
-      .like('description', `Fase: ${phaseName}`);
+      .ilike('description', `%Fase: ${phaseName}%`);
 
     const total = allPhaseTasks?.length || 0;
     const done = allPhaseTasks?.filter(t => t.status === 'concluida').length || 0;
@@ -31,27 +32,31 @@ async function checkPhaseAutoComplete(task) {
         // Concluir a fase
         await supabase.from('project_phases').update({ status: 'concluida' }).eq('id', phase.id);
 
-        // Avançar próxima fase para em-andamento
-        await supabase.from('project_phases')
-          .update({ status: 'em-andamento' })
-          .eq('project_id', phase.project_id)
-          .eq('phase_order', phase.phase_order + 1)
-          .eq('status', 'pendente');
+        // Avançar próxima fase (se não for a última)
+        if (phase.phase_order < 7) {
+          await supabase.from('project_phases')
+            .update({ status: 'em-andamento' })
+            .eq('project_id', phase.project_id)
+            .eq('phase_order', phase.phase_order + 1)
+            .eq('status', 'pendente');
+        }
 
         // Buscar nome do projeto
         const { data: proj } = await supabase.from('projects')
           .select('name').eq('id', task.project_id).single();
 
         // Enviar notificação no sininho
-        await notificar({
-          modulo: 'projetos',
-          tipo: 'fase_concluida',
-          titulo: `Fase "${phaseName}" concluída`,
-          mensagem: `Todas as tarefas da fase "${phaseName}" foram concluídas no projeto "${proj?.name || 'Projeto'}".`,
-          link: `/projetos?id=${task.project_id}`,
-          severidade: 'info',
-          chaveDedup: `phase_done_${phase.id}`,
-        });
+        try {
+          await notificar({
+            modulo: 'projetos',
+            tipo: 'fase_concluida',
+            titulo: `Fase "${phaseName}" concluída`,
+            mensagem: `Todas as tarefas da fase "${phaseName}" foram concluídas no projeto "${proj?.name || 'Projeto'}".`,
+            link: `/projetos?id=${task.project_id}`,
+            severidade: 'info',
+            chaveDedup: `phase_done_${phase.id}`,
+          });
+        } catch (notifErr) { console.error('[Projetos] Erro ao notificar:', notifErr.message); }
         console.log(`[Projetos] Fase "${phaseName}" auto-concluída no projeto "${proj?.name}"`);
       }
     }
@@ -259,9 +264,36 @@ router.post('/', authorize('diretor'), async (req, res) => {
       swot_threats: d.swot_threats || '',
     }).select().single();
     if (error) throw error;
+
+    // Auto-criar 7 fases + 42 tarefas padrão
+    try {
+      const projId = data.id;
+      const ds = data.date_start ? new Date(data.date_start) : new Date();
+      const de = data.date_end ? new Date(data.date_end) : new Date(ds.getTime() + 365 * 86400000);
+      const totalDays = Math.max(Math.round((de - ds) / 86400000), 7);
+      const PCTS = [0.10, 0.10, 0.15, 0.10, 0.30, 0.15, 0.10];
+      const addD = (base, days) => { const r = new Date(base); r.setDate(r.getDate() + days); return r.toISOString().slice(0, 10); };
+      let dayOff = 0;
+      for (const tmpl of PHASE_TEMPLATE) {
+        const pd = Math.max(Math.round(totalDays * PCTS[tmpl.phase_order - 1]), 1);
+        const ps = addD(ds, dayOff); const pe = addD(ds, dayOff + pd - 1);
+        dayOff += pd;
+        await supabase.from('project_phases').insert({
+          project_id: projId, name: tmpl.name, phase_order: tmpl.phase_order,
+          date_start: ps, date_end: pe, status: tmpl.phase_order === 1 ? 'em-andamento' : 'pendente',
+          responsible: data.leader || data.responsible || '',
+        });
+        await supabase.from('project_tasks').insert(tmpl.tasks.map(t => ({
+          project_id: projId, name: t.name, area: t.area,
+          start_date: ps, deadline: pe, status: 'pendente', priority: 'media',
+          description: `Fase: ${tmpl.name}`,
+        })));
+      }
+    } catch (phErr) { console.error('[Projects] Erro ao criar fases automáticas:', phErr.message); }
+
     res.json(data);
   } catch (e) {
-    console.error(e);
+    console.error('[Projects]', e.message);
     res.status(500).json({ error: 'Erro ao criar projeto' });
   }
 });
@@ -432,7 +464,7 @@ router.patch('/tasks/:taskId/status', async (req, res) => {
 
     // Auto-conclusão de fase + notificação
     if (req.body.status === 'concluida') {
-      checkPhaseAutoComplete(data);
+      await checkPhaseAutoComplete(data);
     }
 
     res.json(data);
