@@ -1,7 +1,7 @@
 # CLAUDE.md — CBRio ERP
 
 Guia para Claude Code e agentes de IA trabalhando neste repositório.
-Atualizado em: 2026-04-06 (v5) — RH auditado (painéis laterais, error states, inline edit), emails importados, Logística auditada, Patrimônio com 4264 bens, IA agents, notificações inline
+Atualizado em: 2026-04-06 (v6) — Permissões granulares ENFORÇADAS, RH auditado, emails importados, Logística auditada, Patrimônio com 4264 bens, IA agents, notificações inline
 
 ---
 
@@ -356,9 +356,16 @@ Estes arquivos afetam o sistema inteiro. Alterações devem ser feitas via **Pul
   - Error states visuais em todos os formulários (banners vermelhos)
   - Cores hardcoded trocadas por CSS variables
 
-#### Permissões do Sistema
-- **Sistema simples (ativo):** 3 roles (assistente, admin, diretor) — routes usam `authorize('admin', 'diretor')`
-- **Sistema granular (preparado, não enforçado):** cargos, setores, áreas, permissões por módulo (níveis 1-5: sem acesso, pessoal, área, setor, admin). UI existe no painel do colaborador, endpoints em `/api/permissoes/*`, mas routes NÃO validam esses níveis ainda
+#### Permissões do Sistema (ENFORÇADO)
+- **Middleware `authorizeModule(routeKey)`** — substitui `authorize('admin','diretor')` em todos os routes protegidos
+- **5 níveis de acesso:** 1=Negado, 2=Assistente (pessoal), 3=Líder (área), 4=Diretor (setor), 5=Admin (total)
+- **12 módulos:** Tarefas, Banco de Arquivos, Patrimônio, DP, Pessoas, Financeiro, Agenda, Comunicação, Logística, Membresia, Projetos, IA/Agentes
+- **Tabelas:** `usuarios` (57 importados), `cargos` (5), `modulos` (12), `setores` (4), `areas` (16), `permissoes_modulo` (overrides), `usuario_areas` (vínculos)
+- **Backend:** `authenticate()` carrega permissões granulares automaticamente; `authorizeModule()` verifica nível por módulo + tipo (leitura/escrita baseado no HTTP method)
+- **Frontend:** `AuthContext` expõe `canRH`, `canFinanceiro`, `canLogistica`, `canPatrimonio`, `canIA` etc.; navegação filtrada por permissões
+- **Endpoint:** `GET /api/auth/my-permissions` retorna permissões granulares do usuário
+- **Backward compat:** Admin/Diretor sempre passam; usuários sem entry em `usuarios` são bloqueados
+- **UI de configuração:** Painel de detalhes do colaborador → seção "Permissões do Sistema" → configurar cargo, áreas, overrides por módulo
 
 ### Membresia
 - Listagem de membros com avatar, família, status, telefone, ministério
