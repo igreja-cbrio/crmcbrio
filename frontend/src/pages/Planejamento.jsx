@@ -50,16 +50,17 @@ function sortByUrgency(tasks) {
 }
 
 export default function Planejamento() {
-  const { profile, user } = useAuth();
+  const { profile, user, getAccessLevel, userAreas } = useAuth();
   const userRole = profile?.role || '';
   const userArea = profile?.area || '';
   const userId = user?.id || '';
+  const accessLevel = getAccessLevel(['Projetos', 'Tarefas', 'Agenda']);
 
   // Ler URL params para drill-down (ex: /planejamento?person=João)
   const urlParams = new URLSearchParams(window.location.search);
   const urlPerson = urlParams.get('person') || '';
   const urlStatus = urlParams.get('status') || '';
-  const isPMO = ['diretor', 'admin'].includes(userRole);
+  const isPMO = accessLevel >= 4; // Diretor+ vê tudo
 
   const [tab, setTab] = useState((urlPerson || urlStatus) ? 2 : 0); // 0=Dashboard, 1=Kanban, 2=Lista, 3=Gantt
   const [viewMode, setViewMode] = useState(isPMO ? 'pmo' : 'minhas'); // 'pmo' = por fase, 'area' = por área, 'minhas' = só minhas

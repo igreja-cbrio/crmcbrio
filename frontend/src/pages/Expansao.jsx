@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { expansion } from '../api';
+import { expansion, users } from '../api';
 import { AlertTriangle } from 'lucide-react';
 
 // ── Tema (CSS vars para dark/light mode) ──────────────────
@@ -227,13 +227,24 @@ const TAB_LABELS = ['Visao Geral', 'Timeline', 'Marcos', 'Gantt'];
 // COMPONENTE PRINCIPAL
 // ═══════════════════════════════════════════════════════════
 export default function Expansao() {
-  const { isDiretor } = useAuth();
+  const { user, profile, getAccessLevel, userAreas, userSetores } = useAuth();
+  const accessLevel = getAccessLevel(['Projetos']);
+  const userId = user?.id;
+  const canEdit = accessLevel >= 3; // líder+ pode criar/editar
+  const canEditItem = (item) => {
+    if (accessLevel >= 4) return true; // diretor+: edita qualquer visível
+    if (accessLevel === 3) return !item.area || userAreas.includes(item.area); // líder: edita da sua área
+    if (accessLevel === 2) return item.responsible_id === userId; // assistente: só seus
+    return false;
+  };
+
   const [milestones, setMilestones] = useState([]);
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [tab, setTab] = useState(0);
+  const [tab, setTab] = useState(accessLevel <= 2 ? 2 : 0); // assistente começa na aba Marcos
   const [saving, setSaving] = useState(false);
+  const [usersList, setUsersList] = useState([]);
 
   // Detail state
   const [selectedMilestone, setSelectedMilestone] = useState(null);
@@ -268,7 +279,9 @@ export default function Expansao() {
   const load = useCallback(async () => {
     try {
       setError('');
-      const [ms, db] = await Promise.all([expansion.milestones(), expansion.dashboard()]);
+      const [msRes, db] = await Promise.all([expansion.milestones(), expansion.dashboard()]);
+      // API agora retorna { milestones, accessLevel, ... } ou array (backward compat)
+      const ms = msRes?.milestones || (Array.isArray(msRes) ? msRes : []);
       setMilestones(Array.isArray(ms) ? ms : []);
       setDashboard(db);
     } catch (err) {
@@ -279,25 +292,48 @@ export default function Expansao() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { users.list().then(setUsersList).catch(() => {}); }, []);
+
+  // ── Filtro por nível de acesso ──
+  const visibleMilestones = useMemo(() => {
+    if (accessLevel >= 5) return milestones; // Admin: tudo
+    if (accessLevel >= 4) {
+      // Diretor: tudo das áreas do setor
+      if (userAreas.length === 0) return milestones; // sem áreas configuradas → vê tudo
+      return milestones.filter(m => !m.area || userAreas.includes(m.area));
+    }
+    if (accessLevel >= 3) {
+      // Líder: tudo da sua área
+      return milestones.filter(m => !m.area || userAreas.includes(m.area));
+    }
+    if (accessLevel >= 2) {
+      // Assistente: só itens onde é responsável (por UUID)
+      return milestones.filter(m =>
+        m.responsible_id === userId ||
+        m.tasks?.some(t => t.responsible_id === userId)
+      );
+    }
+    return []; // Negado
+  }, [milestones, accessLevel, userAreas, userId]);
 
   // ── Derived data ──
-  const allAreas = useMemo(() => [...new Set(milestones.map(m => m.area).filter(Boolean))].sort(), [milestones]);
-  const allResponsibles = useMemo(() => [...new Set(milestones.map(m => m.responsible).filter(Boolean))].sort(), [milestones]);
+  const allAreas = useMemo(() => [...new Set(visibleMilestones.map(m => m.area).filter(Boolean))].sort(), [visibleMilestones]);
+  const allResponsibles = useMemo(() => [...new Set(visibleMilestones.map(m => m.responsible).filter(Boolean))].sort(), [visibleMilestones]);
 
   const counts = useMemo(() => {
-    const c = { total: milestones.length, pendente: 0, 'em-andamento': 0, concluido: 0, bloqueado: 0 };
-    milestones.forEach(m => { if (c[m.status] !== undefined) c[m.status]++; });
+    const c = { total: visibleMilestones.length, pendente: 0, 'em-andamento': 0, concluido: 0, bloqueado: 0 };
+    visibleMilestones.forEach(m => { if (c[m.status] !== undefined) c[m.status]++; });
     return c;
-  }, [milestones]);
+  }, [visibleMilestones]);
 
   const axisCounts = useMemo(() => {
     const ac = {};
     [2026, 2027, 2028, 2029].forEach(y => {
-      const yms = milestones.filter(m => m.year === y);
+      const yms = visibleMilestones.filter(m => m.year === y);
       ac[y] = { total: yms.length, done: yms.filter(m => m.status === 'concluido').length };
     });
     return ac;
-  }, [milestones]);
+  }, [visibleMilestones]);
 
   // ── CRUD Handlers ──
   const saveMilestone = async (form) => {
@@ -314,15 +350,7 @@ export default function Expansao() {
         await expansion.createMilestone(form);
       }
       setModalMilestone(null);
-      const ms = await expansion.milestones();
-      setMilestones(Array.isArray(ms) ? ms : []);
-      // refresh detail if viewing
-      if (selectedMilestone && form.id) {
-        const updated = ms.find(m => m.id === form.id);
-        setSelectedMilestone(updated || null);
-      }
-      const db = await expansion.dashboard();
-      setDashboard(db);
+      await refreshAll();
     } catch (err) { setError(err.message); }
     finally { setSaving(false); }
   };
@@ -354,14 +382,7 @@ export default function Expansao() {
         await expansion.createTask(milestoneId, form);
       }
       setModalTask(null);
-      const ms = await expansion.milestones();
-      setMilestones(Array.isArray(ms) ? ms : []);
-      if (selectedMilestone) {
-        const updated = ms.find(m => m.id === selectedMilestone.id);
-        setSelectedMilestone(updated || null);
-      }
-      const db = await expansion.dashboard();
-      setDashboard(db);
+      await refreshAll();
     } catch (err) { setError(err.message); }
     finally { setSaving(false); }
   };
@@ -387,7 +408,8 @@ export default function Expansao() {
 
   // Helper to refresh milestones + detail in one go
   const refreshAll = async () => {
-    const [ms, db] = await Promise.all([expansion.milestones(), expansion.dashboard()]);
+    const [msRes, db] = await Promise.all([expansion.milestones(), expansion.dashboard()]);
+    const ms = msRes?.milestones || (Array.isArray(msRes) ? msRes : []);
     setMilestones(Array.isArray(ms) ? ms : []);
     setDashboard(db);
     if (selectedMilestone) {
@@ -434,7 +456,7 @@ export default function Expansao() {
     null,
     { label: 'Concluidos', value: counts.concluido, color: C.green, action: () => kpiDrillDown('concluido') },
     { label: 'Em Andamento', value: counts['em-andamento'], color: C.blue, action: () => kpiDrillDown('em-andamento') },
-    { label: 'Atrasados', value: milestones.filter(m => {
+    { label: 'Atrasados', value: visibleMilestones.filter(m => {
       const d = normDate(m.date_end || m.expected_delivery);
       return d && m.status !== 'concluido' && new Date(d + 'T12:00:00') < new Date();
     }).length, color: C.red, action: () => kpiDrillDown('atrasado') },
@@ -449,7 +471,7 @@ export default function Expansao() {
 
     // Workload by responsible
     const workloadMap = {};
-    milestones.forEach(m => {
+    visibleMilestones.forEach(m => {
       const name = m.responsible || 'Sem responsavel';
       if (!workloadMap[name]) workloadMap[name] = { name, count: 0 };
       workloadMap[name].count++;
@@ -461,7 +483,7 @@ export default function Expansao() {
     const now = new Date();
     const in30 = new Date(); in30.setDate(in30.getDate() + 30);
     const upcoming = sortByUrgency(
-      milestones.filter(m => {
+      visibleMilestones.filter(m => {
         if (m.status === 'concluido') return false;
         const d = normDate(m.date_end || m.expected_delivery);
         if (!d) return false;
@@ -672,7 +694,7 @@ export default function Expansao() {
               {/* Year bands */}
               {[2026, 2027, 2028, 2029].map(year => {
                 const ax = AXES[year];
-                const yearMilestones = milestones.filter(m => m.year === year);
+                const yearMilestones = visibleMilestones.filter(m => m.year === year);
                 const bandLeft = monthToPct(year, 0);
                 const bandWidth = (12 / totalMonths) * 100;
 
@@ -769,7 +791,7 @@ export default function Expansao() {
   // ═══════════════════════════════════════════════════════════
   function renderMarcos() {
     // Apply filters
-    let filtered = [...milestones];
+    let filtered = [...visibleMilestones];
     if (fYear) filtered = filtered.filter(m => String(m.year) === fYear);
     if (fArea) filtered = filtered.filter(m => m.area === fArea);
     if (fResponsible) filtered = filtered.filter(m => m.responsible === fResponsible);
@@ -910,8 +932,8 @@ export default function Expansao() {
     const handleDrop = async (e, col) => {
       e.preventDefault();
       setDropCol(null);
-      if (!dragId || !isDiretor) { setDragId(null); return; }
-      const mi = milestones.find(m => m.id === dragId);
+      if (!dragId || !canEdit) { setDragId(null); return; }
+      const mi = visibleMilestones.find(m => m.id === dragId);
       setDragId(null);
       if (!mi || mi.status === col) return;
       try {
@@ -948,7 +970,7 @@ export default function Expansao() {
                 const isDragging = dragId === mi.id;
                 return (
                   <div key={mi.id}
-                    draggable={isDiretor}
+                    draggable={canEdit}
                     onDragStart={() => handleDragStart(mi.id)}
                     onDragEnd={handleDragEnd}
                     onClick={() => openDetail(mi)}
@@ -1005,7 +1027,7 @@ export default function Expansao() {
     }
 
     // Filters
-    let visible = milestones.filter(m => normDate(m.date_start) && normDate(m.date_end));
+    let visible = visibleMilestones.filter(m => normDate(m.date_start) && normDate(m.date_end));
     if (ganttYearFilter) visible = visible.filter(m => String(m.year) === ganttYearFilter);
     if (ganttAreaFilter) visible = visible.filter(m => m.area === ganttAreaFilter);
     if (ganttStatusFilter) visible = visible.filter(m => m.status === ganttStatusFilter);
@@ -1203,7 +1225,7 @@ export default function Expansao() {
               {mi.phase && <span style={{ fontSize: 11, color: C.t3, padding: '2px 8px' }}>Fase: {mi.phase}</span>}
             </div>
           </div>
-          {isDiretor && (
+          {canEditItem(mi) && (
             <div style={{ display: 'flex', gap: 8 }}>
               <button style={styles.btn('secondary')} onClick={() => setModalMilestone(mi)}>Editar</button>
               <button style={styles.btn('danger')} onClick={() => deleteMilestone(mi.id)}>Excluir</button>
@@ -1301,7 +1323,7 @@ export default function Expansao() {
         <div style={{ ...styles.card, marginBottom: 16 }}>
           <div style={styles.cardHeader}>
             <span style={styles.cardTitle}>Tarefas ({tasks.length})</span>
-            {isDiretor && (
+            {canEditItem(mi) && (
               <button style={{ ...styles.btn('secondary'), ...styles.btnSm }} onClick={() => setModalTask({ milestoneId: mi.id })}>
                 + Adicionar Tarefa
               </button>
@@ -1314,7 +1336,7 @@ export default function Expansao() {
               <TaskRow
                 key={task.id}
                 task={task}
-                isDiretor={isDiretor}
+                canEdit={canEditItem(task)}
                 onEdit={() => setModalTask({ data: task, milestoneId: mi.id })}
                 onDelete={() => deleteTask(task.id)}
                 onAddSubtask={(name) => addSubtask(task.id, name)}
@@ -1349,7 +1371,7 @@ export default function Expansao() {
           <div style={styles.title}>Plano de Expansao 2026-2029</div>
           <div style={styles.subtitle}>Quadrienio estrategico {'\u2014'} Pr. Pedrao</div>
         </div>
-        {isDiretor && (
+        {canEdit && (
           <button style={styles.btn('primary')} onClick={() => setModalMilestone({})}>
             + Novo Marco
           </button>
@@ -1363,12 +1385,13 @@ export default function Expansao() {
         </div>
       )}
 
-      {/* Tabs */}
+      {/* Tabs — assistente (nível 2) não vê Visão Geral nem Timeline */}
       {tab !== 4 && (
         <div style={styles.tabs}>
-          {TAB_LABELS.map((label, i) => (
-            <button key={i} style={styles.tab(tab === i)} onClick={() => setTab(i)}>{label}</button>
-          ))}
+          {TAB_LABELS.map((label, i) => {
+            if (accessLevel <= 2 && (i === 0 || i === 1)) return null; // esconder Visão Geral e Timeline para assistente
+            return <button key={i} style={styles.tab(tab === i)} onClick={() => setTab(i)}>{label}</button>;
+          })}
         </div>
       )}
 
@@ -1386,6 +1409,7 @@ export default function Expansao() {
         saving={saving}
         onSave={saveMilestone}
         onClose={() => setModalMilestone(null)}
+        usersList={usersList}
       />
 
       {/* Task Modal */}
@@ -1396,6 +1420,7 @@ export default function Expansao() {
         saving={saving}
         onSave={saveTask}
         onClose={() => setModalTask(null)}
+        usersList={usersList}
       />
 
       {/* Confirm Dialog */}
@@ -1413,7 +1438,7 @@ export default function Expansao() {
 // ═══════════════════════════════════════════════════════════
 // TaskRow Component
 // ═══════════════════════════════════════════════════════════
-function TaskRow({ task, isDiretor, onEdit, onDelete, onAddSubtask, onUpdateSubtaskPct, onDeleteSubtask }) {
+function TaskRow({ task, canEdit, onEdit, onDelete, onAddSubtask, onUpdateSubtaskPct, onDeleteSubtask }) {
   const [showSubs, setShowSubs] = useState(false);
   const [newSub, setNewSub] = useState('');
   const tPct = calcTaskProgress(task);
@@ -1440,7 +1465,7 @@ function TaskRow({ task, isDiretor, onEdit, onDelete, onAddSubtask, onUpdateSubt
         <div style={{ minWidth: 110 }}>
           <ProgressBar pct={tPct} height={6} />
         </div>
-        {isDiretor && (
+        {canEdit && (
           <div style={{ display: 'flex', gap: 2 }}>
             <button style={{ ...styles.iconBtn, fontSize: 12 }} onClick={onEdit} title="Editar">{'\u270E'}</button>
             <button style={{ ...styles.iconBtn, fontSize: 12, color: C.red }} onClick={onDelete} title="Excluir">{'\u2715'}</button>
@@ -1460,19 +1485,19 @@ function TaskRow({ task, isDiretor, onEdit, onDelete, onAddSubtask, onUpdateSubt
                   value={st.pct || 0}
                   onChange={e => onUpdateSubtaskPct(st.id, Number(e.target.value))}
                   style={{ width: 80, cursor: 'pointer', accentColor: C.primary }}
-                  disabled={!isDiretor}
+                  disabled={!canEdit}
                 />
                 <span style={{ fontSize: 12, fontWeight: 600, color: progressColor(st.pct || 0), minWidth: 36, textAlign: 'right' }}>
                   {st.pct || 0}%
                 </span>
-                {isDiretor && (
+                {canEdit && (
                   <button style={{ ...styles.iconBtn, fontSize: 11, color: C.red }} onClick={() => onDeleteSubtask(st.id)} title="Excluir">{'\u2715'}</button>
                 )}
               </div>
             </div>
           ))}
 
-          {isDiretor && (
+          {canEdit && (
             <div style={{ ...styles.subtaskRow, gap: 8 }}>
               <input
                 type="text"
@@ -1492,7 +1517,7 @@ function TaskRow({ task, isDiretor, onEdit, onDelete, onAddSubtask, onUpdateSubt
             </div>
           )}
 
-          {(!task.subtasks || task.subtasks.length === 0) && !isDiretor && (
+          {(!task.subtasks || task.subtasks.length === 0) && !canEdit && (
             <div style={{ ...styles.subtaskRow, color: C.t3, fontSize: 12 }}>Nenhuma subtarefa.</div>
           )}
         </div>
@@ -1504,7 +1529,7 @@ function TaskRow({ task, isDiretor, onEdit, onDelete, onAddSubtask, onUpdateSubt
 // ═══════════════════════════════════════════════════════════
 // Milestone Form Modal
 // ═══════════════════════════════════════════════════════════
-function MilestoneFormModal({ open, data, saving, onSave, onClose }) {
+function MilestoneFormModal({ open, data, saving, onSave, onClose, usersList }) {
   const isEdit = data?.id;
   const [form, setForm] = useState({});
 
@@ -1519,6 +1544,7 @@ function MilestoneFormModal({ open, data, saving, onSave, onClose }) {
         strategic_objective: data?.strategic_objective || '',
         area: data?.area || '',
         responsible: data?.responsible || '',
+        responsible_id: data?.responsible_id || '',
         date_start: data?.date_start ? normDate(data.date_start) : '',
         date_end: data?.date_end ? normDate(data.date_end) : '',
         expected_delivery: data?.expected_delivery ? normDate(data.expected_delivery) : '',
@@ -1581,7 +1607,10 @@ function MilestoneFormModal({ open, data, saving, onSave, onClose }) {
             <input style={styles.input} value={form.area || ''} onChange={e => set('area', e.target.value)} />
           </Field>
           <Field label="Responsavel">
-            <input style={styles.input} value={form.responsible || ''} onChange={e => set('responsible', e.target.value)} />
+            <select style={{ ...styles.select, width: '100%' }} value={form.responsible_id || ''} onChange={e => set('responsible_id', e.target.value)}>
+              <option value="">Selecionar...</option>
+              {(usersList || []).map(u => <option key={u.id} value={u.id}>{u.name || u.email}</option>)}
+            </select>
           </Field>
         </div>
         <div style={styles.formRow}>
@@ -1646,7 +1675,7 @@ function MilestoneFormModal({ open, data, saving, onSave, onClose }) {
 // ═══════════════════════════════════════════════════════════
 // Task Form Modal
 // ═══════════════════════════════════════════════════════════
-function TaskFormModal({ open, data, milestoneId, saving, onSave, onClose }) {
+function TaskFormModal({ open, data, milestoneId, saving, onSave, onClose, usersList }) {
   const isEdit = data?.id;
   const [form, setForm] = useState({});
 
@@ -1656,6 +1685,7 @@ function TaskFormModal({ open, data, milestoneId, saving, onSave, onClose }) {
         id: data?.id || null,
         name: data?.name || '',
         responsible: data?.responsible || '',
+        responsible_id: data?.responsible_id || '',
         area: data?.area || '',
         start_date: data?.start_date ? normDate(data.start_date) : '',
         deadline: data?.deadline ? normDate(data.deadline) : '',
@@ -1687,7 +1717,10 @@ function TaskFormModal({ open, data, milestoneId, saving, onSave, onClose }) {
         </Field>
         <div style={styles.formRow}>
           <Field label="Responsavel">
-            <input style={styles.input} value={form.responsible || ''} onChange={e => set('responsible', e.target.value)} />
+            <select style={{ ...styles.select, width: '100%' }} value={form.responsible_id || ''} onChange={e => set('responsible_id', e.target.value)}>
+              <option value="">Selecionar...</option>
+              {(usersList || []).map(u => <option key={u.id} value={u.id}>{u.name || u.email}</option>)}
+            </select>
           </Field>
           <Field label="Area">
             <input style={styles.input} value={form.area || ''} onChange={e => set('area', e.target.value)} />

@@ -42,9 +42,9 @@ const NAV_ITEMS = [
       {
         title: 'Módulos',
         items: [
-          { label: 'Eventos', description: 'Gestão de eventos da igreja', icon: CalendarDays, path: '/eventos' },
-          { label: 'Projetos', description: 'Acompanhamento de projetos', icon: FolderKanban, path: '/projetos' },
-          { label: 'Expansão', description: 'Metas de expansão', icon: Map, path: '/expansao' },
+          { label: 'Eventos', description: 'Gestão de eventos da igreja', icon: CalendarDays, path: '/eventos', perm: 'canAgenda' },
+          { label: 'Projetos', description: 'Acompanhamento de projetos', icon: FolderKanban, path: '/projetos', perm: 'canProjetos' },
+          { label: 'Expansão', description: 'Metas de expansão', icon: Map, path: '/expansao', perm: 'canExpansao' },
         ],
       },
     ],
@@ -80,8 +80,8 @@ const NAV_ITEMS = [
 ];
 
 export default function AppShell() {
-  const { profile, role, signOut, isAdmin, canRH, canFinanceiro, canLogistica, canPatrimonio, canMembresia, canProjetos, canAgenda, canIA } = useAuth();
-  const permMap = { canRH, canFinanceiro, canLogistica, canPatrimonio, canMembresia, canProjetos, canAgenda, canIA };
+  const { profile, role, signOut, isAdmin, canRH, canFinanceiro, canLogistica, canPatrimonio, canMembresia, canProjetos, canExpansao, canAgenda, canIA } = useAuth();
+  const permMap = { canRH, canFinanceiro, canLogistica, canPatrimonio, canMembresia, canProjetos, canExpansao, canAgenda, canIA };
 
   // Filtrar itens de navegação por permissões
   const filteredNavItems = NAV_ITEMS.map(section => ({

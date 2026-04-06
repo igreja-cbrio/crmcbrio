@@ -27,6 +27,7 @@ const ROUTE_MODULE_MAP = {
   'agents':      ['IA / Agentes'],
   'tasks':       ['Tarefas'],
   'notificacoes':['Comunicação'],
+  'expansion':   ['Projetos'],
 };
 
 // Cache de módulos (carrega uma vez e reutiliza)
@@ -107,12 +108,22 @@ async function authenticate(req, res, next) {
         };
       }
 
+      // Carregar áreas do usuário (para filtragem por setor/área)
+      const { data: userAreas } = await supabase.from('usuario_areas')
+        .select('area_id, is_principal, areas(nome, setor_id, setores(nome))')
+        .eq('usuario_id', permUser.id);
+
+      const areas = (userAreas || []).map(ua => ua.areas?.nome).filter(Boolean);
+      const setores = [...new Set((userAreas || []).map(ua => ua.areas?.setores?.nome).filter(Boolean))];
+
       granular = {
         usuarioId: permUser.id,
         cargoId: permUser.cargo_id,
         cargoNivelLeitura: permUser.cargos?.nivel_padrao_leitura ?? 1,
         cargoNivelEscrita: permUser.cargos?.nivel_padrao_escrita ?? 1,
         modulePerms,
+        areas,    // ['Marketing', 'Louvor', ...]
+        setores,  // ['Criativo', 'Administrativo', ...]
       };
     }
   }
@@ -217,13 +228,36 @@ async function getMyPermissions(req, res) {
 
   res.json({
     role: req.user.role,
+    area: req.user.area,
+    name: req.user.name,
     granular: req.user.granular ? {
       cargoId: req.user.granular.cargoId,
       cargoNivelLeitura: req.user.granular.cargoNivelLeitura,
       cargoNivelEscrita: req.user.granular.cargoNivelEscrita,
       modulePerms: req.user.granular.modulePerms,
+      areas: req.user.granular.areas || [],
+      setores: req.user.granular.setores || [],
     } : null,
   });
 }
 
-module.exports = { authenticate, authorize, authorizeCycle, authorizeModule, getMyPermissions, ROLE_MAP, PERMISSIONS, ROUTE_MODULE_MAP };
+/**
+ * Retorna o nível efetivo de acesso (1-5) de um usuário para um routeKey.
+ * Útil para filtrar dados no handler ao invés de bloquear o request inteiro.
+ */
+function getEffectiveLevel(req, routeKey) {
+  if (!req.user) return 0;
+  if (req.user.role === 'admin') return 5;
+  if (req.user.role === 'diretor') return 4;
+  if (!req.user.granular) return 1;
+
+  const moduleNames = ROUTE_MODULE_MAP[routeKey] || [];
+  let maxLevel = req.user.granular.cargoNivelLeitura || 1;
+  for (const mod of moduleNames) {
+    const perm = req.user.granular.modulePerms?.[mod];
+    if (perm) maxLevel = Math.max(maxLevel, perm.leitura);
+  }
+  return maxLevel;
+}
+
+module.exports = { authenticate, authorize, authorizeCycle, authorizeModule, getMyPermissions, getEffectiveLevel, ROLE_MAP, PERMISSIONS, ROUTE_MODULE_MAP };

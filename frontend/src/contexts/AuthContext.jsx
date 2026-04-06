@@ -8,6 +8,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);       // Supabase auth user
   const [profile, setProfile] = useState(null); // profiles table row
   const [modulePerms, setModulePerms] = useState(null); // granular permissions
+  const [permData, setPermData] = useState(null); // full permissions data (areas, setores, etc.)
   const [loading, setLoading] = useState(true);
 
   async function fetchProfile(userId) {
@@ -29,6 +30,7 @@ export function AuthProvider({ children }) {
       if (res.ok) {
         const data = await res.json();
         setModulePerms(data.granular?.modulePerms ?? null);
+        setPermData(data.granular ?? null);
       }
     } catch { /* ignore */ }
   }
@@ -54,6 +56,7 @@ export function AuthProvider({ children }) {
       } else {
         setProfile(null);
         setModulePerms(null);
+        setPermData(null);
       }
     });
 
@@ -97,6 +100,23 @@ export function AuthProvider({ children }) {
     return false;
   }
 
+  // Helper: retorna o nível efetivo de acesso (1-5) para um conjunto de módulos
+  function getAccessLevel(moduleNames) {
+    if (profile?.role === 'admin') return 5;
+    if (profile?.role === 'diretor') return 4;
+    if (!modulePerms) return 1;
+    let max = 1;
+    for (const name of moduleNames) {
+      const perm = modulePerms[name];
+      if (perm) max = Math.max(max, perm.leitura || 1);
+    }
+    return max;
+  }
+
+  // Áreas e setores do usuário (do sistema de permissões)
+  const userAreas = permData?.areas || [profile?.area].filter(Boolean);
+  const userSetores = permData?.setores || [];
+
   // Atalhos para módulos específicos
   const canRH = canAccessModule(['DP', 'Pessoas']);
   const canFinanceiro = canAccessModule(['Financeiro']);
@@ -104,6 +124,7 @@ export function AuthProvider({ children }) {
   const canPatrimonio = canAccessModule(['Patrimônio']);
   const canMembresia = canAccessModule(['Membresia']);
   const canProjetos = canAccessModule(['Projetos', 'Tarefas']);
+  const canExpansao = canAccessModule(['Projetos']);
   const canAgenda = canAccessModule(['Agenda']);
   const canIA = canAccessModule(['IA / Agentes']);
 
@@ -116,7 +137,10 @@ export function AuthProvider({ children }) {
     isDiretor: profile?.role === 'diretor',
     modulePerms,
     canAccessModule,
-    canRH, canFinanceiro, canLogistica, canPatrimonio, canMembresia, canProjetos, canAgenda, canIA,
+    canRH, canFinanceiro, canLogistica, canPatrimonio, canMembresia, canProjetos, canExpansao, canAgenda, canIA,
+    getAccessLevel,
+    userAreas,
+    userSetores,
     signInWithGoogle,
     signInWithMicrosoft,
     signInWithEmail,

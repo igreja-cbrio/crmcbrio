@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { authenticate, authorize } = require('../middleware/auth');
+const { authenticate, authorizeModule, getEffectiveLevel } = require('../middleware/auth');
 const { supabase } = require('../utils/supabase');
 
 router.use(authenticate);
@@ -28,8 +28,17 @@ function validateTask(d) {
   return null;
 }
 
+// Helper: desnormalizar responsible name a partir do responsible_id
+async function resolveResponsible(d) {
+  if (d.responsible_id) {
+    const { data: prof } = await supabase.from('profiles').select('name').eq('id', d.responsible_id).single();
+    return prof?.name || d.responsible || '';
+  }
+  return d.responsible || '';
+}
+
 // GET /api/expansion/dashboard
-router.get('/dashboard', async (req, res) => {
+router.get('/dashboard', authorizeModule('expansion', 2), async (req, res) => {
   try {
     const { data, error } = await supabase.from('v_expansion_dashboard').select('*').single();
     if (error) throw error;
@@ -41,7 +50,7 @@ router.get('/dashboard', async (req, res) => {
 });
 
 // GET /api/expansion/milestones — com tasks e subtasks aninhados
-router.get('/milestones', async (req, res) => {
+router.get('/milestones', authorizeModule('expansion', 2), async (req, res) => {
   try {
     // Validate query params
     if (req.query.year) {
@@ -74,7 +83,16 @@ router.get('/milestones', async (req, res) => {
         })),
       expansion_tasks: undefined,
     }));
-    res.json(result);
+
+    // Incluir nível de acesso e áreas do usuário para filtragem no frontend
+    const accessLevel = getEffectiveLevel(req, 'expansion');
+    res.json({
+      milestones: result,
+      accessLevel,
+      userAreas: req.user.granular?.areas || [req.user.area].filter(Boolean),
+      userSetores: req.user.granular?.setores || [],
+      userId: req.user.userId,
+    });
   } catch (e) {
     console.error('[Expansion] Milestones:', e.message);
     res.status(500).json({ error: 'Erro ao buscar marcos' });
@@ -82,16 +100,18 @@ router.get('/milestones', async (req, res) => {
 });
 
 // POST /api/expansion/milestones
-router.post('/milestones', authorize('diretor'), async (req, res) => {
+router.post('/milestones', authorizeModule('expansion', 3), async (req, res) => {
   try {
     const d = req.body;
     const err = validateMilestone(d);
     if (err) return res.status(400).json({ error: err });
 
+    const responsibleName = await resolveResponsible(d);
+
     const { data, error } = await supabase.from('expansion_milestones').insert({
       name: d.name.trim(), description: d.description || '', year: d.year || 2026,
       strategic_axis: d.strategic_axis || '', strategic_objective: d.strategic_objective || '',
-      area: d.area || '', responsible: d.responsible || '',
+      area: d.area || '', responsible: responsibleName, responsible_id: d.responsible_id || null,
       date_start: d.date_start || null, date_end: d.date_end || null,
       expected_delivery: d.expected_delivery || '',
       status: d.status || 'pendente', phase: d.phase || 'planejamento',
@@ -109,16 +129,18 @@ router.post('/milestones', authorize('diretor'), async (req, res) => {
 });
 
 // PUT /api/expansion/milestones/:id
-router.put('/milestones/:id', authorize('diretor'), async (req, res) => {
+router.put('/milestones/:id', authorizeModule('expansion', 3), async (req, res) => {
   try {
     const d = req.body;
     const err = validateMilestone(d);
     if (err) return res.status(400).json({ error: err });
 
+    const responsibleName = await resolveResponsible(d);
+
     const { data, error } = await supabase.from('expansion_milestones').update({
       name: d.name, description: d.description, year: d.year,
       strategic_axis: d.strategic_axis, strategic_objective: d.strategic_objective,
-      area: d.area, responsible: d.responsible,
+      area: d.area, responsible: responsibleName, responsible_id: d.responsible_id || null,
       date_start: d.date_start, date_end: d.date_end,
       expected_delivery: d.expected_delivery,
       status: d.status, phase: d.phase,
@@ -136,7 +158,7 @@ router.put('/milestones/:id', authorize('diretor'), async (req, res) => {
 });
 
 // DELETE /api/expansion/milestones/:id
-router.delete('/milestones/:id', authorize('diretor'), async (req, res) => {
+router.delete('/milestones/:id', authorizeModule('expansion', 3), async (req, res) => {
   try {
     const { error } = await supabase.from('expansion_milestones').delete().eq('id', req.params.id);
     if (error) throw error;
@@ -148,15 +170,18 @@ router.delete('/milestones/:id', authorize('diretor'), async (req, res) => {
 });
 
 // ── TASKS ──
-router.post('/milestones/:miId/tasks', authorize('diretor'), async (req, res) => {
+router.post('/milestones/:miId/tasks', authorizeModule('expansion', 3), async (req, res) => {
   try {
     const d = req.body;
     const err = validateTask(d);
     if (err) return res.status(400).json({ error: err });
 
+    const responsibleName = await resolveResponsible(d);
+
     const { data, error } = await supabase.from('expansion_tasks').insert({
       milestone_id: req.params.miId, name: d.name.trim(),
-      responsible: d.responsible || '', area: d.area || '',
+      responsible: responsibleName, responsible_id: d.responsible_id || null,
+      area: d.area || '',
       start_date: d.start_date || null, deadline: d.deadline || null,
       description: d.description || '', status: d.status || 'pendente',
       sort_order: d.sort_order || 0, created_by: req.user.userId,
@@ -169,14 +194,17 @@ router.post('/milestones/:miId/tasks', authorize('diretor'), async (req, res) =>
   }
 });
 
-router.put('/tasks/:id', authorize('diretor'), async (req, res) => {
+router.put('/tasks/:id', authorizeModule('expansion', 3), async (req, res) => {
   try {
     const d = req.body;
     const err = validateTask(d);
     if (err) return res.status(400).json({ error: err });
 
+    const responsibleName = await resolveResponsible(d);
+
     const { data, error } = await supabase.from('expansion_tasks').update({
-      name: d.name, responsible: d.responsible, area: d.area,
+      name: d.name, responsible: responsibleName, responsible_id: d.responsible_id || null,
+      area: d.area,
       start_date: d.start_date, deadline: d.deadline,
       status: d.status, description: d.description,
     }).eq('id', req.params.id).select().single();
@@ -188,7 +216,7 @@ router.put('/tasks/:id', authorize('diretor'), async (req, res) => {
   }
 });
 
-router.delete('/tasks/:id', authorize('diretor'), async (req, res) => {
+router.delete('/tasks/:id', authorizeModule('expansion', 3), async (req, res) => {
   try {
     const { error } = await supabase.from('expansion_tasks').delete().eq('id', req.params.id);
     if (error) throw error;
@@ -200,7 +228,7 @@ router.delete('/tasks/:id', authorize('diretor'), async (req, res) => {
 });
 
 // ── SUBTASKS ──
-router.post('/tasks/:taskId/subtasks', authorize('diretor'), async (req, res) => {
+router.post('/tasks/:taskId/subtasks', authorizeModule('expansion', 2), async (req, res) => {
   try {
     if (!req.body.name || !String(req.body.name).trim()) {
       return res.status(400).json({ error: 'Nome é obrigatório' });
@@ -216,7 +244,7 @@ router.post('/tasks/:taskId/subtasks', authorize('diretor'), async (req, res) =>
   }
 });
 
-router.patch('/subtasks/:id', authorize('diretor'), async (req, res) => {
+router.patch('/subtasks/:id', authorizeModule('expansion', 2), async (req, res) => {
   try {
     const pct = Math.min(100, Math.max(0, parseInt(req.body.pct) || 0));
     const { data, error } = await supabase.from('expansion_subtasks')
@@ -229,7 +257,7 @@ router.patch('/subtasks/:id', authorize('diretor'), async (req, res) => {
   }
 });
 
-router.delete('/subtasks/:id', authorize('diretor'), async (req, res) => {
+router.delete('/subtasks/:id', authorizeModule('expansion', 2), async (req, res) => {
   try {
     const { error } = await supabase.from('expansion_subtasks').delete().eq('id', req.params.id);
     if (error) throw error;

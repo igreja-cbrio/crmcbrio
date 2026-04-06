@@ -1,7 +1,7 @@
 # CLAUDE.md — CBRio ERP
 
 Guia para Claude Code e agentes de IA trabalhando neste repositório.
-Atualizado em: 2026-04-06 (v7) — Expansão auditado: segurança, validação, UX corrigidos
+Atualizado em: 2026-04-06 (v8) — Permissões granulares nos 4 módulos de planejamento
 
 ---
 
@@ -421,6 +421,13 @@ Estes arquivos afetam o sistema inteiro. Alterações devem ser feitas via **Pul
   - Stale state corrigido: `refreshAll()` centralizado, handles `undefined` após delete
   - Kanban drag-drop: valida existência do milestone antes de enviar, limpa state corretamente
   - Validação de datas: `date_start <= date_end` verificado antes de submit
+  - **responsible_id UUID** (migration 031): responsáveis vinculados por UUID do profile, people picker no formulário
+  - **Permissões granulares** (v8): `authorizeModule('expansion')` no backend, `getAccessLevel(['Projetos'])` no frontend
+  - **5 níveis de acesso**: Admin(5)=tudo, Diretor(4)=setor, Líder(3)=área, Assistente(2)=só seus itens, Negado(1)=bloqueado
+  - Assistente: sem dashboard, só Marcos/Gantt filtrado por responsible_id
+  - Líder: dashboard filtrado por área, pode editar itens da área
+  - PermissionGate nos routes (App.jsx) bloqueia acesso se nível < 2
+  - Nav items filtrados por `canExpansao`, `canProjetos`, `canAgenda`
 - Ciclos criativos com 11 fases + 35 tarefas ADM + 138 subtarefas automáticas
 - **KPIs clicáveis** — todos os números do dashboard navegam para os dados filtrados
 - **Abas Riscos + Histórico + Retrospectiva** no detalhe do evento
@@ -444,7 +451,7 @@ Estes arquivos afetam o sistema inteiro. Alterações devem ser feitas via **Pul
 **Project ref:** `hhntwfawfnxvuobhdfkb`
 **URL:** `https://hhntwfawfnxvuobhdfkb.supabase.co`
 
-Migrations aplicadas: 001-022, 027, 030
+Migrations aplicadas: 001-022, 027, 030, 031
 
 Para novas migrations: criar arquivo em `supabase/migrations/` e rodar manualmente no Supabase SQL Editor.
 
