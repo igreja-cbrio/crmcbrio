@@ -84,8 +84,8 @@ function Modal({ open, onClose, title, children, footer }) {
     </div>
   );
 }
-function Input({ label, ...props }) { return (<div style={styles.formGroup}>{label && <label style={styles.label}>{label}</label>}<input style={styles.input} {...props} /></div>); }
-function Select({ label, children, ...props }) { return (<div style={styles.formGroup}>{label && <label style={styles.label}>{label}</label>}<select style={{ ...styles.select, width: '100%' }} {...props}>{children}</select></div>); }
+function Input({ label, ...props }) { return (<div style={styles.formGroup}>{label && <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">{label}</label>}<input className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" {...props} /></div>); }
+function Select({ label, children, ...props }) { return (<div style={styles.formGroup}>{label && <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">{label}</label>}<select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" {...props}>{children}</select></div>); }
 function Badge({ status, map }) { const s = map[status] || { c: C.text3, bg: '#73737318', label: status }; return <span style={styles.badge(s.c, s.bg)}>{s.label}</span>; }
 
 const TABS = ['Dashboard', 'Bens', 'Scanner', 'Categorias / Localizações', 'Inventários', 'Movimentações'];
@@ -286,16 +286,16 @@ function BensTab({ bens, loading, busca, setBusca, filtroStatus, setFiltroStatus
   return (
     <>
       <div style={styles.filterRow}>
-        <input style={{ ...styles.input, maxWidth: 280 }} placeholder="🔍 Buscar por nome..." value={busca} onChange={e => setBusca(e.target.value)} />
-        <select style={styles.select} value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
+        <input className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ maxWidth: 280 }} placeholder="🔍 Buscar por nome..." value={busca} onChange={e => setBusca(e.target.value)} />
+        <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
           <option value="">Todos os status</option>
           {Object.entries(STATUS_BEM).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
         </select>
-        <select style={styles.select} value={filtroCat} onChange={e => setFiltroCat(e.target.value)}>
+        <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={filtroCat} onChange={e => setFiltroCat(e.target.value)}>
           <option value="">Todas categorias</option>
           {categorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
         </select>
-        <select style={styles.select} value={filtroLoc} onChange={e => setFiltroLoc(e.target.value)}>
+        <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={filtroLoc} onChange={e => setFiltroLoc(e.target.value)}>
           <option value="">Todas localizações</option>
           {localizacoes.map(l => <option key={l.id} value={l.id}>{l.nome}</option>)}
         </select>
@@ -340,7 +340,7 @@ function CatLocTab({ categorias, localizacoes, newCat, setNewCat, addCat, remove
         <div style={{ padding: 16 }}>
           {isDiretor && (
             <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-              <input style={{ ...styles.input, flex: 1 }} placeholder="Nova categoria..." value={newCat} onChange={e => setNewCat(e.target.value)} onKeyDown={e => e.key === 'Enter' && addCat()} />
+              <input className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ flex: 1 }} placeholder="Nova categoria..." value={newCat} onChange={e => setNewCat(e.target.value)} onKeyDown={e => e.key === 'Enter' && addCat()} />
               <Button size="xs" onClick={addCat}>+</Button>
             </div>
           )}
@@ -358,7 +358,7 @@ function CatLocTab({ categorias, localizacoes, newCat, setNewCat, addCat, remove
         <div style={{ padding: 16 }}>
           {isDiretor && (
             <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-              <input style={{ ...styles.input, flex: 1 }} placeholder="Nova localização..." value={newLoc} onChange={e => setNewLoc(e.target.value)} onKeyDown={e => e.key === 'Enter' && addLoc()} />
+              <input className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ flex: 1 }} placeholder="Nova localização..." value={newLoc} onChange={e => setNewLoc(e.target.value)} onKeyDown={e => e.key === 'Enter' && addLoc()} />
               <Button size="xs" onClick={addLoc}>+</Button>
             </div>
           )}
@@ -465,12 +465,12 @@ function BemFormModal({ open, data, categorias, localizacoes, onClose, onSave })
         </Select>}
       </div>
       <div style={styles.formGroup}>
-        <label style={styles.label}>Descrição</label>
-        <textarea style={{ ...styles.input, minHeight: 50, resize: 'vertical' }} value={f.descricao || ''} onChange={e => upd('descricao', e.target.value)} />
+        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Descrição</label>
+        <textarea className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ minHeight: 50, resize: 'vertical' }} value={f.descricao || ''} onChange={e => upd('descricao', e.target.value)} />
       </div>
       <div style={styles.formGroup}>
-        <label style={styles.label}>Observações</label>
-        <textarea style={{ ...styles.input, minHeight: 40, resize: 'vertical' }} value={f.observacoes || ''} onChange={e => upd('observacoes', e.target.value)} />
+        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Observações</label>
+        <textarea className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ minHeight: 40, resize: 'vertical' }} value={f.observacoes || ''} onChange={e => upd('observacoes', e.target.value)} />
       </div>
     </Modal>
   );
@@ -540,8 +540,8 @@ function MovFormModal({ open, data, localizacoes, onClose, onSave }) {
         </Select>
       )}
       <div style={styles.formGroup}>
-        <label style={styles.label}>Motivo</label>
-        <textarea style={{ ...styles.input, minHeight: 60, resize: 'vertical' }} value={f.motivo || ''} onChange={e => upd('motivo', e.target.value)} />
+        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Motivo</label>
+        <textarea className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ minHeight: 60, resize: 'vertical' }} value={f.motivo || ''} onChange={e => upd('motivo', e.target.value)} />
       </div>
     </Modal>
   );
@@ -557,8 +557,8 @@ function InvFormModal({ open, onClose, onSave }) {
       <Input label="Nome *" value={f.nome || ''} onChange={e => upd('nome', e.target.value)} />
       <Input label="Data Início *" type="date" value={f.data_inicio || ''} onChange={e => upd('data_inicio', e.target.value)} />
       <div style={styles.formGroup}>
-        <label style={styles.label}>Observações</label>
-        <textarea style={{ ...styles.input, minHeight: 60, resize: 'vertical' }} value={f.observacoes || ''} onChange={e => upd('observacoes', e.target.value)} />
+        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Observações</label>
+        <textarea className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ minHeight: 60, resize: 'vertical' }} value={f.observacoes || ''} onChange={e => upd('observacoes', e.target.value)} />
       </div>
     </Modal>
   );
@@ -671,7 +671,8 @@ function ScannerTab({ localizacoes, onMov, onDetail }) {
           <span style={{ fontSize: 24 }}>🏷️</span>
           <input
             ref={inputRef}
-            style={{ ...styles.input, flex: 1, fontSize: 16, fontFamily: 'monospace', fontWeight: 700, padding: '12px 16px' }}
+            className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            style={{ flex: 1, fontSize: 16, fontFamily: 'monospace', fontWeight: 700, padding: '12px 16px' }}
             placeholder="Digite o código de barras e pressione Enter"
             value={codigo}
             onChange={e => setCodigo(e.target.value)}
@@ -750,7 +751,7 @@ function ScannerTab({ localizacoes, onMov, onDetail }) {
             <div style={{ padding: 20, background: 'var(--cbrio-input-bg)', borderBottom: `1px solid ${C.border}` }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 12 }}>Nova Movimentação</div>
               <div style={styles.formGroup}>
-                <label style={styles.label}>Tipo de Movimentação *</label>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Tipo de Movimentação *</label>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   {Object.entries(MOV_TIPO_COLORS).map(([k, v]) => (
                     <button key={k} onClick={() => setMovForm(f => ({ ...f, tipo: k }))}
@@ -781,8 +782,8 @@ function ScannerTab({ localizacoes, onMov, onDetail }) {
                 </Select>
               )}
               <div style={styles.formGroup}>
-                <label style={styles.label}>Motivo / Observação</label>
-                <textarea style={{ ...styles.input, minHeight: 60, resize: 'vertical' }}
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Motivo / Observação</label>
+                <textarea className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ minHeight: 60, resize: 'vertical' }}
                   value={movForm.motivo || ''} onChange={e => setMovForm(f => ({ ...f, motivo: e.target.value }))} />
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
@@ -900,7 +901,7 @@ function LogMovimentacoesTab({ data, loading, filtroTipo, setFiltroTipo, onNew, 
 
   return (<>
     <div style={styles.filterRow}>
-      <select style={styles.select} value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}>
+      <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}>
         <option value="">Todos os tipos</option>
         {Object.entries(LOG_MOV_TIPO).map(([k, v]) => <option key={k} value={k}>{v.icon} {v.label}</option>)}
       </select>
@@ -921,7 +922,7 @@ function LogMovimentacoesTab({ data, loading, filtroTipo, setFiltroTipo, onNew, 
       <div style={{ ...styles.card, marginBottom: 16, padding: 16 }}>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <span style={{ fontSize: 20 }}>🔍</span>
-          <input style={{ ...styles.input, flex: 1 }} placeholder="Digite ou escaneie o código de barras e pressione Enter"
+          <input className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ flex: 1 }} placeholder="Digite ou escaneie o código de barras e pressione Enter"
             onKeyDown={handleManualCode} defaultValue={scanResult || ''} />
         </div>
       </div>
@@ -1014,9 +1015,9 @@ function LogMovimentacaoModal({ open, data, onClose, onSave, saving, upLogMov })
           {Object.entries(LOG_MOV_TIPO).map(([k, v]) => <option key={k} value={k}>{v.icon} {v.label}</option>)}
         </Select>
         <div style={styles.formGroup}>
-          <label style={styles.label}>Código de Barras *</label>
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Código de Barras *</label>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <input style={{ ...styles.input, flex: 1, fontFamily: 'monospace', fontSize: 16, fontWeight: 700 }}
+            <input className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ flex: 1, fontFamily: 'monospace', fontSize: 16, fontWeight: 700 }}
               value={data.codigo_barras || ''} onChange={e => upLogMov('codigo_barras', e.target.value)} placeholder="Digite ou escaneie" />
             <Button variant={scanning ? 'destructive' : 'outline'} onClick={scanning ? stopScan : startScan}>
               {scanning ? '⏹' : '📷'}
@@ -1035,8 +1036,8 @@ function LogMovimentacaoModal({ open, data, onClose, onSave, saving, upLogMov })
         </div>
         <Input label="Localização" value={data.localizacao || ''} onChange={e => upLogMov('localizacao', e.target.value)} placeholder="Ex: Depósito A, Sala 3" />
         <div style={styles.formGroup}>
-          <label style={styles.label}>Observações</label>
-          <textarea style={{ ...styles.input, minHeight: 70, resize: 'vertical' }} value={data.observacoes || ''} onChange={e => upLogMov('observacoes', e.target.value)} />
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Observações</label>
+          <textarea className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ minHeight: 70, resize: 'vertical' }} value={data.observacoes || ''} onChange={e => upLogMov('observacoes', e.target.value)} />
         </div>
       </>)}
     </Modal>

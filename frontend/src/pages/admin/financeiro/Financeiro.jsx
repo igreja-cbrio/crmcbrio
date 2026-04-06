@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { financeiro } from '../../../api';
+import { Button } from '../../../components/ui/button';
 
 // ── Tema ────────────────────────────────────────────────────
 const C = {
@@ -101,7 +102,7 @@ function Modal({ open, onClose, title, children, footer }) {
       <div style={styles.modal} onClick={e => e.stopPropagation()}>
         <div style={styles.modalHeader}>
           <div style={styles.modalTitle}>{title}</div>
-          <button style={{ ...styles.btn('ghost'), fontSize: 18 }} onClick={onClose}>{'\u2715'}</button>
+          <Button variant="ghost" size="sm" style={{ fontSize: 18 }} onClick={onClose}>{'\u2715'}</Button>
         </div>
         <div style={styles.modalBody}>{children}</div>
         {footer && <div style={styles.modalFooter}>{footer}</div>}
@@ -113,8 +114,8 @@ function Modal({ open, onClose, title, children, footer }) {
 function Input({ label, ...props }) {
   return (
     <div style={styles.formGroup}>
-      {label && <label style={styles.label}>{label}</label>}
-      <input style={styles.input} {...props} />
+      {label && <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">{label}</label>}
+      <input className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" {...props} />
     </div>
   );
 }
@@ -122,8 +123,8 @@ function Input({ label, ...props }) {
 function Select({ label, children, ...props }) {
   return (
     <div style={styles.formGroup}>
-      {label && <label style={styles.label}>{label}</label>}
-      <select style={{ ...styles.select, width: '100%' }} {...props}>{children}</select>
+      {label && <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">{label}</label>}
+      <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" {...props}>{children}</select>
     </div>
   );
 }
@@ -348,9 +349,9 @@ export default function Financeiro() {
       <div style={styles.cardHeader}>
         <div style={styles.cardTitle}>Contas Bancarias</div>
         {isDiretor && (
-          <button style={styles.btn('primary')} onClick={() => setModalConta({ nome: '', banco: '', agencia: '', conta: '', tipo: 'corrente', saldo: 0, ativa: true })}>
+          <Button onClick={() => setModalConta({ nome: '', banco: '', agencia: '', conta: '', tipo: 'corrente', saldo: 0, ativa: true })}>
             + Nova Conta
-          </button>
+          </Button>
         )}
       </div>
       {contas.length === 0 ? (
@@ -385,8 +386,8 @@ export default function Financeiro() {
                 </td>
                 {isDiretor && (
                   <td style={styles.td}>
-                    <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => setModalConta(c)}>Editar</button>
-                    <button style={{ ...styles.btn('ghost'), ...styles.btnSm, color: C.red }} onClick={() => deleteConta(c.id)}>Excluir</button>
+                    <Button variant="ghost" size="sm" onClick={() => setModalConta(c)}>Editar</Button>
+                    <Button variant="ghost" size="sm" className="text-destructive" onClick={() => deleteConta(c.id)}>Excluir</Button>
                   </td>
                 )}
               </tr>
@@ -403,29 +404,29 @@ export default function Financeiro() {
   const renderTransacoes = () => (
     <>
       <div style={styles.filterRow}>
-        <select style={styles.select} value={filtroContaId} onChange={e => setFiltroContaId(e.target.value)}>
+        <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={filtroContaId} onChange={e => setFiltroContaId(e.target.value)}>
           <option value="">Todas as contas</option>
           {contas.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
         </select>
-        <select style={styles.select} value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}>
+        <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}>
           <option value="">Todos os tipos</option>
           <option value="receita">Receita</option>
           <option value="despesa">Despesa</option>
           <option value="transferencia">Transferencia</option>
         </select>
-        <select style={styles.select} value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
+        <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
           <option value="">Todos os status</option>
           <option value="pendente">Pendente</option>
           <option value="conciliado">Conciliado</option>
           <option value="cancelado">Cancelado</option>
         </select>
-        <input style={{ ...styles.select, width: 160 }} type="month" value={filtroMes} onChange={e => setFiltroMes(e.target.value)} />
+        <input className="flex h-9 rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ width: 160 }} type="month" value={filtroMes} onChange={e => setFiltroMes(e.target.value)} />
         {isDiretor && (
-          <button style={styles.btn('primary')} onClick={() => setModalTransacao({
+          <Button onClick={() => setModalTransacao({
             conta_id: '', categoria_id: '', tipo: 'despesa', descricao: '', valor: '', data_competencia: '', data_pagamento: '', status: 'pendente', referencia: '', observacoes: '',
           })}>
             + Nova Transacao
-          </button>
+          </Button>
         )}
       </div>
       <div style={styles.card}>
@@ -471,8 +472,8 @@ export default function Financeiro() {
                     <td style={styles.td}><Badge status={t.status} map={STATUS_TRANSACAO} /></td>
                     {isDiretor && (
                       <td style={styles.td}>
-                        <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => setModalTransacao(t)}>Editar</button>
-                        <button style={{ ...styles.btn('ghost'), ...styles.btnSm, color: C.red }} onClick={() => deleteTransacao(t.id)}>Excluir</button>
+                        <Button variant="ghost" size="sm" onClick={() => setModalTransacao(t)}>Editar</Button>
+                        <Button variant="ghost" size="sm" className="text-destructive" onClick={() => deleteTransacao(t.id)}>Excluir</Button>
                       </td>
                     )}
                   </tr>
@@ -491,7 +492,7 @@ export default function Financeiro() {
   const renderContasPagar = () => (
     <>
       <div style={styles.filterRow}>
-        <select style={styles.select} value={filtroPagarStatus} onChange={e => setFiltroPagarStatus(e.target.value)}>
+        <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={filtroPagarStatus} onChange={e => setFiltroPagarStatus(e.target.value)}>
           <option value="">Todos os status</option>
           <option value="pendente">Pendente</option>
           <option value="pago">Pago</option>
@@ -499,11 +500,11 @@ export default function Financeiro() {
           <option value="vencido">Vencido</option>
         </select>
         {isDiretor && (
-          <button style={styles.btn('primary')} onClick={() => setModalPagar({
+          <Button onClick={() => setModalPagar({
             descricao: '', fornecedor: '', categoria_id: '', valor: '', data_vencimento: '', data_pagamento: '', conta_id: '', status: 'pendente',
           })}>
             + Nova Conta a Pagar
-          </button>
+          </Button>
         )}
       </div>
       <div style={styles.card}>
@@ -536,10 +537,10 @@ export default function Financeiro() {
                   {isDiretor && (
                     <td style={{ ...styles.td, whiteSpace: 'nowrap' }}>
                       {(cp.status === 'pendente' || cp.status === 'vencido') && (
-                        <button style={{ ...styles.btn('success'), ...styles.btnSm, marginRight: 4 }} onClick={() => pagarConta(cp)}>Pagar</button>
+                        <Button variant="success" size="sm" className="mr-1" onClick={() => pagarConta(cp)}>Pagar</Button>
                       )}
-                      <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => setModalPagar(cp)}>Editar</button>
-                      <button style={{ ...styles.btn('ghost'), ...styles.btnSm, color: C.red }} onClick={() => deletePagar(cp.id)}>Excluir</button>
+                      <Button variant="ghost" size="sm" onClick={() => setModalPagar(cp)}>Editar</Button>
+                      <Button variant="ghost" size="sm" className="text-destructive" onClick={() => deletePagar(cp.id)}>Excluir</Button>
                     </td>
                   )}
                 </tr>
@@ -557,18 +558,18 @@ export default function Financeiro() {
   const renderReembolsos = () => (
     <>
       <div style={styles.filterRow}>
-        <select style={styles.select} value={filtroReembolsoStatus} onChange={e => setFiltroReembolsoStatus(e.target.value)}>
+        <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={filtroReembolsoStatus} onChange={e => setFiltroReembolsoStatus(e.target.value)}>
           <option value="">Todos os status</option>
           <option value="pendente">Pendente</option>
           <option value="aprovado">Aprovado</option>
           <option value="rejeitado">Rejeitado</option>
           <option value="pago">Pago</option>
         </select>
-        <button style={styles.btn('primary')} onClick={() => setModalReembolso({
+        <Button onClick={() => setModalReembolso({
           descricao: '', valor: '', data_despesa: '', categoria_id: '', observacoes: '',
         })}>
           + Novo Reembolso
-        </button>
+        </Button>
       </div>
       <div style={styles.card}>
         {loading ? (
@@ -599,8 +600,8 @@ export default function Financeiro() {
                     <td style={{ ...styles.td, whiteSpace: 'nowrap' }}>
                       {r.status === 'pendente' && (
                         <>
-                          <button style={{ ...styles.btn('success'), ...styles.btnSm, marginRight: 4 }} onClick={() => aprovarReembolso(r.id, 'aprovado')}>Aprovar</button>
-                          <button style={{ ...styles.btn('danger'), ...styles.btnSm }} onClick={() => aprovarReembolso(r.id, 'rejeitado')}>Rejeitar</button>
+                          <Button variant="success" size="sm" className="mr-1" onClick={() => aprovarReembolso(r.id, 'aprovado')}>Aprovar</Button>
+                          <Button variant="destructive" size="sm" onClick={() => aprovarReembolso(r.id, 'rejeitado')}>Rejeitar</Button>
                         </>
                       )}
                     </td>
@@ -627,8 +628,8 @@ export default function Financeiro() {
         title={form.id ? 'Editar Conta' : 'Nova Conta'}
         footer={
           <>
-            <button style={styles.btn('secondary')} onClick={() => setModalConta(null)}>Cancelar</button>
-            <button style={styles.btn('primary')} onClick={() => saveConta(form)}>Salvar</button>
+            <Button variant="outline" onClick={() => setModalConta(null)}>Cancelar</Button>
+            <Button onClick={() => saveConta(form)}>Salvar</Button>
           </>
         }
       >
@@ -663,8 +664,8 @@ export default function Financeiro() {
         title={form.id ? 'Editar Transacao' : 'Nova Transacao'}
         footer={
           <>
-            <button style={styles.btn('secondary')} onClick={() => setModalTransacao(null)}>Cancelar</button>
-            <button style={styles.btn('primary')} onClick={() => saveTransacao(form)}>Salvar</button>
+            <Button variant="outline" onClick={() => setModalTransacao(null)}>Cancelar</Button>
+            <Button onClick={() => saveTransacao(form)}>Salvar</Button>
           </>
         }
       >
@@ -712,8 +713,8 @@ export default function Financeiro() {
         title={form.id ? 'Editar Conta a Pagar' : 'Nova Conta a Pagar'}
         footer={
           <>
-            <button style={styles.btn('secondary')} onClick={() => setModalPagar(null)}>Cancelar</button>
-            <button style={styles.btn('primary')} onClick={() => savePagar(form)}>Salvar</button>
+            <Button variant="outline" onClick={() => setModalPagar(null)}>Cancelar</Button>
+            <Button onClick={() => savePagar(form)}>Salvar</Button>
           </>
         }
       >
@@ -756,8 +757,8 @@ export default function Financeiro() {
         title="Novo Reembolso"
         footer={
           <>
-            <button style={styles.btn('secondary')} onClick={() => setModalReembolso(null)}>Cancelar</button>
-            <button style={styles.btn('primary')} onClick={() => saveReembolso(form)}>Solicitar</button>
+            <Button variant="outline" onClick={() => setModalReembolso(null)}>Cancelar</Button>
+            <Button onClick={() => saveReembolso(form)}>Solicitar</Button>
           </>
         }
       >

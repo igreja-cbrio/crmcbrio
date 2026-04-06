@@ -203,7 +203,7 @@ export default function AppShell() {
             >
               <Bell className="h-4 w-4" />
               {notifCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#00B39D] px-1 text-[9px] font-bold text-[#0a0a0a]">
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#00B39D] px-1 text-[9px] font-bold text-white dark:text-[#0a0a0a]">
                   {notifCount > 9 ? '9+' : notifCount}
                 </span>
               )}
@@ -240,7 +240,7 @@ export default function AppShell() {
                     </div>
                   ) : (
                     notifs.slice(0, 20).map(n => {
-                      const MOD_COLORS = { rh: '#8b5cf6', financeiro: '#10b981', logistica: '#3b82f6', patrimonio: '#f59e0b', eventos: '#ec4899', projetos: '#06b6d4', sistema: '#6b7280' };
+                      const MOD_COLORS = { rh: '#00B39D', financeiro: '#00B39D', logistica: '#00B39D', patrimonio: '#00B39D', eventos: '#00B39D', projetos: '#00B39D', sistema: '#00B39D' };
                       const MOD_LABELS = { rh: 'RH', financeiro: 'Financeiro', logistica: 'Logística', patrimonio: 'Patrimônio', eventos: 'Eventos', projetos: 'Projetos', sistema: 'Sistema' };
                       const SEV_COLORS = { urgente: '#ef4444', aviso: '#f59e0b', info: '#00B39D' };
                       const modColor = MOD_COLORS[n.modulo] || '#6b7280';
@@ -296,7 +296,7 @@ export default function AppShell() {
 
           {/* User avatar + sign out */}
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#00B39D] text-[#0a0a0a] text-[11px] font-semibold shrink-0">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#00B39D] text-white dark:text-[#0a0a0a] text-[11px] font-semibold shrink-0">
               {initials}
             </div>
             <div className="hidden sm:block text-left min-w-0">

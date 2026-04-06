@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { expansion } from '../api';
+import { Button } from '../components/ui/button';
 
 // ── Tema ────────────────────────────────────────────────────
 const C = {
@@ -282,9 +283,9 @@ export default function Expansao() {
           <div style={styles.subtitle}>Acompanhamento de marcos e tarefas de expansao</div>
         </div>
         {isDiretor && (
-          <button style={styles.btn('primary')} onClick={() => setModal({ type: 'milestone' })}>
+          <Button onClick={() => setModal({ type: 'milestone' })}>
             + Novo Marco
-          </button>
+          </Button>
         )}
       </div>
 
@@ -352,8 +353,8 @@ export default function Expansao() {
                 </div>
                 {isDiretor && (
                   <div style={{ display: 'flex', gap: 4, marginLeft: 8 }} onClick={(e) => e.stopPropagation()}>
-                    <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => setModal({ type: 'milestone', data: mi })}>Editar</button>
-                    <button style={{ ...styles.btn('ghost'), ...styles.btnSm, color: C.red }} onClick={() => deleteMilestone(mi.id)}>Excluir</button>
+                    <Button variant="ghost" size="xs" onClick={() => setModal({ type: 'milestone', data: mi })}>Editar</Button>
+                    <Button variant="ghost" size="xs" className="text-red-500" onClick={() => deleteMilestone(mi.id)}>Excluir</Button>
                   </div>
                 )}
               </div>
@@ -362,7 +363,7 @@ export default function Expansao() {
               {isOpen && (
                 <div>
                   {mi.description && (
-                    <div style={{ padding: '12px 20px', fontSize: 13, color: C.text2, borderBottom: `1px solid ${C.border}`, background: '#1e1e1e' }}>
+                    <div style={{ padding: '12px 20px', fontSize: 13, color: C.text2, borderBottom: `1px solid ${C.border}`, background: 'var(--cbrio-input-bg)' }}>
                       {mi.description}
                     </div>
                   )}
@@ -388,9 +389,9 @@ export default function Expansao() {
 
                   {isDiretor && (
                     <div style={{ padding: '12px 20px' }}>
-                      <button style={{ ...styles.btn('secondary'), ...styles.btnSm }} onClick={() => setModal({ type: 'task', milestoneId: mi.id })}>
+                      <Button variant="outline" size="sm" onClick={() => setModal({ type: 'task', milestoneId: mi.id })}>
                         + Adicionar Tarefa
-                      </button>
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -483,12 +484,9 @@ function TaskRow({ task, tPct, tStatus, isDiretor, onEdit, onDelete, onAddSubtas
                 }}
                 style={{ ...styles.input, flex: 1, padding: '6px 10px', fontSize: 12 }}
               />
-              <button
-                style={{ ...styles.btn('primary'), ...styles.btnSm }}
-                onClick={() => { onAddSubtask(newSub); setNewSub(''); }}
-              >
+              <Button size="xs" onClick={() => { onAddSubtask(newSub); setNewSub(''); }}>
                 +
-              </button>
+              </Button>
             </div>
           )}
 
@@ -555,8 +553,8 @@ function MilestoneModal({ data, saving, onSave, onClose }) {
           )}
         </div>
         <div style={styles.modalActions}>
-          <button type="button" style={styles.btn('ghost')} onClick={onClose}>Cancelar</button>
-          <button type="submit" style={styles.btn('primary')} disabled={saving}>{saving ? 'Salvando...' : 'Salvar'}</button>
+          <Button variant="ghost" type="button" onClick={onClose}>Cancelar</Button>
+          <Button type="submit" disabled={saving}>{saving ? 'Salvando...' : 'Salvar'}</Button>
         </div>
       </form>
     </Modal>
@@ -617,8 +615,8 @@ function TaskModal({ data, milestoneId, saving, onSave, onClose }) {
           <textarea style={styles.textarea} value={form.description} onChange={(e) => set('description', e.target.value)} />
         </Field>
         <div style={styles.modalActions}>
-          <button type="button" style={styles.btn('ghost')} onClick={onClose}>Cancelar</button>
-          <button type="submit" style={styles.btn('primary')} disabled={saving}>{saving ? 'Salvando...' : 'Salvar'}</button>
+          <Button variant="ghost" type="button" onClick={onClose}>Cancelar</Button>
+          <Button type="submit" disabled={saving}>{saving ? 'Salvando...' : 'Salvar'}</Button>
         </div>
       </form>
     </Modal>

@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { events, meetings, cycles as cyclesApi, occurrences as occApi, tasks as tasksApi, dashboard as dashApi, risks as risksApi, retrospective as retroApi, history as historyApi, users as usersApi } from '../../api';
 import CycleView from './components/CycleView';
 import BudgetPanel from './components/BudgetPanel';
+import { Button } from '../../components/ui/button';
 
 // ── Tema ────────────────────────────────────────────────────
 const C = {
@@ -133,7 +134,7 @@ function Modal({ open, onClose, title, children, footer }) {
       <div style={styles.modal} onClick={e => e.stopPropagation()}>
         <div style={styles.modalHeader}>
           <div style={styles.modalTitle}>{title}</div>
-          <button style={{ ...styles.btn('ghost'), fontSize: 18 }} onClick={onClose}>✕</button>
+          <Button variant="ghost" size="sm" onClick={onClose}>✕</Button>
         </div>
         <div style={styles.modalBody}>{children}</div>
         {footer && <div style={styles.modalFooter}>{footer}</div>}
@@ -145,8 +146,8 @@ function Modal({ open, onClose, title, children, footer }) {
 function Input({ label, ...props }) {
   return (
     <div style={styles.formGroup}>
-      {label && <label style={styles.label}>{label}</label>}
-      <input style={styles.input} {...props} />
+      {label && <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">{label}</label>}
+      <input className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" {...props} />
     </div>
   );
 }
@@ -154,8 +155,8 @@ function Input({ label, ...props }) {
 function Select({ label, children, ...props }) {
   return (
     <div style={styles.formGroup}>
-      {label && <label style={styles.label}>{label}</label>}
-      <select style={{ ...styles.select, width: '100%' }} {...props}>{children}</select>
+      {label && <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">{label}</label>}
+      <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" {...props}>{children}</select>
     </div>
   );
 }
@@ -163,8 +164,8 @@ function Select({ label, children, ...props }) {
 function Textarea({ label, ...props }) {
   return (
     <div style={styles.formGroup}>
-      {label && <label style={styles.label}>{label}</label>}
-      <textarea style={{ ...styles.input, minHeight: 60, resize: 'vertical' }} {...props} />
+      {label && <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">{label}</label>}
+      <textarea className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ minHeight: 60, resize: 'vertical' }} {...props} />
     </div>
   );
 }
@@ -197,9 +198,9 @@ function BigCalendar({ eventsByDate, onSelectDate, selectedDate }) {
     <div style={{ background: 'var(--cbrio-card)', borderRadius: 12, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: `1px solid ${C.border}` }}>
-        <button onClick={() => setViewMonth(new Date(year, month - 1, 1))} style={{ ...styles.btn('ghost'), fontSize: 16 }}>‹</button>
+        <Button variant="ghost" size="sm" onClick={() => setViewMonth(new Date(year, month - 1, 1))}>‹</Button>
         <span style={{ fontWeight: 700, fontSize: 16, color: C.text }}>{MONTH_NAMES[month]} {year}</span>
-        <button onClick={() => setViewMonth(new Date(year, month + 1, 1))} style={{ ...styles.btn('ghost'), fontSize: 16 }}>›</button>
+        <Button variant="ghost" size="sm" onClick={() => setViewMonth(new Date(year, month + 1, 1))}>›</Button>
       </div>
       {/* Weekday headers */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: `1px solid ${C.border}` }}>
@@ -1152,13 +1153,13 @@ export default function Eventos() {
 
         {/* Filtros */}
         <div style={styles.filterRow}>
-          <select style={styles.select} value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
+          <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
             <option value="">Todos os status</option>
             {Object.entries(STATUS_MAP).map(([k, v]) => (
               <option key={k} value={k}>{v.label}</option>
             ))}
           </select>
-          <select style={styles.select} value={filtroCategoria} onChange={e => setFiltroCategoria(e.target.value)}>
+          <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={filtroCategoria} onChange={e => setFiltroCategoria(e.target.value)}>
             <option value="">Todas as categorias</option>
             {categories.map(c => (
               <option key={c.id} value={c.id}>{c.name}</option>
@@ -1256,45 +1257,46 @@ export default function Eventos() {
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <Badge status={ev.status} map={STATUS_MAP} />
                               <>
-                  <button
-                    style={{ ...styles.btn(ev.status === 'concluido' ? 'secondary' : 'primary'), ...styles.btnSm }}
+                  <Button
+                    variant={ev.status === 'concluido' ? 'outline' : 'default'}
+                    size="sm"
                     onClick={() => toggleEventStatus(ev.id, ev.status)}
                   >
                     {ev.status === 'concluido' ? 'Reabrir' : 'Finalizar'}
-                  </button>
-                  <button style={{ ...styles.btn('secondary'), ...styles.btnSm }} onClick={() => setModalEvent(ev)}>Editar</button>
-                  <button style={{ ...styles.btn('danger'), ...styles.btnSm }} onClick={() => deleteEvent(ev.id)}>Excluir</button>
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setModalEvent(ev)}>Editar</Button>
+                  <Button variant="destructive" size="sm" onClick={() => deleteEvent(ev.id)}>Excluir</Button>
                 </>
             </div>
           </div>
           <div style={{ padding: '16px 20px' }}>
             <div style={styles.formRow}>
-              <div><span style={styles.label}>Data</span><div style={{ fontSize: 13, marginTop: 2 }}>{fmtDate(ev.date)}</div></div>
-              <div><span style={styles.label}>Local</span><div style={{ fontSize: 13, marginTop: 2 }}>{ev.location || '—'}</div></div>
+              <div><span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Data</span><div style={{ fontSize: 13, marginTop: 2 }}>{fmtDate(ev.date)}</div></div>
+              <div><span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Local</span><div style={{ fontSize: 13, marginTop: 2 }}>{ev.location || '—'}</div></div>
             </div>
             <div style={{ ...styles.formRow, marginTop: 12 }}>
-              <div><span style={styles.label}>Responsável</span><div style={{ fontSize: 13, marginTop: 2 }}>{ev.responsible || '—'}</div></div>
-              <div><span style={styles.label}>Público esperado</span><div style={{ fontSize: 13, marginTop: 2 }}>{ev.expected_attendance || '—'}</div></div>
+              <div><span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Responsável</span><div style={{ fontSize: 13, marginTop: 2 }}>{ev.responsible || '—'}</div></div>
+              <div><span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Público esperado</span><div style={{ fontSize: 13, marginTop: 2 }}>{ev.expected_attendance || '—'}</div></div>
             </div>
             <div style={{ ...styles.formRow, marginTop: 12 }}>
-              <div><span style={styles.label}>Orçamento Previsto</span><div style={{ fontSize: 13, marginTop: 2 }}>{fmtMoney(ev.budget_planned)}</div></div>
-              <div><span style={styles.label}>Orçamento Gasto</span><div style={{ fontSize: 13, marginTop: 2 }}>{fmtMoney(ev.budget_spent)}</div></div>
+              <div><span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Orçamento Previsto</span><div style={{ fontSize: 13, marginTop: 2 }}>{fmtMoney(ev.budget_planned)}</div></div>
+              <div><span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Orçamento Gasto</span><div style={{ fontSize: 13, marginTop: 2 }}>{fmtMoney(ev.budget_spent)}</div></div>
             </div>
             {ev.description && (
               <div style={{ marginTop: 12 }}>
-                <span style={styles.label}>Descrição</span>
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Descrição</span>
                 <div style={{ fontSize: 13, marginTop: 2, color: C.text2 }}>{ev.description}</div>
               </div>
             )}
             {ev.notes && (
               <div style={{ marginTop: 12 }}>
-                <span style={styles.label}>Observações</span>
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Observações</span>
                 <div style={{ fontSize: 13, marginTop: 2, color: C.text2 }}>{ev.notes}</div>
               </div>
             )}
             {ev.lessons_learned && (
               <div style={{ marginTop: 12 }}>
-                <span style={styles.label}>Lições Aprendidas</span>
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Lições Aprendidas</span>
                 <div style={{ fontSize: 13, marginTop: 2, color: C.text2 }}>{ev.lessons_learned}</div>
               </div>
             )}
@@ -1302,7 +1304,7 @@ export default function Eventos() {
             {/* Ocorrências como pills dentro do card (só recorrentes) */}
             {occurrences.length > 1 && ev.recurrence !== 'unico' && (
               <div style={{ marginTop: 16, paddingTop: 12, borderTop: `1px solid ${C.border}` }}>
-                <span style={styles.label}>Ocorrências ({occurrences.length})</span>
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Ocorrências ({occurrences.length})</span>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
                   {occurrences.map(occ => {
                     const occDate = normDate(occ.date);
@@ -1339,14 +1341,14 @@ export default function Eventos() {
             <span style={styles.badge(expandedOcc.status === 'concluido' ? C.green : C.text3, expandedOcc.status === 'concluido' ? `${C.green}15` : 'var(--cbrio-bg)')}>
               {expandedOcc.status === 'concluido' ? 'Concluído' : 'Pendente'}
             </span>
-            <button style={{ ...styles.btn(expandedOcc.status === 'concluido' ? 'secondary' : 'primary'), ...styles.btnSm }}
+            <Button variant={expandedOcc.status === 'concluido' ? 'outline' : 'default'} size="sm"
               onClick={async () => {
                 const ns = expandedOcc.status === 'concluido' ? 'pendente' : 'concluido';
                 try { await events.updateOccurrence(ev.id, expandedOcc.id, { status: ns }); refreshDetail(); loadOccurrence(expandedOcc.id); dashApi.pmo().then(setPmoKpis).catch(() => {}); }
                 catch (err) { setError(err.message); }
               }}>
               {expandedOcc.status === 'concluido' ? 'Reabrir' : 'Finalizar'}
-            </button>
+            </Button>
           </div>
         )}
 
@@ -1368,7 +1370,7 @@ export default function Eventos() {
         <div style={{ padding: '20px 0 60px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--cbrio-text, #1a1a2e)' }}>Tarefas do Evento ({taskList.length})</div>
-          <button style={{ ...styles.btn('primary'), ...styles.btnSm }} onClick={() => setModalTask({})}>+ Tarefa</button>
+          <Button size="sm" onClick={() => setModalTask({})}>+ Tarefa</Button>
         </div>
 
         {taskList.length === 0 && <div style={styles.empty}>Nenhuma tarefa cadastrada.</div>}
@@ -1401,7 +1403,7 @@ export default function Eventos() {
               <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
                 {task.priority && <Badge status={task.priority} map={PRIORITY_MAP} />}
                 <Badge status={task.status} map={TASK_STATUS_MAP} />
-                <select style={{ ...styles.select, padding: '2px 6px', fontSize: 11 }} value={task.status}
+                <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ padding: '2px 6px', fontSize: 11 }} value={task.status}
                   onChange={e => changeTaskStatus(task.id, e.target.value)}>
                   {Object.entries(TASK_STATUS_MAP).map(([k, v]) => (<option key={k} value={k}>{v.label}</option>))}
                 </select>
@@ -1412,8 +1414,8 @@ export default function Eventos() {
             {isOpen && (
               <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.border}` }} onClick={e => e.stopPropagation()}>
                 <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-                  <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => setModalTask(task)}>Editar</button>
-                  <button style={{ ...styles.btn('ghost'), ...styles.btnSm, color: C.red }} onClick={() => deleteTask(task.id)}>Excluir</button>
+                  <Button variant="ghost" size="sm" onClick={() => setModalTask(task)}>Editar</Button>
+                  <Button variant="ghost" size="sm" className="text-destructive" onClick={() => deleteTask(task.id)}>Excluir</Button>
                 </div>
 
                 {task.description && <div style={{ fontSize: 12, color: C.text2, marginBottom: 8 }}>{task.description}</div>}
@@ -1471,7 +1473,7 @@ export default function Eventos() {
           <div style={{ padding: '20px 0 60px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--cbrio-text, #1a1a2e)' }}>Reuniões do Evento ({meetingsList.length})</div>
-              <button style={{ ...styles.btn('primary'), ...styles.btnSm }} onClick={() => setModalTask(null)}>+ Reunião</button>
+              <Button size="sm" onClick={() => setModalTask(null)}>+ Reunião</Button>
             </div>
             {meetingsList.length === 0 && <div style={styles.empty}>Nenhuma reunião cadastrada</div>}
             {meetingsList.map(m => {
@@ -1502,8 +1504,8 @@ export default function Eventos() {
                 {isOpen && (
                   <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.border}` }} onClick={e => e.stopPropagation()}>
                     <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-                      <button style={{ ...styles.btn('ghost'), ...styles.btnSm, color: C.red }}
-                        onClick={async () => { if (window.confirm('Excluir reunião?')) { await meetings.remove(m.id); refreshDetail(); } }}>Excluir</button>
+                      <Button variant="ghost" size="sm" className="text-destructive"
+                        onClick={async () => { if (window.confirm('Excluir reunião?')) { await meetings.remove(m.id); refreshDetail(); } }}>Excluir</Button>
                     </div>
                     {m.decisions && <div style={{ fontSize: 12, color: C.text2, marginBottom: 6 }}><strong>Decisões:</strong> {m.decisions}</div>}
                     {m.notes && <div style={{ fontSize: 12, color: C.text3, marginBottom: 6 }}><strong>Notas:</strong> {m.notes}</div>}
@@ -1557,7 +1559,7 @@ export default function Eventos() {
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
                     <Badge status={task.status} map={TASK_STATUS_MAP} />
                     <select value={task.status} onChange={e => changeOccTaskStatus(task.id, e.target.value, expandedOcc.id)}
-                      style={{ ...styles.select, padding: '2px 6px', fontSize: 11 }}>
+                      className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ padding: '2px 6px', fontSize: 11 }}>
                       <option value="pendente">Pendente</option>
                       <option value="em-andamento">Em andamento</option>
                       <option value="concluida">Concluída</option>
@@ -1567,7 +1569,7 @@ export default function Eventos() {
                 {isOpen && (
                   <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.border}` }} onClick={e => e.stopPropagation()}>
                     <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-                      <button style={{ ...styles.btn('ghost'), ...styles.btnSm, color: C.red }} onClick={() => deleteOccTask(task.id, expandedOcc.id)}>Excluir</button>
+                      <Button variant="ghost" size="sm" className="text-destructive" onClick={() => deleteOccTask(task.id, expandedOcc.id)}>Excluir</Button>
                     </div>
                     {task.description && <div style={{ fontSize: 12, color: C.text2, marginBottom: 6 }}>{task.description}</div>}
                     {task.area && <div style={{ fontSize: 12, color: C.text3 }}>Área: {task.area}</div>}
@@ -1648,7 +1650,7 @@ export default function Eventos() {
           <div style={{ padding: '20px 0 60px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--cbrio-text, #1a1a2e)' }}>Riscos do Evento ({eventRisks.length})</div>
-              <button style={{ ...styles.btn('primary'), ...styles.btnSm }} onClick={() => setShowRiskForm(true)}>+ Risco</button>
+              <Button size="sm" onClick={() => setShowRiskForm(true)}>+ Risco</Button>
             </div>
             {eventRisks.length === 0 && <div style={styles.empty}>Nenhum risco registrado</div>}
             {eventRisks.map(risk => {
@@ -1680,11 +1682,11 @@ export default function Eventos() {
                     <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.border}` }} onClick={e => e.stopPropagation()}>
                       <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
                         <select value={risk.status} onChange={async e => { await risksApi.update(risk.id, { status: e.target.value }); risksApi.list(ev.id).then(setEventRisks); }}
-                          style={{ ...styles.select, padding: '4px 8px', fontSize: 12 }}>
+                          className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ padding: '4px 8px', fontSize: 12 }}>
                           {['aberto','mitigando','mitigado','aceito','fechado'].map(s => <option key={s} value={s}>{s}</option>)}
                         </select>
-                        <button style={{ ...styles.btn('ghost'), ...styles.btnSm, color: C.red }}
-                          onClick={async () => { if (window.confirm('Excluir risco?')) { await risksApi.remove(risk.id); risksApi.list(ev.id).then(setEventRisks); } }}>Excluir</button>
+                        <Button variant="ghost" size="sm" className="text-destructive"
+                          onClick={async () => { if (window.confirm('Excluir risco?')) { await risksApi.remove(risk.id); risksApi.list(ev.id).then(setEventRisks); } }}>Excluir</Button>
                       </div>
                       {risk.description && <div style={{ fontSize: 12, color: C.text2, marginBottom: 6 }}>{risk.description}</div>}
                       <div style={{ fontSize: 12, color: C.text2, marginBottom: 4 }}>Probabilidade: {risk.probability}/5 · Impacto: {risk.impact}/5</div>
@@ -1729,15 +1731,15 @@ export default function Eventos() {
               <div style={styles.card}>
                 <div style={{ padding: '16px 20px' }}>
                   {retroData.overall_rating && <div style={{ fontSize: 14, marginBottom: 10 }}>Avaliação: {'★'.repeat(retroData.overall_rating)}{'☆'.repeat(5 - retroData.overall_rating)}</div>}
-                  {retroData.what_went_well && <div style={{ marginBottom: 10 }}><span style={styles.label}>O que foi bem</span><div style={{ fontSize: 13, color: C.text2 }}>{retroData.what_went_well}</div></div>}
-                  {retroData.what_to_improve && <div style={{ marginBottom: 10 }}><span style={styles.label}>O que melhorar</span><div style={{ fontSize: 13, color: C.text2 }}>{retroData.what_to_improve}</div></div>}
-                  {retroData.action_items && <div><span style={styles.label}>Ações</span><div style={{ fontSize: 13, color: C.text2 }}>{retroData.action_items}</div></div>}
+                  {retroData.what_went_well && <div style={{ marginBottom: 10 }}><span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">O que foi bem</span><div style={{ fontSize: 13, color: C.text2 }}>{retroData.what_went_well}</div></div>}
+                  {retroData.what_to_improve && <div style={{ marginBottom: 10 }}><span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">O que melhorar</span><div style={{ fontSize: 13, color: C.text2 }}>{retroData.what_to_improve}</div></div>}
+                  {retroData.action_items && <div><span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Ações</span><div style={{ fontSize: 13, color: C.text2 }}>{retroData.action_items}</div></div>}
                 </div>
               </div>
             ) : (
               <div style={{ textAlign: 'center', padding: 24 }}>
                 <div style={{ color: C.text3, fontSize: 13, marginBottom: 12 }}>Nenhuma retrospectiva registrada</div>
-                <button style={styles.btn('primary')} onClick={() => setShowRetroForm(true)}>Preencher Retrospectiva</button>
+                <Button onClick={() => setShowRetroForm(true)}>Preencher Retrospectiva</Button>
               </div>
             )}
           </div>
@@ -1747,8 +1749,8 @@ export default function Eventos() {
         {showRiskForm && (
           <Modal open onClose={() => setShowRiskForm(false)} title="Novo Risco"
             footer={<>
-              <button style={styles.btn('ghost')} onClick={() => setShowRiskForm(false)}>Cancelar</button>
-              <button style={styles.btn('primary')} onClick={async () => {
+              <Button variant="ghost" onClick={() => setShowRiskForm(false)}>Cancelar</Button>
+              <Button onClick={async () => {
                 const f = document.getElementById('risk-form');
                 const fd = new FormData(f);
                 const data = Object.fromEntries(fd.entries());
@@ -1756,7 +1758,7 @@ export default function Eventos() {
                 await risksApi.create(ev.id, data);
                 setShowRiskForm(false);
                 risksApi.list(ev.id).then(setEventRisks);
-              }}>Salvar</button>
+              }}>Salvar</Button>
             </>}>
             <form id="risk-form" onSubmit={e => e.preventDefault()}>
               <Input label="Título" name="title" required />
@@ -1787,8 +1789,8 @@ export default function Eventos() {
         {showRetroForm && (
           <Modal open onClose={() => setShowRetroForm(false)} title="Retrospectiva do Evento"
             footer={<>
-              <button style={styles.btn('ghost')} onClick={() => setShowRetroForm(false)}>Cancelar</button>
-              <button style={styles.btn('primary')} onClick={async () => {
+              <Button variant="ghost" onClick={() => setShowRetroForm(false)}>Cancelar</Button>
+              <Button onClick={async () => {
                 const f = document.getElementById('retro-form');
                 const fd = new FormData(f);
                 const data = Object.fromEntries(fd.entries());
@@ -1796,7 +1798,7 @@ export default function Eventos() {
                 await retroApi.save(ev.id, data);
                 setShowRetroForm(false);
                 retroApi.get(ev.id).then(setRetroData);
-              }}>Salvar</button>
+              }}>Salvar</Button>
             </>}>
             <form id="retro-form" onSubmit={e => e.preventDefault()}>
               <Select label="Avaliação geral" name="overall_rating">
@@ -1826,8 +1828,8 @@ export default function Eventos() {
         title={isEdit ? 'Editar Evento' : 'Novo Evento'}
         footer={
           <>
-            <button style={styles.btn('ghost')} onClick={() => setModalEvent(null)}>Cancelar</button>
-            <button style={styles.btn('primary')} onClick={() => {
+            <Button variant="ghost" onClick={() => setModalEvent(null)}>Cancelar</Button>
+            <Button onClick={() => {
               const f = document.getElementById('event-form');
               const fd = new FormData(f);
               const data = Object.fromEntries(fd.entries());
@@ -1837,7 +1839,7 @@ export default function Eventos() {
               if (data.actual_attendance) data.actual_attendance = parseInt(data.actual_attendance);
               if (isEdit) data.id = modalEvent.id;
               saveEvent(data);
-            }}>Salvar</button>
+            }}>Salvar</Button>
           </>
         }
       >
@@ -1911,15 +1913,15 @@ export default function Eventos() {
         title={isEdit ? 'Editar Tarefa' : 'Nova Tarefa'}
         footer={
           <>
-            <button style={styles.btn('ghost')} onClick={() => setModalTask(null)}>Cancelar</button>
-            <button style={styles.btn('primary')} onClick={() => {
+            <Button variant="ghost" onClick={() => setModalTask(null)}>Cancelar</Button>
+            <Button onClick={() => {
               const f = document.getElementById('task-form');
               const fd = new FormData(f);
               const data = Object.fromEntries(fd.entries());
               data.is_milestone = data.is_milestone === 'true';
               if (isEdit) data.id = modalTask.id;
               saveTask(data);
-            }}>Salvar</button>
+            }}>Salvar</Button>
           </>
         }
       >
@@ -1927,8 +1929,8 @@ export default function Eventos() {
           <Input label="Nome" name="name" defaultValue={modalTask?.name || ''} required />
           <div style={styles.formRow}>
             <div style={styles.formGroup}>
-              <label style={styles.label}>Responsável</label>
-              <input list="people-list" style={styles.input} name="responsible" defaultValue={modalTask?.responsible || ''} placeholder="Buscar pessoa..." autoComplete="off" />
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Responsável</label>
+              <input list="people-list" className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" name="responsible" defaultValue={modalTask?.responsible || ''} placeholder="Buscar pessoa..." autoComplete="off" />
               <datalist id="people-list">
                 {usersList.map(u => <option key={u.id} value={u.name || u.full_name || u.email} />)}
               </datalist>
@@ -1973,7 +1975,7 @@ export default function Eventos() {
           <div style={styles.subtitle}>Gestão de eventos da igreja</div>
         </div>
         {(tab <= 3) && (
-          <button style={styles.btn('primary')} onClick={() => setModalEvent({})}>+ Novo Evento</button>
+          <Button onClick={() => setModalEvent({})}>+ Novo Evento</Button>
         )}
       </div>
 
@@ -1981,7 +1983,7 @@ export default function Eventos() {
       {error && (
         <div style={{ ...styles.badge(C.red, C.redBg), padding: '8px 14px', marginBottom: 16, fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>{error}</span>
-          <button style={{ ...styles.btn('ghost'), ...styles.btnSm, color: C.red }} onClick={() => setError('')}>✕</button>
+          <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setError('')}>✕</Button>
         </div>
       )}
 

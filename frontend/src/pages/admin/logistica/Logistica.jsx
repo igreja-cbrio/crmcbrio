@@ -112,13 +112,13 @@ function Modal({ open, onClose, title, children, footer, wide }) {
 }
 
 function Input({ label, ...props }) {
-  return (<div style={styles.formGroup}>{label && <label style={styles.label}>{label}</label>}<input style={styles.input} {...props} /></div>);
+  return (<div style={styles.formGroup}>{label && <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">{label}</label>}<input className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" {...props} /></div>);
 }
 function Select({ label, children, ...props }) {
-  return (<div style={styles.formGroup}>{label && <label style={styles.label}>{label}</label>}<select style={{ ...styles.select, width: '100%' }} {...props}>{children}</select></div>);
+  return (<div style={styles.formGroup}>{label && <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">{label}</label>}<select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" {...props}>{children}</select></div>);
 }
 function Textarea({ label, ...props }) {
-  return (<div style={styles.formGroup}>{label && <label style={styles.label}>{label}</label>}<textarea style={{ ...styles.input, minHeight: 70, resize: 'vertical' }} {...props} /></div>);
+  return (<div style={styles.formGroup}>{label && <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">{label}</label>}<textarea className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ minHeight: 70, resize: 'vertical' }} {...props} /></div>);
 }
 function Badge({ status, map }) {
   const s = map[status] || { c: C.text3, bg: '#73737318', label: status || '—' };
@@ -497,7 +497,7 @@ function DashboardTab({ dash }) {
 function FornecedoresTab({ data, loading, isDiretor, filtroAtivo, setFiltroAtivo, onNew, onEdit, onDelete, onToggle }) {
   return (<>
     <div style={styles.filterRow}>
-      <select style={styles.select} value={filtroAtivo} onChange={e => setFiltroAtivo(e.target.value)}>
+      <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={filtroAtivo} onChange={e => setFiltroAtivo(e.target.value)}>
         <option value="">Todos</option><option value="true">Ativos</option><option value="false">Inativos</option>
       </select>
       {isDiretor && <Button onClick={onNew}>+ Novo Fornecedor</Button>}
@@ -532,7 +532,7 @@ function FornecedoresTab({ data, loading, isDiretor, filtroAtivo, setFiltroAtivo
 function SolicitacoesTab({ data, loading, isDiretor, filtroStatus, setFiltroStatus, onNew, onEdit, onAprovar, onRejeitar }) {
   return (<>
     <div style={styles.filterRow}>
-      <select style={styles.select} value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
+      <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
         <option value="">Todos</option>
         {Object.entries(SOLICITACAO_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
       </select>
@@ -593,7 +593,7 @@ function PedidosTab({ data, loading, isDiretor, filtroStatus, setFiltroStatus, o
 
   return (<>
     <div style={styles.filterRow}>
-      <select style={styles.select} value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
+      <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
         <option value="">Todos</option>
         {Object.entries(PEDIDO_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
       </select>
@@ -827,7 +827,7 @@ function NotaFiscalModal({ open, data, onClose, onSave, saving, fornecedores, pe
         <Input label="Chave de Acesso" value={data.chave_acesso || ''} onChange={e => upNota('chave_acesso', e.target.value)} />
         {/* Upload PDF */}
         <div style={styles.formGroup}>
-          <label style={styles.label}>PDF da Nota Fiscal</label>
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">PDF da Nota Fiscal</label>
           <div
             onDragOver={e => e.preventDefault()}
             onDrop={e => { e.preventDefault(); handleUploadNF(e.dataTransfer.files?.[0]); }}
@@ -1071,9 +1071,9 @@ function ComprasMLTab() {
         </div>
       </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <input style={{ ...styles.input, width: 200 }} placeholder="Buscar por produto, ID..." value={busca}
+        <input className="flex h-9 rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ width: 200 }} placeholder="Buscar por produto, ID..." value={busca}
           onChange={e => setBusca(e.target.value)} onKeyDown={handleSearch} />
-        <select style={styles.select} value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
+        <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
           <option value="">Todos os status</option>
           <option value="paid">Pagos</option>
           <option value="confirmed">Confirmados</option>

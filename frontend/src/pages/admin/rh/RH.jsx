@@ -156,8 +156,8 @@ function Modal({ open, onClose, title, children, footer }) {
 function Input({ label, ...props }) {
   return (
     <div style={styles.formGroup}>
-      {label && <label style={styles.label}>{label}</label>}
-      <input style={styles.input} {...props} />
+      {label && <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">{label}</label>}
+      <input className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" {...props} />
     </div>
   );
 }
@@ -165,8 +165,8 @@ function Input({ label, ...props }) {
 function Select({ label, children, ...props }) {
   return (
     <div style={styles.formGroup}>
-      {label && <label style={styles.label}>{label}</label>}
-      <select style={{ ...styles.select, width: '100%' }} {...props}>{children}</select>
+      {label && <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">{label}</label>}
+      <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" {...props}>{children}</select>
     </div>
   );
 }
@@ -552,12 +552,12 @@ function FuncionariosTab({ funcs, loading, busca, setBusca, filtroStatus, setFil
   return (
     <>
       <div style={styles.filterRow}>
-        <input style={{ ...styles.input, maxWidth: 280 }} placeholder="🔍 Buscar por nome..." value={busca} onChange={e => setBusca(e.target.value)} />
-        <select style={styles.select} value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
+        <input className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ maxWidth: 280 }} placeholder="🔍 Buscar por nome..." value={busca} onChange={e => setBusca(e.target.value)} />
+        <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
           <option value="">Todos os status</option>
           {Object.entries(STATUS_COLORS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
         </select>
-        <select style={styles.select} value={filtroArea} onChange={e => setFiltroArea(e.target.value)}>
+        <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={filtroArea} onChange={e => setFiltroArea(e.target.value)}>
           <option value="">Todas as áreas</option>
           {areas.map(a => <option key={a} value={a}>{a}</option>)}
         </select>
@@ -848,7 +848,7 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
                 ))}
                 {inscrevendo === t.id ? (
                   <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }}>
-                    <select style={{ ...styles.select, flex: 1 }} value={funcSel} onChange={e => setFuncSel(e.target.value)}>
+                    <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ flex: 1 }} value={funcSel} onChange={e => setFuncSel(e.target.value)}>
                       <option value="">Selecionar colaborador</option>
                       {funcs.filter(f => f.status === 'ativo').map(f => <option key={f.id} value={f.id}>{f.nome}</option>)}
                     </select>
@@ -1006,18 +1006,18 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
                         <div style={styles.formRow}>
                           <Input label="Título *" value={matForm.titulo} onChange={e => setMatForm(f => ({ ...f, titulo: e.target.value }))} />
                           <div style={styles.formGroup}>
-                            <label style={styles.label}>Tipo</label>
-                            <select style={{ ...styles.select, width: '100%' }} value={matForm.tipo} onChange={e => setMatForm(f => ({ ...f, tipo: e.target.value }))}>
+                            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Tipo</label>
+                            <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={matForm.tipo} onChange={e => setMatForm(f => ({ ...f, tipo: e.target.value }))}>
                               {Object.entries(TIPO_MATERIAL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                             </select>
                           </div>
                         </div>
                         <div style={styles.formGroup}>
-                          <label style={styles.label}>Descrição</label>
-                          <textarea style={{ ...styles.input, minHeight: 50, resize: 'vertical' }} value={matForm.descricao} onChange={e => setMatForm(f => ({ ...f, descricao: e.target.value }))} />
+                          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Descrição</label>
+                          <textarea className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ minHeight: 50, resize: 'vertical' }} value={matForm.descricao} onChange={e => setMatForm(f => ({ ...f, descricao: e.target.value }))} />
                         </div>
                         <div style={styles.formGroup}>
-                          <label style={{ ...styles.label, display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-2">
                             <input type="checkbox" checked={matForm.obrigatorio} onChange={e => setMatForm(f => ({ ...f, obrigatorio: e.target.checked }))} />
                             Obrigatório
                           </label>
@@ -1025,7 +1025,7 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
 
                         {/* Upload de arquivo — drag & drop */}
                         <div style={styles.formGroup}>
-                          <label style={styles.label}>Arquivo (PDF, PPT, etc.)</label>
+                          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Arquivo (PDF, PPT, etc.)</label>
                           <div
                             onDragOver={e => e.preventDefault()}
                             onDrop={handleFileDrop}
@@ -1123,22 +1123,22 @@ function FeriasTab({ funcs, onNew, onAprovar }) {
   return (
     <>
       <div style={styles.filterRow}>
-        <select style={styles.select} value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
+        <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
           <option value="">Todos os status</option>
           <option value="pendente">Pendente</option>
           <option value="aprovado">Aprovado</option>
           <option value="rejeitado">Rejeitado</option>
         </select>
-        <select style={styles.select} value={filtroArea} onChange={e => setFiltroArea(e.target.value)}>
+        <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={filtroArea} onChange={e => setFiltroArea(e.target.value)}>
           <option value="">Todas as áreas</option>
           {areas.map(a => <option key={a} value={a}>{a}</option>)}
         </select>
-        <select style={styles.select} value={filtroFunc} onChange={e => setFiltroFunc(e.target.value)}>
+        <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={filtroFunc} onChange={e => setFiltroFunc(e.target.value)}>
           <option value="">Todos os colaboradores</option>
           {(funcs || []).filter(f => f.status === 'ativo').map(f => <option key={f.id} value={f.id}>{f.nome}</option>)}
         </select>
-        <input style={{ ...styles.input, maxWidth: 140 }} type="date" value={filtroDe} onChange={e => setFiltroDe(e.target.value)} placeholder="De" title="Data início de" />
-        <input style={{ ...styles.input, maxWidth: 140 }} type="date" value={filtroAte} onChange={e => setFiltroAte(e.target.value)} placeholder="Até" title="Data início até" />
+        <input className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ maxWidth: 140 }} type="date" value={filtroDe} onChange={e => setFiltroDe(e.target.value)} placeholder="De" title="Data início de" />
+        <input className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ maxWidth: 140 }} type="date" value={filtroAte} onChange={e => setFiltroAte(e.target.value)} placeholder="Até" title="Data início até" />
         {(filtroStatus || filtroArea || filtroDe || filtroAte || filtroFunc) && (
           <Button variant="ghost" size="sm" onClick={() => { setFiltroStatus(''); setFiltroArea(''); setFiltroDe(''); setFiltroAte(''); setFiltroFunc(''); }}>✕ Limpar</Button>
         )}
@@ -1446,7 +1446,7 @@ function FuncionarioFormModal({ open, data, onClose, onSave, funcionarios = [] }
       )}
       {/* Foto — upload + drag & drop */}
       <div style={styles.formGroup}>
-        <label style={styles.label}>Foto do Colaborador</label>
+        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Foto do Colaborador</label>
         <div
           onDragOver={e => { e.preventDefault(); setDragging(true); }}
           onDragLeave={() => setDragging(false)}
@@ -1491,8 +1491,8 @@ function FuncionarioFormModal({ open, data, onClose, onSave, funcionarios = [] }
         </div>
       </div>
       <div style={styles.formGroup}>
-        <label style={styles.label}>Observações</label>
-        <textarea style={{ ...styles.input, minHeight: 60, resize: 'vertical' }} value={f.observacoes || ''} onChange={e => upd('observacoes', e.target.value)} />
+        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Observações</label>
+        <textarea className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ minHeight: 60, resize: 'vertical' }} value={f.observacoes || ''} onChange={e => upd('observacoes', e.target.value)} />
       </div>
     </Modal>
   );
@@ -1514,14 +1514,14 @@ function TreinamentoFormModal({ open, data, onClose, onSave }) {
       </div>
       <Input label="Instrutor" value={f.instrutor || ''} onChange={e => upd('instrutor', e.target.value)} />
       <div style={styles.formGroup}>
-        <label style={{ ...styles.label, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-2">
           <input type="checkbox" checked={f.obrigatorio || false} onChange={e => upd('obrigatorio', e.target.checked)} />
           Obrigatório
         </label>
       </div>
       <div style={styles.formGroup}>
-        <label style={styles.label}>Descrição</label>
-        <textarea style={{ ...styles.input, minHeight: 60, resize: 'vertical' }} value={f.descricao || ''} onChange={e => upd('descricao', e.target.value)} />
+        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Descrição</label>
+        <textarea className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ minHeight: 60, resize: 'vertical' }} value={f.descricao || ''} onChange={e => upd('descricao', e.target.value)} />
       </div>
     </Modal>
   );
@@ -1547,8 +1547,8 @@ function FeriasFormModal({ open, funcs, onClose, onSave }) {
         <Input label="Data Fim *" type="date" value={f.data_fim || ''} onChange={e => upd('data_fim', e.target.value)} />
       </div>
       <div style={styles.formGroup}>
-        <label style={styles.label}>Observações</label>
-        <textarea style={{ ...styles.input, minHeight: 60, resize: 'vertical' }} value={f.observacoes || ''} onChange={e => upd('observacoes', e.target.value)} />
+        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Observações</label>
+        <textarea className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ minHeight: 60, resize: 'vertical' }} value={f.observacoes || ''} onChange={e => upd('observacoes', e.target.value)} />
       </div>
     </Modal>
   );
@@ -1652,7 +1652,7 @@ function BeneficiosSection({ data, onSave }) {
             <>
               <div style={{ fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 6, textTransform: 'uppercase' }}>Salário Base</div>
               <input type="number" step="0.01" value={form.salario} onChange={e => setForm(f => ({ ...f, salario: e.target.value }))}
-                style={{ ...styles.input, marginBottom: 12, maxWidth: 220 }} placeholder="R$" />
+                className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ marginBottom: 12, maxWidth: 220 }} placeholder="R$" />
 
               <div style={{ fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 6, textTransform: 'uppercase' }}>Benefícios</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px', marginBottom: 12 }}>
@@ -1660,7 +1660,7 @@ function BeneficiosSection({ data, onSave }) {
                   <div key={b.key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <label style={{ fontSize: 11, color: C.text2, width: 120, flexShrink: 0 }}>{b.label}</label>
                     <input type="number" step="0.01" value={form[b.key]} onChange={e => setForm(f => ({ ...f, [b.key]: e.target.value }))}
-                      style={{ ...styles.input, padding: '4px 8px', fontSize: 12 }} placeholder="0" />
+                      className="flex h-7 w-full rounded-lg border border-input bg-background px-2 py-1 text-xs shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder="0" />
                   </div>
                 ))}
               </div>
@@ -1672,7 +1672,7 @@ function BeneficiosSection({ data, onSave }) {
                     <div key={b.key} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <label style={{ fontSize: 11, color: C.text2, width: 40, flexShrink: 0 }}>{b.label}</label>
                       <input type="number" step="0.01" value={form[b.key]} onChange={e => setForm(f => ({ ...f, [b.key]: e.target.value }))}
-                        style={{ ...styles.input, padding: '4px 8px', fontSize: 12 }} placeholder="0" />
+                        className="flex h-7 w-full rounded-lg border border-input bg-background px-2 py-1 text-xs shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder="0" />
                     </div>
                   ))}
                 </div>
@@ -1684,7 +1684,7 @@ function BeneficiosSection({ data, onSave }) {
                   <div key={b.key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <label style={{ fontSize: 11, color: C.text2, width: 120, flexShrink: 0 }}>{b.label}</label>
                     <input type="number" step="0.01" value={form[b.key]} onChange={e => setForm(f => ({ ...f, [b.key]: e.target.value }))}
-                      style={{ ...styles.input, padding: '4px 8px', fontSize: 12 }} placeholder="0" />
+                      className="flex h-7 w-full rounded-lg border border-input bg-background px-2 py-1 text-xs shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder="0" />
                   </div>
                 ))}
               </div>
@@ -1695,7 +1695,7 @@ function BeneficiosSection({ data, onSave }) {
                   <div key={b.key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <label style={{ fontSize: 11, color: C.text2, width: 120, flexShrink: 0 }}>{b.label}</label>
                     <input type="number" step="0.01" value={form[b.key]} onChange={e => setForm(f => ({ ...f, [b.key]: e.target.value }))}
-                      style={{ ...styles.input, padding: '4px 8px', fontSize: 12 }} placeholder="0" />
+                      className="flex h-7 w-full rounded-lg border border-input bg-background px-2 py-1 text-xs shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder="0" />
                   </div>
                 ))}
               </div>
@@ -1897,7 +1897,8 @@ function NotasColaborador({ funcId, initialValue }) {
         <span style={{ fontSize: 11, color: saved ? C.green : C.amber }}>{saved ? '✓ Salvo' : '⏳ Salvando...'}</span>
       </div>
       <textarea
-        style={{ ...styles.input, minHeight: 80, resize: 'vertical' }}
+        className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        style={{ minHeight: 80, resize: 'vertical' }}
         value={notas}
         onChange={handleChange}
         placeholder="Escreva anotações sobre este colaborador..."
@@ -2084,19 +2085,19 @@ function FuncionarioDetailPanel({ open, data, onClose, onEdit, onDelete, onNewDo
             { key: 'salario', label: 'Salário (R$)', type: 'number' },
           ].map(f => (
             <div key={f.key} style={f.full ? { gridColumn: '1 / -1' } : undefined}>
-              <label style={styles.label}>{f.label}</label>
-              <input style={styles.input} type={f.type || 'text'} value={editForm[f.key] || ''} onChange={e => setEditForm(p => ({ ...p, [f.key]: e.target.value }))} />
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">{f.label}</label>
+              <input className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" type={f.type || 'text'} value={editForm[f.key] || ''} onChange={e => setEditForm(p => ({ ...p, [f.key]: e.target.value }))} />
             </div>
           ))}
           <div>
-            <label style={styles.label}>Contrato</label>
-            <select style={{ ...styles.select, width: '100%' }} value={editForm.tipo_contrato || 'clt'} onChange={e => setEditForm(p => ({ ...p, tipo_contrato: e.target.value }))}>
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Contrato</label>
+            <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={editForm.tipo_contrato || 'clt'} onChange={e => setEditForm(p => ({ ...p, tipo_contrato: e.target.value }))}>
               {Object.entries(TIPO_CONTRATO).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
           </div>
           <div>
-            <label style={styles.label}>Status</label>
-            <select style={{ ...styles.select, width: '100%' }} value={editForm.status || 'ativo'} onChange={e => setEditForm(p => ({ ...p, status: e.target.value }))}>
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Status</label>
+            <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={editForm.status || 'ativo'} onChange={e => setEditForm(p => ({ ...p, status: e.target.value }))}>
               {Object.entries(STATUS_COLORS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
             </select>
           </div>
