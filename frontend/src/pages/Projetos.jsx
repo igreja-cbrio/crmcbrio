@@ -259,7 +259,7 @@ export default function Projetos() {
   const [kanbanHorizon, setKanbanHorizon] = useState(30);
   const [kanbanPhase, setKanbanPhase] = useState(null); // phase_order selecionada (1-7)
   const [kanbanProject, setKanbanProject] = useState('all'); // projeto específico ou 'all'
-  const [kanbanViewMode, setKanbanViewMode] = useState(isPMO ? 'pmo' : 'minhas'); // pmo | area | minhas
+  const [kanbanViewMode, setKanbanViewMode] = useState(isPMO ? 'pmo' : accessLevel >= 3 ? 'area' : 'minhas'); // pmo | area | minhas
   const [kanbanExpanded, setKanbanExpanded] = useState(null);
   const [dragId, setDragId] = useState(null);
   const [dropCol, setDropCol] = useState(null);
@@ -862,11 +862,11 @@ export default function Projetos() {
     let filteredTasks = [...kanbanTasks];
     if (kanbanViewMode === 'minhas') {
       filteredTasks = filteredTasks.filter(t => t.responsible === profile?.name);
-    } else if (kanbanViewMode === 'area' && userArea) {
-      filteredTasks = filteredTasks.filter(t => t.area === userArea || t.responsible === profile?.name);
+    } else if (kanbanViewMode === 'area') {
+      filteredTasks = filteredTasks.filter(t => userAreas.includes(t.area) || t.responsible === profile?.name);
     } else if (kanbanViewMode === 'pmo' && !isPMO) {
-      if (userArea) {
-        filteredTasks = filteredTasks.filter(t => t.area === userArea || t.responsible === profile?.name);
+      if (userAreas.length > 0) {
+        filteredTasks = filteredTasks.filter(t => userAreas.includes(t.area) || t.responsible === profile?.name);
       } else {
         filteredTasks = filteredTasks.filter(t => t.responsible === profile?.name);
       }

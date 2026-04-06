@@ -62,8 +62,8 @@ export default function Planejamento() {
   const urlStatus = urlParams.get('status') || '';
   const isPMO = accessLevel >= 4; // Diretor+ vê tudo
 
-  const [tab, setTab] = useState((urlPerson || urlStatus) ? 2 : 0); // 0=Dashboard, 1=Kanban, 2=Lista, 3=Gantt
-  const [viewMode, setViewMode] = useState(isPMO ? 'pmo' : 'minhas'); // 'pmo' = por fase, 'area' = por área, 'minhas' = só minhas
+  const [tab, setTab] = useState((urlPerson || urlStatus) ? 2 : accessLevel <= 2 ? 2 : 0);
+  const [viewMode, setViewMode] = useState(isPMO ? 'pmo' : accessLevel >= 3 ? 'area' : 'minhas');
   const [kpis, setKpis] = useState(null);
   const [workload, setWorkload] = useState([]);
   const [cycleData, setCycleData] = useState(null);
@@ -164,9 +164,9 @@ export default function Planejamento() {
     }
     if (eventFilter !== 'all' && t.event_id !== eventFilter) return false;
     // Filtro por visão
-    if (viewMode === 'area' && userArea) {
+    if (viewMode === 'area') {
       const cat = getCat(t);
-      if (cat !== userArea && t.area !== userArea) return false;
+      if (!userAreas.includes(cat) && !userAreas.includes(t.area)) return false;
     }
     if (viewMode === 'minhas') {
       if (t.responsavel_id !== userId && t.responsavel_nome !== profile?.name) return false;
