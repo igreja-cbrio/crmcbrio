@@ -6,6 +6,7 @@ import {
   Phone, Mail, MapPin, Heart, Calendar, Star,
   CheckCircle2, Circle, UserPlus, Home,
 } from 'lucide-react';
+import { Button } from '../../components/ui/button';
 
 const C = {
   bg: 'var(--cbrio-bg)', card: 'var(--cbrio-card)', primary: '#00B39D', primaryBg: '#00B39D18',
@@ -100,12 +101,9 @@ export default function Membresia() {
           <p style={{ fontSize: 13, color: C.text2, marginTop: 4 }}>Cadastro de membros, famílias e trilha dos valores</p>
         </div>
         {isDiretor && (
-          <button
-            onClick={() => setShowForm(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: C.primary, color: '#0a0a0a', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
-          >
+          <Button onClick={() => setShowForm(true)}>
             <UserPlus style={{ width: 16, height: 16 }} /> Novo Membro
-          </button>
+          </Button>
         )}
       </div>
 
@@ -139,13 +137,14 @@ export default function Membresia() {
             placeholder="Buscar membro..."
             value={busca}
             onChange={e => setBusca(e.target.value)}
-            style={{ width: '100%', padding: '10px 14px 10px 36px', background: 'var(--cbrio-input-bg)', border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 14, color: C.text, outline: 'none' }}
+            className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            style={{ paddingLeft: 36 }}
           />
         </div>
         <select
           value={filterStatus}
           onChange={e => setFilterStatus(e.target.value)}
-          style={{ padding: '10px 14px', background: 'var(--cbrio-input-bg)', border: `1px solid ${C.border}`, borderRadius: 10, fontSize: 14, color: C.text }}
+          className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <option value="">Todos os status</option>
           {Object.entries(STATUS_MAP).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
@@ -229,9 +228,9 @@ export default function Membresia() {
                   <Badge status={selectedMembro.status} />
                 </div>
               </div>
-              <button onClick={() => setSelectedMembro(null)} style={{ background: 'none', border: 'none', color: C.text3, cursor: 'pointer', fontSize: 20 }}>
+              <Button variant="ghost" onClick={() => setSelectedMembro(null)} style={{ fontSize: 20 }}>
                 <X style={{ width: 20, height: 20 }} />
-              </button>
+              </Button>
             </div>
 
             <div style={{ padding: '24px 32px' }}>
@@ -266,7 +265,7 @@ export default function Membresia() {
                   <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                     {selectedMembro.familiares.map(f => (
                       <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: C.primaryBg, borderRadius: 10 }}>
-                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: C.primary, color: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>
+                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: C.primary, color: 'var(--cbrio-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>
                           {f.nome?.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
                         </div>
                         <span style={{ fontSize: 13, color: C.text, fontWeight: 500 }}>{f.nome}</span>
@@ -297,7 +296,7 @@ export default function Membresia() {
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                           }}>
                             {concluida ? (
-                              <CheckCircle2 style={{ width: 14, height: 14, color: '#0a0a0a' }} />
+                              <CheckCircle2 style={{ width: 14, height: 14, color: 'var(--cbrio-bg)' }} />
                             ) : (
                               <Circle style={{ width: 10, height: 10, color: C.text3 }} />
                             )}

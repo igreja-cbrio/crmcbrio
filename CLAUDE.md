@@ -1,7 +1,7 @@
 # CLAUDE.md — CBRio ERP
 
 Guia para Claude Code e agentes de IA trabalhando neste repositório.
-Atualizado em: 2026-04-03 (v3) — Auditoria UX completa + KPIs clicáveis
+Atualizado em: 2026-04-06 (v6) — Permissões granulares ENFORÇADAS, RH auditado, emails importados, Logística auditada, Patrimônio com 4264 bens, IA agents, notificações inline
 
 ---
 
@@ -104,17 +104,22 @@ Browser → Supabase Auth (OAuth/e-mail) → JWT token
   - `meetings.js` — CRUD reuniões (usa pg pool)
   - `cycles.js` — Ciclos criativos de eventos
   - `agents.js` — proxy IA (Anthropic Claude)
-  - `rh.js` — CRUD funcionários, documentos, treinamentos, férias, **escalas de extras**, benefícios, materiais
-  - `financeiro.js` — CRUD contas, transações, contas a pagar, reembolsos, arrecadação
-  - `logistica.js` — CRUD fornecedores, solicitações, pedidos, recebimentos, notas fiscais
-  - `patrimonio.js` — CRUD bens, categorias, localizações, movimentações, inventários
+  - `rh.js` — CRUD funcionários, documentos, treinamentos, férias, extras, benefícios, materiais, **admissões com contratos**, **avaliações de desempenho**
+  - `financeiro.js` — CRUD contas, transações, contas a pagar, reembolsos, arrecadação + **notificações inline**
+  - `logistica.js` — CRUD fornecedores, solicitações, pedidos, recebimentos, notas fiscais + **notificações inline**
+  - `patrimonio.js` — CRUD bens (paginado >1000), categorias, localizações, movimentações, inventários
   - `membresia.js` — CRUD membros, famílias, trilha dos valores, histórico
   - `mercadolivre.js` — Integração ML (OAuth, pedidos, envios, rastreio) com thumbnails enriquecidas
-  - `notificacoes.js` — Listar, contar, marcar lida, **gerar automáticas**, CRUD regras por módulo
+  - `notificacoes.js` — Listar, contar, marcar lida, **gerar automáticas**, CRUD regras, **endpoint cron**
   - `permissoes.js` — Sistema de permissões (cargos, áreas, módulos)
+  - `agents.js` — Framework de agentes IA (runs, steps, stats) + System Auditor
 - **`services/`** — serviços:
   - `notificar.js` — Helper central: resolve destinatários + dedup + insert
   - `notificacaoGenerator.js` — Gera notificações automáticas por módulo (RH, Financeiro, Logística, Patrimônio)
+  - `agentService.js` — Wrapper Claude API com model routing, token budgets, guardrails
+  - `agentContext.js` — RAG context builder com dados reais do banco
+- **`agents/`** — agentes IA:
+  - `systemAuditor.js` — Analisa dados reais e identifica problemas/melhorias
 
 ### Frontend (`frontend/src/`)
 - **`main.tsx`** — entry point com ThemeProvider + App
@@ -134,7 +139,7 @@ Browser → Supabase Auth (OAuth/e-mail) → JWT token
 ### Estrutura de Páginas
 ```
 pages/
-  Login.jsx                    — login com WebGL background
+  Login.jsx                    — login com WebGL background + logo shimmer
   Calendario.jsx               — calendário interativo
   Projetos.jsx
   Expansao.jsx
@@ -144,14 +149,18 @@ pages/
     components/                — modais e sub-componentes
   admin/
     rh/
-      RH.jsx                   — Dashboard, Funcionários, Treinamentos, Férias, Extras
-      ModalFuncionario.jsx
-      TabTreinamentos.jsx
-      TabFerias.jsx
+      RH.jsx                   — 9 tabs: Dashboard, Colaboradores, Admissão, Organograma, Folha, Avaliações, Treinamentos, Férias, Extras
+      ModalFuncionario.jsx     — modal criar/editar colaborador com validação CPF
+      TabAdmissao.jsx          — admissão com contratos PJ/CLT/Voluntário/Estagiário editáveis
+      TabFolha.jsx             — folha de pagamento com export CSV e holerite
+      TabAvaliacoes.jsx        — avaliações de desempenho com estrelas (6 critérios)
+      TabFerias.jsx            — férias com saldo CLT e carry-over
       TabExtras.jsx            — escalas de extras com notificações
     financeiro/Financeiro.jsx
-    logistica/Logistica.jsx
-    patrimonio/Patrimonio.jsx
+    logistica/Logistica.jsx    — 7 tabs: Dashboard, Fornecedores, Solicitações, Pedidos, Notas Fiscais, Compras ML, Rastreio
+    patrimonio/Patrimonio.jsx  — 6 tabs: Dashboard, Bens, Scanner, Categorias/Localizações, Inventários, Movimentações
+    AssistenteIA.jsx           — painel de agentes IA (System Auditor)
+    NotificacaoRegras.jsx      — configuração de regras de notificação por módulo/usuário
   ministerial/
     Membresia.jsx              — membros, famílias, trilha dos valores
 ```
@@ -178,6 +187,10 @@ Migrations em `supabase/migrations/`:
 - `016_cycle_task_subtasks.sql` — subtarefas de ciclos criativos
 - `017_rh_beneficios.sql` — benefícios de funcionários
 - `018_notificacoes_system.sql` — sistema de notificações (modulo, severidade, chave_dedup, notificacao_regras)
+- `019_rh_admissoes.sql` — sistema de admissão (rh_admissoes com contratos)
+- `020_agent_framework.sql` — framework de agentes IA (agent_runs, agent_steps, agent_queue)
+- `021_rh_organograma.sql` — gestor_id em rh_funcionarios (hierarquia)
+- `022_rh_avaliacoes.sql` — avaliações de desempenho (6 critérios, notas 1-5)
 - `027_pmo_views.sql` — views `vw_pmo_kpis` (KPIs agregados) e `vw_workload` (carga por responsável)
 
 **RLS importante:** A policy `profiles_select_all_authenticated` permite qualquer user autenticado ler perfis (evita recursão infinita). NÃO usar sub-select em profiles dentro de policies de profiles.
@@ -297,28 +310,62 @@ Estes arquivos afetam o sistema inteiro. Alterações devem ser feitas via **Pul
 
 ### Sistema
 - Dark mode + Light mode (toggle no header, persiste em localStorage)
-- Mega menu horizontal com dropdowns animados por área
-- **Sistema de notificações inteligente** — polling 30s, geração automática a cada 6h
-  - Notificações por módulo (RH, Financeiro, Logística, Patrimônio)
-  - Regras configuráveis por usuário (`notificacao_regras`)
+- Mega menu horizontal com dropdowns animados por área (Administrativo > Inteligência inclui Assistente IA)
+- **Loading screen** com logo CBRio + shimmer animation
+- **Sistema de notificações inteligente**:
+  - Geração automática (13 tipos: RH 6, Financeiro 3, Logística 2, Patrimônio 2)
+  - **10 notificações inline** (férias, reembolsos, solicitações, pedidos, admissões, avaliações)
+  - Regras configuráveis por usuário (`/admin/notificacao-regras`)
   - Deduplicação via `chave_dedup`
-  - Dropdown com badges de módulo coloridos + indicador de severidade (info/aviso/urgente)
+  - Dropdown com badges de módulo coloridos + severidade (info/aviso/urgente)
+  - Botão "Gerar agora" (diretor) + endpoint cron `/api/notificacoes/cron`
   - Click-to-navigate para o módulo relevante
+- **Framework de Agentes IA** (Assistente IA):
+  - AgentService com model routing (Haiku/Sonnet), token budgets, guardrails
+  - RAG context com dados reais do banco
+  - System Auditor agent
+  - Painel em `/assistente-ia` com runs, findings, steps, custos
 - Login com WebGL smokey background + OAuth (Google, Microsoft)
 - **KPI Cards unificados** — estilo moderno em todos os módulos (fundo colorido, SVGs decorativos, hover interativo)
+- **Layout 1600px** — conteúdo ocupa mais espaço horizontal (era 1200px)
+- **shadcn Button** — componente unificado com variantes (default, outline, ghost, destructive, success) + tamanhos (xs, sm, default, lg, icon)
 - Logo CBRio SVG oficial
-- Ícones profissionais Lucide React em todo o sistema
+- Ícones profissionais Lucide React
 - Backend serverless no Vercel (Express como function)
 - Sistema de permissões (cargos, áreas, módulos)
 
-### RH
-- Dashboard com KPIs interativos
-- CRUD funcionários (CPF, foto_url, cargo, área, salário, status)
-- Treinamentos (criar, inscrever funcionários, concluir, materiais)
-- Férias/Licenças (solicitar, aprovar/rejeitar)
-- **Escalas de Extras** (escalar funcionário para plantão/domingo)
-- **Benefícios** de funcionários
-- **Notificações automáticas**: férias vencendo/iniciando, pendentes, documentos vencidos, experiência CLT
+### RH (9 abas — módulo auditado ~98%)
+- **Dashboard** com KPIs (total, ativos, férias, licença, inativos, custo mensal, turnover) + métricas (admissões, desligamentos, folha salarial)
+- **Colaboradores** — CRUD com foto upload, filtros, busca, import CSV em massa, **emails importados da planilha** (33 colaboradores)
+- **Admissão** — workflow completo com formulário condicional PJ (CNPJ, razão social, banco) + contratos editáveis (PJ, CLT, Voluntário, Estagiário) + impressão/PDF
+- **Organograma** — visualização flowchart com pan/zoom, cards conectados por linhas, hierarquia via gestor_id
+- **Folha** — tabela salarial com benefícios/descontos, export CSV, geração de holerite imprimível
+- **Avaliações** — 6 critérios com estrelas (1-5), nota geral calculada, pontos fortes/melhoria, metas
+- **Treinamentos** — CRUD com materiais, progresso (barra %), certificado imprimível
+- **Férias/Licenças** — solicitação, aprovação, saldo CLT (30d/12m), carry-over com alerta de prescrição
+- **Extras** — escalas de plantão com notificações
+- **Benefícios editáveis** inline no detalhe do colaborador (24 campos)
+- **Documentos obrigatórios** com alertas por tipo de contrato (CLT, PJ, Voluntário, Estagiário)
+- **Validação** — CPF, email, datas, campos obrigatórios
+- **Notificações inline** — férias criadas/aprovadas, admissão concluída, avaliação registrada
+- **Todos os botões** usam shadcn Button component
+- **UX Auditada (v5):**
+  - Toast notifications + ConfirmDialog no lugar de alert()/confirm() nativos
+  - Todos os modais são painéis laterais deslizantes (slide-in side panels)
+  - Inline edit mode no painel de detalhes do colaborador (botão Salvar Alterações)
+  - Error states visuais em todos os formulários (banners vermelhos)
+  - Cores hardcoded trocadas por CSS variables
+
+#### Permissões do Sistema (ENFORÇADO)
+- **Middleware `authorizeModule(routeKey)`** — substitui `authorize('admin','diretor')` em todos os routes protegidos
+- **5 níveis de acesso:** 1=Negado, 2=Assistente (pessoal), 3=Líder (área), 4=Diretor (setor), 5=Admin (total)
+- **12 módulos:** Tarefas, Banco de Arquivos, Patrimônio, DP, Pessoas, Financeiro, Agenda, Comunicação, Logística, Membresia, Projetos, IA/Agentes
+- **Tabelas:** `usuarios` (57 importados), `cargos` (5), `modulos` (12), `setores` (4), `areas` (16), `permissoes_modulo` (overrides), `usuario_areas` (vínculos)
+- **Backend:** `authenticate()` carrega permissões granulares automaticamente; `authorizeModule()` verifica nível por módulo + tipo (leitura/escrita baseado no HTTP method)
+- **Frontend:** `AuthContext` expõe `canRH`, `canFinanceiro`, `canLogistica`, `canPatrimonio`, `canIA` etc.; navegação filtrada por permissões
+- **Endpoint:** `GET /api/auth/my-permissions` retorna permissões granulares do usuário
+- **Backward compat:** Admin/Diretor sempre passam; usuários sem entry em `usuarios` são bloqueados
+- **UI de configuração:** Painel de detalhes do colaborador → seção "Permissões do Sistema" → configurar cargo, áreas, overrides por módulo
 
 ### Membresia
 - Listagem de membros com avatar, família, status, telefone, ministério
@@ -333,20 +380,30 @@ Estes arquivos afetam o sistema inteiro. Alterações devem ser feitas via **Pul
 - Fluxo de caixa (view SQL)
 - **Notificações automáticas**: contas vencendo/vencidas, reembolsos pendentes
 
-### Logística
-- Dashboard com KPIs interativos
-- CRUD fornecedores, solicitações de compra, pedidos, notas fiscais (upload PDF)
-- **Integração Mercado Livre** — OAuth, listagem de compras com **thumbnails dos produtos**, detalhes de envio
-- **Rastreio ML** — tracking de envios em tempo real
-- **Integração Arquivei** — importação automática de notas fiscais
-- **Notificações automáticas**: pedidos atrasados, solicitações pendentes
+### Logística (7 abas — módulo auditado ~92%)
+- **Dashboard** com KPIs interativos
+- **Fornecedores** — CRUD com validação CNPJ (14 dígitos), email, toggle ativo/inativo
+- **Solicitações** — CRUD com edição pós-criação, aprovação/rejeição, urgência
+- **Pedidos** — CRUD com bulk select/delete (checkboxes), export CSV, itens de pedido
+- **Notas Fiscais** — upload PDF, integração ML (sync compras), integração Arquivei
+- **Compras ML** — OAuth, listagem com thumbnails dos produtos, detalhes de envio
+- **Rastreio** — tracking com auto-refresh 60s, timeline visual
+- **Validação** — CNPJ, email, valores negativos, campos obrigatórios
+- **Error handling** — setError visual (sem alert()), error states locais em componentes filhos
+- **Notificações inline** — solicitação criada/aprovada, pedido recebido
+- **Todos os botões** usam shadcn Button component
 
-### Patrimônio
-- Dashboard com KPIs interativos
-- CRUD bens, categorias, localizações, inventários
-- **Scanner de código de barras** (via câmera ou manual) para bens e movimentações
-- **Movimentações** de estoque (movido da Logística) — entrada, saída, transferência, devolução, inventário
+### Patrimônio (6 abas — módulo auditado A-)
+- **Dashboard** com KPIs (paginado para >1000 bens) — **4.264 bens** importados da planilha CBRio
+- **Bens** — CRUD com filtros, busca, 16 categorias, 31 localizações
+- **Scanner** — BarcodeDetector API (7 formatos) + entrada manual, movimentação inline
+- **Categorias/Localizações** — CRUD com Enter key
+- **Inventários** — criar, concluir/cancelar
+- **Movimentações** — entrada, saída, transferência, devolução, inventário com barcode
+- **Dados importados**: 2.487 ativos + 1.777 baixados = R$ 12.7M+ (planilha inventário CBRio)
 - **Notificações automáticas**: bens extraviados, inventários abertos
+- **Validação** — nome, código de barras, valor >= 0
+- **Todos os botões** usam shadcn Button component
 
 ### Eventos, Projetos, Expansão
 - Frontend implementado (Marcos Paulo)
@@ -374,7 +431,7 @@ Estes arquivos afetam o sistema inteiro. Alterações devem ser feitas via **Pul
 **Project ref:** `hhntwfawfnxvuobhdfkb`
 **URL:** `https://hhntwfawfnxvuobhdfkb.supabase.co`
 
-Migrations aplicadas: 001-018
+Migrations aplicadas: 001-022, 027
 
 Para novas migrations: criar arquivo em `supabase/migrations/` e rodar manualmente no Supabase SQL Editor.
 
@@ -400,9 +457,25 @@ Storage Buckets:
 - Sync periódico
 - Backend: `routes/arquivei.js` (se existir) ou integrado em logistica
 
-### Sistema de Notificações (Cron)
-- `backend/services/notificacaoGenerator.js` — roda a cada 6h (setInterval no server.js)
-- Módulos: RH, Financeiro, Logística, Patrimônio
-- Regras de destinatário: tabela `notificacao_regras` (modulo → profile_id)
+### Sistema de Notificações
+- `backend/services/notificacaoGenerator.js` — geração automática (13 tipos)
+- `backend/services/notificar.js` — helper para notificações inline nos endpoints
+- Cron: `GET /api/notificacoes/cron` (protegido por CRON_SECRET) — usar serviço externo (cron-job.org) pois Vercel Hobby não suporta crons nativos
+- Também roda via setInterval no server.js (apenas dev local, não Vercel)
+- Regras: tabela `notificacao_regras` (modulo → profile_id), UI em `/admin/notificacao-regras`
 - Fallback: todos admin/diretor se não houver regra específica
 - Deduplicação: coluna `chave_dedup` evita notificações repetidas
+- **10 notificações inline** nos endpoints de RH, Financeiro, Logística
+
+### Framework de Agentes IA
+- `backend/services/agentService.js` — wrapper Claude API (Haiku para checks, Sonnet para análise)
+- `backend/services/agentContext.js` — RAG com dados reais do banco por módulo
+- `backend/agents/systemAuditor.js` — auditor que analisa dados e gera findings
+- Token budgets, guardrails (nunca inventar dados), cost tracking
+- Frontend: `/assistente-ia` com painel de runs, findings, steps, custos
+- DB: `agent_runs`, `agent_steps`, `agent_queue` (migration 020)
+
+### Importante: Vercel Hobby
+- Plano Hobby **não suporta** cron jobs nativos em vercel.json
+- Serverless functions têm timeout de 10s
+- Supabase queries com `.select()` retornam máximo **1000 rows** por padrão — usar `.range()` ou paginação para tabelas grandes (ex: pat_bens com 4264 items)

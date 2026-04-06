@@ -20,16 +20,16 @@ const NAV_ITEMS = [
       {
         title: 'Gestão',
         items: [
-          { label: 'Recursos Humanos', description: 'Funcionários, treinamentos e férias', icon: Users, path: '/admin/rh' },
-          { label: 'Financeiro', description: 'Contas, transações e reembolsos', icon: DollarSign, path: '/admin/financeiro' },
-          { label: 'Logística', description: 'Fornecedores, compras e pedidos', icon: Truck, path: '/admin/logistica' },
-          { label: 'Patrimônio', description: 'Bens, localizações e inventário', icon: Tag, path: '/admin/patrimonio' },
+          { label: 'Recursos Humanos', description: 'Funcionários, treinamentos e férias', icon: Users, path: '/admin/rh', perm: 'canRH' },
+          { label: 'Financeiro', description: 'Contas, transações e reembolsos', icon: DollarSign, path: '/admin/financeiro', perm: 'canFinanceiro' },
+          { label: 'Logística', description: 'Fornecedores, compras e pedidos', icon: Truck, path: '/admin/logistica', perm: 'canLogistica' },
+          { label: 'Patrimônio', description: 'Bens, localizações e inventário', icon: Tag, path: '/admin/patrimonio', perm: 'canPatrimonio' },
         ],
       },
       {
         title: 'Inteligência',
         items: [
-          { label: 'Assistente IA', description: 'Agentes de auditoria e análise', icon: BrainCircuit, path: '/assistente-ia' },
+          { label: 'Assistente IA', description: 'Agentes de auditoria e análise', icon: BrainCircuit, path: '/assistente-ia', perm: 'canIA' },
         ],
       },
     ],
@@ -80,7 +80,17 @@ const NAV_ITEMS = [
 ];
 
 export default function AppShell() {
-  const { profile, role, signOut } = useAuth();
+  const { profile, role, signOut, isAdmin, canRH, canFinanceiro, canLogistica, canPatrimonio, canMembresia, canProjetos, canAgenda, canIA } = useAuth();
+  const permMap = { canRH, canFinanceiro, canLogistica, canPatrimonio, canMembresia, canProjetos, canAgenda, canIA };
+
+  // Filtrar itens de navegação por permissões
+  const filteredNavItems = NAV_ITEMS.map(section => ({
+    ...section,
+    subMenus: section.subMenus.map(sub => ({
+      ...sub,
+      items: sub.items.filter(item => !item.perm || permMap[item.perm] !== false),
+    })).filter(sub => sub.items.length > 0),
+  })).filter(section => section.subMenus.length > 0);
   const { isDark, setIsDark } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
@@ -145,23 +155,27 @@ export default function AppShell() {
       >
         {/* Logo */}
         <div className="flex items-center gap-3 mr-12 shrink-0">
-          <img
-            src="/images/logo-cbrio.svg"
-            alt="CBRio"
-            className="h-6 w-6"
-            style={{ filter: isDark
-              ? 'invert(56%) sepia(30%) saturate(600%) hue-rotate(140deg) brightness(85%)'
-              : 'invert(35%) sepia(20%) saturate(800%) hue-rotate(140deg) brightness(75%)'
-            }}
-          />
-          <span className="text-sm font-bold whitespace-nowrap" style={{ color: 'var(--cbrio-text)' }}>
-            CBRio ERP
-          </span>
+          <div className="flex items-center justify-center h-9 w-9 rounded-lg" style={{ background: '#00B39D', color: '#fff' }}>
+            <img
+              src="/images/logo-cbrio.svg"
+              alt="CBRio"
+              className="h-6 w-6"
+              style={{ filter: 'brightness(0) invert(1)' }}
+            />
+          </div>
+          <div className="flex flex-col leading-tight">
+            <span className="text-sm font-bold whitespace-nowrap" style={{ color: 'var(--cbrio-text)' }}>
+              CBRio
+            </span>
+            <span className="text-[10px] font-medium whitespace-nowrap" style={{ color: 'var(--cbrio-text3)' }}>
+              ERP
+            </span>
+          </div>
         </div>
 
         {/* Mega Menu — centered */}
         <nav className="flex-1 flex items-center justify-center">
-          <MegaMenu items={NAV_ITEMS} role={role} />
+          <MegaMenu items={filteredNavItems} role={role} />
         </nav>
 
         {/* Right side: theme toggle, notifications, user */}
@@ -189,7 +203,7 @@ export default function AppShell() {
             >
               <Bell className="h-4 w-4" />
               {notifCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#00B39D] px-1 text-[9px] font-bold text-[#0a0a0a]">
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#00B39D] px-1 text-[9px] font-bold text-white dark:text-[#0a0a0a]">
                   {notifCount > 9 ? '9+' : notifCount}
                 </span>
               )}
@@ -207,11 +221,18 @@ export default function AppShell() {
                 }}>
                   <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--cbrio-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--cbrio-text)' }}>Notificações</span>
-                    {notifCount > 0 && (
-                      <button onClick={markAllRead} style={{ fontSize: 12, color: '#00B39D', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}>
-                        Marcar todas como lidas
-                      </button>
-                    )}
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      {role === 'diretor' && (
+                        <button onClick={async () => { try { await notifApi.gerar(); loadNotifCount(); openNotifs(); } catch {} }} style={{ fontSize: 11, color: 'var(--cbrio-text3)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                          Gerar agora
+                        </button>
+                      )}
+                      {notifCount > 0 && (
+                        <button onClick={markAllRead} style={{ fontSize: 12, color: '#00B39D', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}>
+                          Marcar todas como lidas
+                        </button>
+                      )}
+                    </div>
                   </div>
                   {notifs.length === 0 ? (
                     <div style={{ padding: 32, textAlign: 'center', color: 'var(--cbrio-text3)', fontSize: 13 }}>
@@ -219,7 +240,7 @@ export default function AppShell() {
                     </div>
                   ) : (
                     notifs.slice(0, 20).map(n => {
-                      const MOD_COLORS = { rh: '#8b5cf6', financeiro: '#10b981', logistica: '#3b82f6', patrimonio: '#f59e0b', eventos: '#ec4899', projetos: '#06b6d4', sistema: '#6b7280' };
+                      const MOD_COLORS = { rh: '#00B39D', financeiro: '#00B39D', logistica: '#00B39D', patrimonio: '#00B39D', eventos: '#00B39D', projetos: '#00B39D', sistema: '#00B39D' };
                       const MOD_LABELS = { rh: 'RH', financeiro: 'Financeiro', logistica: 'Logística', patrimonio: 'Patrimônio', eventos: 'Eventos', projetos: 'Projetos', sistema: 'Sistema' };
                       const SEV_COLORS = { urgente: '#ef4444', aviso: '#f59e0b', info: '#00B39D' };
                       const modColor = MOD_COLORS[n.modulo] || '#6b7280';
@@ -275,7 +296,7 @@ export default function AppShell() {
 
           {/* User avatar + sign out */}
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#00B39D] text-[#0a0a0a] text-[11px] font-semibold shrink-0">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#00B39D] text-white dark:text-[#0a0a0a] text-[11px] font-semibold shrink-0">
               {initials}
             </div>
             <div className="hidden sm:block text-left min-w-0">

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { agents } from '../../api';
+import { Button } from '../../components/ui/button';
 
 const C = {
   bg: 'var(--cbrio-bg)', card: 'var(--cbrio-card)', primary: '#00B39D', primaryBg: '#00B39D18',
@@ -113,9 +114,9 @@ export default function AssistenteIA() {
           <div key={at.value} style={{ ...s.card, padding: 20 }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 6 }}>{at.label}</div>
             <div style={{ fontSize: 12, color: C.text2, lineHeight: 1.5, marginBottom: 16 }}>{at.desc}</div>
-            <button style={{ ...s.btn('primary'), width: '100%' }} onClick={() => launchAgent(at.value)} disabled={launching}>
+            <Button className="w-full" onClick={() => launchAgent(at.value)} disabled={launching}>
               {launching ? 'Iniciando...' : 'Executar Agente'}
-            </button>
+            </Button>
           </div>
         ))}
       </div>
@@ -125,7 +126,7 @@ export default function AssistenteIA() {
         <div style={s.card}>
           <div style={s.cardHeader}>
             <div style={s.cardTitle}>Execuções</div>
-            <button style={s.btn('ghost')} onClick={loadRuns}>Atualizar</button>
+            <Button variant="ghost" onClick={loadRuns}>Atualizar</Button>
           </div>
           {runs.length === 0 ? <div style={s.empty}>Nenhuma execução ainda</div> : (
             <div style={{ maxHeight: 500, overflowY: 'auto' }}>

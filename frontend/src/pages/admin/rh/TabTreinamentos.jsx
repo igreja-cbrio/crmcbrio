@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
+import { Button } from '../../../components/ui/button';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 const s = {
   toolbar:  { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  btnPrim:  { background: '#00B39D', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', fontWeight: 600, fontSize: 13, cursor: 'pointer' },
   grid:     { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 },
   card:     { background: 'var(--cbrio-card)', borderRadius: 12, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.2)' },
   cardTitle:{ fontWeight: 700, fontSize: 15, color: 'var(--cbrio-text)', marginBottom: 6 },
@@ -24,6 +24,7 @@ export default function TabTreinamentos() {
   const [loading, setLoading] = useState(true);
   const [mostrarForm, setMostrarForm] = useState(false);
   const [form, setForm] = useState({ titulo: '', data_inicio: '', data_fim: '', instrutor: '', obrigatorio: false });
+  const [formError, setFormError] = useState('');
 
   async function fetchTreinamentos() {
     setLoading(true);
@@ -45,7 +46,7 @@ export default function TabTreinamentos() {
       body: JSON.stringify(form),
     });
     if (res.ok) { setMostrarForm(false); setForm({ titulo: '', data_inicio: '', data_fim: '', instrutor: '', obrigatorio: false }); fetchTreinamentos(); }
-    else { const d = await res.json(); alert(d.error); }
+    else { const d = await res.json(); setFormError(d.error); }
   }
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
@@ -54,9 +55,9 @@ export default function TabTreinamentos() {
     <div>
       <div style={s.toolbar}>
         <span style={{ fontSize: 14, color: 'var(--cbrio-text2)' }}>{treinamentos.length} treinamento(s)</span>
-        <button style={s.btnPrim} onClick={() => setMostrarForm(!mostrarForm)}>
+        <Button onClick={() => setMostrarForm(!mostrarForm)}>
           {mostrarForm ? 'Cancelar' : '+ Novo Treinamento'}
-        </button>
+        </Button>
       </div>
 
       {mostrarForm && (
@@ -64,12 +65,12 @@ export default function TabTreinamentos() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
             <div style={{ gridColumn: '1/-1' }}>
               <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 5 }}>Título *</label>
-              <input required value={form.titulo} onChange={set('titulo')} style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #333', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }} />
+              <input required value={form.titulo} onChange={set('titulo')} style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--cbrio-border)', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }} />
             </div>
             {[['data_inicio','Data início *','date',true],['data_fim','Data fim','date',false],['instrutor','Instrutor','text',false]].map(([k,l,t,r]) => (
               <div key={k}>
                 <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 5, marginTop: 12 }}>{l}</label>
-                <input type={t} required={r} value={form[k]} onChange={set(k)} style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #333', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }} />
+                <input type={t} required={r} value={form[k]} onChange={set(k)} style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--cbrio-border)', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }} />
               </div>
             ))}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 20 }}>
@@ -78,7 +79,7 @@ export default function TabTreinamentos() {
             </div>
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
-            <button type="submit" style={s.btnPrim}>Salvar Treinamento</button>
+            <Button type="submit">Salvar Treinamento</Button>
           </div>
         </form>
       )}

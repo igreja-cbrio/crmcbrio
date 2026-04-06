@@ -35,7 +35,12 @@ function calcSaldoFerias(func, feriasAprovadas) {
     .reduce((sum, f) => sum + Math.ceil((new Date(f.data_fim) - new Date(f.data_inicio)) / 86400000), 0);
   const saldo = diasAdquiridos - diasUsados;
   const mesesProxPeriodo = 12 - (mesesTrab % 12);
-  return { mesesTrab, periodos, diasAdquiridos, diasUsados, saldo, mesesProxPeriodo };
+  // CLT: férias devem ser gozadas dentro de 12 meses após o período aquisitivo.
+  // Se saldo > 30, há mais de 1 período acumulado → risco de prescrição.
+  const prescricao = saldo > 30;
+  // Férias vencidas: saldo de período anterior ao atual que não foi usado
+  const diasVencidos = Math.max(0, saldo - 30);
+  return { mesesTrab, periodos, diasAdquiridos, diasUsados, saldo, mesesProxPeriodo, prescricao, diasVencidos };
 }
 
 export default function TabFerias() {
@@ -46,6 +51,7 @@ export default function TabFerias() {
   const [mostrarForm, setMostrarForm] = useState(false);
   const [funcionarios, setFuncionarios] = useState([]);
   const [showSaldos, setShowSaldos] = useState(false);
+  const [localError, setLocalError] = useState('');
   const [form, setForm] = useState({ funcionario_id: '', tipo: 'ferias', data_inicio: '', data_fim: '', observacoes: '' });
 
   async function fetchFerias() {
@@ -77,6 +83,11 @@ export default function TabFerias() {
 
   async function handleSalvar(e) {
     e.preventDefault();
+    if (form.data_inicio && form.data_fim && form.data_fim < form.data_inicio) {
+      setLocalError('A data de fim deve ser igual ou posterior à data de início.');
+      return;
+    }
+    setLocalError('');
     const token = await getToken();
     const res = await fetch(`${API}/api/rh/ferias`, {
       method: 'POST',
@@ -84,7 +95,7 @@ export default function TabFerias() {
       body: JSON.stringify(form),
     });
     if (res.ok) { setMostrarForm(false); fetchFerias(); }
-    else { const d = await res.json(); alert(d.error); }
+    else { const d = await res.json(); setLocalError(d.error); }
   }
 
   async function handleAprovar(id, status) {
@@ -159,7 +170,10 @@ export default function TabFerias() {
                       <td style={s.td}>{sal.periodos}</td>
                       <td style={s.td}>{sal.diasAdquiridos} dias</td>
                       <td style={s.td}>{sal.diasUsados} dias</td>
-                      <td style={{ ...s.td, fontWeight: 700, color: saldoColor }}>{sal.saldo} dias</td>
+                      <td style={{ ...s.td, fontWeight: 700, color: saldoColor }}>
+                        {sal.saldo} dias
+                        {sal.prescricao && <span style={{ display: 'block', fontSize: 10, color: '#ef4444', fontWeight: 600 }}>⚠ {sal.diasVencidos}d em prescrição</span>}
+                      </td>
                       <td style={s.td}><span style={{ fontSize: 12, color: 'var(--cbrio-text3)' }}>em {sal.mesesProxPeriodo} meses</span></td>
                     </tr>
                   );
@@ -168,6 +182,8 @@ export default function TabFerias() {
           </table>
         </div>
       )}
+
+      {localError && <div style={{ color: '#ef4444', background: '#ef444418', border: '1px solid #ef444450', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: 13 }}>{localError}</div>}
 
       {mostrarForm && (
         <form onSubmit={handleSalvar} style={{ background: 'var(--cbrio-card)', borderRadius: 12, padding: 20, marginBottom: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>

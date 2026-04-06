@@ -1,12 +1,12 @@
 const router = require('express').Router();
 const rateLimit = require('express-rate-limit');
-const { authenticate, authorize } = require('../middleware/auth');
+const { authenticate, authorizeModule } = require('../middleware/auth');
 const { supabase } = require('../utils/supabase');
 const db = require('../utils/db');
 const { sanitizeObj } = require('../utils/sanitize');
 const { runSystemAudit } = require('../agents/systemAuditor');
 
-router.use(authenticate, authorize('admin', 'diretor'));
+router.use(authenticate, authorizeModule('agents'));
 
 const aiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

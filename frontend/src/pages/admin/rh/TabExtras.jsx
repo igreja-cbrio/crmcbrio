@@ -54,13 +54,17 @@ export default function TabExtras({ funcionarios, onRefresh }) {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (form.horario_fim && form.horario_inicio && form.horario_fim <= form.horario_inicio) {
+      setError('O horário de fim deve ser posterior ao horário de início.');
+      return;
+    }
     try {
       await rh.extras.create({ ...form, valor: form.valor || valorPadrao });
       setShowModal(false);
       setForm({ funcionario_id: '', titulo: '', descricao: '', data: '', horario_inicio: '08:00', horario_fim: '17:00', valor: '', observacoes: '' });
       load();
       onRefresh?.();
-    } catch (err) { alert(err.message); }
+    } catch (err) { setError(err.message); }
   }
 
   async function updateStatus(id, status) {
@@ -68,7 +72,6 @@ export default function TabExtras({ funcionarios, onRefresh }) {
   }
 
   async function remove(id) {
-    if (!confirm('Remover esta escala?')) return;
     try { await rh.extras.remove(id); load(); } catch { }
   }
 
@@ -163,13 +166,14 @@ export default function TabExtras({ funcionarios, onRefresh }) {
       </div>
 
       {showModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--cbrio-overlay)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowModal(false)}>
-          <div style={{ background: 'var(--cbrio-modal-bg)', borderRadius: 16, width: '100%', maxWidth: 500, padding: 28, border: `1px solid ${C.border}` }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex' }}>
+          <div style={{ flex: 1, background: 'rgba(0,0,0,0.5)' }} onClick={() => setShowModal(false)} />
+          <div style={{ width: '45%', minWidth: 400, maxWidth: 520, background: 'var(--cbrio-modal-bg)', overflowY: 'auto', boxShadow: '-8px 0 30px rgba(0,0,0,0.3)', animation: 'slideInRight 0.25s ease-out' }}>
+            <div style={{ padding: '20px 24px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ fontSize: 18, fontWeight: 700, color: C.text, margin: 0 }}>Nova Escala de Extra</h3>
               <Button variant="ghost" size="icon-xs" onClick={() => setShowModal(false)}><X className="h-4 w-4" /></Button>
             </div>
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '16px 24px 24px' }}>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: C.text2, display: 'block', marginBottom: 4 }}>Colaborador *</label>
                 <select required value={form.funcionario_id} onChange={e => setForm(f => ({ ...f, funcionario_id: e.target.value }))} style={inputStyle}>

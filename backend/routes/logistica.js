@@ -1,8 +1,9 @@
 const router = require('express').Router();
-const { authenticate, authorize } = require('../middleware/auth');
+const { authenticate, authorizeModule } = require('../middleware/auth');
 const { supabase } = require('../utils/supabase');
+const { notificar } = require('../services/notificar');
 
-router.use(authenticate, authorize('admin', 'diretor'));
+router.use(authenticate, authorizeModule('logistica'));
 
 // ── DASHBOARD ──────────────────────────────────────────────
 router.get('/dashboard', async (req, res) => {
@@ -95,6 +96,22 @@ router.post('/solicitacoes', async (req, res) => {
       .insert({ titulo, descricao: descricao || null, justificativa: justificativa || null, valor_estimado: valor_estimado || null, urgencia: urgencia || 'normal', area: area || null, solicitante_id: req.user.userId })
       .select().single();
     if (error) return res.status(400).json({ error: error.message });
+
+    // Notificar Logística sobre nova solicitação
+    try {
+      await notificar({
+        modulo: 'logistica',
+        tipo: 'solicitacao_criada',
+        titulo: 'Nova solicitação de compra',
+        mensagem: `Nova solicitação: ${titulo}`,
+        link: '/admin/logistica?tab=solicitacoes',
+        severidade: 'info',
+        chaveDedup: `solicitacao-criada-${data.id}`,
+      });
+    } catch (notifErr) {
+      console.error('[LOG] Erro ao notificar solicitação:', notifErr.message);
+    }
+
     res.json(data);
   } catch (e) { res.status(500).json({ error: 'Erro ao criar solicitação' }); }
 });
@@ -108,6 +125,26 @@ router.patch('/solicitacoes/:id', async (req, res) => {
     const { data, error } = await supabase.from('log_solicitacoes_compra')
       .update(update).eq('id', req.params.id).select().single();
     if (error) return res.status(400).json({ error: error.message });
+
+    // Notificar solicitante sobre aprovação/rejeição
+    if (['aprovado', 'rejeitado'].includes(status)) {
+      try {
+        const statusTexto = status === 'aprovado' ? 'aprovada' : 'rejeitada';
+        await notificar({
+          modulo: 'logistica',
+          tipo: 'solicitacao_status',
+          titulo: `Solicitação ${statusTexto}`,
+          mensagem: `Sua solicitação foi ${statusTexto}`,
+          link: '/admin/logistica?tab=solicitacoes',
+          severidade: status === 'aprovado' ? 'info' : 'aviso',
+          chaveDedup: `solicitacao-status-${data.id}-${status}`,
+          targetIds: data.solicitante_id ? [data.solicitante_id] : undefined,
+        });
+      } catch (notifErr) {
+        console.error('[LOG] Erro ao notificar status solicitação:', notifErr.message);
+      }
+    }
+
     res.json(data);
   } catch (e) { res.status(500).json({ error: 'Erro ao atualizar solicitação' }); }
 });
@@ -165,6 +202,22 @@ router.post('/pedidos/:id/recebimento', async (req, res) => {
     if (error) return res.status(400).json({ error: error.message });
     // Atualizar status do pedido
     await supabase.from('log_pedidos').update({ status: 'recebido' }).eq('id', req.params.id);
+
+    // Notificar Logística sobre recebimento
+    try {
+      await notificar({
+        modulo: 'logistica',
+        tipo: 'pedido_recebido',
+        titulo: 'Pedido recebido',
+        mensagem: `Pedido recebido`,
+        link: '/admin/logistica?tab=pedidos',
+        severidade: 'info',
+        chaveDedup: `pedido-recebido-${req.params.id}`,
+      });
+    } catch (notifErr) {
+      console.error('[LOG] Erro ao notificar recebimento:', notifErr.message);
+    }
+
     res.json(data);
   } catch (e) { res.status(500).json({ error: 'Erro ao registrar recebimento' }); }
 });

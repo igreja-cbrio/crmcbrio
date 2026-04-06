@@ -143,10 +143,10 @@ function FloatingInput({ id, type, icon, label, value, onChange }) {
           width: '100%',
           padding: '10px 0',
           fontSize: 14,
-          color: '#fff',
+          color: 'var(--cbrio-text)',
           background: 'transparent',
           border: 'none',
-          borderBottom: `2px solid ${focused ? '#00B39D' : 'rgba(255,255,255,0.3)'}`,
+          borderBottom: `2px solid ${focused ? '#00B39D' : 'var(--cbrio-border)'}`,
           outline: 'none',
           transition: 'border-color 0.3s',
           boxSizing: 'border-box',
@@ -159,7 +159,7 @@ function FloatingInput({ id, type, icon, label, value, onChange }) {
           top: active ? -8 : 10,
           left: 0,
           fontSize: active ? 11 : 14,
-          color: focused ? '#00B39D' : 'rgba(255,255,255,0.5)',
+          color: focused ? '#00B39D' : 'var(--cbrio-text3)',
           transition: 'all 0.3s ease',
           pointerEvents: 'none',
           display: 'flex',
@@ -239,7 +239,7 @@ export default function Login() {
       position: 'relative',
       width: '100vw',
       height: '100vh',
-      background: '#0a1a1a',
+      background: 'var(--cbrio-bg)',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     }}>
       <SmokeyBackground color="#00736B" />
@@ -259,18 +259,18 @@ export default function Login() {
           width: '100%',
           maxWidth: 400,
           padding: '40px 36px',
-          background: 'rgba(255,255,255,0.08)',
+          background: 'var(--cbrio-card)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
           borderRadius: 20,
-          border: '1px solid rgba(255,255,255,0.15)',
-          boxShadow: '0 25px 80px rgba(0,0,0,0.4)',
+          border: '1px solid var(--cbrio-border)',
+          boxShadow: '0 25px 80px rgba(0,0,0,0.15)',
         }}>
           {/* Header */}
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
             <div style={{ fontSize: 36, marginBottom: 8 }}>⛪</div>
-            <h2 style={{ fontSize: 28, fontWeight: 700, color: '#fff', margin: 0 }}>CBRio ERP</h2>
-            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 6 }}>Sistema de gestao interna</p>
+            <h2 style={{ fontSize: 28, fontWeight: 700, color: 'var(--cbrio-text)', margin: 0 }}>CBRio ERP</h2>
+            <p style={{ fontSize: 13, color: 'var(--cbrio-text3)', marginTop: 6 }}>Sistema de gestao interna</p>
           </div>
 
           {/* Error */}
@@ -343,9 +343,9 @@ export default function Login() {
             margin: '24px 0',
             gap: 12,
           }}>
-            <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.15)' }} />
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: 1 }}>ou continue com</span>
-            <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.15)' }} />
+            <div style={{ flex: 1, height: 1, background: 'var(--cbrio-border)' }} />
+            <span style={{ fontSize: 11, color: 'var(--cbrio-text3)', textTransform: 'uppercase', letterSpacing: 1 }}>ou continue com</span>
+            <div style={{ flex: 1, height: 1, background: 'var(--cbrio-border)' }} />
           </div>
 
           {/* OAuth Buttons */}
@@ -374,12 +374,12 @@ function OAuthButton({ icon, label, onClick }) {
         justifyContent: 'center',
         gap: 10,
         padding: '11px 16px',
-        background: hover ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.88)',
-        border: 'none',
+        background: hover ? 'var(--cbrio-input-bg)' : 'var(--cbrio-modal-bg)',
+        border: '1px solid var(--cbrio-border)',
         borderRadius: 10,
         fontSize: 14,
         fontWeight: 600,
-        color: '#374151',
+        color: 'var(--cbrio-text2)',
         cursor: 'pointer',
         transition: 'all 0.3s',
       }}

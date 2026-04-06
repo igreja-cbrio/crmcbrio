@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Tag, ClipboardList, Trash2, Pencil, MapPin } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { patrimonio, logistica } from '../../../api';
+import { Button } from '../../../components/ui/button';
 
 const C = {
   bg: 'var(--cbrio-bg)', card: 'var(--cbrio-card)', primary: '#00B39D', primaryBg: '#00B39D18',
@@ -27,14 +28,6 @@ const INV_STATUS = {
   em_andamento: { c: C.blue, bg: C.blueBg, label: 'Em andamento' },
   concluido: { c: C.green, bg: C.greenBg, label: 'Concluído' },
   cancelado: { c: C.red, bg: C.redBg, label: 'Cancelado' },
-};
-
-const LOG_MOV_TIPO = {
-  entrada: { c: C.green, bg: C.greenBg, label: 'Entrada', icon: '📥' },
-  saida: { c: C.red, bg: C.redBg, label: 'Saída', icon: '📤' },
-  transferencia: { c: C.blue, bg: C.blueBg, label: 'Transferência', icon: '🔄' },
-  devolucao: { c: '#f59e0b', bg: '#f59e0b18', label: 'Devolução', icon: '↩️' },
-  inventario: { c: '#8b5cf6', bg: '#8b5cf618', label: 'Inventário', icon: '📋' },
 };
 
 const styles = {
@@ -83,7 +76,7 @@ function Modal({ open, onClose, title, children, footer }) {
       <div style={styles.modal} onClick={e => e.stopPropagation()}>
         <div style={styles.modalHeader}>
           <div style={styles.modalTitle}>{title}</div>
-          <button style={{ ...styles.btn('ghost'), fontSize: 18 }} onClick={onClose}>✕</button>
+          <Button variant="ghost" onClick={onClose} style={{ fontSize: 18 }}>✕</Button>
         </div>
         <div style={styles.modalBody}>{children}</div>
         {footer && <div style={styles.modalFooter}>{footer}</div>}
@@ -91,8 +84,8 @@ function Modal({ open, onClose, title, children, footer }) {
     </div>
   );
 }
-function Input({ label, ...props }) { return (<div style={styles.formGroup}>{label && <label style={styles.label}>{label}</label>}<input style={styles.input} {...props} /></div>); }
-function Select({ label, children, ...props }) { return (<div style={styles.formGroup}>{label && <label style={styles.label}>{label}</label>}<select style={{ ...styles.select, width: '100%' }} {...props}>{children}</select></div>); }
+function Input({ label, ...props }) { return (<div style={styles.formGroup}>{label && <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">{label}</label>}<input className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" {...props} /></div>); }
+function Select({ label, children, ...props }) { return (<div style={styles.formGroup}>{label && <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">{label}</label>}<select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" {...props}>{children}</select></div>); }
 function Badge({ status, map }) { const s = map[status] || { c: C.text3, bg: '#73737318', label: status }; return <span style={styles.badge(s.c, s.bg)}>{s.label}</span>; }
 
 const TABS = ['Dashboard', 'Bens', 'Scanner', 'Categorias / Localizações', 'Inventários', 'Movimentações'];
@@ -118,6 +111,8 @@ export default function Patrimonio() {
   const [modalInv, setModalInv] = useState(null);
   const [newCat, setNewCat] = useState('');
   const [newLoc, setNewLoc] = useState('');
+  const [error, setError] = useState('');
+  // Movimentações de Estoque (logística)
   const [logMovimentacoes, setLogMovimentacoes] = useState([]);
   const [filtroLogMovTipo, setFiltroLogMovTipo] = useState('');
   const [modalLogMov, setModalLogMov] = useState(null);
@@ -133,9 +128,11 @@ export default function Patrimonio() {
   const loadInvs = useCallback(async () => { try { setInventarios(await patrimonio.inventarios.list()); } catch (e) { console.error(e); } }, []);
   const loadLogMovs = useCallback(async () => {
     try {
+      setLoading(true);
       const params = filtroLogMovTipo ? { tipo: filtroLogMovTipo } : undefined;
       setLogMovimentacoes(await logistica.movimentacoes.list(params) || []);
     } catch (e) { console.error(e); }
+    finally { setLoading(false); }
   }, [filtroLogMovTipo]);
 
   useEffect(() => { loadDash(); loadBens(); loadCats(); loadLocs(); loadInvs(); }, []);
@@ -143,31 +140,43 @@ export default function Patrimonio() {
   useEffect(() => { if (tab === 5) loadLogMovs(); }, [tab, loadLogMovs]);
 
   async function saveBem(data) {
-    try { if (data.id) await patrimonio.bens.update(data.id, data); else await patrimonio.bens.create(data); setModalBem(null); loadBens(); loadDash(); } catch (e) { alert(e.message); }
+    try { if (data.id) await patrimonio.bens.update(data.id, data); else await patrimonio.bens.create(data); setModalBem(null); loadBens(); loadDash(); } catch (e) { setError(e.message); }
   }
-  async function deleteBem(id) { if (!confirm('Remover este bem?')) return; try { await patrimonio.bens.remove(id); loadBens(); loadDash(); setModalDetail(null); } catch (e) { alert(e.message); } }
-  async function openDetail(id) { try { setModalDetail(await patrimonio.bens.get(id)); } catch (e) { alert(e.message); } }
+  async function deleteBem(id) { if (!confirm('Remover este bem?')) return; try { await patrimonio.bens.remove(id); loadBens(); loadDash(); setModalDetail(null); } catch (e) { setError(e.message); } }
+  async function openDetail(id) { try { setModalDetail(await patrimonio.bens.get(id)); } catch (e) { setError(e.message); } }
   async function saveMov(bemId, data) {
-    try { await patrimonio.bens.movimentar(bemId, data); setModalMov(null); openDetail(bemId); loadBens(); loadDash(); } catch (e) { alert(e.message); }
+    try { await patrimonio.bens.movimentar(bemId, data); setModalMov(null); openDetail(bemId); loadBens(); loadDash(); } catch (e) { setError(e.message); }
   }
-  async function addCat() { if (!newCat.trim()) return; try { await patrimonio.categorias.create({ nome: newCat }); setNewCat(''); loadCats(); loadDash(); } catch (e) { alert(e.message); } }
-  async function removeCat(id) { if (!confirm('Remover categoria?')) return; try { await patrimonio.categorias.remove(id); loadCats(); } catch (e) { alert(e.message); } }
-  async function addLoc() { if (!newLoc.trim()) return; try { await patrimonio.localizacoes.create({ nome: newLoc }); setNewLoc(''); loadLocs(); loadDash(); } catch (e) { alert(e.message); } }
-  async function removeLoc(id) { if (!confirm('Remover localização?')) return; try { await patrimonio.localizacoes.remove(id); loadLocs(); } catch (e) { alert(e.message); } }
-  async function saveInv(data) { try { await patrimonio.inventarios.create(data); setModalInv(null); loadInvs(); loadDash(); } catch (e) { alert(e.message); } }
+  async function addCat() { if (!newCat.trim()) return; try { await patrimonio.categorias.create({ nome: newCat }); setNewCat(''); loadCats(); loadDash(); } catch (e) { setError(e.message); } }
+  async function removeCat(id) { if (!confirm('Remover categoria?')) return; try { await patrimonio.categorias.remove(id); loadCats(); } catch (e) { setError(e.message); } }
+  async function addLoc() { if (!newLoc.trim()) return; try { await patrimonio.localizacoes.create({ nome: newLoc }); setNewLoc(''); loadLocs(); loadDash(); } catch (e) { setError(e.message); } }
+  async function removeLoc(id) { if (!confirm('Remover localização?')) return; try { await patrimonio.localizacoes.remove(id); loadLocs(); } catch (e) { setError(e.message); } }
+  async function saveInv(data) { try { await patrimonio.inventarios.create(data); setModalInv(null); loadInvs(); loadDash(); } catch (e) { setError(e.message); } }
+  async function updateInvStatus(id, status) { try { const upd = { status }; if (status === 'concluido') upd.data_fim = new Date().toISOString().slice(0, 10); await patrimonio.inventarios.atualizar(id, upd); loadInvs(); loadDash(); } catch (e) { setError(e.message); } }
+
   async function saveLogMov() {
+    if (!modalLogMov?.codigo_barras?.trim()) { setError('Código de barras é obrigatório'); return; }
+    if (!modalLogMov?.tipo) { setError('Tipo é obrigatório'); return; }
     setSaving(true);
-    try { await logistica.movimentacoes.create(modalLogMov); setModalLogMov(null); loadLogMovs(); } catch (e) { alert(e.message); }
+    try {
+      await logistica.movimentacoes.create(modalLogMov);
+      setModalLogMov(null); loadLogMovs();
+    } catch (e) { setError(e.message); }
     setSaving(false);
   }
   const upLogMov = (k, v) => setModalLogMov(prev => ({ ...prev, [k]: v }));
-  async function updateInvStatus(id, status) { try { const upd = { status }; if (status === 'concluido') upd.data_fim = new Date().toISOString().slice(0, 10); await patrimonio.inventarios.atualizar(id, upd); loadInvs(); loadDash(); } catch (e) { alert(e.message); } }
 
   return (
     <div style={styles.page}>
       <div style={styles.header}>
         <div><div style={{ ...styles.title, display: 'flex', alignItems: 'center', gap: 10 }}><Tag className="h-7 w-7" style={{ color: '#00B39D' }} /> Patrimônio</div><div style={styles.subtitle}>Gestão de bens, localizações e inventários</div></div>
       </div>
+      {error && (
+        <div style={{ background: '#ef444418', border: '1px solid #ef4444', borderRadius: 8, padding: '12px 16px', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#ef4444', fontSize: 13 }}>
+          <span>{error}</span>
+          <button onClick={() => setError('')} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 16, fontWeight: 700, padding: '0 4px' }}>&#10005;</button>
+        </div>
+      )}
       <div style={styles.tabs}>{TABS.map((t, i) => <button key={t} style={styles.tab(tab === i)} onClick={() => setTab(i)}>{t}</button>)}</div>
 
       {tab === 0 && <DashboardTab dash={dash} />}
@@ -195,7 +204,7 @@ export default function Patrimonio() {
       <MovFormModal open={!!modalMov} data={modalMov} localizacoes={localizacoes} onClose={() => setModalMov(null)} onSave={saveMov} />
       <InvFormModal open={!!modalInv} onClose={() => setModalInv(null)} onSave={saveInv} />
       <LogMovimentacaoModal open={modalLogMov !== null} data={modalLogMov} onClose={() => setModalLogMov(null)}
-        onSave={saveLogMov} saving={saving} upMov={upLogMov} />
+        onSave={saveLogMov} saving={saving} upLogMov={upLogMov} />
     </div>
   );
 }
@@ -277,20 +286,20 @@ function BensTab({ bens, loading, busca, setBusca, filtroStatus, setFiltroStatus
   return (
     <>
       <div style={styles.filterRow}>
-        <input style={{ ...styles.input, maxWidth: 280 }} placeholder="🔍 Buscar por nome..." value={busca} onChange={e => setBusca(e.target.value)} />
-        <select style={styles.select} value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
+        <input className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ maxWidth: 280 }} placeholder="🔍 Buscar por nome..." value={busca} onChange={e => setBusca(e.target.value)} />
+        <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
           <option value="">Todos os status</option>
           {Object.entries(STATUS_BEM).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
         </select>
-        <select style={styles.select} value={filtroCat} onChange={e => setFiltroCat(e.target.value)}>
+        <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={filtroCat} onChange={e => setFiltroCat(e.target.value)}>
           <option value="">Todas categorias</option>
           {categorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
         </select>
-        <select style={styles.select} value={filtroLoc} onChange={e => setFiltroLoc(e.target.value)}>
+        <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={filtroLoc} onChange={e => setFiltroLoc(e.target.value)}>
           <option value="">Todas localizações</option>
           {localizacoes.map(l => <option key={l.id} value={l.id}>{l.nome}</option>)}
         </select>
-        {isDiretor && <div style={{ marginLeft: 'auto' }}><button style={styles.btn('primary')} onClick={onNew}>+ Novo Bem</button></div>}
+        {isDiretor && <div style={{ marginLeft: 'auto' }}><Button onClick={onNew}>+ Novo Bem</Button></div>}
       </div>
       <div style={styles.card}>
         <div style={{ overflowX: 'auto' }}>
@@ -304,7 +313,7 @@ function BensTab({ bens, loading, busca, setBusca, filtroStatus, setFiltroStatus
               {loading && <tr><td colSpan={8} style={{ ...styles.td, textAlign: 'center', color: C.text3 }}>Carregando...</td></tr>}
               {!loading && bens.length === 0 && <tr><td colSpan={8} style={{ ...styles.td, textAlign: 'center', color: C.text3 }}>Nenhum bem encontrado</td></tr>}
               {bens.map(b => (
-                <tr key={b.id} style={styles.clickRow} onMouseEnter={e => e.currentTarget.style.background = '#1e1e1e'} onMouseLeave={e => e.currentTarget.style.background = ''} onClick={() => onDetail(b.id)}>
+                <tr key={b.id} style={styles.clickRow} onMouseEnter={e => e.currentTarget.style.background = 'var(--cbrio-input-bg)'} onMouseLeave={e => e.currentTarget.style.background = ''} onClick={() => onDetail(b.id)}>
                   <td style={{ ...styles.td, fontFamily: 'monospace', fontSize: 12 }}>{b.codigo_barras}</td>
                   <td style={{ ...styles.td, fontWeight: 600 }}>{b.nome}</td>
                   <td style={styles.td}>{b.pat_categorias?.nome || '—'}</td>
@@ -312,7 +321,7 @@ function BensTab({ bens, loading, busca, setBusca, filtroStatus, setFiltroStatus
                   <td style={styles.td}>{[b.marca, b.modelo].filter(Boolean).join(' ') || '—'}</td>
                   <td style={styles.td}>{fmtMoney(b.valor_aquisicao)}</td>
                   <td style={styles.td}><Badge status={b.status} map={STATUS_BEM} /></td>
-                  {isDiretor && <td style={styles.td}><button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={e => { e.stopPropagation(); onDelete(b.id); }}><Trash2 style={{ width: 14, height: 14 }} /></button></td>}
+                  {isDiretor && <td style={styles.td}><Button variant="ghost" size="xs" onClick={e => { e.stopPropagation(); onDelete(b.id); }}><Trash2 style={{ width: 14, height: 14 }} /></Button></td>}
                 </tr>
               ))}
             </tbody>
@@ -331,15 +340,15 @@ function CatLocTab({ categorias, localizacoes, newCat, setNewCat, addCat, remove
         <div style={{ padding: 16 }}>
           {isDiretor && (
             <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-              <input style={{ ...styles.input, flex: 1 }} placeholder="Nova categoria..." value={newCat} onChange={e => setNewCat(e.target.value)} onKeyDown={e => e.key === 'Enter' && addCat()} />
-              <button style={{ ...styles.btn('primary'), ...styles.btnSm }} onClick={addCat}>+</button>
+              <input className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ flex: 1 }} placeholder="Nova categoria..." value={newCat} onChange={e => setNewCat(e.target.value)} onKeyDown={e => e.key === 'Enter' && addCat()} />
+              <Button size="xs" onClick={addCat}>+</Button>
             </div>
           )}
           {categorias.length === 0 && <div style={styles.empty}>Nenhuma categoria</div>}
           {categorias.map(c => (
             <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: `1px solid ${C.border}` }}>
               <span style={{ fontSize: 13 }}>{c.icone && `${c.icone} `}{c.nome}</span>
-              {isDiretor && <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => removeCat(c.id)}><Trash2 style={{ width: 14, height: 14 }} /></button>}
+              {isDiretor && <Button variant="ghost" size="xs" onClick={() => removeCat(c.id)}><Trash2 style={{ width: 14, height: 14 }} /></Button>}
             </div>
           ))}
         </div>
@@ -349,15 +358,15 @@ function CatLocTab({ categorias, localizacoes, newCat, setNewCat, addCat, remove
         <div style={{ padding: 16 }}>
           {isDiretor && (
             <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-              <input style={{ ...styles.input, flex: 1 }} placeholder="Nova localização..." value={newLoc} onChange={e => setNewLoc(e.target.value)} onKeyDown={e => e.key === 'Enter' && addLoc()} />
-              <button style={{ ...styles.btn('primary'), ...styles.btnSm }} onClick={addLoc}>+</button>
+              <input className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ flex: 1 }} placeholder="Nova localização..." value={newLoc} onChange={e => setNewLoc(e.target.value)} onKeyDown={e => e.key === 'Enter' && addLoc()} />
+              <Button size="xs" onClick={addLoc}>+</Button>
             </div>
           )}
           {localizacoes.length === 0 && <div style={styles.empty}>Nenhuma localização</div>}
           {localizacoes.map(l => (
             <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: `1px solid ${C.border}` }}>
               <span style={{ fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 4 }}><MapPin style={{ width: 14, height: 14, color: '#00B39D' }} /> {l.nome}</span>
-              {isDiretor && <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => removeLoc(l.id)}><Trash2 style={{ width: 14, height: 14 }} /></button>}
+              {isDiretor && <Button variant="ghost" size="xs" onClick={() => removeLoc(l.id)}><Trash2 style={{ width: 14, height: 14 }} /></Button>}
             </div>
           ))}
         </div>
@@ -369,7 +378,7 @@ function CatLocTab({ categorias, localizacoes, newCat, setNewCat, addCat, remove
 function InventariosTab({ inventarios, onNew, onUpdate, isDiretor }) {
   return (
     <>
-      {isDiretor && <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}><button style={styles.btn('primary')} onClick={onNew}>+ Novo Inventário</button></div>}
+      {isDiretor && <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}><Button onClick={onNew}>+ Novo Inventário</Button></div>}
       <div style={styles.card}>
         <div style={{ overflowX: 'auto' }}>
           <table style={styles.table}>
@@ -390,8 +399,8 @@ function InventariosTab({ inventarios, onNew, onUpdate, isDiretor }) {
                     <td style={styles.td}>
                       {inv.status === 'em_andamento' && (
                         <div style={{ display: 'flex', gap: 4 }}>
-                          <button style={{ ...styles.btn('primary'), ...styles.btnSm }} onClick={() => onUpdate(inv.id, 'concluido')}>✓ Concluir</button>
-                          <button style={{ ...styles.btn('danger'), ...styles.btnSm }} onClick={() => onUpdate(inv.id, 'cancelado')}>✕ Cancelar</button>
+                          <Button size="xs" onClick={() => onUpdate(inv.id, 'concluido')}>✓ Concluir</Button>
+                          <Button variant="destructive" size="xs" onClick={() => onUpdate(inv.id, 'cancelado')}>✕ Cancelar</Button>
                         </div>
                       )}
                     </td>
@@ -408,11 +417,25 @@ function InventariosTab({ inventarios, onNew, onUpdate, isDiretor }) {
 
 function BemFormModal({ open, data, categorias, localizacoes, onClose, onSave }) {
   const [f, setF] = useState({});
-  useEffect(() => { if (data) setF({ ...data }); }, [data]);
+  const [formError, setFormError] = useState('');
+  useEffect(() => { if (data) { setF({ ...data }); setFormError(''); } }, [data]);
   const upd = (k, v) => setF(p => ({ ...p, [k]: v }));
+  function handleSave() {
+    if (!f.nome || !f.nome.trim()) { setFormError('Nome é obrigatório.'); return; }
+    if (!f.codigo_barras || !f.codigo_barras.trim()) { setFormError('Código de barras é obrigatório.'); return; }
+    if (f.valor_aquisicao !== undefined && f.valor_aquisicao !== '' && Number(f.valor_aquisicao) < 0) { setFormError('Valor de aquisição deve ser >= 0.'); return; }
+    setFormError('');
+    onSave(f);
+  }
   return (
     <Modal open={open} onClose={onClose} title={f?.id ? 'Editar Bem' : 'Novo Bem'}
-      footer={<button style={styles.btn('primary')} onClick={() => onSave(f)}>Salvar</button>}>
+      footer={<Button onClick={handleSave}>Salvar</Button>}>
+      {formError && (
+        <div style={{ background: '#ef444418', border: '1px solid #ef4444', borderRadius: 8, padding: '10px 14px', marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#ef4444', fontSize: 13 }}>
+          <span>{formError}</span>
+          <button onClick={() => setFormError('')} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 16, fontWeight: 700, padding: '0 4px' }}>&#10005;</button>
+        </div>
+      )}
       <div style={styles.formRow}>
         <Input label="Código de Barras *" value={f.codigo_barras || ''} onChange={e => upd('codigo_barras', e.target.value)} />
         <Input label="Nome *" value={f.nome || ''} onChange={e => upd('nome', e.target.value)} />
@@ -442,12 +465,12 @@ function BemFormModal({ open, data, categorias, localizacoes, onClose, onSave })
         </Select>}
       </div>
       <div style={styles.formGroup}>
-        <label style={styles.label}>Descrição</label>
-        <textarea style={{ ...styles.input, minHeight: 50, resize: 'vertical' }} value={f.descricao || ''} onChange={e => upd('descricao', e.target.value)} />
+        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Descrição</label>
+        <textarea className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ minHeight: 50, resize: 'vertical' }} value={f.descricao || ''} onChange={e => upd('descricao', e.target.value)} />
       </div>
       <div style={styles.formGroup}>
-        <label style={styles.label}>Observações</label>
-        <textarea style={{ ...styles.input, minHeight: 40, resize: 'vertical' }} value={f.observacoes || ''} onChange={e => upd('observacoes', e.target.value)} />
+        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Observações</label>
+        <textarea className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ minHeight: 40, resize: 'vertical' }} value={f.observacoes || ''} onChange={e => upd('observacoes', e.target.value)} />
       </div>
     </Modal>
   );
@@ -473,7 +496,7 @@ function BemDetailModal({ open, data, onClose, onEdit, onDelete, onMov, isDireto
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: C.text2, textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: 6 }}><ClipboardList style={{ width: 14, height: 14, color: '#00B39D' }} /> Movimentações ({(data.movimentacoes || []).length})</span>
-          {isDiretor && <button style={{ ...styles.btn('ghost'), ...styles.btnSm }} onClick={() => onMov(data.id)}>+ Registrar</button>}
+          {isDiretor && <Button variant="ghost" size="xs" onClick={() => onMov(data.id)}>+ Registrar</Button>}
         </div>
         {(data.movimentacoes || []).length === 0 && <div style={{ fontSize: 13, color: C.text3 }}>Nenhuma movimentação registrada</div>}
         {(data.movimentacoes || []).map(m => (
@@ -486,8 +509,8 @@ function BemDetailModal({ open, data, onClose, onEdit, onDelete, onMov, isDireto
 
       {isDiretor && (
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 12, borderTop: `1px solid ${C.border}` }}>
-          <button style={styles.btn('secondary')} onClick={() => onEdit(data)}><Pencil style={{ width: 14, height: 14, display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Editar</button>
-          <button style={styles.btn('danger')} onClick={() => onDelete(data.id)}><Trash2 style={{ width: 14, height: 14, display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Remover</button>
+          <Button variant="outline" onClick={() => onEdit(data)}><Pencil style={{ width: 14, height: 14, display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Editar</Button>
+          <Button variant="destructive" onClick={() => onDelete(data.id)}><Trash2 style={{ width: 14, height: 14, display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Remover</Button>
         </div>
       )}
     </Modal>
@@ -500,7 +523,7 @@ function MovFormModal({ open, data, localizacoes, onClose, onSave }) {
   const upd = (k, v) => setF(p => ({ ...p, [k]: v }));
   return (
     <Modal open={open} onClose={onClose} title="Registrar Movimentação"
-      footer={<button style={styles.btn('primary')} onClick={() => onSave(data?.bem_id, f)}>Registrar</button>}>
+      footer={<Button onClick={() => onSave(data?.bem_id, f)}>Registrar</Button>}>
       <Select label="Tipo *" value={f.tipo} onChange={e => upd('tipo', e.target.value)}>
         {Object.entries(TIPO_MOV).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
       </Select>
@@ -517,8 +540,8 @@ function MovFormModal({ open, data, localizacoes, onClose, onSave }) {
         </Select>
       )}
       <div style={styles.formGroup}>
-        <label style={styles.label}>Motivo</label>
-        <textarea style={{ ...styles.input, minHeight: 60, resize: 'vertical' }} value={f.motivo || ''} onChange={e => upd('motivo', e.target.value)} />
+        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Motivo</label>
+        <textarea className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ minHeight: 60, resize: 'vertical' }} value={f.motivo || ''} onChange={e => upd('motivo', e.target.value)} />
       </div>
     </Modal>
   );
@@ -530,12 +553,12 @@ function InvFormModal({ open, onClose, onSave }) {
   const upd = (k, v) => setF(p => ({ ...p, [k]: v }));
   return (
     <Modal open={open} onClose={onClose} title="Novo Inventário"
-      footer={<button style={styles.btn('primary')} onClick={() => onSave(f)}>Criar</button>}>
+      footer={<Button onClick={() => onSave(f)}>Criar</Button>}>
       <Input label="Nome *" value={f.nome || ''} onChange={e => upd('nome', e.target.value)} />
       <Input label="Data Início *" type="date" value={f.data_inicio || ''} onChange={e => upd('data_inicio', e.target.value)} />
       <div style={styles.formGroup}>
-        <label style={styles.label}>Observações</label>
-        <textarea style={{ ...styles.input, minHeight: 60, resize: 'vertical' }} value={f.observacoes || ''} onChange={e => upd('observacoes', e.target.value)} />
+        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Observações</label>
+        <textarea className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ minHeight: 60, resize: 'vertical' }} value={f.observacoes || ''} onChange={e => upd('observacoes', e.target.value)} />
       </div>
     </Modal>
   );
@@ -562,6 +585,7 @@ function ScannerTab({ localizacoes, onMov, onDetail }) {
   const [movForm, setMovForm] = useState({ tipo: 'transferencia', localizacao_origem_id: '', localizacao_destino_id: '', motivo: '' });
   const [saving, setSaving] = useState(false);
   const [recentScans, setRecentScans] = useState([]);
+  const [scanError, setScanError] = useState('');
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const inputRef = useRef(null);
@@ -604,7 +628,7 @@ function ScannerTab({ localizacoes, onMov, onDetail }) {
         requestAnimationFrame(detectLoop);
       }
     } catch (e) {
-      alert('Não foi possível acessar a câmera. Verifique as permissões do navegador.');
+      setScanError('Não foi possível acessar a câmera. Verifique as permissões do navegador.');
       setScanning(false);
     }
   }
@@ -629,28 +653,35 @@ function ScannerTab({ localizacoes, onMov, onDetail }) {
       setMovForm({ tipo: 'transferencia', localizacao_origem_id: '', localizacao_destino_id: '', motivo: '' });
       // Recarregar o bem para ver movimentação atualizada
       buscarPorCodigo(codigo);
-    } catch (e) { alert(e.message); }
+    } catch (e) { setScanError(e.message); }
     setSaving(false);
   }
 
   return (
     <>
+      {scanError && (
+        <div style={{ background: '#ef444418', border: '1px solid #ef4444', borderRadius: 8, padding: '12px 16px', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#ef4444', fontSize: 13 }}>
+          <span>{scanError}</span>
+          <button onClick={() => setScanError('')} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 16, fontWeight: 700, padding: '0 4px' }}>&#10005;</button>
+        </div>
+      )}
       {/* Barra de busca + botão scanner */}
       <div style={{ ...styles.card, marginBottom: 16, padding: 20 }}>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: scanning ? 16 : 0 }}>
           <span style={{ fontSize: 24 }}>🏷️</span>
           <input
             ref={inputRef}
-            style={{ ...styles.input, flex: 1, fontSize: 16, fontFamily: 'monospace', fontWeight: 700, padding: '12px 16px' }}
+            className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            style={{ flex: 1, fontSize: 16, fontFamily: 'monospace', fontWeight: 700, padding: '12px 16px' }}
             placeholder="Digite o código de barras e pressione Enter"
             value={codigo}
             onChange={e => setCodigo(e.target.value)}
             onKeyDown={handleKeyDown}
             autoFocus
           />
-          <button style={styles.btn(scanning ? 'danger' : 'primary')} onClick={scanning ? stopScan : startScan}>
+          <Button variant={scanning ? 'destructive' : 'default'} onClick={scanning ? stopScan : startScan}>
             {scanning ? '⏹ Parar' : '📷 Escanear'}
-          </button>
+          </Button>
         </div>
 
         {/* Camera preview */}
@@ -706,12 +737,12 @@ function ScannerTab({ localizacoes, onMov, onDetail }) {
 
             {/* Ações */}
             <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
-              <button style={styles.btn('primary')} onClick={() => { setShowMov(true); setMovForm({ tipo: 'transferencia', localizacao_origem_id: bem.localizacao_id || '', localizacao_destino_id: '', motivo: '' }); }}>
+              <Button onClick={() => { setShowMov(true); setMovForm({ tipo: 'transferencia', localizacao_origem_id: bem.localizacao_id || '', localizacao_destino_id: '', motivo: '' }); }}>
                 🔄 Registrar Movimentação
-              </button>
-              <button style={styles.btn('secondary')} onClick={() => onDetail(bem.id)}>
+              </Button>
+              <Button variant="outline" onClick={() => onDetail(bem.id)}>
                 📋 Ver Detalhes Completos
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -720,7 +751,7 @@ function ScannerTab({ localizacoes, onMov, onDetail }) {
             <div style={{ padding: 20, background: 'var(--cbrio-input-bg)', borderBottom: `1px solid ${C.border}` }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 12 }}>Nova Movimentação</div>
               <div style={styles.formGroup}>
-                <label style={styles.label}>Tipo de Movimentação *</label>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Tipo de Movimentação *</label>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   {Object.entries(MOV_TIPO_COLORS).map(([k, v]) => (
                     <button key={k} onClick={() => setMovForm(f => ({ ...f, tipo: k }))}
@@ -751,15 +782,15 @@ function ScannerTab({ localizacoes, onMov, onDetail }) {
                 </Select>
               )}
               <div style={styles.formGroup}>
-                <label style={styles.label}>Motivo / Observação</label>
-                <textarea style={{ ...styles.input, minHeight: 60, resize: 'vertical' }}
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Motivo / Observação</label>
+                <textarea className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ minHeight: 60, resize: 'vertical' }}
                   value={movForm.motivo || ''} onChange={e => setMovForm(f => ({ ...f, motivo: e.target.value }))} />
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button style={styles.btn('primary')} onClick={handleRegistrarMov} disabled={saving}>
+                <Button onClick={handleRegistrarMov} disabled={saving}>
                   {saving ? 'Registrando...' : 'Confirmar Movimentação'}
-                </button>
-                <button style={styles.btn('ghost')} onClick={() => setShowMov(false)}>Cancelar</button>
+                </Button>
+                <Button variant="ghost" onClick={() => setShowMov(false)}>Cancelar</Button>
               </div>
             </div>
           )}
@@ -817,8 +848,16 @@ function ScannerTab({ localizacoes, onMov, onDetail }) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// TAB: Movimentações (log_movimentacoes — estoque/logística)
+// Movimentações de Estoque (Logística)
 // ═══════════════════════════════════════════════════════════
+const LOG_MOV_TIPO = {
+  entrada: { c: C.green, bg: C.greenBg, label: 'Entrada', icon: '📥' },
+  saida: { c: C.red, bg: C.redBg, label: 'Saída', icon: '📤' },
+  transferencia: { c: C.blue, bg: C.blueBg, label: 'Transferência', icon: '🔄' },
+  devolucao: { c: C.amber, bg: C.amberBg, label: 'Devolução', icon: '↩️' },
+  inventario: { c: '#8b5cf6', bg: '#8b5cf618', label: 'Inventário', icon: '📋' },
+};
+
 function LogMovimentacoesTab({ data, loading, filtroTipo, setFiltroTipo, onNew, onReload }) {
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState(null);
@@ -827,82 +866,55 @@ function LogMovimentacoesTab({ data, loading, filtroTipo, setFiltroTipo, onNew, 
   const streamRef = useRef(null);
 
   async function startScan() {
-    setScanning(true);
-    setScanResult(null);
+    setScanning(true); setScanResult(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
-      }
+      if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.play(); }
       if ('BarcodeDetector' in window) {
         const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'qr_code', 'upc_a', 'upc_e'] });
         const detectLoop = async () => {
           if (!videoRef.current || !scanning) return;
           try {
             const barcodes = await detector.detect(videoRef.current);
-            if (barcodes.length > 0) {
-              const code = barcodes[0].rawValue;
-              setScanResult(code);
-              stopScan();
-              loadHistorico(code);
-              return;
-            }
-          } catch (e) { /* continue scanning */ }
+            if (barcodes.length > 0) { setScanResult(barcodes[0].rawValue); stopScan(); loadHistorico(barcodes[0].rawValue); return; }
+          } catch (e) { /* continue */ }
           requestAnimationFrame(detectLoop);
         };
         requestAnimationFrame(detectLoop);
       }
-    } catch (e) {
-      alert('Não foi possível acessar a câmera. Verifique as permissões.');
-      setScanning(false);
-    }
+    } catch (e) { setScanning(false); }
   }
 
   function stopScan() {
     setScanning(false);
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(t => t.stop());
-      streamRef.current = null;
-    }
+    if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
   }
 
   async function loadHistorico(codigo) {
-    try { setHistorico(await logistica.movimentacoes.historico(codigo)); }
-    catch (e) { console.error(e); }
+    try { setHistorico(await logistica.movimentacoes.historico(codigo)); } catch (e) { console.error(e); }
   }
 
   function handleManualCode(e) {
-    if (e.key === 'Enter' && e.target.value) {
-      setScanResult(e.target.value);
-      loadHistorico(e.target.value);
-    }
+    if (e.key === 'Enter' && e.target.value) { setScanResult(e.target.value); loadHistorico(e.target.value); }
   }
 
   return (<>
     <div style={styles.filterRow}>
-      <select style={styles.select} value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}>
+      <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={filtroTipo} onChange={e => setFiltroTipo(e.target.value)}>
         <option value="">Todos os tipos</option>
         {Object.entries(LOG_MOV_TIPO).map(([k, v]) => <option key={k} value={k}>{v.icon} {v.label}</option>)}
       </select>
-      <button style={styles.btn('primary')} onClick={onNew}>+ Nova Movimentação</button>
-      <button style={styles.btn('secondary')} onClick={scanning ? stopScan : startScan}>
+      <Button onClick={onNew}>+ Nova Movimentação</Button>
+      <Button variant="outline" onClick={scanning ? stopScan : startScan}>
         {scanning ? '⏹ Parar Scanner' : '📷 Escanear Código'}
-      </button>
+      </Button>
     </div>
 
     {scanning && (
       <div style={{ ...styles.card, marginBottom: 16, padding: 16, textAlign: 'center' }}>
         <video ref={videoRef} style={{ width: '100%', maxWidth: 400, borderRadius: 12, background: '#000' }} autoPlay playsInline muted />
         <div style={{ fontSize: 13, color: C.text2, marginTop: 8 }}>Aponte a câmera para o código de barras</div>
-        {!('BarcodeDetector' in window) && (
-          <div style={{ marginTop: 12 }}>
-            <div style={{ fontSize: 12, color: C.amber, marginBottom: 8 }}>Scanner automático não disponível neste navegador. Digite manualmente:</div>
-            <input style={{ ...styles.input, maxWidth: 300, margin: '0 auto' }} placeholder="Digite o código de barras e pressione Enter"
-              onKeyDown={handleManualCode} autoFocus />
-          </div>
-        )}
       </div>
     )}
 
@@ -910,7 +922,7 @@ function LogMovimentacoesTab({ data, loading, filtroTipo, setFiltroTipo, onNew, 
       <div style={{ ...styles.card, marginBottom: 16, padding: 16 }}>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <span style={{ fontSize: 20 }}>🔍</span>
-          <input style={{ ...styles.input, flex: 1 }} placeholder="Digite ou escaneie o código de barras e pressione Enter"
+          <input className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ flex: 1 }} placeholder="Digite ou escaneie o código de barras e pressione Enter"
             onKeyDown={handleManualCode} defaultValue={scanResult || ''} />
         </div>
       </div>
@@ -918,12 +930,12 @@ function LogMovimentacoesTab({ data, loading, filtroTipo, setFiltroTipo, onNew, 
 
     {scanResult && (
       <div style={{ ...styles.card, marginBottom: 16 }}>
-        <div style={{ ...styles.cardHeader }}>
+        <div style={styles.cardHeader}>
           <div>
             <div style={styles.cardTitle}>Código: {scanResult}</div>
-            <div style={{ fontSize: 12, color: C.text2 }}>{historico.length} movimentação(ões) encontrada(s)</div>
+            <div style={{ fontSize: 12, color: C.text2 }}>{historico.length} movimentação(ões)</div>
           </div>
-          <button style={styles.btn('ghost')} onClick={() => { setScanResult(null); setHistorico([]); }}>✕</button>
+          <Button variant="ghost" onClick={() => { setScanResult(null); setHistorico([]); }}>✕</Button>
         </div>
         {historico.length > 0 ? (
           <table style={styles.table}><thead><tr>
@@ -965,10 +977,7 @@ function LogMovimentacoesTab({ data, loading, filtroTipo, setFiltroTipo, onNew, 
   </>);
 }
 
-// ═══════════════════════════════════════════════════════════
-// MODAL: Nova Movimentação (com scanner inline)
-// ═══════════════════════════════════════════════════════════
-function LogMovimentacaoModal({ open, data, onClose, onSave, saving, upMov }) {
+function LogMovimentacaoModal({ open, data, onClose, onSave, saving, upLogMov }) {
   const [scanning, setScanning] = useState(false);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
@@ -983,15 +992,12 @@ function LogMovimentacaoModal({ open, data, onClose, onSave, saving, upMov }) {
         const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'qr_code', 'upc_a', 'upc_e'] });
         const detect = async () => {
           if (!videoRef.current) return;
-          try {
-            const barcodes = await detector.detect(videoRef.current);
-            if (barcodes.length > 0) { upMov('codigo_barras', barcodes[0].rawValue); stopScan(); return; }
-          } catch (e) { /* continue */ }
+          try { const b = await detector.detect(videoRef.current); if (b.length > 0) { upLogMov('codigo_barras', b[0].rawValue); stopScan(); return; } } catch {}
           if (scanning) requestAnimationFrame(detect);
         };
         requestAnimationFrame(detect);
       }
-    } catch (e) { alert('Não foi possível acessar a câmera'); setScanning(false); }
+    } catch (e) { setScanning(false); }
   }
 
   function stopScan() {
@@ -1003,35 +1009,36 @@ function LogMovimentacaoModal({ open, data, onClose, onSave, saving, upMov }) {
 
   return (
     <Modal open={open} onClose={() => { stopScan(); onClose(); }} title="Nova Movimentação"
-      footer={<><button style={styles.btn('secondary')} onClick={() => { stopScan(); onClose(); }}>Cancelar</button><button style={styles.btn('primary')} onClick={onSave} disabled={saving}>{saving ? 'Salvando...' : 'Registrar'}</button></>}>
+      footer={<><Button variant="outline" onClick={() => { stopScan(); onClose(); }}>Cancelar</Button><Button onClick={onSave} disabled={saving}>{saving ? 'Salvando...' : 'Registrar'}</Button></>}>
       {data && (<>
-        <Select label="Tipo *" value={data.tipo || 'entrada'} onChange={e => upMov('tipo', e.target.value)}>
+        <Select label="Tipo *" value={data.tipo || 'entrada'} onChange={e => upLogMov('tipo', e.target.value)}>
           {Object.entries(LOG_MOV_TIPO).map(([k, v]) => <option key={k} value={k}>{v.icon} {v.label}</option>)}
         </Select>
         <div style={styles.formGroup}>
-          <label style={styles.label}>Código de Barras *</label>
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Código de Barras *</label>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <input style={{ ...styles.input, flex: 1, fontFamily: 'monospace', fontSize: 16, fontWeight: 700 }}
-              value={data.codigo_barras || ''} onChange={e => upMov('codigo_barras', e.target.value)}
-              placeholder="Digite ou escaneie" />
-            <button type="button" style={styles.btn(scanning ? 'danger' : 'secondary')} onClick={scanning ? stopScan : startScan}>
+            <input className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ flex: 1, fontFamily: 'monospace', fontSize: 16, fontWeight: 700 }}
+              value={data.codigo_barras || ''} onChange={e => upLogMov('codigo_barras', e.target.value)} placeholder="Digite ou escaneie" />
+            <Button variant={scanning ? 'destructive' : 'outline'} onClick={scanning ? stopScan : startScan}>
               {scanning ? '⏹' : '📷'}
-            </button>
+            </Button>
           </div>
         </div>
         {scanning && (
           <div style={{ textAlign: 'center', marginBottom: 12 }}>
             <video ref={videoRef} style={{ width: '100%', maxWidth: 300, borderRadius: 10, background: '#000' }} autoPlay playsInline muted />
-            <div style={{ fontSize: 12, color: C.text3, marginTop: 4 }}>Aponte para o código de barras</div>
           </div>
         )}
-        <Input label="Descrição" value={data.descricao || ''} onChange={e => upMov('descricao', e.target.value)} />
+        <Input label="Descrição" value={data.descricao || ''} onChange={e => upLogMov('descricao', e.target.value)} />
         <div style={styles.formRow}>
-          <Input label="Quantidade" type="number" step="0.001" value={data.quantidade || ''} onChange={e => upMov('quantidade', e.target.value)} />
-          <Input label="Unidade" value={data.unidade || 'un'} onChange={e => upMov('unidade', e.target.value)} />
+          <Input label="Quantidade" type="number" step="0.001" value={data.quantidade || ''} onChange={e => upLogMov('quantidade', e.target.value)} />
+          <Input label="Unidade" value={data.unidade || 'un'} onChange={e => upLogMov('unidade', e.target.value)} />
         </div>
-        <Input label="Localização" value={data.localizacao || ''} onChange={e => upMov('localizacao', e.target.value)} placeholder="Ex: Depósito A, Sala 3" />
-        <Input label="Observações" value={data.observacoes || ''} onChange={e => upMov('observacoes', e.target.value)} />
+        <Input label="Localização" value={data.localizacao || ''} onChange={e => upLogMov('localizacao', e.target.value)} placeholder="Ex: Depósito A, Sala 3" />
+        <div style={styles.formGroup}>
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Observações</label>
+          <textarea className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ minHeight: 70, resize: 'vertical' }} value={data.observacoes || ''} onChange={e => upLogMov('observacoes', e.target.value)} />
+        </div>
       </>)}
     </Modal>
   );

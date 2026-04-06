@@ -5,6 +5,8 @@ import { dashboard as dashApi, cycles as cyclesApi, tasks as tasksApi, projects 
 const C = {
   text: 'var(--cbrio-text)', t2: 'var(--cbrio-text2)', t3: 'var(--cbrio-text3)',
   border: 'var(--cbrio-border)', card: 'var(--cbrio-card)', bg: 'var(--cbrio-bg)',
+  inputBg: 'var(--cbrio-input-bg)', tableHeader: 'var(--cbrio-table-header)',
+  modalBg: 'var(--cbrio-modal-bg)', overlay: 'var(--cbrio-overlay)',
   accent: '#00B39D',
 };
 
@@ -459,7 +461,7 @@ export default function Planejamento() {
               <>
                 <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>{typeFilter === 'eventos' ? 'Evento:' : 'Evento/Projeto:'}</span>
                 <select value={eventFilter} onChange={e => setEventFilter(e.target.value)}
-                  style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card }}>
+                  style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.inputBg }}>
                   <option value="all">Todos</option>
                   {allEvents.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
                 </select>
@@ -469,7 +471,7 @@ export default function Planejamento() {
               <>
                 <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Projeto:</span>
                 <select value={eventFilter} onChange={e => setEventFilter(e.target.value)}
-                  style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card }}>
+                  style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.inputBg }}>
                   <option value="all">Todos os projetos</option>
                   {projectsData.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
@@ -479,7 +481,7 @@ export default function Planejamento() {
               <>
                 <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Marco:</span>
                 <select value={eventFilter} onChange={e => setEventFilter(e.target.value)}
-                  style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card }}>
+                  style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.inputBg }}>
                   <option value="all">Todos os marcos</option>
                   {strategicData.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
@@ -504,7 +506,7 @@ export default function Planejamento() {
             {/* Horizonte temporal */}
             <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Horizonte:</span>
             <select value={horizon} onChange={e => setHorizon(parseInt(e.target.value))}
-              style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card }}>
+              style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.inputBg }}>
               <option value={15}>Próx. 15 dias</option>
               <option value={30}>Próx. 30 dias</option>
               <option value={0}>Sem filtro</option>
@@ -822,7 +824,7 @@ export default function Planejamento() {
                 <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
                   <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Projeto:</span>
                   <select value={projKanbanProject} onChange={e => setProjKanbanProject(e.target.value)}
-                    style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, maxWidth: 280 }}>
+                    style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.inputBg, maxWidth: 280 }}>
                     <option value="all">Todos os projetos ({projectsData.length})</option>
                     {projectsData.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
@@ -1070,7 +1072,7 @@ export default function Planejamento() {
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16, alignItems: 'center' }}>
               <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Horizonte:</span>
               <select value={listHorizon} onChange={e => setListHorizon(parseInt(e.target.value))}
-                style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.card }}>
+                style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.inputBg }}>
                 <option value={15}>15 dias</option>
                 <option value={30}>30 dias</option>
                 <option value={0}>Sem filtro</option>
@@ -1197,7 +1199,7 @@ export default function Planejamento() {
                 <div style={{ display: 'flex' }}>
                   {/* Coluna fixa: nomes das fases */}
                   <div style={{ width: NAME_W, flexShrink: 0, borderRight: `1px solid ${C.border}` }}>
-                    <div style={{ height: 28, borderBottom: `1px solid ${C.border}`, background: 'var(--cbrio-table-header, #fafafa)' }} />
+                    <div style={{ height: 28, borderBottom: `1px solid ${C.border}`, background: C.tableHeader }} />
                     {group.phases.map(ph => {
                       const eiN = normDate(ph.data_fim_prevista);
                       const diffN = eiN ? Math.ceil((new Date(eiN + 'T12:00:00') - new Date()) / 86400000) : null;
@@ -1216,7 +1218,7 @@ export default function Planejamento() {
                   <div style={{ flex: 1, overflowX: 'auto' }}>
                     <div style={{ minWidth: 600, position: 'relative' }}>
                       {/* Header meses */}
-                      <div style={{ height: 28, position: 'relative', borderBottom: `1px solid ${C.border}`, background: 'var(--cbrio-table-header, #fafafa)' }}>
+                      <div style={{ height: 28, position: 'relative', borderBottom: `1px solid ${C.border}`, background: C.tableHeader }}>
                         {mLabels.map((m, i) => (
                           <div key={i} style={{ position: 'absolute', left: `${m.pct}%`, top: 0, height: '100%', borderLeft: `1px solid ${C.border}`, padding: '5px 6px', fontSize: 10, fontWeight: 600, color: C.t2, whiteSpace: 'nowrap' }}>{m.label}</div>
                         ))}

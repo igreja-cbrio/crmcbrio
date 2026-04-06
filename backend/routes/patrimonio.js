@@ -1,36 +1,51 @@
 const router = require('express').Router();
-const { authenticate, authorize } = require('../middleware/auth');
+const { authenticate, authorizeModule } = require('../middleware/auth');
 const { supabase } = require('../utils/supabase');
 
-router.use(authenticate, authorize('admin', 'diretor'));
+router.use(authenticate, authorizeModule('patrimonio'));
 
 // ── DASHBOARD ──────────────────────────────────────────────
 router.get('/dashboard', async (req, res) => {
   try {
-    const [bens, categorias, localizacoes, inventarios] = await Promise.all([
-      supabase.from('pat_bens').select('id, status, categoria_id, localizacao_id, valor_aquisicao'),
+    // Fetch ALL bens (Supabase default limit is 1000, need to paginate)
+    let allBens = [];
+    let page = 0;
+    const pageSize = 1000;
+    while (true) {
+      const { data, error } = await supabase.from('pat_bens')
+        .select('id, status, categoria_id, localizacao_id, valor_aquisicao')
+        .range(page * pageSize, (page + 1) * pageSize - 1);
+      if (error) throw error;
+      allBens = allBens.concat(data || []);
+      if (!data || data.length < pageSize) break;
+      page++;
+    }
+
+    const [categorias, localizacoes, inventarios] = await Promise.all([
       supabase.from('pat_categorias').select('id, nome'),
       supabase.from('pat_localizacoes').select('id, nome'),
       supabase.from('pat_inventarios').select('id, status'),
     ]);
 
-    const b = bens.data || [];
+    const b = allBens;
     const valorTotal = b.reduce((s, item) => s + Number(item.valor_aquisicao || 0), 0);
 
     const porStatus = {};
     b.forEach(item => { porStatus[item.status] = (porStatus[item.status] || 0) + 1; });
 
+    const catMap = {};
+    (categorias.data || []).forEach(c => { catMap[c.id] = c.nome; });
     const porCategoria = {};
     b.forEach(item => {
-      const cat = (categorias.data || []).find(c => c.id === item.categoria_id);
-      const nome = cat?.nome || 'Sem categoria';
+      const nome = catMap[item.categoria_id] || 'Sem categoria';
       porCategoria[nome] = (porCategoria[nome] || 0) + 1;
     });
 
+    const locMapD = {};
+    (localizacoes.data || []).forEach(l => { locMapD[l.id] = l.nome; });
     const porLocalizacao = {};
     b.forEach(item => {
-      const loc = (localizacoes.data || []).find(l => l.id === item.localizacao_id);
-      const nome = loc?.nome || 'Sem localização';
+      const nome = locMapD[item.localizacao_id] || 'Sem localização';
       porLocalizacao[nome] = (porLocalizacao[nome] || 0) + 1;
     });
 
@@ -111,7 +126,7 @@ router.delete('/localizacoes/:id', async (req, res) => {
 router.get('/bens', async (req, res) => {
   try {
     const { status, categoria_id, localizacao_id, busca } = req.query;
-    let query = supabase.from('pat_bens').select('*, pat_categorias(nome), pat_localizacoes(nome)').order('nome');
+    let query = supabase.from('pat_bens').select('*, pat_categorias(nome), pat_localizacoes(nome)').order('nome').range(0, 4999);
     if (status) query = query.eq('status', status);
     if (categoria_id) query = query.eq('categoria_id', categoria_id);
     if (localizacao_id) query = query.eq('localizacao_id', localizacao_id);

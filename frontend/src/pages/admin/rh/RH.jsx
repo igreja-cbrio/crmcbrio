@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Users, Pencil, Trash2, Palmtree } from 'lucide-react';
+import { Users, Pencil, Trash2, Palmtree, X, Save, AlertTriangle } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { useAuth } from '../../../contexts/AuthContext';
 import { rh, permissoes } from '../../../api';
@@ -11,16 +11,46 @@ import TabExtras from './TabExtras';
 
 // ── Tema ────────────────────────────────────────────────────
 const C = {
-  bg: 'var(--cbrio-bg)', card: 'var(--cbrio-card)', primary: '#00B39D', primaryBg: '#00B39D18',
+  bg: 'var(--cbrio-bg)', card: 'var(--cbrio-card)', primary: 'var(--cbrio-primary, #00B39D)', primaryBg: '#00B39D18',
   text: 'var(--cbrio-text)', text2: 'var(--cbrio-text2)', text3: 'var(--cbrio-text3)',
   border: 'var(--cbrio-border)', green: '#10b981', greenBg: '#10b98118',
   red: '#ef4444', redBg: '#ef444418', amber: '#f59e0b', amberBg: '#f59e0b18',
   blue: '#3b82f6', blueBg: '#3b82f618',
 };
 
+// ── Toast de feedback ───────────────────────────────────────
+function Toast({ message, type = 'error', onClose }) {
+  if (!message) return null;
+  const colors = { error: { bg: '#ef444418', border: '#ef444450', text: '#ef4444' }, success: { bg: '#10b98118', border: '#10b98150', text: '#10b981' }, warning: { bg: '#f59e0b18', border: '#f59e0b50', text: '#f59e0b' } };
+  const c = colors[type] || colors.error;
+  return (
+    <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 9999, background: 'var(--cbrio-card)', border: `1px solid ${c.border}`, borderLeft: `4px solid ${c.text}`, borderRadius: 10, padding: '12px 16px', maxWidth: 400, boxShadow: '0 8px 30px rgba(0,0,0,0.3)', animation: 'slideInRight 0.25s ease-out', display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ flex: 1, fontSize: 13, color: c.text, fontWeight: 500 }}>{message}</div>
+      <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--cbrio-text3)', fontSize: 16 }}>✕</button>
+    </div>
+  );
+}
+
+// ── Confirm inline ──────────────────────────────────────────
+function ConfirmDialog({ message, onConfirm, onCancel }) {
+  if (!message) return null;
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)' }}>
+      <div style={{ background: 'var(--cbrio-modal-bg)', borderRadius: 16, padding: 28, maxWidth: 400, boxShadow: '0 20px 60px rgba(0,0,0,0.3)', textAlign: 'center' }}>
+        <AlertTriangle style={{ width: 36, height: 36, color: '#f59e0b', margin: '0 auto 12px' }} />
+        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--cbrio-text)', marginBottom: 20 }}>{message}</div>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+          <Button variant="ghost" onClick={onCancel}>Cancelar</Button>
+          <Button variant="destructive" onClick={onConfirm}>Confirmar</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const STATUS_COLORS = {
   ativo: { c: C.green, bg: C.greenBg, label: 'Ativo' },
-  inativo: { c: C.text3, bg: '#73737318', label: 'Inativo' },
+  inativo: { c: C.text3, bg: 'var(--cbrio-text3-bg, #73737318)', label: 'Inativo' },
   ferias: { c: C.blue, bg: C.blueBg, label: 'Férias' },
   licenca: { c: C.amber, bg: C.amberBg, label: 'Licença' },
 };
@@ -109,14 +139,15 @@ const fmtMoney = (v) => v != null ? `R$ ${Number(v).toLocaleString('pt-BR', { mi
 function Modal({ open, onClose, title, children, footer }) {
   if (!open) return null;
   return (
-    <div style={styles.overlay} onClick={onClose}>
-      <div style={styles.modal} onClick={e => e.stopPropagation()}>
-        <div style={styles.modalHeader}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex' }}>
+      <div style={{ flex: 1, background: 'rgba(0,0,0,0.5)' }} onClick={onClose} />
+      <div style={{ width: '50%', minWidth: 440, maxWidth: 600, background: 'var(--cbrio-modal-bg)', overflowY: 'auto', boxShadow: '-8px 0 30px rgba(0,0,0,0.3)', animation: 'slideInRight 0.25s ease-out', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--cbrio-modal-bg)', padding: '20px 24px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={styles.modalTitle}>{title}</div>
-          <Button variant="ghost" className="text-lg" onClick={onClose}>✕</Button>
+          <Button variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4" /></Button>
         </div>
-        <div style={styles.modalBody}>{children}</div>
-        {footer && <div style={styles.modalFooter}>{footer}</div>}
+        <div style={{ padding: '16px 24px 24px', flex: 1 }}>{children}</div>
+        {footer && <div style={{ padding: '12px 24px 20px', display: 'flex', gap: 8, justifyContent: 'flex-end', borderTop: `1px solid ${C.border}` }}>{footer}</div>}
       </div>
     </div>
   );
@@ -125,8 +156,8 @@ function Modal({ open, onClose, title, children, footer }) {
 function Input({ label, ...props }) {
   return (
     <div style={styles.formGroup}>
-      {label && <label style={styles.label}>{label}</label>}
-      <input style={styles.input} {...props} />
+      {label && <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">{label}</label>}
+      <input className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" {...props} />
     </div>
   );
 }
@@ -134,8 +165,8 @@ function Input({ label, ...props }) {
 function Select({ label, children, ...props }) {
   return (
     <div style={styles.formGroup}>
-      {label && <label style={styles.label}>{label}</label>}
-      <select style={{ ...styles.select, width: '100%' }} {...props}>{children}</select>
+      {label && <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">{label}</label>}
+      <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" {...props}>{children}</select>
     </div>
   );
 }
@@ -172,6 +203,13 @@ export default function RH() {
   const [modalDetail, setModalDetail] = useState(null);
   const [modalDoc, setModalDoc] = useState(null);
 
+  // Toast & confirmação
+  const [toast, setToast] = useState(null); // { message, type }
+  const [confirmAction, setConfirmAction] = useState(null); // { message, onConfirm }
+  const showToast = (message, type = 'error') => { setToast({ message, type }); setTimeout(() => setToast(null), 4000); };
+  const showSuccess = (msg) => showToast(msg, 'success');
+  const askConfirm = (message, onConfirm) => setConfirmAction({ message, onConfirm });
+
   // ── Loaders ──
   const loadDash = useCallback(async () => {
     try { setDash(await rh.dashboard()); } catch (e) { console.error(e); }
@@ -203,17 +241,19 @@ export default function RH() {
       else await rh.funcionarios.create(data);
       setModalFunc(null);
       loadFuncs(); loadDash();
-    } catch (e) { alert(e.message); }
+      showSuccess(data.id ? 'Colaborador atualizado!' : 'Colaborador criado!');
+    } catch (e) { showToast(e.message); }
   }
 
-  async function deleteFuncionario(id) {
-    if (!confirm('Remover este colaborador?')) return;
-    try { await rh.funcionarios.remove(id); loadFuncs(); loadDash(); setModalDetail(null); }
-    catch (e) { alert(e.message); }
+  function deleteFuncionario(id) {
+    askConfirm('Remover este colaborador?', async () => {
+      try { await rh.funcionarios.remove(id); loadFuncs(); loadDash(); setModalDetail(null); showSuccess('Colaborador removido'); }
+      catch (e) { showToast(e.message); }
+    });
   }
 
   async function openDetail(id) {
-    try { setModalDetail(await rh.funcionarios.get(id)); } catch (e) { alert(e.message); }
+    try { setModalDetail(await rh.funcionarios.get(id)); } catch (e) { showToast(e.message); }
   }
 
   async function saveTreinamento(data) {
@@ -221,23 +261,26 @@ export default function RH() {
       if (data.id) await rh.treinamentos.update(data.id, data);
       else await rh.treinamentos.create(data);
       setModalTreino(null); loadTreinos();
-    } catch (e) { alert(e.message); }
+      showSuccess('Treinamento salvo!');
+    } catch (e) { showToast(e.message); }
   }
 
-  async function deleteTreinamento(id) {
-    if (!confirm('Remover treinamento?')) return;
-    try { await rh.treinamentos.remove(id); loadTreinos(); } catch (e) { alert(e.message); }
+  function deleteTreinamento(id) {
+    askConfirm('Remover treinamento?', async () => {
+      try { await rh.treinamentos.remove(id); loadTreinos(); } catch (e) { showToast(e.message); }
+    });
   }
 
   async function saveFerias(data) {
     try {
       await rh.ferias.create(data.funcionario_id, data);
       setModalFerias(null); loadDash();
-    } catch (e) { alert(e.message); }
+      showSuccess('Solicitação registrada!');
+    } catch (e) { showToast(e.message); }
   }
 
   async function aprovarFerias(id, status) {
-    try { await rh.ferias.update(id, { status }); loadDash(); } catch (e) { alert(e.message); }
+    try { await rh.ferias.update(id, { status }); loadDash(); } catch (e) { showToast(e.message); }
   }
 
   async function saveDocumento(funcId, data) {
@@ -245,12 +288,14 @@ export default function RH() {
       await rh.documentos.create(funcId, data);
       setModalDoc(null);
       openDetail(funcId);
-    } catch (e) { alert(e.message); }
+      showSuccess('Documento salvo!');
+    } catch (e) { showToast(e.message); }
   }
 
-  async function deleteDocumento(docId, funcId) {
-    if (!confirm('Remover documento?')) return;
-    try { await rh.documentos.remove(docId); openDetail(funcId); } catch (e) { alert(e.message); }
+  function deleteDocumento(docId, funcId) {
+    askConfirm('Remover documento?', async () => {
+      try { await rh.documentos.remove(docId); openDetail(funcId); } catch (e) { showToast(e.message); }
+    });
   }
 
   // ── Render ──
@@ -259,7 +304,7 @@ export default function RH() {
       {/* Header */}
       <div style={styles.header}>
         <div>
-          <div style={{ ...styles.title, display: 'flex', alignItems: 'center', gap: 10 }}><Users className="h-7 w-7" style={{ color: '#00B39D' }} /> Recursos Humanos</div>
+          <div style={{ ...styles.title, display: 'flex', alignItems: 'center', gap: 10 }}><Users className="h-7 w-7" style={{ color: C.primary }} /> Recursos Humanos</div>
           <div style={styles.subtitle}>Gestão de colaboradores, treinamentos e férias</div>
         </div>
       </div>
@@ -280,7 +325,8 @@ export default function RH() {
           funcs={funcs} loading={loading} busca={busca} setBusca={setBusca}
           filtroStatus={filtroStatus} setFiltroStatus={setFiltroStatus}
           filtroArea={filtroArea} setFiltroArea={setFiltroArea}
-          onNew={() => setModalFunc({})} onEdit={(f) => setModalFunc(f)} onDetail={openDetail} onDelete={deleteFuncionario}
+          onNew={() => setModalFunc({})} onEdit={(f) => setModalFunc(f)} onDetail={openDetail} onDelete={deleteFuncionario} onImport={() => { loadFuncs(); loadDash(); }}
+          showToast={showToast}
         />
       )}
       {tab === 2 && <TabAdmissao />}
@@ -291,6 +337,7 @@ export default function RH() {
         <TreinamentosTab treinos={treinos} funcs={funcs}
           onNew={() => setModalTreino({})} onEdit={(t) => setModalTreino(t)} onDelete={deleteTreinamento}
           onInscrever={async (treinoId, funcId) => { await rh.treinamentos.inscrever(treinoId, { funcionario_id: funcId }); loadTreinos(); }}
+          showToast={showToast}
         />
       )}
       {tab === 7 && (
@@ -314,8 +361,23 @@ export default function RH() {
         onDelete={deleteFuncionario}
         onNewDoc={(funcId) => setModalDoc({ funcionario_id: funcId })}
         onDeleteDoc={deleteDocumento}
+        onSaveInline={async (updated) => {
+          await rh.funcionarios.update(modalDetail.id, updated);
+          showSuccess('Colaborador atualizado!');
+          const refreshed = await rh.funcionarios.get(modalDetail.id);
+          setModalDetail(refreshed);
+          loadFuncs(); loadDash();
+        }}
       />
       <DocumentoFormModal open={!!modalDoc} data={modalDoc} onClose={() => setModalDoc(null)} onSave={saveDocumento} />
+
+      {/* Toast & Confirm */}
+      <Toast message={toast?.message} type={toast?.type} onClose={() => setToast(null)} />
+      <ConfirmDialog
+        message={confirmAction?.message}
+        onConfirm={() => { confirmAction?.onConfirm(); setConfirmAction(null); }}
+        onCancel={() => setConfirmAction(null)}
+      />
     </div>
   );
 }
@@ -449,22 +511,59 @@ function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
 // ═══════════════════════════════════════════════════════════
 // TAB: FUNCIONÁRIOS
 // ═══════════════════════════════════════════════════════════
-function FuncionariosTab({ funcs, loading, busca, setBusca, filtroStatus, setFiltroStatus, filtroArea, setFiltroArea, onNew, onDetail, onDelete }) {
+function FuncionariosTab({ funcs, loading, busca, setBusca, filtroStatus, setFiltroStatus, filtroArea, setFiltroArea, onNew, onDetail, onDelete, onImport, showToast }) {
   const areas = [...new Set(funcs.map(f => f.area).filter(Boolean))];
+  const csvRef = useRef(null);
+  const [localError, setLocalError] = useState('');
+  const setError = (msg) => { setLocalError(msg); if (showToast) showToast(msg, msg.includes('concluída') ? 'success' : 'warning'); };
+
+  async function handleCSVImport(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const text = await file.text();
+    const lines = text.split('\n').map(l => l.split(',').map(c => c.replace(/^"|"$/g, '').trim()));
+    if (lines.length < 2) { setError('CSV vazio ou inválido'); return; }
+    const header = lines[0].map(h => h.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
+    const map = (name) => header.indexOf(name);
+    const iNome = map('nome'); const iCargo = map('cargo'); const iArea = map('area');
+    const iEmail = map('email'); const iTel = map('telefone'); const iCpf = map('cpf');
+    const iTipo = map('tipo_contrato'); const iAdm = map('data_admissao'); const iSal = map('salario');
+    if (iNome < 0) { setError('CSV precisa ter coluna "Nome"'); return; }
+    let ok = 0, errs = 0;
+    for (let i = 1; i < lines.length; i++) {
+      const r = lines[i];
+      if (!r[iNome]) continue;
+      try {
+        await rh.funcionarios.create({
+          nome: r[iNome], cargo: r[iCargo] || 'A definir', area: r[iArea] || '',
+          email: iEmail >= 0 ? r[iEmail] : '', telefone: iTel >= 0 ? r[iTel] : '',
+          cpf: iCpf >= 0 ? r[iCpf] : '', tipo_contrato: iTipo >= 0 ? r[iTipo] || 'clt' : 'clt',
+          data_admissao: iAdm >= 0 && r[iAdm] ? r[iAdm] : new Date().toISOString().slice(0, 10),
+          salario: iSal >= 0 ? r[iSal] || null : null, status: 'ativo',
+        });
+        ok++;
+      } catch { errs++; }
+    }
+    setError(`Importação concluída: ${ok} importados, ${errs} erros`);
+    if (csvRef.current) csvRef.current.value = '';
+    onImport?.();
+  }
 
   return (
     <>
       <div style={styles.filterRow}>
-        <input style={{ ...styles.input, maxWidth: 280 }} placeholder="🔍 Buscar por nome..." value={busca} onChange={e => setBusca(e.target.value)} />
-        <select style={styles.select} value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
+        <input className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ maxWidth: 280 }} placeholder="🔍 Buscar por nome..." value={busca} onChange={e => setBusca(e.target.value)} />
+        <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
           <option value="">Todos os status</option>
           {Object.entries(STATUS_COLORS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
         </select>
-        <select style={styles.select} value={filtroArea} onChange={e => setFiltroArea(e.target.value)}>
+        <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={filtroArea} onChange={e => setFiltroArea(e.target.value)}>
           <option value="">Todas as áreas</option>
           {areas.map(a => <option key={a} value={a}>{a}</option>)}
         </select>
-        <div style={{ marginLeft: 'auto' }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+          <input ref={csvRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={handleCSVImport} />
+          <Button variant="outline" size="sm" onClick={() => csvRef.current?.click()}>Importar CSV</Button>
           <Button onClick={onNew}>+ Novo Colaborador</Button>
         </div>
       </div>
@@ -488,7 +587,7 @@ function FuncionariosTab({ funcs, loading, busca, setBusca, filtroStatus, setFil
               {!loading && funcs.length === 0 && <tr><td colSpan={7} style={{ ...styles.td, textAlign: 'center', color: C.text3 }}>Nenhum colaborador encontrado</td></tr>}
               {funcs.map(f => (
                 <tr key={f.id} style={styles.clickRow}
-                  onMouseEnter={e => e.currentTarget.style.background = '#1e1e1e'}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--cbrio-input-bg)'}
                   onMouseLeave={e => e.currentTarget.style.background = ''}
                   onClick={() => onDetail(f.id)}>
                   <td style={{ ...styles.td, fontWeight: 600 }}>
@@ -537,7 +636,7 @@ const MATERIAL_STATUS = {
 const FILE_ICONS = { 'application/pdf': '📄', 'application/vnd.ms-powerpoint': '📊', 'application/vnd.openxmlformats-officedocument.presentationml.presentation': '📊' };
 const getFileIcon = (mime) => FILE_ICONS[mime] || '📎';
 
-function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever, onReload }) {
+function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever, onReload, showToast }) {
   const [inscrevendo, setInscrevendo] = useState(null);
   const [funcSel, setFuncSel] = useState('');
   // Materiais
@@ -565,7 +664,7 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
   }
 
   async function handleUploadMaterial(treinoId) {
-    if (!matForm.titulo) { alert('Título é obrigatório'); return; }
+    if (!matForm.titulo) { showToast?.('Título é obrigatório'); return; }
     setUploading(true);
     try {
       let arquivo_url = null, arquivo_nome = null, arquivo_tipo = null;
@@ -590,7 +689,7 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
       await loadMateriais(treinoId);
     } catch (err) {
       console.error(err);
-      alert('Erro ao adicionar material: ' + err.message);
+      showToast?.('Erro ao adicionar material: ' + err.message);
     } finally { setUploading(false); }
   }
 
@@ -601,20 +700,19 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
       setShowEnviar(null);
       setEnviarSel([]);
       await loadMateriais(treinoId);
-    } catch (e) { alert(e.message); }
+    } catch (e) { showToast?.(e.message); }
   }
 
   async function handleStatusUpdate(mfId, status, treinoId) {
     try {
       await rh.materiais.atualizarStatus(mfId, { status });
       await loadMateriais(treinoId);
-    } catch (e) { alert(e.message); }
+    } catch (e) { showToast?.(e.message); }
   }
 
   async function handleDeleteMaterial(matId, treinoId) {
-    if (!confirm('Remover este material?')) return;
     try { await rh.materiais.remove(matId); await loadMateriais(treinoId); }
-    catch (e) { alert(e.message); }
+    catch (e) { showToast?.(e.message); }
   }
 
   function handleFileDrop(e) {
@@ -626,6 +724,47 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
   const toggleFuncSel = (id) => {
     setEnviarSel(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
+
+  function gerarCertificado(treino, func) {
+    if (!func) return;
+    const w = window.open('', '_blank');
+    w.document.write(`<html><head><title>Certificado — ${func.nome}</title>
+    <style>
+      body { font-family: 'Georgia', serif; max-width: 800px; margin: 60px auto; text-align: center; color: #1a1a1a; }
+      .border { border: 3px double #00B39D; padding: 60px 50px; border-radius: 12px; }
+      h1 { font-size: 32px; color: #00B39D; margin-bottom: 8px; letter-spacing: 4px; }
+      h2 { font-size: 20px; font-weight: 400; color: #666; margin-bottom: 40px; }
+      .nome { font-size: 28px; font-weight: 700; color: #1a1a1a; border-bottom: 2px solid #00B39D; display: inline-block; padding-bottom: 8px; margin: 20px 0; }
+      .desc { font-size: 16px; color: #444; line-height: 1.8; margin: 24px 0; }
+      .treino { font-size: 18px; font-weight: 700; color: #00B39D; }
+      .footer { display: flex; justify-content: space-around; margin-top: 60px; }
+      .sig { text-align: center; width: 200px; }
+      .sig-line { border-top: 1px solid #333; padding-top: 8px; font-size: 13px; }
+      @media print { body { margin: 20px; } }
+    </style></head><body>
+    <div class="border">
+      <h1>CERTIFICADO</h1>
+      <h2>Igreja Comunidade Batista do Rio de Janeiro — CBRio</h2>
+      <p style="font-size:14px;color:#888;">Certificamos que</p>
+      <div class="nome">${func.nome}</div>
+      <p class="desc">concluiu com êxito o treinamento</p>
+      <div class="treino">${treino.titulo}</div>
+      ${treino.descricao ? `<p style="font-size:14px;color:#666;margin-top:8px;">${treino.descricao}</p>` : ''}
+      <p style="font-size:14px;color:#888;margin-top:16px;">
+        Período: ${treino.data_inicio ? new Date(treino.data_inicio + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}
+        ${treino.data_fim ? ' a ' + new Date(treino.data_fim + 'T12:00:00').toLocaleDateString('pt-BR') : ''}
+        ${treino.instrutor ? '<br/>Instrutor(a): ' + treino.instrutor : ''}
+      </p>
+      <p style="font-size:14px;color:#888;margin-top:24px;">Rio de Janeiro, ${new Date().toLocaleDateString('pt-BR')}</p>
+      <div class="footer">
+        <div class="sig"><div class="sig-line">Coordenação de RH</div></div>
+        <div class="sig"><div class="sig-line">${treino.instrutor || 'Instrutor(a)'}</div></div>
+      </div>
+    </div>
+    </body></html>`);
+    w.document.close();
+    w.print();
+  }
 
   return (
     <>
@@ -660,6 +799,24 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
 
               {/* Inscritos */}
               <div style={{ padding: '8px 20px 12px' }}>
+                {/* Barra de progresso */}
+                {(() => {
+                  const inscritos = t.rh_treinamentos_funcionarios || [];
+                  const total = inscritos.length;
+                  const concluidos = inscritos.filter(tf => tf.status === 'concluido').length;
+                  const pct = total > 0 ? Math.round(concluidos / total * 100) : 0;
+                  return total > 0 ? (
+                    <div style={{ marginBottom: 10 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: C.text2, marginBottom: 4 }}>
+                        <span>Progresso: {concluidos}/{total} concluídos</span>
+                        <span style={{ fontWeight: 700, color: pct === 100 ? C.green : C.primary }}>{pct}%</span>
+                      </div>
+                      <div style={{ height: 6, background: C.border, borderRadius: 3, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${pct}%`, background: pct === 100 ? C.green : C.primary, borderRadius: 3, transition: 'width 0.3s' }} />
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
                 <div style={{ fontSize: 11, fontWeight: 700, color: C.text2, marginBottom: 6, textTransform: 'uppercase' }}>
                   Inscritos ({(t.rh_treinamentos_funcionarios || []).length})
                 </div>
@@ -675,16 +832,23 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
                       )}
                       <span style={{ fontSize: 13 }}>{tf.rh_funcionarios?.nome || '—'}</span>
                     </div>
-                    <Badge status={tf.status} map={{
-                      inscrito: { c: C.blue, bg: C.blueBg, label: 'Inscrito' },
-                      concluido: { c: C.green, bg: C.greenBg, label: 'Concluído' },
-                      cancelado: { c: C.red, bg: C.redBg, label: 'Cancelado' },
-                    }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Badge status={tf.status} map={{
+                        inscrito: { c: C.blue, bg: C.blueBg, label: 'Inscrito' },
+                        concluido: { c: C.green, bg: C.greenBg, label: 'Concluído' },
+                        cancelado: { c: C.red, bg: C.redBg, label: 'Cancelado' },
+                      }} />
+                      {tf.status === 'concluido' && (
+                        <Button variant="ghost" size="xs" className="text-[10px]" onClick={() => gerarCertificado(t, tf.rh_funcionarios)}>
+                          Certificado
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ))}
                 {inscrevendo === t.id ? (
                   <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }}>
-                    <select style={{ ...styles.select, flex: 1 }} value={funcSel} onChange={e => setFuncSel(e.target.value)}>
+                    <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ flex: 1 }} value={funcSel} onChange={e => setFuncSel(e.target.value)}>
                       <option value="">Selecionar colaborador</option>
                       {funcs.filter(f => f.status === 'ativo').map(f => <option key={f.id} value={f.id}>{f.nome}</option>)}
                     </select>
@@ -701,18 +865,16 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
 
               {/* Materiais — expandível */}
               <div style={{ borderTop: `1px solid ${C.border}` }}>
-                <button
+                <Button
+                  variant="ghost"
                   onClick={() => toggleExpand(t.id)}
-                  style={{
-                    width: '100%', padding: '12px 20px', background: 'none', border: 'none',
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer',
-                  }}
+                  className="w-full justify-between rounded-none h-auto py-3 px-5"
                 >
                   <span style={{ fontSize: 11, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                     📁 Materiais{materiais.length > 0 ? ` (${materiais.length})` : ''}
                   </span>
-                  <span style={{ fontSize: 14, color: C.text3, transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)' }}>▼</span>
-                </button>
+                  <span style={{ fontSize: 14, color: C.text3, transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)', display: 'inline-block' }}>▼</span>
+                </Button>
 
                 {isExpanded && (
                   <div style={{ padding: '0 20px 16px' }}>
@@ -844,18 +1006,18 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
                         <div style={styles.formRow}>
                           <Input label="Título *" value={matForm.titulo} onChange={e => setMatForm(f => ({ ...f, titulo: e.target.value }))} />
                           <div style={styles.formGroup}>
-                            <label style={styles.label}>Tipo</label>
-                            <select style={{ ...styles.select, width: '100%' }} value={matForm.tipo} onChange={e => setMatForm(f => ({ ...f, tipo: e.target.value }))}>
+                            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Tipo</label>
+                            <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={matForm.tipo} onChange={e => setMatForm(f => ({ ...f, tipo: e.target.value }))}>
                               {Object.entries(TIPO_MATERIAL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                             </select>
                           </div>
                         </div>
                         <div style={styles.formGroup}>
-                          <label style={styles.label}>Descrição</label>
-                          <textarea style={{ ...styles.input, minHeight: 50, resize: 'vertical' }} value={matForm.descricao} onChange={e => setMatForm(f => ({ ...f, descricao: e.target.value }))} />
+                          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Descrição</label>
+                          <textarea className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ minHeight: 50, resize: 'vertical' }} value={matForm.descricao} onChange={e => setMatForm(f => ({ ...f, descricao: e.target.value }))} />
                         </div>
                         <div style={styles.formGroup}>
-                          <label style={{ ...styles.label, display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-2">
                             <input type="checkbox" checked={matForm.obrigatorio} onChange={e => setMatForm(f => ({ ...f, obrigatorio: e.target.checked }))} />
                             Obrigatório
                           </label>
@@ -863,7 +1025,7 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
 
                         {/* Upload de arquivo — drag & drop */}
                         <div style={styles.formGroup}>
-                          <label style={styles.label}>Arquivo (PDF, PPT, etc.)</label>
+                          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Arquivo (PDF, PPT, etc.)</label>
                           <div
                             onDragOver={e => e.preventDefault()}
                             onDrop={handleFileDrop}
@@ -961,22 +1123,22 @@ function FeriasTab({ funcs, onNew, onAprovar }) {
   return (
     <>
       <div style={styles.filterRow}>
-        <select style={styles.select} value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
+        <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
           <option value="">Todos os status</option>
           <option value="pendente">Pendente</option>
           <option value="aprovado">Aprovado</option>
           <option value="rejeitado">Rejeitado</option>
         </select>
-        <select style={styles.select} value={filtroArea} onChange={e => setFiltroArea(e.target.value)}>
+        <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={filtroArea} onChange={e => setFiltroArea(e.target.value)}>
           <option value="">Todas as áreas</option>
           {areas.map(a => <option key={a} value={a}>{a}</option>)}
         </select>
-        <select style={styles.select} value={filtroFunc} onChange={e => setFiltroFunc(e.target.value)}>
+        <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={filtroFunc} onChange={e => setFiltroFunc(e.target.value)}>
           <option value="">Todos os colaboradores</option>
           {(funcs || []).filter(f => f.status === 'ativo').map(f => <option key={f.id} value={f.id}>{f.nome}</option>)}
         </select>
-        <input style={{ ...styles.input, maxWidth: 140 }} type="date" value={filtroDe} onChange={e => setFiltroDe(e.target.value)} placeholder="De" title="Data início de" />
-        <input style={{ ...styles.input, maxWidth: 140 }} type="date" value={filtroAte} onChange={e => setFiltroAte(e.target.value)} placeholder="Até" title="Data início até" />
+        <input className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ maxWidth: 140 }} type="date" value={filtroDe} onChange={e => setFiltroDe(e.target.value)} placeholder="De" title="Data início de" />
+        <input className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ maxWidth: 140 }} type="date" value={filtroAte} onChange={e => setFiltroAte(e.target.value)} placeholder="Até" title="Data início até" />
         {(filtroStatus || filtroArea || filtroDe || filtroAte || filtroFunc) && (
           <Button variant="ghost" size="sm" onClick={() => { setFiltroStatus(''); setFiltroArea(''); setFiltroDe(''); setFiltroAte(''); setFiltroFunc(''); }}>✕ Limpar</Button>
         )}
@@ -1213,14 +1375,15 @@ function FuncionarioFormModal({ open, data, onClose, onSave, funcionarios = [] }
   const [f, setF] = useState({});
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const [uploadError, setUploadError] = useState('');
   const fileRef = useRef(null);
   useEffect(() => { if (data) setF({ ...data }); }, [data]);
   const upd = (k, v) => setF(p => ({ ...p, [k]: v }));
 
   async function uploadFoto(file) {
     if (!file) return;
-    if (!file.type.startsWith('image/')) { alert('Selecione um arquivo de imagem (JPG, PNG, etc.)'); return; }
-    if (file.size > 5 * 1024 * 1024) { alert('A imagem deve ter no máximo 5MB'); return; }
+    if (!file.type.startsWith('image/')) { setUploadError('Selecione um arquivo de imagem (JPG, PNG, etc.)'); return; }
+    if (file.size > 5 * 1024 * 1024) { setUploadError('A imagem deve ter no máximo 5MB'); return; }
     setUploading(true);
     try {
       const ext = file.name.split('.').pop();
@@ -1231,7 +1394,7 @@ function FuncionarioFormModal({ open, data, onClose, onSave, funcionarios = [] }
       upd('foto_url', publicUrl);
     } catch (err) {
       console.error('Erro upload:', err);
-      alert('Erro ao enviar foto. Tente novamente.');
+      setUploadError('Erro ao enviar foto. Tente novamente.');
     } finally { setUploading(false); }
   }
 
@@ -1283,7 +1446,7 @@ function FuncionarioFormModal({ open, data, onClose, onSave, funcionarios = [] }
       )}
       {/* Foto — upload + drag & drop */}
       <div style={styles.formGroup}>
-        <label style={styles.label}>Foto do Colaborador</label>
+        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Foto do Colaborador</label>
         <div
           onDragOver={e => { e.preventDefault(); setDragging(true); }}
           onDragLeave={() => setDragging(false)}
@@ -1328,8 +1491,8 @@ function FuncionarioFormModal({ open, data, onClose, onSave, funcionarios = [] }
         </div>
       </div>
       <div style={styles.formGroup}>
-        <label style={styles.label}>Observações</label>
-        <textarea style={{ ...styles.input, minHeight: 60, resize: 'vertical' }} value={f.observacoes || ''} onChange={e => upd('observacoes', e.target.value)} />
+        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Observações</label>
+        <textarea className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ minHeight: 60, resize: 'vertical' }} value={f.observacoes || ''} onChange={e => upd('observacoes', e.target.value)} />
       </div>
     </Modal>
   );
@@ -1351,14 +1514,14 @@ function TreinamentoFormModal({ open, data, onClose, onSave }) {
       </div>
       <Input label="Instrutor" value={f.instrutor || ''} onChange={e => upd('instrutor', e.target.value)} />
       <div style={styles.formGroup}>
-        <label style={{ ...styles.label, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-2">
           <input type="checkbox" checked={f.obrigatorio || false} onChange={e => upd('obrigatorio', e.target.checked)} />
           Obrigatório
         </label>
       </div>
       <div style={styles.formGroup}>
-        <label style={styles.label}>Descrição</label>
-        <textarea style={{ ...styles.input, minHeight: 60, resize: 'vertical' }} value={f.descricao || ''} onChange={e => upd('descricao', e.target.value)} />
+        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Descrição</label>
+        <textarea className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ minHeight: 60, resize: 'vertical' }} value={f.descricao || ''} onChange={e => upd('descricao', e.target.value)} />
       </div>
     </Modal>
   );
@@ -1384,8 +1547,8 @@ function FeriasFormModal({ open, funcs, onClose, onSave }) {
         <Input label="Data Fim *" type="date" value={f.data_fim || ''} onChange={e => upd('data_fim', e.target.value)} />
       </div>
       <div style={styles.formGroup}>
-        <label style={styles.label}>Observações</label>
-        <textarea style={{ ...styles.input, minHeight: 60, resize: 'vertical' }} value={f.observacoes || ''} onChange={e => upd('observacoes', e.target.value)} />
+        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Observações</label>
+        <textarea className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ minHeight: 60, resize: 'vertical' }} value={f.observacoes || ''} onChange={e => upd('observacoes', e.target.value)} />
       </div>
     </Modal>
   );
@@ -1489,7 +1652,7 @@ function BeneficiosSection({ data, onSave }) {
             <>
               <div style={{ fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 6, textTransform: 'uppercase' }}>Salário Base</div>
               <input type="number" step="0.01" value={form.salario} onChange={e => setForm(f => ({ ...f, salario: e.target.value }))}
-                style={{ ...styles.input, marginBottom: 12, maxWidth: 220 }} placeholder="R$" />
+                className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ marginBottom: 12, maxWidth: 220 }} placeholder="R$" />
 
               <div style={{ fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 6, textTransform: 'uppercase' }}>Benefícios</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px', marginBottom: 12 }}>
@@ -1497,7 +1660,7 @@ function BeneficiosSection({ data, onSave }) {
                   <div key={b.key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <label style={{ fontSize: 11, color: C.text2, width: 120, flexShrink: 0 }}>{b.label}</label>
                     <input type="number" step="0.01" value={form[b.key]} onChange={e => setForm(f => ({ ...f, [b.key]: e.target.value }))}
-                      style={{ ...styles.input, padding: '4px 8px', fontSize: 12 }} placeholder="0" />
+                      className="flex h-7 w-full rounded-lg border border-input bg-background px-2 py-1 text-xs shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder="0" />
                   </div>
                 ))}
               </div>
@@ -1509,7 +1672,7 @@ function BeneficiosSection({ data, onSave }) {
                     <div key={b.key} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <label style={{ fontSize: 11, color: C.text2, width: 40, flexShrink: 0 }}>{b.label}</label>
                       <input type="number" step="0.01" value={form[b.key]} onChange={e => setForm(f => ({ ...f, [b.key]: e.target.value }))}
-                        style={{ ...styles.input, padding: '4px 8px', fontSize: 12 }} placeholder="0" />
+                        className="flex h-7 w-full rounded-lg border border-input bg-background px-2 py-1 text-xs shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder="0" />
                     </div>
                   ))}
                 </div>
@@ -1521,7 +1684,7 @@ function BeneficiosSection({ data, onSave }) {
                   <div key={b.key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <label style={{ fontSize: 11, color: C.text2, width: 120, flexShrink: 0 }}>{b.label}</label>
                     <input type="number" step="0.01" value={form[b.key]} onChange={e => setForm(f => ({ ...f, [b.key]: e.target.value }))}
-                      style={{ ...styles.input, padding: '4px 8px', fontSize: 12 }} placeholder="0" />
+                      className="flex h-7 w-full rounded-lg border border-input bg-background px-2 py-1 text-xs shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder="0" />
                   </div>
                 ))}
               </div>
@@ -1532,7 +1695,7 @@ function BeneficiosSection({ data, onSave }) {
                   <div key={b.key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <label style={{ fontSize: 11, color: C.text2, width: 120, flexShrink: 0 }}>{b.label}</label>
                     <input type="number" step="0.01" value={form[b.key]} onChange={e => setForm(f => ({ ...f, [b.key]: e.target.value }))}
-                      style={{ ...styles.input, padding: '4px 8px', fontSize: 12 }} placeholder="0" />
+                      className="flex h-7 w-full rounded-lg border border-input bg-background px-2 py-1 text-xs shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder="0" />
                   </div>
                 ))}
               </div>
@@ -1622,6 +1785,7 @@ const DOCS_OBRIGATORIOS = {
 
 function DocumentosSection({ data, onNewDoc, onDeleteDoc }) {
   const [uploading, setUploading] = useState(false);
+  const [docError, setDocError] = useState('');
   const fileRef = useRef(null);
 
   // Verificar docs obrigatórios faltando
@@ -1633,7 +1797,7 @@ function DocumentosSection({ data, onNewDoc, onDeleteDoc }) {
 
   async function handleUploadDoc(file) {
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) { alert('Arquivo deve ter no máximo 10MB'); return; }
+    if (file.size > 10 * 1024 * 1024) { setDocError('Arquivo deve ter no máximo 10MB'); return; }
     setUploading(true);
     try {
       const ext = file.name.split('.').pop();
@@ -1644,11 +1808,11 @@ function DocumentosSection({ data, onNewDoc, onDeleteDoc }) {
       // Create document record
       const tipo = ext.toLowerCase() === 'pdf' ? 'contrato' : ext.toLowerCase();
       await rh.documentos.create(data.id, { nome: file.name, tipo, storage_path: publicUrl });
-      alert('Documento enviado com sucesso!');
+      setDocError(''); // success
       // Reload - parent should handle
     } catch (e) {
       console.error(e);
-      alert('Erro ao enviar documento: ' + e.message);
+      setDocError('Erro ao enviar documento: ' + e.message);
     } finally { setUploading(false); }
   }
 
@@ -1733,7 +1897,8 @@ function NotasColaborador({ funcId, initialValue }) {
         <span style={{ fontSize: 11, color: saved ? C.green : C.amber }}>{saved ? '✓ Salvo' : '⏳ Salvando...'}</span>
       </div>
       <textarea
-        style={{ ...styles.input, minHeight: 80, resize: 'vertical' }}
+        className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        style={{ minHeight: 80, resize: 'vertical' }}
         value={notas}
         onChange={handleChange}
         placeholder="Escreva anotações sobre este colaborador..."
@@ -1745,75 +1910,115 @@ function NotasColaborador({ funcId, initialValue }) {
 const NIVEL_LABELS = { 1: 'Sem acesso', 2: 'Pessoal', 3: 'Área', 4: 'Setor', 5: 'Admin' };
 const NIVEL_COLORS = { 1: C.red, 2: C.amber, 3: C.blue, 4: C.green, 5: '#8b5cf6' };
 
-function FuncionarioDetailPanel({ open, data, onClose, onEdit, onDelete, onNewDoc, onDeleteDoc }) {
+function FuncionarioDetailPanel({ open, data, onClose, onEdit, onDelete, onNewDoc, onDeleteDoc, onSaveInline }) {
   const [showPerms, setShowPerms] = useState(false);
   const [permData, setPermData] = useState(null);
   const [estrutura, setEstrutura] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [permError, setPermError] = useState('');
+  const [permSuccess, setPermSuccess] = useState('');
+  const [editMode, setEditMode] = useState(false);
+  const [editForm, setEditForm] = useState({});
+  const [savingInline, setSavingInline] = useState(false);
 
-  useEffect(() => { if (data && open) { setShowPerms(false); setPermData(null); } }, [data, open]);
+  // Estado local das permissões (editável, salva só no botão)
+  const [localCargo, setLocalCargo] = useState(null);
+  const [localAreas, setLocalAreas] = useState([]);
+  const [localModulos, setLocalModulos] = useState({}); // { moduloId: { leitura, escrita } }
+  const [permDirty, setPermDirty] = useState(false);
+
+  useEffect(() => { if (data && open) { setShowPerms(false); setPermData(null); setPermDirty(false); setPermError(''); setPermSuccess(''); } }, [data, open]);
+
+  function initLocalPerms(perms, estru) {
+    setLocalCargo(perms.usuario?.cargo_id ?? 2);
+    setLocalAreas((perms.areas || []).map(a => a.area_id));
+    const mods = {};
+    (estru.modulos || []).forEach(mod => {
+      const override = (perms.overrides || []).find(o => o.modulo_id === mod.id);
+      const cargoDefault = perms.usuario?.cargos || {};
+      mods[mod.id] = {
+        leitura: override?.nivel_leitura ?? cargoDefault.nivel_padrao_leitura ?? 1,
+        escrita: override?.nivel_escrita ?? cargoDefault.nivel_padrao_escrita ?? 1,
+      };
+    });
+    setLocalModulos(mods);
+    setPermDirty(false);
+  }
 
   async function loadPermissions() {
-    if (!estrutura) {
-      try { setEstrutura(await permissoes.estrutura()); } catch (e) { console.error(e); }
+    let estru = estrutura;
+    if (!estru) {
+      try { estru = await permissoes.estrutura(); setEstrutura(estru); } catch (e) { console.error(e); return; }
     }
-    // Find or create user in permissions system by email or name
     try {
       let permUser = null;
-      if (data.email) {
-        permUser = await permissoes.usuarioPorEmail(data.email);
-      }
+      if (data.email) permUser = await permissoes.usuarioPorEmail(data.email);
       if (!permUser) {
-        // Create user in permissions system
         const result = await permissoes.criarUsuario({ nome: data.nome, email: data.email || null, cargo_id: 2 });
         permUser = { id: result.id };
       }
       const perms = await permissoes.usuario(permUser.id);
       setPermData(perms);
+      initLocalPerms(perms, estru);
     } catch (e) { console.error(e); }
     setShowPerms(true);
   }
 
-  async function handleCargoChange(cargoId) {
-    if (!permData?.usuario) return;
-    setSaving(true);
-    try {
-      await permissoes.setCargo(permData.usuario.id, cargoId);
-      const perms = await permissoes.usuario(permData.usuario.id);
-      setPermData(perms);
-    } catch (e) { alert(e.message); }
-    setSaving(false);
+  function handleCargoChange(cargoId) {
+    setLocalCargo(cargoId);
+    setPermDirty(true);
   }
 
-  async function handleAreaToggle(areaId) {
-    if (!permData?.usuario) return;
-    const currentIds = (permData.areas || []).map(a => a.area_id);
-    const newIds = currentIds.includes(areaId) ? currentIds.filter(id => id !== areaId) : [...currentIds, areaId];
-    setSaving(true);
-    try {
-      await permissoes.setAreas(permData.usuario.id, newIds);
-      const perms = await permissoes.usuario(permData.usuario.id);
-      setPermData(perms);
-    } catch (e) { alert(e.message); }
-    setSaving(false);
+  function handleAreaToggle(areaId) {
+    setLocalAreas(prev => prev.includes(areaId) ? prev.filter(id => id !== areaId) : [...prev, areaId]);
+    setPermDirty(true);
   }
 
-  async function handleModuloChange(moduloId, tipo, nivel) {
+  function handleModuloChange(moduloId, tipo, nivel) {
+    setLocalModulos(prev => ({
+      ...prev,
+      [moduloId]: { ...prev[moduloId], [tipo]: nivel },
+    }));
+    setPermDirty(true);
+  }
+
+  async function savePermissions() {
     if (!permData?.usuario) return;
-    const existing = (permData.overrides || []).find(o => o.modulo_id === moduloId);
-    const cargoDefault = permData.usuario.cargos || {};
-    const currentLeitura = existing?.nivel_leitura ?? cargoDefault.nivel_padrao_leitura ?? 1;
-    const currentEscrita = existing?.nivel_escrita ?? cargoDefault.nivel_padrao_escrita ?? 1;
     setSaving(true);
+    setPermError('');
+    setPermSuccess('');
     try {
-      await permissoes.setModulo(permData.usuario.id, {
-        modulo_id: moduloId,
-        nivel_leitura: tipo === 'leitura' ? nivel : currentLeitura,
-        nivel_escrita: tipo === 'escrita' ? nivel : currentEscrita,
-      });
+      // 1. Salvar cargo
+      if (localCargo !== permData.usuario.cargo_id) {
+        await permissoes.setCargo(permData.usuario.id, localCargo);
+      }
+      // 2. Salvar áreas
+      const currentAreaIds = (permData.areas || []).map(a => a.area_id).sort().join(',');
+      const newAreaIds = [...localAreas].sort().join(',');
+      if (currentAreaIds !== newAreaIds) {
+        await permissoes.setAreas(permData.usuario.id, localAreas);
+      }
+      // 3. Salvar overrides de módulos
+      for (const [modId, levels] of Object.entries(localModulos)) {
+        const existing = (permData.overrides || []).find(o => o.modulo_id === parseInt(modId));
+        const cargoDefault = permData.usuario.cargos || {};
+        const prevLeitura = existing?.nivel_leitura ?? cargoDefault.nivel_padrao_leitura ?? 1;
+        const prevEscrita = existing?.nivel_escrita ?? cargoDefault.nivel_padrao_escrita ?? 1;
+        if (levels.leitura !== prevLeitura || levels.escrita !== prevEscrita) {
+          await permissoes.setModulo(permData.usuario.id, {
+            modulo_id: parseInt(modId),
+            nivel_leitura: levels.leitura,
+            nivel_escrita: levels.escrita,
+          });
+        }
+      }
+      // Recarregar dados
       const perms = await permissoes.usuario(permData.usuario.id);
       setPermData(perms);
-    } catch (e) { alert(e.message); }
+      initLocalPerms(perms, estrutura);
+      setPermSuccess('Permissões salvas com sucesso!');
+      setTimeout(() => setPermSuccess(''), 3000);
+    } catch (e) { setPermError(e.message); }
     setSaving(false);
   }
 
@@ -1826,10 +2031,29 @@ function FuncionarioDetailPanel({ open, data, onClose, onEdit, onDelete, onNewDo
       <div style={{ width: '55%', minWidth: 500, maxWidth: 800, background: 'var(--cbrio-modal-bg)', overflowY: 'auto', boxShadow: '-8px 0 30px rgba(0,0,0,0.3)', animation: 'slideInRight 0.25s ease-out' }}>
         {/* Header */}
         <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--cbrio-modal-bg)', padding: '20px 28px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>👤 {data.nome}</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>👤 {editMode ? 'Editando' : data.nome}</div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => onEdit(data)}><Pencil className="h-3.5 w-3.5" />Editar</Button>
-            <Button variant="ghost" className="text-lg" onClick={onClose}>✕</Button>
+            {editMode ? (
+              <>
+                <Button variant="ghost" size="sm" onClick={() => setEditMode(false)}>Cancelar</Button>
+                <Button size="sm" className="gap-1.5" disabled={savingInline} onClick={async () => {
+                  setSavingInline(true);
+                  try {
+                    await onSaveInline(editForm);
+                    setEditMode(false);
+                  } catch {}
+                  setSavingInline(false);
+                }}>
+                  <Save className="h-3.5 w-3.5" />{savingInline ? 'Salvando...' : 'Salvar Alterações'}
+                </Button>
+              </>
+            ) : (
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => {
+                setEditForm({ nome: data.nome, cargo: data.cargo, area: data.area || '', email: data.email || '', telefone: data.telefone || '', cpf: data.cpf || '', tipo_contrato: data.tipo_contrato, status: data.status, data_admissao: data.data_admissao || '', salario: data.salario || '', gestor_id: data.gestor_id || '' });
+                setEditMode(true);
+              }}><Pencil className="h-3.5 w-3.5" />Editar</Button>
+            )}
+            <Button variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4" /></Button>
           </div>
         </div>
         <div style={{ padding: '24px 28px' }}>
@@ -1848,24 +2072,56 @@ function FuncionarioDetailPanel({ open, data, onClose, onEdit, onDelete, onNewDo
           <Badge status={data.status} map={STATUS_COLORS} />
         </div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', marginBottom: 20 }}>
-        <div><span style={{ fontSize: 11, color: C.text2 }}>Cargo:</span><div style={{ fontSize: 14, fontWeight: 600 }}>{data.cargo}</div></div>
-        <div><span style={{ fontSize: 11, color: C.text2 }}>Área:</span><div style={{ fontSize: 14 }}>{data.area || '—'}</div></div>
-        <div><span style={{ fontSize: 11, color: C.text2 }}>CPF:</span><div style={{ fontSize: 14 }}>{data.cpf || '—'}</div></div>
-        <div><span style={{ fontSize: 11, color: C.text2 }}>Email:</span><div style={{ fontSize: 14 }}>{data.email || '—'}</div></div>
-        <div><span style={{ fontSize: 11, color: C.text2 }}>Telefone:</span><div style={{ fontSize: 14 }}>{data.telefone || '—'}</div></div>
-        <div><span style={{ fontSize: 11, color: C.text2 }}>Contrato:</span><div style={{ fontSize: 14 }}>{TIPO_CONTRATO[data.tipo_contrato]}</div></div>
-        <div><span style={{ fontSize: 11, color: C.text2 }}>Admissão:</span><div style={{ fontSize: 14 }}>{fmtDate(data.data_admissao)}</div></div>
-        <div><span style={{ fontSize: 11, color: C.text2 }}>Salário:</span><div style={{ fontSize: 14 }}>{fmtMoney(data.salario)}</div></div>
-        <div><span style={{ fontSize: 11, color: C.text2 }}>Status:</span><div><Badge status={data.status} map={STATUS_COLORS} /></div></div>
-      </div>
+      {editMode ? (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 16px', marginBottom: 20, background: 'var(--cbrio-input-bg)', borderRadius: 10, padding: 16 }}>
+          {[
+            { key: 'nome', label: 'Nome *', full: true },
+            { key: 'cargo', label: 'Cargo *' },
+            { key: 'area', label: 'Área' },
+            { key: 'email', label: 'Email', type: 'email' },
+            { key: 'telefone', label: 'Telefone' },
+            { key: 'cpf', label: 'CPF' },
+            { key: 'data_admissao', label: 'Admissão', type: 'date' },
+            { key: 'salario', label: 'Salário (R$)', type: 'number' },
+          ].map(f => (
+            <div key={f.key} style={f.full ? { gridColumn: '1 / -1' } : undefined}>
+              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">{f.label}</label>
+              <input className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" type={f.type || 'text'} value={editForm[f.key] || ''} onChange={e => setEditForm(p => ({ ...p, [f.key]: e.target.value }))} />
+            </div>
+          ))}
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Contrato</label>
+            <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={editForm.tipo_contrato || 'clt'} onChange={e => setEditForm(p => ({ ...p, tipo_contrato: e.target.value }))}>
+              {Object.entries(TIPO_CONTRATO).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Status</label>
+            <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={editForm.status || 'ativo'} onChange={e => setEditForm(p => ({ ...p, status: e.target.value }))}>
+              {Object.entries(STATUS_COLORS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+            </select>
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', marginBottom: 20 }}>
+          <div><span style={{ fontSize: 11, color: C.text2 }}>Cargo:</span><div style={{ fontSize: 14, fontWeight: 600 }}>{data.cargo}</div></div>
+          <div><span style={{ fontSize: 11, color: C.text2 }}>Área:</span><div style={{ fontSize: 14 }}>{data.area || '—'}</div></div>
+          <div><span style={{ fontSize: 11, color: C.text2 }}>CPF:</span><div style={{ fontSize: 14 }}>{data.cpf || '—'}</div></div>
+          <div><span style={{ fontSize: 11, color: C.text2 }}>Email:</span><div style={{ fontSize: 14 }}>{data.email || '—'}</div></div>
+          <div><span style={{ fontSize: 11, color: C.text2 }}>Telefone:</span><div style={{ fontSize: 14 }}>{data.telefone || '—'}</div></div>
+          <div><span style={{ fontSize: 11, color: C.text2 }}>Contrato:</span><div style={{ fontSize: 14 }}>{TIPO_CONTRATO[data.tipo_contrato]}</div></div>
+          <div><span style={{ fontSize: 11, color: C.text2 }}>Admissão:</span><div style={{ fontSize: 14 }}>{fmtDate(data.data_admissao)}</div></div>
+          <div><span style={{ fontSize: 11, color: C.text2 }}>Salário:</span><div style={{ fontSize: 14 }}>{fmtMoney(data.salario)}</div></div>
+          <div><span style={{ fontSize: 11, color: C.text2 }}>Status:</span><div><Badge status={data.status} map={STATUS_COLORS} /></div></div>
+        </div>
+      )}
 
       {/* Anotações editáveis */}
       <NotasColaborador funcId={data.id} initialValue={data.observacoes || ''} />
 
       {/* Benefícios e Remuneração */}
       <BeneficiosSection data={data} onSave={async (updated) => {
-        try { await rh.funcionarios.update(data.id, updated); onClose(); } catch (e) { alert(e.message); }
+        try { await rh.funcionarios.update(data.id, updated); onClose(); } catch (e) { console.error(e); }
       }} />
 
       {/* Documentos com upload */}
@@ -1904,6 +2160,9 @@ function FuncionarioDetailPanel({ open, data, onClose, onEdit, onDelete, onNewDo
           {!showPerms && <Button variant="outline" size="sm" onClick={loadPermissions}>Configurar</Button>}
         </div>
 
+        {permError && <div style={{ color: '#ef4444', background: '#ef444418', border: '1px solid #ef444450', borderRadius: 8, padding: '8px 12px', marginBottom: 10, fontSize: 12 }}>{permError}</div>}
+        {permSuccess && <div style={{ color: '#10b981', background: '#10b98118', border: '1px solid #10b98150', borderRadius: 8, padding: '8px 12px', marginBottom: 10, fontSize: 12 }}>{permSuccess}</div>}
+
         {showPerms && permData && estrutura && (
           <div style={{ background: 'var(--cbrio-input-bg)', borderRadius: 10, padding: 16 }}>
             {/* Cargo / Nível base */}
@@ -1914,9 +2173,9 @@ function FuncionarioDetailPanel({ open, data, onClose, onEdit, onDelete, onNewDo
                   <button key={c.id} onClick={() => handleCargoChange(c.id)} disabled={saving}
                     style={{
                       padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                      border: `2px solid ${permData.usuario?.cargo_id === c.id ? NIVEL_COLORS[c.nivel_padrao_leitura] : C.border}`,
-                      background: permData.usuario?.cargo_id === c.id ? `${NIVEL_COLORS[c.nivel_padrao_leitura]}18` : 'transparent',
-                      color: permData.usuario?.cargo_id === c.id ? NIVEL_COLORS[c.nivel_padrao_leitura] : C.text2,
+                      border: `2px solid ${localCargo === c.id ? NIVEL_COLORS[c.nivel_padrao_leitura] : C.border}`,
+                      background: localCargo === c.id ? `${NIVEL_COLORS[c.nivel_padrao_leitura]}18` : 'transparent',
+                      color: localCargo === c.id ? NIVEL_COLORS[c.nivel_padrao_leitura] : C.text2,
                     }}>
                     {c.nome}
                   </button>
@@ -1929,7 +2188,7 @@ function FuncionarioDetailPanel({ open, data, onClose, onEdit, onDelete, onNewDo
               <label style={{ fontSize: 11, fontWeight: 600, color: C.text2, textTransform: 'uppercase', marginBottom: 6, display: 'block' }}>Áreas vinculadas</label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
                 {(estrutura.areas || []).map(a => {
-                  const isLinked = (permData.areas || []).some(ua => ua.area_id === a.id);
+                  const isLinked = localAreas.includes(a.id);
                   return (
                     <label key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.text, cursor: 'pointer', padding: '3px 0' }}>
                       <input type="checkbox" checked={isLinked} onChange={() => handleAreaToggle(a.id)} disabled={saving} />
@@ -1954,28 +2213,29 @@ function FuncionarioDetailPanel({ open, data, onClose, onEdit, onDelete, onNewDo
                   </thead>
                   <tbody>
                     {(estrutura.modulos || []).map(mod => {
-                      const override = (permData.overrides || []).find(o => o.modulo_id === mod.id);
+                      const levels = localModulos[mod.id] || { leitura: 1, escrita: 1 };
                       const cargoDefault = permData.usuario?.cargos || {};
-                      const leitura = override?.nivel_leitura ?? cargoDefault.nivel_padrao_leitura ?? 1;
-                      const escrita = override?.nivel_escrita ?? cargoDefault.nivel_padrao_escrita ?? 1;
-                      const isOverridden = !!override;
+                      const origOverride = (permData.overrides || []).find(o => o.modulo_id === mod.id);
+                      const origLeitura = origOverride?.nivel_leitura ?? cargoDefault.nivel_padrao_leitura ?? 1;
+                      const origEscrita = origOverride?.nivel_escrita ?? cargoDefault.nivel_padrao_escrita ?? 1;
+                      const isChanged = levels.leitura !== origLeitura || levels.escrita !== origEscrita;
                       return (
-                        <tr key={mod.id}>
+                        <tr key={mod.id} style={isChanged ? { background: '#f59e0b08' } : undefined}>
                           <td style={{ padding: '6px 8px', borderBottom: `1px solid ${C.border}`, fontWeight: 500, color: C.text }}>
                             {mod.nome}
-                            {isOverridden && <span style={{ fontSize: 9, color: C.amber, marginLeft: 4 }}>override</span>}
+                            {isChanged && <span style={{ fontSize: 9, color: C.amber, marginLeft: 4 }}>alterado</span>}
                           </td>
                           <td style={{ padding: '4px 8px', borderBottom: `1px solid ${C.border}`, textAlign: 'center' }}>
-                            <select value={leitura} onChange={e => handleModuloChange(mod.id, 'leitura', parseInt(e.target.value))}
+                            <select value={levels.leitura} onChange={e => handleModuloChange(mod.id, 'leitura', parseInt(e.target.value))}
                               disabled={saving}
-                              style={{ padding: '3px 6px', borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 11, background: 'var(--cbrio-card)', color: NIVEL_COLORS[leitura], fontWeight: 600, cursor: 'pointer' }}>
+                              style={{ padding: '3px 6px', borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 11, background: 'var(--cbrio-card)', color: NIVEL_COLORS[levels.leitura], fontWeight: 600, cursor: 'pointer' }}>
                               {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n} — {NIVEL_LABELS[n]}</option>)}
                             </select>
                           </td>
                           <td style={{ padding: '4px 8px', borderBottom: `1px solid ${C.border}`, textAlign: 'center' }}>
-                            <select value={escrita} onChange={e => handleModuloChange(mod.id, 'escrita', parseInt(e.target.value))}
+                            <select value={levels.escrita} onChange={e => handleModuloChange(mod.id, 'escrita', parseInt(e.target.value))}
                               disabled={saving}
-                              style={{ padding: '3px 6px', borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 11, background: 'var(--cbrio-card)', color: NIVEL_COLORS[escrita], fontWeight: 600, cursor: 'pointer' }}>
+                              style={{ padding: '3px 6px', borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 11, background: 'var(--cbrio-card)', color: NIVEL_COLORS[levels.escrita], fontWeight: 600, cursor: 'pointer' }}>
                               {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n} — {NIVEL_LABELS[n]}</option>)}
                             </select>
                           </td>
@@ -1988,6 +2248,14 @@ function FuncionarioDetailPanel({ open, data, onClose, onEdit, onDelete, onNewDo
               <div style={{ fontSize: 10, color: C.text3, marginTop: 8 }}>
                 Níveis: 1=Sem acesso | 2=Pessoal | 3=Área | 4=Setor | 5=Admin
               </div>
+            </div>
+
+            {/* Botão Salvar Permissões */}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16, paddingTop: 12, borderTop: `1px solid ${C.border}` }}>
+              <Button variant="ghost" size="sm" onClick={() => { initLocalPerms(permData, estrutura); setPermError(''); }}>Desfazer</Button>
+              <Button size="sm" className="gap-1.5" disabled={saving || !permDirty} onClick={savePermissions}>
+                <Save className="h-3.5 w-3.5" />{saving ? 'Salvando...' : 'Salvar Permissões'}
+              </Button>
             </div>
           </div>
         )}

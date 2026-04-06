@@ -16,6 +16,7 @@ const Patrimonio   = lazy(() => import('./pages/admin/patrimonio/Patrimonio'));
 const Membresia    = lazy(() => import('./pages/ministerial/Membresia'));
 const Planejamento = lazy(() => import('./pages/Planejamento'));
 const AssistenteIA = lazy(() => import('./pages/admin/AssistenteIA'));
+const NotificacaoRegras = lazy(() => import('./pages/admin/NotificacaoRegras'));
 
 const Loading = () => (
   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 300, gap: 16 }}>
@@ -118,6 +119,13 @@ function AppRoutes() {
         <Route path="assistente-ia" element={
           <ProtectedRoute roles={['admin', 'diretor']}>
             <Suspense fallback={<Loading />}><AssistenteIA /></Suspense>
+          </ProtectedRoute>
+        } />
+
+        {/* Configurações */}
+        <Route path="admin/notificacao-regras" element={
+          <ProtectedRoute roles={['admin', 'diretor']}>
+            <Suspense fallback={<Loading />}><NotificacaoRegras /></Suspense>
           </ProtectedRoute>
         } />
 
