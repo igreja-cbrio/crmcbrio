@@ -966,7 +966,7 @@ export default function Projetos() {
 
         {/* ─── NÍVEL 1: Phase strip (7 fases) ─── */}
         <div style={{ overflowX: 'auto', marginBottom: 16, paddingBottom: 6 }}>
-          <div style={{ display: 'flex', gap: 5, minWidth: 'max-content' }}>
+          <div style={{ display: 'flex', gap: 5, minWidth: 'max-content', justifyContent: 'center' }}>
             {PHASE_NAMES.map((name, i) => {
               const order = i + 1;
               const isActive = kanbanPhase === order;

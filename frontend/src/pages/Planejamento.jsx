@@ -376,7 +376,7 @@ export default function Planejamento() {
           {/* ══ KANBAN EVENTOS (fases do ciclo) ══ */}
           {(typeFilter === 'all' || typeFilter === 'eventos') && <>
           <div style={{ overflowX: 'auto', marginBottom: 16, paddingBottom: 6 }}>
-            <div style={{ display: 'flex', gap: 5, minWidth: 'max-content' }}>
+            <div style={{ display: 'flex', gap: 5, minWidth: 'max-content', justifyContent: 'center' }}>
               {phaseNums.map((num, i) => {
                 const isActive = num === kanbanPhase;
                 const rp = filteredPhases.filter(p => p.numero_fase === num);
@@ -555,7 +555,7 @@ export default function Planejamento() {
 
                 {/* Strip de 7 fases */}
                 <div style={{ overflowX: 'auto', marginBottom: 16, paddingBottom: 6 }}>
-                  <div style={{ display: 'flex', gap: 5, minWidth: 'max-content' }}>
+                  <div style={{ display: 'flex', gap: 5, minWidth: 'max-content', justifyContent: 'center' }}>
                     {PHASE_NAMES.map((name, i) => {
                       const order = i + 1;
                       const isActive = activePhase === order;
@@ -668,7 +668,7 @@ export default function Planejamento() {
             return (
               <div>
                 <div style={{ overflowX: 'auto', marginBottom: 16, paddingBottom: 6 }}>
-                  <div style={{ display: 'flex', gap: 5, minWidth: 'max-content', justifyContent: 'center' }}>
+                  <div style={{ display: 'flex', gap: 5, minWidth: 'max-content', justifyContent: 'center', justifyContent: 'center' }}>
                     {AREAS.map((a, i) => {
                       const count = a.key === 'all' ? strategicData.length : strategicData.filter(p => p.area_group === a.key).length;
                       const isActive = selectedAreaGroup === a.key;
