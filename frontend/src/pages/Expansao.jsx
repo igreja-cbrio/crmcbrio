@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { expansion } from '../api';
+import { AlertTriangle } from 'lucide-react';
 
 // ── Tema (CSS vars para dark/light mode) ──────────────────
 const C = {
@@ -31,9 +32,10 @@ const STATUS_MAP = {
 };
 
 const TASK_STATUS = {
-  pendente: { label: 'Pendente', c: '#9ca3af', bg: '#f3f4f6' },
-  em_andamento: { label: 'Em andamento', c: C.blue, bg: C.blueBg },
-  concluida: { label: 'Concluída', c: C.green, bg: C.greenBg },
+  'pendente': { label: 'Pendente', c: '#9ca3af', bg: '#f3f4f6' },
+  'em-andamento': { label: 'Em Andamento', c: C.blue, bg: C.blueBg },
+  'concluida': { label: 'Concluída', c: C.green, bg: C.greenBg },
+  'bloqueada': { label: 'Bloqueada', c: C.red, bg: C.redBg },
 };
 
 const MONTHS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -117,7 +119,7 @@ function DaysCounter({ date, status }) {
 
 function calcTaskProgress(task) {
   if (!task.subtasks || task.subtasks.length === 0) {
-    return task.status === 'concluida' ? 100 : task.status === 'em_andamento' ? 50 : 0;
+    return task.status === 'concluida' ? 100 : task.status === 'em-andamento' ? 50 : 0;
   }
   const total = task.subtasks.reduce((s, st) => s + (st.pct || 0), 0);
   return Math.round(total / task.subtasks.length);
@@ -153,6 +155,22 @@ function Modal({ open, onClose, title, children, footer }) {
         </div>
         <div style={styles.modalBody}>{children}</div>
         {footer && <div style={styles.modalFooter}>{footer}</div>}
+      </div>
+    </div>
+  );
+}
+
+function ConfirmDialog({ message, onConfirm, onCancel }) {
+  if (!message) return null;
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)' }}>
+      <div style={{ background: 'var(--cbrio-modal-bg)', borderRadius: 16, padding: 28, maxWidth: 400, boxShadow: '0 20px 60px rgba(0,0,0,0.3)', textAlign: 'center' }}>
+        <AlertTriangle style={{ width: 36, height: 36, color: '#f59e0b', margin: '0 auto 12px' }} />
+        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--cbrio-text)', marginBottom: 20 }}>{message}</div>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+          <button style={styles.btn('ghost')} onClick={onCancel}>Cancelar</button>
+          <button style={styles.btn('danger')} onClick={onConfirm}>Confirmar</button>
+        </div>
       </div>
     </div>
   );
@@ -243,6 +261,9 @@ export default function Expansao() {
   // Timeline tooltip
   const [tooltip, setTooltip] = useState(null);
 
+  // Confirm dialog
+  const [confirmMsg, setConfirmMsg] = useState(null); // { message, onConfirm }
+
   // ── Loaders ──
   const load = useCallback(async () => {
     try {
@@ -280,6 +301,11 @@ export default function Expansao() {
 
   // ── CRUD Handlers ──
   const saveMilestone = async (form) => {
+    // Validate dates
+    if (form.date_start && form.date_end && form.date_start > form.date_end) {
+      setError('Data início não pode ser posterior à data fim');
+      return;
+    }
     setSaving(true);
     try {
       if (form.id) {
@@ -288,27 +314,38 @@ export default function Expansao() {
         await expansion.createMilestone(form);
       }
       setModalMilestone(null);
-      await load();
+      const ms = await expansion.milestones();
+      setMilestones(Array.isArray(ms) ? ms : []);
       // refresh detail if viewing
-      if (selectedMilestone && form.id === selectedMilestone.id) {
-        const ms = await expansion.milestones();
+      if (selectedMilestone && form.id) {
         const updated = ms.find(m => m.id === form.id);
-        if (updated) setSelectedMilestone(updated);
+        setSelectedMilestone(updated || null);
       }
+      const db = await expansion.dashboard();
+      setDashboard(db);
     } catch (err) { setError(err.message); }
     finally { setSaving(false); }
   };
 
-  const deleteMilestone = async (id) => {
-    if (!window.confirm('Excluir este marco e todas as suas tarefas?')) return;
-    try {
-      await expansion.removeMilestone(id);
-      if (selectedMilestone?.id === id) { setSelectedMilestone(null); setTab(2); }
-      await load();
-    } catch (err) { setError(err.message); }
+  const deleteMilestone = (id) => {
+    setConfirmMsg({
+      message: 'Excluir este marco e todas as suas tarefas?',
+      onConfirm: async () => {
+        setConfirmMsg(null);
+        try {
+          await expansion.removeMilestone(id);
+          if (selectedMilestone?.id === id) { setSelectedMilestone(null); setTab(2); }
+          await load();
+        } catch (err) { setError(err.message); }
+      },
+    });
   };
 
   const saveTask = async (form, milestoneId) => {
+    if (form.start_date && form.deadline && form.start_date > form.deadline) {
+      setError('Data início não pode ser posterior ao prazo');
+      return;
+    }
     setSaving(true);
     try {
       if (form.id) {
@@ -317,64 +354,67 @@ export default function Expansao() {
         await expansion.createTask(milestoneId, form);
       }
       setModalTask(null);
-      await load();
-      // refresh detail
+      const ms = await expansion.milestones();
+      setMilestones(Array.isArray(ms) ? ms : []);
       if (selectedMilestone) {
-        const ms = await expansion.milestones();
         const updated = ms.find(m => m.id === selectedMilestone.id);
-        if (updated) setSelectedMilestone(updated);
+        setSelectedMilestone(updated || null);
       }
+      const db = await expansion.dashboard();
+      setDashboard(db);
     } catch (err) { setError(err.message); }
     finally { setSaving(false); }
   };
 
-  const deleteTask = async (id) => {
-    if (!window.confirm('Excluir esta tarefa e suas subtarefas?')) return;
-    try {
-      await expansion.removeTask(id);
-      await load();
-      if (selectedMilestone) {
-        const ms = await expansion.milestones();
-        const updated = ms.find(m => m.id === selectedMilestone.id);
-        if (updated) setSelectedMilestone(updated);
-      }
-    } catch (err) { setError(err.message); }
+  const deleteTask = (id) => {
+    setConfirmMsg({
+      message: 'Excluir esta tarefa e suas subtarefas?',
+      onConfirm: async () => {
+        setConfirmMsg(null);
+        try {
+          await expansion.removeTask(id);
+          await load();
+          if (selectedMilestone) {
+            const ms = await expansion.milestones();
+            const updated = ms.find(m => m.id === selectedMilestone.id);
+            if (updated) setSelectedMilestone(updated);
+            else setSelectedMilestone(null);
+          }
+        } catch (err) { setError(err.message); }
+      },
+    });
+  };
+
+  // Helper to refresh milestones + detail in one go
+  const refreshAll = async () => {
+    const [ms, db] = await Promise.all([expansion.milestones(), expansion.dashboard()]);
+    setMilestones(Array.isArray(ms) ? ms : []);
+    setDashboard(db);
+    if (selectedMilestone) {
+      const updated = ms.find(m => m.id === selectedMilestone.id);
+      setSelectedMilestone(updated || null);
+    }
   };
 
   const addSubtask = async (taskId, name) => {
     if (!name.trim()) return;
     try {
       await expansion.createSubtask(taskId, { name });
-      await load();
-      if (selectedMilestone) {
-        const ms = await expansion.milestones();
-        const updated = ms.find(m => m.id === selectedMilestone.id);
-        if (updated) setSelectedMilestone(updated);
-      }
+      await refreshAll();
     } catch (err) { setError(err.message); }
   };
 
   const updateSubtaskPct = async (id, pct) => {
     try {
       await expansion.updateSubtaskPct(id, pct);
-      await load();
-      if (selectedMilestone) {
-        const ms = await expansion.milestones();
-        const updated = ms.find(m => m.id === selectedMilestone.id);
-        if (updated) setSelectedMilestone(updated);
-      }
+      await refreshAll();
     } catch (err) { setError(err.message); }
   };
 
   const deleteSubtask = async (id) => {
     try {
       await expansion.removeSubtask(id);
-      await load();
-      if (selectedMilestone) {
-        const ms = await expansion.milestones();
-        const updated = ms.find(m => m.id === selectedMilestone.id);
-        if (updated) setSelectedMilestone(updated);
-      }
+      await refreshAll();
     } catch (err) { setError(err.message); }
   };
 
@@ -557,14 +597,16 @@ export default function Expansao() {
       const d = new Date(dateStr + 'T12:00:00');
       const y = d.getFullYear();
       const m = d.getMonth();
-      const dayPct = d.getDate() / 30 * (100 / totalMonths);
+      const daysInMonth = new Date(y, m + 1, 0).getDate();
+      const dayPct = (d.getDate() - 1) / daysInMonth * (100 / totalMonths);
       return monthToPct(y, m) + dayPct;
     };
 
     const todayPct = (() => {
       const y = today.getFullYear();
       const m = today.getMonth();
-      const dayPct = today.getDate() / 30 * (100 / totalMonths);
+      const daysInMonth = new Date(y, m + 1, 0).getDate();
+      const dayPct = (today.getDate() - 1) / daysInMonth * (100 / totalMonths);
       return monthToPct(y, m) + dayPct;
     })();
 
@@ -868,15 +910,14 @@ export default function Expansao() {
     const handleDrop = async (e, col) => {
       e.preventDefault();
       setDropCol(null);
-      if (!dragId || !isDiretor) return;
+      if (!dragId || !isDiretor) { setDragId(null); return; }
       const mi = milestones.find(m => m.id === dragId);
-      if (mi && mi.status !== col) {
-        try {
-          await expansion.updateMilestone(mi.id, { ...mi, status: col });
-          await load();
-        } catch (err) { setError(err.message); }
-      }
       setDragId(null);
+      if (!mi || mi.status === col) return;
+      try {
+        await expansion.updateMilestone(mi.id, { ...mi, status: col });
+        await refreshAll();
+      } catch (err) { setError(err.message); }
     };
 
     return (
@@ -1290,7 +1331,15 @@ export default function Expansao() {
   // ═══════════════════════════════════════════════════════════
   // MAIN RENDER
   // ═══════════════════════════════════════════════════════════
-  if (loading) return <div style={styles.page}><div style={styles.empty}>Carregando...</div></div>;
+  if (loading) return (
+    <div style={styles.page}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 60, gap: 12 }}>
+        <div style={{ width: 28, height: 28, border: `3px solid ${C.border}`, borderTopColor: C.primary, borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <span style={{ fontSize: 13, color: C.t3 }}>Carregando plano de expansao...</span>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    </div>
+  );
 
   return (
     <div style={styles.page}>
@@ -1347,6 +1396,13 @@ export default function Expansao() {
         saving={saving}
         onSave={saveTask}
         onClose={() => setModalTask(null)}
+      />
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        message={confirmMsg?.message}
+        onConfirm={confirmMsg?.onConfirm}
+        onCancel={() => setConfirmMsg(null)}
       />
 
       <div style={{ height: 40 }} />

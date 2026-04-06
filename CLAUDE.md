@@ -1,7 +1,7 @@
 # CLAUDE.md — CBRio ERP
 
 Guia para Claude Code e agentes de IA trabalhando neste repositório.
-Atualizado em: 2026-04-06 (v6) — Permissões granulares ENFORÇADAS, RH auditado, emails importados, Logística auditada, Patrimônio com 4264 bens, IA agents, notificações inline
+Atualizado em: 2026-04-06 (v7) — Expansão auditado: segurança, validação, UX corrigidos
 
 ---
 
@@ -100,7 +100,7 @@ Browser → Supabase Auth (OAuth/e-mail) → JWT token
   - `auth.js` — GET /me, PATCH /profile
   - `events.js` — CRUD eventos (usa pg pool direto — requer DATABASE_URL)
   - `projects.js` — CRUD projetos (usa pg pool)
-  - `expansion.js` — CRUD marcos de expansão (usa pg pool)
+  - `expansion.js` — CRUD marcos de expansão (usa Supabase client, nested select, authorize('diretor') em todas as escritas, validação de input)
   - `meetings.js` — CRUD reuniões (usa pg pool)
   - `cycles.js` — Ciclos criativos de eventos
   - `agents.js` — proxy IA (Anthropic Claude)
@@ -408,6 +408,19 @@ Estes arquivos afetam o sistema inteiro. Alterações devem ser feitas via **Pul
 ### Eventos, Projetos, Expansão
 - Frontend implementado (Marcos Paulo)
 - Backend usa Supabase client (migrado de pg pool)
+- **Expansão auditado (v7):**
+  - 93 marcos estratégicos + 465 tarefas (2026-2029), migration 030
+  - Backend usa **nested select** (`expansion_milestones → expansion_tasks → expansion_subtasks`) em uma query só — evita headers overflow com 465+ IDs
+  - `authorize('diretor')` em **todos** os endpoints de escrita (POST/PUT/PATCH/DELETE)
+  - Validação de input: name obrigatório, status/phase contra enum, year range, budget >= 0
+  - Query params validados (year NaN check, status whitelist), retorna 400 ao invés de 500
+  - Frontend: TASK_STATUS corrigido (usava underscore `em_andamento`, agora usa hífen `em-andamento` igual ao DB)
+  - ConfirmDialog substituiu `window.confirm()` em deleteMilestone e deleteTask
+  - Loading spinner animado ao invés de texto "Carregando..."
+  - Timeline: cálculo de data usa dias reais do mês (antes usava 30 fixo)
+  - Stale state corrigido: `refreshAll()` centralizado, handles `undefined` após delete
+  - Kanban drag-drop: valida existência do milestone antes de enviar, limpa state corretamente
+  - Validação de datas: `date_start <= date_end` verificado antes de submit
 - Ciclos criativos com 11 fases + 35 tarefas ADM + 138 subtarefas automáticas
 - **KPIs clicáveis** — todos os números do dashboard navegam para os dados filtrados
 - **Abas Riscos + Histórico + Retrospectiva** no detalhe do evento
@@ -431,7 +444,7 @@ Estes arquivos afetam o sistema inteiro. Alterações devem ser feitas via **Pul
 **Project ref:** `hhntwfawfnxvuobhdfkb`
 **URL:** `https://hhntwfawfnxvuobhdfkb.supabase.co`
 
-Migrations aplicadas: 001-022, 027
+Migrations aplicadas: 001-022, 027, 030
 
 Para novas migrations: criar arquivo em `supabase/migrations/` e rodar manualmente no Supabase SQL Editor.
 
