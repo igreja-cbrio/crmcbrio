@@ -1,7 +1,7 @@
 # CLAUDE.md — CBRio ERP
 
 Guia para Claude Code e agentes de IA trabalhando neste repositório.
-Atualizado em: 2026-04-04 (v4) — RH completo, Logística auditada, Patrimônio com 4264 bens, IA agents, notificações inline
+Atualizado em: 2026-04-06 (v5) — RH auditado (painéis laterais, error states, inline edit), emails importados, Logística auditada, Patrimônio com 4264 bens, IA agents, notificações inline
 
 ---
 
@@ -334,9 +334,9 @@ Estes arquivos afetam o sistema inteiro. Alterações devem ser feitas via **Pul
 - Backend serverless no Vercel (Express como function)
 - Sistema de permissões (cargos, áreas, módulos)
 
-### RH (9 abas — módulo completo ~95%)
+### RH (9 abas — módulo auditado ~98%)
 - **Dashboard** com KPIs (total, ativos, férias, licença, inativos, custo mensal, turnover) + métricas (admissões, desligamentos, folha salarial)
-- **Colaboradores** — CRUD com foto upload, filtros, busca, import CSV em massa
+- **Colaboradores** — CRUD com foto upload, filtros, busca, import CSV em massa, **emails importados da planilha** (33 colaboradores)
 - **Admissão** — workflow completo com formulário condicional PJ (CNPJ, razão social, banco) + contratos editáveis (PJ, CLT, Voluntário, Estagiário) + impressão/PDF
 - **Organograma** — visualização flowchart com pan/zoom, cards conectados por linhas, hierarquia via gestor_id
 - **Folha** — tabela salarial com benefícios/descontos, export CSV, geração de holerite imprimível
@@ -349,6 +349,16 @@ Estes arquivos afetam o sistema inteiro. Alterações devem ser feitas via **Pul
 - **Validação** — CPF, email, datas, campos obrigatórios
 - **Notificações inline** — férias criadas/aprovadas, admissão concluída, avaliação registrada
 - **Todos os botões** usam shadcn Button component
+- **UX Auditada (v5):**
+  - Toast notifications + ConfirmDialog no lugar de alert()/confirm() nativos
+  - Todos os modais são painéis laterais deslizantes (slide-in side panels)
+  - Inline edit mode no painel de detalhes do colaborador (botão Salvar Alterações)
+  - Error states visuais em todos os formulários (banners vermelhos)
+  - Cores hardcoded trocadas por CSS variables
+
+#### Permissões do Sistema
+- **Sistema simples (ativo):** 3 roles (assistente, admin, diretor) — routes usam `authorize('admin', 'diretor')`
+- **Sistema granular (preparado, não enforçado):** cargos, setores, áreas, permissões por módulo (níveis 1-5: sem acesso, pessoal, área, setor, admin). UI existe no painel do colaborador, endpoints em `/api/permissoes/*`, mas routes NÃO validam esses níveis ainda
 
 ### Membresia
 - Listagem de membros com avatar, família, status, telefone, ministério
