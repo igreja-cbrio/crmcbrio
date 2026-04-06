@@ -19,36 +19,28 @@ router.get('/dashboard', async (req, res) => {
 // GET /api/expansion/milestones — com tasks e subtasks aninhados
 router.get('/milestones', async (req, res) => {
   try {
-    let q = supabase.from('expansion_milestones').select('*').order('sort_order');
+    let q = supabase
+      .from('expansion_milestones')
+      .select('*, expansion_tasks(*, expansion_subtasks(*))')
+      .order('sort_order');
     if (req.query.year) q = q.eq('year', parseInt(req.query.year));
     if (req.query.area) q = q.eq('area', req.query.area);
     if (req.query.status) q = q.eq('status', req.query.status);
     const { data: milestones, error } = await q;
     if (error) throw error;
 
-    // Buscar todas as tasks de uma vez
-    const msIds = (milestones || []).map(m => m.id);
-    const { data: allTasks } = msIds.length > 0
-      ? await supabase.from('expansion_tasks').select('*').in('milestone_id', msIds).order('sort_order')
-      : { data: [] };
-
-    // Buscar todas as subtasks de uma vez
-    const taskIds = (allTasks || []).map(t => t.id);
-    const { data: allSubs } = taskIds.length > 0
-      ? await supabase.from('expansion_subtasks').select('*').in('task_id', taskIds).order('sort_order')
-      : { data: [] };
-
-    // Montar hierarquia
-    const subsMap = {};
-    (allSubs || []).forEach(s => { if (!subsMap[s.task_id]) subsMap[s.task_id] = []; subsMap[s.task_id].push(s); });
-
-    const tasksMap = {};
-    (allTasks || []).forEach(t => {
-      if (!tasksMap[t.milestone_id]) tasksMap[t.milestone_id] = [];
-      tasksMap[t.milestone_id].push({ ...t, subtasks: subsMap[t.id] || [] });
-    });
-
-    const result = (milestones || []).map(m => ({ ...m, tasks: tasksMap[m.id] || [] }));
+    // Renomear chaves do nested select para manter compatibilidade com frontend
+    const result = (milestones || []).map(m => ({
+      ...m,
+      tasks: (m.expansion_tasks || [])
+        .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+        .map(t => ({
+          ...t,
+          subtasks: (t.expansion_subtasks || []).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)),
+          expansion_subtasks: undefined,
+        })),
+      expansion_tasks: undefined,
+    }));
     res.json(result);
   } catch (e) {
     console.error('[Expansion] Milestones:', e.message);
