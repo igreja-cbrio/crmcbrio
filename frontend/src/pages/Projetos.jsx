@@ -1237,10 +1237,23 @@ export default function Projetos() {
                   const phases = p.phases || [];
                   const si = normDate(p.date_start); const ei = normDate(p.date_end);
                   const isDone = p.status === 'concluido';
+                  const now = new Date();
+                  const startDate = si ? new Date(si + 'T12:00:00') : null;
                   const endDate = ei ? new Date(ei + 'T12:00:00') : null;
-                  const diff = endDate ? Math.ceil((endDate - new Date()) / 86400000) : null;
-                  const barColor = isDone ? '#d1d5db' : diff !== null && diff < 0 ? C.red : diff !== null && diff <= 7 ? C.amber : C.green;
-                  const daysText = isDone ? '✓' : diff === null ? '' : diff < 0 ? `${Math.abs(diff)}d atrás` : diff === 0 ? 'Hoje' : `${diff}d`;
+                  const totalDays = startDate && endDate ? Math.max(Math.ceil((endDate - startDate) / 86400000), 1) : 0;
+                  const elapsed = startDate ? Math.max(Math.ceil((now - startDate) / 86400000), 0) : 0;
+                  const remaining = endDate ? Math.ceil((endDate - now) / 86400000) : null;
+                  const progressPct = totalDays > 0 ? Math.min(Math.max((elapsed / totalDays) * 100, 0), 100) : 0;
+
+                  // Cor e texto
+                  const barColor = isDone ? '#d1d5db' : remaining !== null && remaining < 0 ? C.red : remaining !== null && remaining <= 7 ? C.amber : C.green;
+                  let daysText = '';
+                  if (isDone) { daysText = '✓'; }
+                  else if (startDate && now < startDate) { daysText = `em ${Math.ceil((startDate - now) / 86400000)}d`; }
+                  else if (remaining !== null && remaining < 0) { daysText = `${Math.abs(remaining)}d atrás`; }
+                  else if (elapsed > 0 && remaining !== null) { daysText = `${elapsed}d ▸ ${remaining}d`; }
+                  else if (remaining !== null) { daysText = `${remaining}d`; }
+
                   let lp = 0, wp = 0;
                   if (si && ei) { lp = dateToPct(si + 'T12:00:00'); const rp = dateToPct(ei + 'T12:00:00'); wp = Math.max(rp - lp, 1); }
 
@@ -1250,11 +1263,17 @@ export default function Projetos() {
                         {monthLabels.map((m, i) => (<div key={i} style={{ position: 'absolute', left: `${m.pct}%`, top: 0, width: 1, height: '100%', background: C.border, opacity: 0.3 }} />))}
                         <div style={{ position: 'absolute', left: `${todayPct}%`, top: 0, width: 2, height: '100%', background: C.red, zIndex: 2, opacity: 0.3 }} />
                         {si && ei && (
-                          <div onClick={() => loadDetail(p.id)} title={`${p.name}\n${fmtDate(si)} → ${fmtDate(ei)}\n${daysText}`}
-                            style={{ position: 'absolute', top: 4, height: BH - 8, borderRadius: 6, left: `${lp}%`, width: `${wp}%`, minWidth: 50, background: barColor, opacity: isDone ? 0.5 : 0.9, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 6px', overflow: 'hidden', cursor: 'pointer', transition: 'opacity .15s' }}
+                          <div onClick={() => loadDetail(p.id)} title={`${p.name}\n${fmtDate(si)} → ${fmtDate(ei)}\n${totalDays} dias total | ${elapsed}d passados | ${remaining}d restantes`}
+                            style={{ position: 'absolute', top: 4, height: BH - 8, borderRadius: 6, left: `${lp}%`, width: `${wp}%`, minWidth: 60, overflow: 'hidden', cursor: 'pointer', transition: 'opacity .15s', opacity: isDone ? 0.5 : 0.9 }}
                             onMouseEnter={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)'; }}
                             onMouseLeave={e => { e.currentTarget.style.opacity = isDone ? '0.5' : '0.9'; e.currentTarget.style.boxShadow = 'none'; }}>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap' }}>{daysText}</span>
+                            {/* Barra de progresso temporal (parte escura = já passou) */}
+                            <div style={{ position: 'absolute', inset: 0, borderRadius: 6, background: barColor, opacity: 0.45 }} />
+                            <div style={{ position: 'absolute', top: 0, left: 0, bottom: 0, width: `${progressPct}%`, borderRadius: `6px ${progressPct >= 98 ? 6 : 0}px ${progressPct >= 98 ? 6 : 0}px 6px`, background: barColor }} />
+                            {/* Texto centralizado */}
+                            <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '0 6px' }}>
+                              <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>{daysText}</span>
+                            </div>
                           </div>
                         )}
                       </div>
