@@ -1915,72 +1915,108 @@ function FuncionarioDetailPanel({ open, data, onClose, onEdit, onDelete, onNewDo
   const [estrutura, setEstrutura] = useState(null);
   const [saving, setSaving] = useState(false);
   const [permError, setPermError] = useState('');
+  const [permSuccess, setPermSuccess] = useState('');
   const [editMode, setEditMode] = useState(false);
   const [editForm, setEditForm] = useState({});
   const [savingInline, setSavingInline] = useState(false);
 
-  useEffect(() => { if (data && open) { setShowPerms(false); setPermData(null); } }, [data, open]);
+  // Estado local das permissões (editável, salva só no botão)
+  const [localCargo, setLocalCargo] = useState(null);
+  const [localAreas, setLocalAreas] = useState([]);
+  const [localModulos, setLocalModulos] = useState({}); // { moduloId: { leitura, escrita } }
+  const [permDirty, setPermDirty] = useState(false);
+
+  useEffect(() => { if (data && open) { setShowPerms(false); setPermData(null); setPermDirty(false); setPermError(''); setPermSuccess(''); } }, [data, open]);
+
+  function initLocalPerms(perms, estru) {
+    setLocalCargo(perms.usuario?.cargo_id ?? 2);
+    setLocalAreas((perms.areas || []).map(a => a.area_id));
+    const mods = {};
+    (estru.modulos || []).forEach(mod => {
+      const override = (perms.overrides || []).find(o => o.modulo_id === mod.id);
+      const cargoDefault = perms.usuario?.cargos || {};
+      mods[mod.id] = {
+        leitura: override?.nivel_leitura ?? cargoDefault.nivel_padrao_leitura ?? 1,
+        escrita: override?.nivel_escrita ?? cargoDefault.nivel_padrao_escrita ?? 1,
+      };
+    });
+    setLocalModulos(mods);
+    setPermDirty(false);
+  }
 
   async function loadPermissions() {
-    if (!estrutura) {
-      try { setEstrutura(await permissoes.estrutura()); } catch (e) { console.error(e); }
+    let estru = estrutura;
+    if (!estru) {
+      try { estru = await permissoes.estrutura(); setEstrutura(estru); } catch (e) { console.error(e); return; }
     }
-    // Find or create user in permissions system by email or name
     try {
       let permUser = null;
-      if (data.email) {
-        permUser = await permissoes.usuarioPorEmail(data.email);
-      }
+      if (data.email) permUser = await permissoes.usuarioPorEmail(data.email);
       if (!permUser) {
-        // Create user in permissions system
         const result = await permissoes.criarUsuario({ nome: data.nome, email: data.email || null, cargo_id: 2 });
         permUser = { id: result.id };
       }
       const perms = await permissoes.usuario(permUser.id);
       setPermData(perms);
+      initLocalPerms(perms, estru);
     } catch (e) { console.error(e); }
     setShowPerms(true);
   }
 
-  async function handleCargoChange(cargoId) {
-    if (!permData?.usuario) return;
-    setSaving(true);
-    try {
-      await permissoes.setCargo(permData.usuario.id, cargoId);
-      const perms = await permissoes.usuario(permData.usuario.id);
-      setPermData(perms);
-    } catch (e) { setPermError(e.message); }
-    setSaving(false);
+  function handleCargoChange(cargoId) {
+    setLocalCargo(cargoId);
+    setPermDirty(true);
   }
 
-  async function handleAreaToggle(areaId) {
-    if (!permData?.usuario) return;
-    const currentIds = (permData.areas || []).map(a => a.area_id);
-    const newIds = currentIds.includes(areaId) ? currentIds.filter(id => id !== areaId) : [...currentIds, areaId];
-    setSaving(true);
-    try {
-      await permissoes.setAreas(permData.usuario.id, newIds);
-      const perms = await permissoes.usuario(permData.usuario.id);
-      setPermData(perms);
-    } catch (e) { setPermError(e.message); }
-    setSaving(false);
+  function handleAreaToggle(areaId) {
+    setLocalAreas(prev => prev.includes(areaId) ? prev.filter(id => id !== areaId) : [...prev, areaId]);
+    setPermDirty(true);
   }
 
-  async function handleModuloChange(moduloId, tipo, nivel) {
+  function handleModuloChange(moduloId, tipo, nivel) {
+    setLocalModulos(prev => ({
+      ...prev,
+      [moduloId]: { ...prev[moduloId], [tipo]: nivel },
+    }));
+    setPermDirty(true);
+  }
+
+  async function savePermissions() {
     if (!permData?.usuario) return;
-    const existing = (permData.overrides || []).find(o => o.modulo_id === moduloId);
-    const cargoDefault = permData.usuario.cargos || {};
-    const currentLeitura = existing?.nivel_leitura ?? cargoDefault.nivel_padrao_leitura ?? 1;
-    const currentEscrita = existing?.nivel_escrita ?? cargoDefault.nivel_padrao_escrita ?? 1;
     setSaving(true);
+    setPermError('');
+    setPermSuccess('');
     try {
-      await permissoes.setModulo(permData.usuario.id, {
-        modulo_id: moduloId,
-        nivel_leitura: tipo === 'leitura' ? nivel : currentLeitura,
-        nivel_escrita: tipo === 'escrita' ? nivel : currentEscrita,
-      });
+      // 1. Salvar cargo
+      if (localCargo !== permData.usuario.cargo_id) {
+        await permissoes.setCargo(permData.usuario.id, localCargo);
+      }
+      // 2. Salvar áreas
+      const currentAreaIds = (permData.areas || []).map(a => a.area_id).sort().join(',');
+      const newAreaIds = [...localAreas].sort().join(',');
+      if (currentAreaIds !== newAreaIds) {
+        await permissoes.setAreas(permData.usuario.id, localAreas);
+      }
+      // 3. Salvar overrides de módulos
+      for (const [modId, levels] of Object.entries(localModulos)) {
+        const existing = (permData.overrides || []).find(o => o.modulo_id === parseInt(modId));
+        const cargoDefault = permData.usuario.cargos || {};
+        const prevLeitura = existing?.nivel_leitura ?? cargoDefault.nivel_padrao_leitura ?? 1;
+        const prevEscrita = existing?.nivel_escrita ?? cargoDefault.nivel_padrao_escrita ?? 1;
+        if (levels.leitura !== prevLeitura || levels.escrita !== prevEscrita) {
+          await permissoes.setModulo(permData.usuario.id, {
+            modulo_id: parseInt(modId),
+            nivel_leitura: levels.leitura,
+            nivel_escrita: levels.escrita,
+          });
+        }
+      }
+      // Recarregar dados
       const perms = await permissoes.usuario(permData.usuario.id);
       setPermData(perms);
+      initLocalPerms(perms, estrutura);
+      setPermSuccess('Permissões salvas com sucesso!');
+      setTimeout(() => setPermSuccess(''), 3000);
     } catch (e) { setPermError(e.message); }
     setSaving(false);
   }
@@ -2123,6 +2159,9 @@ function FuncionarioDetailPanel({ open, data, onClose, onEdit, onDelete, onNewDo
           {!showPerms && <Button variant="outline" size="sm" onClick={loadPermissions}>Configurar</Button>}
         </div>
 
+        {permError && <div style={{ color: '#ef4444', background: '#ef444418', border: '1px solid #ef444450', borderRadius: 8, padding: '8px 12px', marginBottom: 10, fontSize: 12 }}>{permError}</div>}
+        {permSuccess && <div style={{ color: '#10b981', background: '#10b98118', border: '1px solid #10b98150', borderRadius: 8, padding: '8px 12px', marginBottom: 10, fontSize: 12 }}>{permSuccess}</div>}
+
         {showPerms && permData && estrutura && (
           <div style={{ background: 'var(--cbrio-input-bg)', borderRadius: 10, padding: 16 }}>
             {/* Cargo / Nível base */}
@@ -2133,9 +2172,9 @@ function FuncionarioDetailPanel({ open, data, onClose, onEdit, onDelete, onNewDo
                   <button key={c.id} onClick={() => handleCargoChange(c.id)} disabled={saving}
                     style={{
                       padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                      border: `2px solid ${permData.usuario?.cargo_id === c.id ? NIVEL_COLORS[c.nivel_padrao_leitura] : C.border}`,
-                      background: permData.usuario?.cargo_id === c.id ? `${NIVEL_COLORS[c.nivel_padrao_leitura]}18` : 'transparent',
-                      color: permData.usuario?.cargo_id === c.id ? NIVEL_COLORS[c.nivel_padrao_leitura] : C.text2,
+                      border: `2px solid ${localCargo === c.id ? NIVEL_COLORS[c.nivel_padrao_leitura] : C.border}`,
+                      background: localCargo === c.id ? `${NIVEL_COLORS[c.nivel_padrao_leitura]}18` : 'transparent',
+                      color: localCargo === c.id ? NIVEL_COLORS[c.nivel_padrao_leitura] : C.text2,
                     }}>
                     {c.nome}
                   </button>
@@ -2148,7 +2187,7 @@ function FuncionarioDetailPanel({ open, data, onClose, onEdit, onDelete, onNewDo
               <label style={{ fontSize: 11, fontWeight: 600, color: C.text2, textTransform: 'uppercase', marginBottom: 6, display: 'block' }}>Áreas vinculadas</label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
                 {(estrutura.areas || []).map(a => {
-                  const isLinked = (permData.areas || []).some(ua => ua.area_id === a.id);
+                  const isLinked = localAreas.includes(a.id);
                   return (
                     <label key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.text, cursor: 'pointer', padding: '3px 0' }}>
                       <input type="checkbox" checked={isLinked} onChange={() => handleAreaToggle(a.id)} disabled={saving} />
@@ -2173,28 +2212,29 @@ function FuncionarioDetailPanel({ open, data, onClose, onEdit, onDelete, onNewDo
                   </thead>
                   <tbody>
                     {(estrutura.modulos || []).map(mod => {
-                      const override = (permData.overrides || []).find(o => o.modulo_id === mod.id);
+                      const levels = localModulos[mod.id] || { leitura: 1, escrita: 1 };
                       const cargoDefault = permData.usuario?.cargos || {};
-                      const leitura = override?.nivel_leitura ?? cargoDefault.nivel_padrao_leitura ?? 1;
-                      const escrita = override?.nivel_escrita ?? cargoDefault.nivel_padrao_escrita ?? 1;
-                      const isOverridden = !!override;
+                      const origOverride = (permData.overrides || []).find(o => o.modulo_id === mod.id);
+                      const origLeitura = origOverride?.nivel_leitura ?? cargoDefault.nivel_padrao_leitura ?? 1;
+                      const origEscrita = origOverride?.nivel_escrita ?? cargoDefault.nivel_padrao_escrita ?? 1;
+                      const isChanged = levels.leitura !== origLeitura || levels.escrita !== origEscrita;
                       return (
-                        <tr key={mod.id}>
+                        <tr key={mod.id} style={isChanged ? { background: '#f59e0b08' } : undefined}>
                           <td style={{ padding: '6px 8px', borderBottom: `1px solid ${C.border}`, fontWeight: 500, color: C.text }}>
                             {mod.nome}
-                            {isOverridden && <span style={{ fontSize: 9, color: C.amber, marginLeft: 4 }}>override</span>}
+                            {isChanged && <span style={{ fontSize: 9, color: C.amber, marginLeft: 4 }}>alterado</span>}
                           </td>
                           <td style={{ padding: '4px 8px', borderBottom: `1px solid ${C.border}`, textAlign: 'center' }}>
-                            <select value={leitura} onChange={e => handleModuloChange(mod.id, 'leitura', parseInt(e.target.value))}
+                            <select value={levels.leitura} onChange={e => handleModuloChange(mod.id, 'leitura', parseInt(e.target.value))}
                               disabled={saving}
-                              style={{ padding: '3px 6px', borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 11, background: 'var(--cbrio-card)', color: NIVEL_COLORS[leitura], fontWeight: 600, cursor: 'pointer' }}>
+                              style={{ padding: '3px 6px', borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 11, background: 'var(--cbrio-card)', color: NIVEL_COLORS[levels.leitura], fontWeight: 600, cursor: 'pointer' }}>
                               {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n} — {NIVEL_LABELS[n]}</option>)}
                             </select>
                           </td>
                           <td style={{ padding: '4px 8px', borderBottom: `1px solid ${C.border}`, textAlign: 'center' }}>
-                            <select value={escrita} onChange={e => handleModuloChange(mod.id, 'escrita', parseInt(e.target.value))}
+                            <select value={levels.escrita} onChange={e => handleModuloChange(mod.id, 'escrita', parseInt(e.target.value))}
                               disabled={saving}
-                              style={{ padding: '3px 6px', borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 11, background: 'var(--cbrio-card)', color: NIVEL_COLORS[escrita], fontWeight: 600, cursor: 'pointer' }}>
+                              style={{ padding: '3px 6px', borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 11, background: 'var(--cbrio-card)', color: NIVEL_COLORS[levels.escrita], fontWeight: 600, cursor: 'pointer' }}>
                               {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n} — {NIVEL_LABELS[n]}</option>)}
                             </select>
                           </td>
@@ -2207,6 +2247,14 @@ function FuncionarioDetailPanel({ open, data, onClose, onEdit, onDelete, onNewDo
               <div style={{ fontSize: 10, color: C.text3, marginTop: 8 }}>
                 Níveis: 1=Sem acesso | 2=Pessoal | 3=Área | 4=Setor | 5=Admin
               </div>
+            </div>
+
+            {/* Botão Salvar Permissões */}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16, paddingTop: 12, borderTop: `1px solid ${C.border}` }}>
+              <Button variant="ghost" size="sm" onClick={() => { initLocalPerms(permData, estrutura); setPermError(''); }}>Desfazer</Button>
+              <Button size="sm" className="gap-1.5" disabled={saving || !permDirty} onClick={savePermissions}>
+                <Save className="h-3.5 w-3.5" />{saving ? 'Salvando...' : 'Salvar Permissões'}
+              </Button>
             </div>
           </div>
         )}
