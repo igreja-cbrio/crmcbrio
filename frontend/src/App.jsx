@@ -44,10 +44,28 @@ function ProtectedRoute({ children, roles }) {
   return children;
 }
 
+function DefaultRedirect() {
+  const { getAccessLevel, canAgenda, canProjetos, canExpansao } = useAuth();
+  if (canAgenda) return <Navigate to="/eventos" replace />;
+  if (canProjetos) return <Navigate to="/projetos" replace />;
+  if (canExpansao) return <Navigate to="/expansao" replace />;
+  return <Navigate to="/planejamento" replace />;
+}
+
 function PermissionGate({ module, minLevel = 2, children }) {
   const { getAccessLevel, loading } = useAuth();
   if (loading) return <Loading />;
-  if (getAccessLevel(module) < minLevel) return <Navigate to="/" replace />;
+  if (getAccessLevel(module) < minLevel) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 300, gap: 12, padding: 40 }}>
+        <div style={{ fontSize: 48 }}>🔒</div>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--cbrio-text)' }}>Acesso Restrito</h2>
+        <p style={{ fontSize: 14, color: 'var(--cbrio-text2)', textAlign: 'center', maxWidth: 400 }}>
+          Você não tem permissão para acessar este módulo. Contate o administrador para solicitar acesso.
+        </p>
+      </div>
+    );
+  }
   return children;
 }
 
@@ -69,7 +87,7 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<Navigate to="/eventos" replace />} />
+        <Route index element={<DefaultRedirect />} />
 
         {/* Planejamento (hub PMO) */}
         <Route path="planejamento" element={

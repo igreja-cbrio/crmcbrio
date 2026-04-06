@@ -41,8 +41,7 @@ export function AuthProvider({ children }) {
       setUser(session?.user ?? null);
       if (session?.user) {
         await fetchProfile(session.user.id);
-        // Load granular permissions after profile
-        fetchPermissions();
+        await fetchPermissions();
       }
       setLoading(false);
     });
