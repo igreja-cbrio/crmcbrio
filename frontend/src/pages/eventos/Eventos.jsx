@@ -287,7 +287,7 @@ export default function Eventos() {
   const userRole = profile?.role || '';
   const userArea = profile?.area || '';
   const userId = user?.id || '';
-  const isPMO = ['diretor', 'admin'].includes(userRole);
+  const isPMO = accessLevel >= 4;
   const accessLevel = getAccessLevel(['Agenda']);
 
   // URL params para drill-down (ex: /eventos?status=atrasado&id=xxx)
@@ -617,7 +617,7 @@ export default function Eventos() {
   ];
 
   // ── Kanban (dois níveis)
-  const [kanbanViewMode, setKanbanViewMode] = useState('pmo');
+  const [kanbanViewMode, setKanbanViewMode] = useState(isPMO ? 'pmo' : accessLevel >= 3 ? 'area' : 'minhas');
   const [kanbanArea, setKanbanArea] = useState('all');
   const [kanbanHorizon, setKanbanHorizon] = useState(15);
   const [kanbanExpanded, setKanbanExpanded] = useState(null);
@@ -690,9 +690,9 @@ export default function Eventos() {
         if (!ph || ph.numero_fase !== kanbanPhase) return false;
       }
       if (kanbanEvent !== 'all' && t.event_id !== kanbanEvent) return false;
-      if (kanbanViewMode === 'area' && userArea) {
+      if (kanbanViewMode === 'area') {
         const cat = getCat(t);
-        if (cat !== userArea && t.area !== userArea) return false;
+        if (!userAreas.includes(cat) && !userAreas.includes(t.area)) return false;
       }
       if (kanbanViewMode === 'minhas') {
         if (t.responsavel_id !== userId && t.responsavel_nome !== profile?.name) return false;
@@ -709,7 +709,7 @@ export default function Eventos() {
           <span style={{ fontSize: 11, color: 'var(--cbrio-text2)', fontWeight: 600 }}>Visão:</span>
           {[
             { key: 'pmo', label: 'PMO (por fase)' },
-            ...(userArea ? [{ key: 'area', label: `Minha área (${userArea})` }] : []),
+            ...(userAreas.length > 0 ? [{ key: 'area', label: `Minha área (${userAreas.join(', ')})` }] : []),
             { key: 'minhas', label: 'Minhas tarefas' },
           ].map(v => (
             <button key={v.key} onClick={() => setKanbanViewMode(v.key)} style={{
