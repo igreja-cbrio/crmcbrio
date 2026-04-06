@@ -6,11 +6,11 @@ import BudgetPanel from './components/BudgetPanel';
 
 // ── Tema ────────────────────────────────────────────────────
 const C = {
-  bg: '#f3f4f6', card: '#fff', primary: '#7c3aed', primaryBg: '#ede9fe',
-  text: '#1a1a2e', text2: '#6b7280', text3: '#9ca3af',
-  border: '#e5e7eb', green: '#10b981', greenBg: '#d1fae5',
-  red: '#ef4444', redBg: '#fee2e2', amber: '#f59e0b', amberBg: '#fef3c7',
-  blue: '#3b82f6', blueBg: '#dbeafe',
+  bg: 'var(--cbrio-bg)', card: 'var(--cbrio-card)', primary: '#00B39D', primaryBg: '#00B39D20',
+  text: 'var(--cbrio-text)', text2: 'var(--cbrio-text2)', text3: 'var(--cbrio-text3)',
+  border: 'var(--cbrio-border)', green: '#10b981', greenBg: '#10b98120',
+  red: '#ef4444', redBg: '#ef444420', amber: '#f59e0b', amberBg: '#f59e0b20',
+  blue: '#3b82f6', blueBg: '#3b82f620',
 };
 
 const STATUS_MAP = {
@@ -21,7 +21,7 @@ const STATUS_MAP = {
 };
 
 const TASK_STATUS_MAP = {
-  'pendente': { c: C.text3, bg: '#f3f4f6', label: 'Pendente' },
+  'pendente': { c: C.text3, bg: 'var(--cbrio-bg)', label: 'Pendente' },
   'em-andamento': { c: C.blue, bg: C.blueBg, label: 'Em Andamento' },
   'concluida': { c: C.green, bg: C.greenBg, label: 'Concluída' },
   'atrasada': { c: C.red, bg: C.redBg, label: 'Atrasada' },
@@ -54,7 +54,7 @@ const styles = {
   cardHeader: { padding: '16px 20px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   cardTitle: { fontSize: 15, fontWeight: 700, color: C.text },
   table: { width: '100%', borderCollapse: 'collapse' },
-  th: { padding: '10px 16px', fontSize: 11, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'left', borderBottom: `1px solid ${C.border}`, background: '#fafafa' },
+  th: { padding: '10px 16px', fontSize: 11, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'left', borderBottom: `1px solid ${C.border}`, background: 'var(--cbrio-table-header)' },
   td: { padding: '12px 16px', fontSize: 13, color: C.text, borderBottom: `1px solid ${C.border}` },
   badge: (color, bg) => ({
     display: 'inline-block', padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600,
@@ -72,14 +72,14 @@ const styles = {
   filterRow: { display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' },
   input: {
     padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13,
-    outline: 'none', width: '100%', transition: 'border 0.15s', background: '#fff',
+    outline: 'none', width: '100%', transition: 'border 0.15s', background: 'var(--cbrio-input-bg)',
   },
-  select: { padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: '#fff', outline: 'none' },
+  select: { padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: 'var(--cbrio-input-bg)', outline: 'none' },
   label: { fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 4, display: 'block', textTransform: 'uppercase', letterSpacing: 0.5 },
   formGroup: { marginBottom: 14 },
   formRow: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 },
-  overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: 60, zIndex: 1000 },
-  modal: { background: '#fff', borderRadius: 16, width: '95%', maxWidth: 560, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' },
+  overlay: { position: 'fixed', inset: 0, background: 'var(--cbrio-overlay)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: 60, zIndex: 1000 },
+  modal: { background: 'var(--cbrio-modal-bg)', borderRadius: 16, width: '95%', maxWidth: 560, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' },
   modalHeader: { padding: '20px 24px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   modalTitle: { fontSize: 18, fontWeight: 700, color: C.text },
   modalBody: { padding: '16px 24px 24px' },
@@ -92,7 +92,7 @@ const styles = {
     marginBottom: 10, boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
   },
   subtaskRow: { display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', fontSize: 13, color: C.text },
-  commentBox: { background: '#fafafa', borderRadius: 8, padding: '8px 12px', marginTop: 6, fontSize: 12, color: C.text2 },
+  commentBox: { background: 'var(--cbrio-table-header)', borderRadius: 8, padding: '8px 12px', marginTop: 6, fontSize: 12, color: C.text2 },
   dot: (color) => ({ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: color, marginRight: 6 }),
   backBtn: { background: 'none', border: 'none', cursor: 'pointer', color: C.primary, fontWeight: 600, fontSize: 13, padding: 0, marginBottom: 16 },
   inlineInput: { padding: '4px 8px', borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, outline: 'none', flex: 1 },
@@ -170,7 +170,7 @@ function Textarea({ label, ...props }) {
 }
 
 function Badge({ status, map }) {
-  const s = map[status] || { c: C.text3, bg: '#f3f4f6', label: status || '—' };
+  const s = map[status] || { c: C.text3, bg: 'var(--cbrio-bg)', label: status || '—' };
   return <span style={styles.badge(s.c, s.bg)}>{s.label}</span>;
 }
 
@@ -194,7 +194,7 @@ function BigCalendar({ eventsByDate, onSelectDate, selectedDate }) {
   for (let d = 1; d <= daysInMonth; d++) days.push(d);
 
   return (
-    <div style={{ background: '#fff', borderRadius: 12, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
+    <div style={{ background: 'var(--cbrio-card)', borderRadius: 12, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: `1px solid ${C.border}` }}>
         <button onClick={() => setViewMonth(new Date(year, month - 1, 1))} style={{ ...styles.btn('ghost'), fontSize: 16 }}>‹</button>
@@ -218,7 +218,7 @@ function BigCalendar({ eventsByDate, onSelectDate, selectedDate }) {
           return (
             <div key={d} onClick={() => onSelectDate(ds)} style={{
               minHeight: 80, padding: '4px 6px', cursor: 'pointer', borderRight: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`,
-              background: isSelected ? C.primaryBg : isToday ? '#fafafa' : '#fff',
+              background: isSelected ? C.primaryBg : isToday ? 'var(--cbrio-table-header)' : 'var(--cbrio-card)',
               transition: 'background 0.1s',
             }}>
               <div style={{
@@ -920,7 +920,7 @@ export default function Eventos() {
             </div>
             <div style={{ display: 'flex' }}>
               <div style={{ width: NW, flexShrink: 0, borderRight: '1px solid var(--cbrio-border)' }}>
-                <div style={{ height: 28, borderBottom: '1px solid var(--cbrio-border)', background: 'var(--cbrio-table-header, #fafafa)' }} />
+                <div style={{ height: 28, borderBottom: '1px solid var(--cbrio-border)', background: 'var(--cbrio-table-header)' }} />
                 {group.phases.map(ph => {
                   const eiN = normDate(ph.data_fim_prevista);
                   const diffN = eiN ? Math.ceil((new Date(eiN + 'T12:00:00') - new Date()) / 86400000) : null;
@@ -934,7 +934,7 @@ export default function Eventos() {
               </div>
               <div style={{ flex: 1, overflowX: 'auto' }}>
                 <div style={{ minWidth: 600, position: 'relative' }}>
-                  <div style={{ height: 28, position: 'relative', borderBottom: '1px solid var(--cbrio-border)', background: 'var(--cbrio-table-header, #fafafa)' }}>
+                  <div style={{ height: 28, position: 'relative', borderBottom: '1px solid var(--cbrio-border)', background: 'var(--cbrio-table-header)' }}>
                     {mL.map((m, i) => (<div key={i} style={{ position: 'absolute', left: `${m.pct}%`, top: 0, height: '100%', borderLeft: '1px solid var(--cbrio-border)', padding: '5px 6px', fontSize: 10, fontWeight: 600, color: 'var(--cbrio-text2)', whiteSpace: 'nowrap' }}>{m.label}</div>))}
                     <div style={{ position: 'absolute', left: `${tPct}%`, top: 0, width: 2, height: '100%', background: '#ef4444', zIndex: 2 }} />
                     <div style={{ position: 'absolute', left: `${tPct}%`, top: -1, transform: 'translateX(-50%)', fontSize: 8, fontWeight: 700, color: '#ef4444', background: 'var(--cbrio-card)', padding: '0 3px', borderRadius: 3, zIndex: 3 }}>hoje</div>
@@ -991,7 +991,7 @@ export default function Eventos() {
         {/* KPIs */}
         {/* Barra de status compacta */}
         <div style={{
-          background: 'var(--cbrio-card, #fff)', borderRadius: 12, border: `1px solid ${C.border}`,
+          background: 'var(--cbrio-card)', borderRadius: 12, border: `1px solid ${C.border}`,
           padding: '14px 24px', marginBottom: 20, display: 'flex', gap: 16, alignItems: 'center',
           boxShadow: '0 1px 3px rgba(0,0,0,0.04)', overflowX: 'auto',
         }}>
@@ -1008,14 +1008,14 @@ export default function Eventos() {
             { label: 'Riscos', value: k.risks_open || 0, color: C.amber, action: () => { setTab(2); } },
             { label: 'Sem dono', value: k.events_no_owner || 0, color: C.text3, action: () => kpiDrillDown('') },
           ].map((item, i) => {
-            if (!item) return <div key={i} style={{ width: 1, height: 24, background: 'var(--cbrio-border, #e5e7eb)' }} />;
+            if (!item) return <div key={i} style={{ width: 1, height: 24, background: 'var(--cbrio-border)' }} />;
             return (
               <div key={item.label} onClick={item.action}
                 style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '2px 4px', borderRadius: 6, transition: 'background .15s' }}
                 onMouseEnter={e => e.currentTarget.style.background = `${item.color}15`}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                 <span style={{ fontSize: 20, fontWeight: 800, color: item.color }}>{item.value}</span>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--cbrio-text3, #9ca3af)', textTransform: 'uppercase', letterSpacing: 0.3, whiteSpace: 'nowrap' }}>{item.label}</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--cbrio-text3)', textTransform: 'uppercase', letterSpacing: 0.3, whiteSpace: 'nowrap' }}>{item.label}</span>
               </div>
             );
           })}
@@ -1028,14 +1028,14 @@ export default function Eventos() {
               <div style={{ ...styles.card, flex: '1 1 320px', minWidth: 280 }}>
                 <div style={{ padding: '20px 24px' }}>
                   <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--cbrio-text, #1a1a2e)', marginBottom: 12 }}>Orçamento Global</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--cbrio-text2, #6b7280)', marginBottom: 6 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--cbrio-text2)', marginBottom: 6 }}>
                     <span>Gasto: R$ {Number(k.budget_spent || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                     <span>Aprovado: R$ {Number(k.budget_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                   </div>
-                  <div style={{ height: 10, background: 'var(--cbrio-border, #e5e7eb)', borderRadius: 5 }}>
+                  <div style={{ height: 10, background: 'var(--cbrio-border)', borderRadius: 5 }}>
                     <div style={{ height: '100%', width: `${Math.min(((k.budget_spent || 0) / k.budget_total) * 100, 100)}%`, borderRadius: 5, background: (k.budget_spent || 0) > k.budget_total ? '#ef4444' : '#10b981', transition: 'width 0.3s' }} />
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--cbrio-text3, #9ca3af)', marginTop: 6 }}>
+                  <div style={{ fontSize: 12, color: 'var(--cbrio-text3)', marginTop: 6 }}>
                     {Math.round(((k.budget_spent || 0) / (k.budget_total || 1)) * 100)}% utilizado
                   </div>
                 </div>
@@ -1048,13 +1048,13 @@ export default function Eventos() {
                   {workload.slice(0, 10).map((w, i) => (
                     <div key={i} onClick={() => { window.location.href = `/planejamento?person=${encodeURIComponent(w.responsible)}`; }}
                       style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, cursor: 'pointer', padding: '3px 4px', borderRadius: 6, transition: 'background .1s' }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'var(--cbrio-bg, #f3f4f6)'}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--cbrio-bg)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                       <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--cbrio-text, #1a1a2e)', width: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.responsible}</span>
-                      <div style={{ flex: 1, height: 8, background: 'var(--cbrio-border, #e5e7eb)', borderRadius: 4 }}>
+                      <div style={{ flex: 1, height: 8, background: 'var(--cbrio-border)', borderRadius: 4 }}>
                         <div style={{ height: '100%', width: `${Math.min((w.total_tasks / Math.max(...workload.map(x => x.total_tasks), 1)) * 100, 100)}%`, borderRadius: 4, background: w.atrasadas > 0 ? '#ef4444' : '#10b981', transition: 'width 0.3s' }} />
                       </div>
-                      <span style={{ fontSize: 12, color: w.atrasadas > 0 ? '#ef4444' : 'var(--cbrio-text3, #9ca3af)', fontWeight: 600, minWidth: 60, textAlign: 'right' }}>
+                      <span style={{ fontSize: 12, color: w.atrasadas > 0 ? '#ef4444' : 'var(--cbrio-text3)', fontWeight: 600, minWidth: 60, textAlign: 'right' }}>
                         {w.total_tasks} tarefas{w.atrasadas > 0 ? ` (${w.atrasadas} ⚠)` : ''}
                       </span>
                     </div>
@@ -1122,7 +1122,7 @@ export default function Eventos() {
       <>
         {/* KPIs — barra inline compacta (mesmo formato da Home) */}
         <div style={{
-          background: 'var(--cbrio-card, #fff)', borderRadius: 12, border: `1px solid ${C.border}`,
+          background: 'var(--cbrio-card)', borderRadius: 12, border: `1px solid ${C.border}`,
           padding: '14px 24px', marginBottom: 20, display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center',
           boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
         }}>
@@ -1137,14 +1137,14 @@ export default function Eventos() {
             { label: 'Tarefas atrasadas', value: k.tasks_overdue || 0, color: C.red, action: () => {} },
             { label: 'Riscos', value: k.risks_open || 0, color: C.amber, action: () => {} },
           ].map((item, i) => {
-            if (!item) return <div key={i} style={{ width: 1, height: 24, background: 'var(--cbrio-border, #e5e7eb)' }} />;
+            if (!item) return <div key={i} style={{ width: 1, height: 24, background: 'var(--cbrio-border)' }} />;
             return (
               <div key={item.label} onClick={item.action}
                 style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '2px 4px', borderRadius: 6, transition: 'background .15s' }}
                 onMouseEnter={e => e.currentTarget.style.background = `${item.color}15`}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                 <span style={{ fontSize: 20, fontWeight: 800, color: item.color }}>{item.value}</span>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--cbrio-text3, #9ca3af)', textTransform: 'uppercase', letterSpacing: 0.3, whiteSpace: 'nowrap' }}>{item.label}</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--cbrio-text3)', textTransform: 'uppercase', letterSpacing: 0.3, whiteSpace: 'nowrap' }}>{item.label}</span>
               </div>
             );
           })}
@@ -1164,7 +1164,7 @@ export default function Eventos() {
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--cbrio-text2, #6b7280)', cursor: 'pointer' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--cbrio-text2)', cursor: 'pointer' }}>
             <input type="checkbox" checked={hideDone} onChange={e => setHideDone(e.target.checked)} />
             Esconder concluídos
           </label>
@@ -1202,7 +1202,7 @@ export default function Eventos() {
                 return list.map(ev => (
                 <tr key={ev.id} style={styles.clickRow}
                   onClick={() => loadDetail(ev.id)}
-                  onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--cbrio-input-bg)'}
                   onMouseLeave={e => e.currentTarget.style.background = ''}
                 >
                   <td style={{ ...styles.td, fontWeight: 600 }}>{ev.name}</td>
@@ -1334,9 +1334,9 @@ export default function Eventos() {
 
         {/* Contexto: ocorrência selecionada (só recorrentes) */}
         {expandedOcc && ev.recurrence !== 'unico' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, padding: '8px 14px', background: 'var(--cbrio-bg, #f3f4f6)', borderRadius: 8, border: `1px solid ${C.border}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, padding: '8px 14px', background: 'var(--cbrio-bg)', borderRadius: 8, border: `1px solid ${C.border}` }}>
             <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Visualizando: {fmtDate(expandedOcc.date)}</span>
-            <span style={styles.badge(expandedOcc.status === 'concluido' ? C.green : C.text3, expandedOcc.status === 'concluido' ? `${C.green}15` : '#f3f4f6')}>
+            <span style={styles.badge(expandedOcc.status === 'concluido' ? C.green : C.text3, expandedOcc.status === 'concluido' ? `${C.green}15` : 'var(--cbrio-bg)')}>
               {expandedOcc.status === 'concluido' ? 'Concluído' : 'Pendente'}
             </span>
             <button style={{ ...styles.btn(expandedOcc.status === 'concluido' ? 'secondary' : 'primary'), ...styles.btnSm }}
@@ -1882,13 +1882,13 @@ export default function Eventos() {
 
           {/* Ciclo Criativo */}
           {isEdit && hasCycle && selectedEvent?.id === modalEvent?.id ? (
-            <div style={{ padding: '12px 14px', background: '#d1fae5', borderRadius: 8, border: '1px solid #a7f3d0', display: 'flex', alignItems: 'center', gap: 8, marginTop: 12 }}>
+            <div style={{ padding: '12px 14px', background: '#10b98120', borderRadius: 8, border: '1px solid #10b98140', display: 'flex', alignItems: 'center', gap: 8, marginTop: 12 }}>
               <span style={{ fontSize: 14, fontWeight: 600, color: '#10b981' }}>✓ Ciclo Criativo ativado</span>
             </div>
           ) : (
-            <div style={{ padding: '12px 14px', background: '#f3e8ff', borderRadius: 8, border: '1px solid #e9d5ff', display: 'flex', alignItems: 'center', gap: 8, marginTop: 12 }}>
+            <div style={{ padding: '12px 14px', background: '#00B39D15', borderRadius: 8, border: '1px solid #00B39D40', display: 'flex', alignItems: 'center', gap: 8, marginTop: 12 }}>
               <input type="checkbox" name="ativar_ciclo" id="ciclo-modal" value="true" style={{ width: 18, height: 18, cursor: 'pointer' }} />
-              <label htmlFor="ciclo-modal" style={{ fontSize: 14, color: '#7c3aed', fontWeight: 600, cursor: 'pointer' }}>
+              <label htmlFor="ciclo-modal" style={{ fontSize: 14, color: '#00B39D', fontWeight: 600, cursor: 'pointer' }}>
                 Ativar Ciclo Criativo
               </label>
               <span style={{ fontSize: 12, color: C.text3 }}>— 11 fases de produção + trilha administrativa</span>

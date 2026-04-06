@@ -331,7 +331,7 @@ export default function Financeiro() {
       { label: 'A Pagar Vencidas', value: dash.contasPagarVencidas ?? 0, bg: '#dc2626' },
       { label: 'Valor a Pagar', value: fmtMoney(dash.valorPagarPendente), bg: '#f59e0b' },
       { label: 'Reembolsos Pend.', value: dash.reembolsosPendentes ?? 0, bg: '#3b82f6' },
-      { label: 'Valor Reembolsos', value: fmtMoney(dash.valorReembolsosPendentes), bg: '#0a0a0a' },
+      { label: 'Valor Reembolsos', value: fmtMoney(dash.valorReembolsosPendentes), bg: 'var(--cbrio-card)' },
     ];
     return (
       <div style={styles.kpiGrid}>

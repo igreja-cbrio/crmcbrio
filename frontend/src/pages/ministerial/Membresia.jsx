@@ -102,7 +102,7 @@ export default function Membresia() {
         {isDiretor && (
           <button
             onClick={() => setShowForm(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: C.primary, color: '#0a0a0a', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: C.primary, color: 'var(--cbrio-bg)', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
           >
             <UserPlus style={{ width: 16, height: 16 }} /> Novo Membro
           </button>
@@ -266,7 +266,7 @@ export default function Membresia() {
                   <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                     {selectedMembro.familiares.map(f => (
                       <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: C.primaryBg, borderRadius: 10 }}>
-                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: C.primary, color: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>
+                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: C.primary, color: 'var(--cbrio-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>
                           {f.nome?.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
                         </div>
                         <span style={{ fontSize: 13, color: C.text, fontWeight: 500 }}>{f.nome}</span>
@@ -297,7 +297,7 @@ export default function Membresia() {
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                           }}>
                             {concluida ? (
-                              <CheckCircle2 style={{ width: 14, height: 14, color: '#0a0a0a' }} />
+                              <CheckCircle2 style={{ width: 14, height: 14, color: 'var(--cbrio-bg)' }} />
                             ) : (
                               <Circle style={{ width: 10, height: 10, color: C.text3 }} />
                             )}

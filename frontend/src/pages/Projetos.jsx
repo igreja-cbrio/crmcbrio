@@ -6,9 +6,12 @@ import { projects, users as usersApi, tasks as tasksApi } from '../api';
 const C = {
   bg: 'var(--cbrio-bg)', card: 'var(--cbrio-card)', text: 'var(--cbrio-text)',
   t2: 'var(--cbrio-text2)', t3: 'var(--cbrio-text3)', border: 'var(--cbrio-border)',
-  primary: '#7c3aed', primaryBg: '#ede9fe',
+  inputBg: 'var(--cbrio-input-bg)', tableHeader: 'var(--cbrio-table-header)',
+  modalBg: 'var(--cbrio-modal-bg)', overlay: 'var(--cbrio-overlay)',
+  primary: '#00B39D', primaryBg: '#e6f7f5',
   green: '#10b981', greenBg: '#d1fae5', red: '#ef4444', redBg: '#fee2e2',
   amber: '#f59e0b', amberBg: '#fef3c7', blue: '#3b82f6', blueBg: '#dbeafe',
+  gray: '#9ca3af', grayBg: '#d1d5db',
 };
 
 const STATUS_MAP = {
@@ -70,7 +73,7 @@ const styles = {
   cardHeader: { padding: '16px 20px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   cardTitle: { fontSize: 15, fontWeight: 700, color: C.text },
   table: { width: '100%', borderCollapse: 'collapse' },
-  th: { padding: '10px 16px', fontSize: 11, fontWeight: 700, color: C.t2, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'left', borderBottom: `1px solid ${C.border}`, background: 'var(--cbrio-table-header, #fafafa)' },
+  th: { padding: '10px 16px', fontSize: 11, fontWeight: 700, color: C.t2, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'left', borderBottom: `1px solid ${C.border}`, background: C.tableHeader },
   td: { padding: '12px 16px', fontSize: 13, color: C.text, borderBottom: `1px solid ${C.border}` },
   badge: (color, bg) => ({ display: 'inline-block', padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, color, background: bg }),
   btn: (v = 'primary') => ({
@@ -82,13 +85,13 @@ const styles = {
   }),
   btnSm: { padding: '4px 10px', fontSize: 11 },
   filterRow: { display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' },
-  input: { padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, outline: 'none', width: '100%', background: 'var(--cbrio-input-bg, #fff)', color: C.text },
-  select: { padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: 'var(--cbrio-input-bg, #fff)', color: C.text, outline: 'none' },
+  input: { padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, outline: 'none', width: '100%', background: C.inputBg, color: C.text },
+  select: { padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: C.inputBg, color: C.text, outline: 'none' },
   label: { fontSize: 11, fontWeight: 600, color: C.t2, marginBottom: 4, display: 'block', textTransform: 'uppercase', letterSpacing: 0.5 },
   formGroup: { marginBottom: 14 },
   formRow: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 },
-  overlay: { position: 'fixed', inset: 0, background: 'var(--cbrio-overlay, rgba(0,0,0,0.5))', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: 60, zIndex: 1000 },
-  modal: { background: 'var(--cbrio-modal-bg, #fff)', borderRadius: 16, width: '95%', maxWidth: 620, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' },
+  overlay: { position: 'fixed', inset: 0, background: C.overlay, display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: 60, zIndex: 1000 },
+  modal: { background: C.modalBg, borderRadius: 16, width: '95%', maxWidth: 620, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' },
   modalHeader: { padding: '20px 24px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   modalTitle: { fontSize: 18, fontWeight: 700, color: C.text },
   modalBody: { padding: '16px 24px 24px' },
@@ -842,7 +845,7 @@ export default function Projetos() {
   // ═══════════════════════════════════════════════════════════
   function renderKanban() {
     const TASK_COLS = [
-      { key: 'pendente', label: 'A fazer', color: '#9ca3af' },
+      { key: 'pendente', label: 'A fazer', color: C.gray },
       { key: 'em-andamento', label: 'Em andamento', color: C.blue },
       { key: 'bloqueada', label: 'Bloqueada', color: C.red },
       { key: 'concluida', label: 'Concluída', color: C.green },
@@ -1004,7 +1007,7 @@ export default function Projetos() {
           <span style={{ fontSize: 12, fontWeight: 400, color: C.t3, marginLeft: 12 }}>
             {phaseTasks.filter(t => t.status === 'concluida').length}/{phaseTasks.length} tarefas
           </span>
-          <button onClick={() => setModalTask({})} style={{ marginLeft: 8, fontSize: 11, padding: '3px 10px', borderRadius: 6, background: '#7c3aed', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600 }}>+ Tarefa</button>
+          <button onClick={() => setModalTask({})} style={{ marginLeft: 8, fontSize: 11, padding: '3px 10px', borderRadius: 6, background: C.primary, color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600 }}>+ Tarefa</button>
         </div>
 
         {/* ─── NÍVEL 2: 4 colunas kanban ─── */}
@@ -1039,7 +1042,7 @@ export default function Projetos() {
                       onClick={() => setKanbanExpanded(isOpen ? null : task.id)}
                       style={{
                         background: C.card, borderRadius: 8, padding: 8, marginBottom: 4,
-                        border: dc === C.red ? '1px solid #fecaca' : `1px solid ${C.border}`,
+                        border: dc === C.red ? `1px solid ${C.redBg}` : `1px solid ${C.border}`,
                         cursor: 'grab', transition: 'opacity .15s, box-shadow .15s',
                         opacity: isDragging ? 0.4 : 1,
                       }}
@@ -1094,8 +1097,8 @@ export default function Projetos() {
   // ═══════════════════════════════════════════════════════════
   function renderGantt() {
     const MONTHS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-    const ST_COLORS = { 'no-prazo': C.green, 'em-risco': C.amber, 'atrasado': C.red, 'concluido': '#d1d5db' };
-    const PHASE_COLORS = { 'pendente': '#9ca3af', 'em-andamento': C.blue, 'concluida': C.green, 'bloqueada': C.red };
+    const ST_COLORS = { 'no-prazo': C.green, 'em-risco': C.amber, 'atrasado': C.red, 'concluido': C.grayBg };
+    const PHASE_COLORS = { 'pendente': C.gray, 'em-andamento': C.blue, 'concluida': C.green, 'bloqueada': C.red };
 
     // Filtros do Gantt
     const statusFilters = [
@@ -1103,7 +1106,7 @@ export default function Projetos() {
       { key: 'no-prazo', label: 'No Prazo', color: C.green },
       { key: 'em-risco', label: 'Em Risco', color: C.amber },
       { key: 'atrasado', label: 'Atrasado', color: C.red },
-      { key: 'concluido', label: 'Concluído', color: '#9ca3af' },
+      { key: 'concluido', label: 'Concluído', color: C.gray },
     ];
 
     let visibleProjects = list.filter(p => normDate(p.date_start) && normDate(p.date_end));
@@ -1178,7 +1181,7 @@ export default function Projetos() {
 
         {/* Legenda */}
         <div style={{ display: 'flex', gap: 16, marginBottom: 12, flexWrap: 'wrap' }}>
-          {[{ l: 'No Prazo (>7d)', c: C.green }, { l: 'Urgente (≤7d)', c: C.amber }, { l: 'Atrasado', c: C.red }, { l: 'Concluído', c: '#d1d5db' }].map(x => (
+          {[{ l: 'No Prazo (>7d)', c: C.green }, { l: 'Urgente (≤7d)', c: C.amber }, { l: 'Atrasado', c: C.red }, { l: 'Concluído', c: C.grayBg }].map(x => (
             <div key={x.l} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <div style={{ width: 20, height: 10, borderRadius: 4, background: x.c }} />
               <span style={{ fontSize: 12, color: C.t2 }}>{x.l}</span>
@@ -1194,7 +1197,7 @@ export default function Projetos() {
           <div style={{ display: 'flex' }}>
             {/* Fixed left column */}
             <div style={{ width: NW, flexShrink: 0, borderRight: `1px solid ${C.border}` }}>
-              <div style={{ height: 30, borderBottom: `1px solid ${C.border}`, background: 'var(--cbrio-table-header, #fafafa)', padding: '0 12px', display: 'flex', alignItems: 'center' }}>
+              <div style={{ height: 30, borderBottom: `1px solid ${C.border}`, background: C.tableHeader, padding: '0 12px', display: 'flex', alignItems: 'center' }}>
                 <span style={{ fontSize: 11, fontWeight: 700, color: C.t2, textTransform: 'uppercase' }}>Projeto</span>
               </div>
               {visibleProjects.map(p => {
@@ -1223,7 +1226,7 @@ export default function Projetos() {
             <div style={{ flex: 1, overflowX: 'auto' }}>
               <div style={{ minWidth: 800, position: 'relative' }}>
                 {/* Month header */}
-                <div style={{ height: 30, position: 'relative', borderBottom: `1px solid ${C.border}`, background: 'var(--cbrio-table-header, #fafafa)' }}>
+                <div style={{ height: 30, position: 'relative', borderBottom: `1px solid ${C.border}`, background: C.tableHeader }}>
                   {monthLabels.map((m, i) => (
                     <div key={i} style={{ position: 'absolute', left: `${m.pct}%`, top: 0, height: '100%', borderLeft: `1px solid ${C.border}`, padding: '6px 6px', fontSize: 10, fontWeight: 600, color: C.t2, whiteSpace: 'nowrap' }}>{m.label}</div>
                   ))}
@@ -1246,7 +1249,7 @@ export default function Projetos() {
                   const progressPct = totalDays > 0 ? Math.min(Math.max((elapsed / totalDays) * 100, 0), 100) : 0;
 
                   // Cor e texto
-                  const barColor = isDone ? '#d1d5db' : remaining !== null && remaining < 0 ? C.red : remaining !== null && remaining <= 7 ? C.amber : C.green;
+                  const barColor = isDone ? C.grayBg : remaining !== null && remaining < 0 ? C.red : remaining !== null && remaining <= 7 ? C.amber : C.green;
                   let daysText = '';
                   if (isDone) { daysText = '✓'; }
                   else if (startDate && now < startDate) { daysText = `em ${Math.ceil((startDate - now) / 86400000)}d`; }
@@ -1283,7 +1286,7 @@ export default function Projetos() {
                         const phDone = ph.status === 'concluida';
                         const phEnd = pei ? new Date(pei + 'T12:00:00') : null;
                         const phDiff = phEnd ? Math.ceil((phEnd - new Date()) / 86400000) : null;
-                        const phColor = phDone ? '#d1d5db' : ph.status === 'bloqueada' ? C.red : phDiff !== null && phDiff < 0 ? C.red : phDiff !== null && phDiff <= 3 ? C.amber : C.blue;
+                        const phColor = phDone ? C.grayBg : ph.status === 'bloqueada' ? C.red : phDiff !== null && phDiff < 0 ? C.red : phDiff !== null && phDiff <= 3 ? C.amber : C.blue;
                         const phDaysText = phDone ? '✓' : phDiff === null ? ph.name : phDiff < 0 ? `${Math.abs(phDiff)}d` : phDiff === 0 ? 'Hoje' : `${phDiff}d`;
                         let plp = 0, pwp = 0;
                         if (psi && pei) { plp = dateToPct(psi + 'T12:00:00'); const prp = dateToPct(pei + 'T12:00:00'); pwp = Math.max(prp - plp, 1); }
@@ -1523,7 +1526,7 @@ export default function Projetos() {
                         const isActive = ph.status === 'em-andamento';
                         const isBlocked = ph.status === 'bloqueada';
                         const isSelected = ph.id === selectedPhaseId;
-                        const circleColor = isDone ? '#10b981' : isActive ? '#3b82f6' : isBlocked ? '#ef4444' : '#9ca3af';
+                        const circleColor = isDone ? C.green : isActive ? C.blue : isBlocked ? C.red : C.gray;
                         const circleBg = isDone ? C.greenBg : isActive ? C.blueBg : isBlocked ? C.redBg : 'var(--cbrio-bg)';
                         const abbrev = PHASE_ABBREVS[i] || `F${i + 1}`;
                         return (
@@ -1541,14 +1544,14 @@ export default function Projetos() {
                                 transform: isSelected ? 'scale(1.1)' : 'scale(1)',
                               }}>
                                 {isDone ? (
-                                  <span style={{ fontSize: 18, color: '#10b981', fontWeight: 700 }}>{'\u2713'}</span>
+                                  <span style={{ fontSize: 18, color: C.green, fontWeight: 700 }}>{'\u2713'}</span>
                                 ) : (
                                   <span style={{ fontSize: 13, fontWeight: 700, color: circleColor }}>{i + 1}</span>
                                 )}
                               </div>
                               <div style={{
                                 fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
-                                color: isSelected ? circleColor : isDone ? '#10b981' : isActive ? '#3b82f6' : '#9ca3af',
+                                color: isSelected ? circleColor : isDone ? C.green : isActive ? C.blue : C.gray,
                                 marginTop: 6, textAlign: 'center',
                               }}>
                                 {abbrev}
@@ -1563,7 +1566,7 @@ export default function Projetos() {
                             {i < sortedPhases.length - 1 && (
                               <div style={{
                                 width: 36, height: 3,
-                                background: isDone ? '#10b981' : C.border,
+                                background: isDone ? C.green : C.border,
                                 margin: '0 2px', marginBottom: 28, borderRadius: 2,
                               }} />
                             )}
@@ -1581,9 +1584,9 @@ export default function Projetos() {
                           <div style={{
                             width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                             background: selectedPhase.status === 'concluida' ? C.greenBg : selectedPhase.status === 'em-andamento' ? C.blueBg : selectedPhase.status === 'bloqueada' ? C.redBg : 'var(--cbrio-bg)',
-                            border: `2px solid ${selectedPhase.status === 'concluida' ? '#10b981' : selectedPhase.status === 'em-andamento' ? '#3b82f6' : selectedPhase.status === 'bloqueada' ? '#ef4444' : '#9ca3af'}`,
+                            border: `2px solid ${selectedPhase.status === 'concluida' ? C.green : selectedPhase.status === 'em-andamento' ? C.blue : selectedPhase.status === 'bloqueada' ? C.red : C.gray}`,
                             fontSize: 13, fontWeight: 700,
-                            color: selectedPhase.status === 'concluida' ? '#10b981' : selectedPhase.status === 'em-andamento' ? '#3b82f6' : selectedPhase.status === 'bloqueada' ? '#ef4444' : '#9ca3af',
+                            color: selectedPhase.status === 'concluida' ? C.green : selectedPhase.status === 'em-andamento' ? C.blue : selectedPhase.status === 'bloqueada' ? C.red : C.gray,
                           }}>
                             {selectedPhase.status === 'concluida' ? '\u2713' : (sortedPhases.indexOf(selectedPhase) + 1)}
                           </div>
@@ -1633,7 +1636,7 @@ export default function Projetos() {
                         {/* Progress bar */}
                         {totalTasks > 0 && (
                           <div style={{ marginBottom: 12 }}>
-                            <ProgressBar value={doneTasks} max={totalTasks} color={doneTasks === totalTasks ? '#10b981' : '#3b82f6'} />
+                            <ProgressBar value={doneTasks} max={totalTasks} color={doneTasks === totalTasks ? C.green : C.blue} />
                           </div>
                         )}
 
@@ -1653,13 +1656,13 @@ export default function Projetos() {
                                     display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
                                     borderRadius: 8, cursor: 'pointer', transition: 'background .15s',
                                     background: isDoneTask ? `${C.greenBg}` : 'transparent',
-                                    border: `1px solid ${isDoneTask ? '#10b981' + '30' : C.border}`,
+                                    border: `1px solid ${isDoneTask ? C.green + '30' : C.border}`,
                                   }}
                                 >
                                   <div style={{
                                     width: 20, height: 20, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    border: `2px solid ${isDoneTask ? '#10b981' : '#9ca3af'}`,
-                                    background: isDoneTask ? '#10b981' : 'transparent',
+                                    border: `2px solid ${isDoneTask ? C.green : C.gray}`,
+                                    background: isDoneTask ? C.green : 'transparent',
                                     transition: 'all .15s', flexShrink: 0,
                                   }}>
                                     {isDoneTask && <span style={{ color: '#fff', fontSize: 12, fontWeight: 700 }}>{'\u2713'}</span>}
@@ -1858,8 +1861,8 @@ export default function Projetos() {
                       {[5,4,3,2,1].flatMap(prob => [1,2,3,4,5].map(imp => {
                         const score = prob * imp;
                         const cellRisks = (detail.risks || []).filter(r => r.probability === prob && r.impact === imp);
-                        const bg = score >= 15 ? '#ef444430' : score >= 8 ? '#f59e0b30' : score >= 4 ? '#10b98130' : 'var(--cbrio-card)';
-                        const bdr = cellRisks.length > 0 ? `2px solid ${score >= 15 ? '#ef4444' : score >= 8 ? '#f59e0b' : '#10b981'}` : `1px solid var(--cbrio-border)`;
+                        const bg = score >= 15 ? `${C.red}30` : score >= 8 ? `${C.amber}30` : score >= 4 ? `${C.green}30` : C.card;
+                        const bdr = cellRisks.length > 0 ? `2px solid ${score >= 15 ? C.red : score >= 8 ? C.amber : C.green}` : `1px solid ${C.border}`;
                         return (
                           <div key={`${prob}-${imp}`} title={`Prob: ${prob} \u00d7 Imp: ${imp} = ${score}${cellRisks.length ? '\n' + cellRisks.map(r => r.title).join(', ') : ''}`}
                             style={{ width: 34, height: 34, borderRadius: 4, background: bg, border: bdr, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 600, color: cellRisks.length ? 'var(--cbrio-text)' : 'var(--cbrio-text3)' }}>
@@ -2076,9 +2079,9 @@ export default function Projetos() {
       )}
 
       {error && (
-        <div style={{ background: '#fee2e2', color: '#ef4444', padding: '10px 16px', borderRadius: 8, marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 }}>
+        <div style={{ background: C.redBg, color: C.red, padding: '10px 16px', borderRadius: 8, marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 }}>
           <span>{error}</span>
-          <button onClick={() => setError('')} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontWeight: 700, fontSize: 14 }}>{'\u2715'}</button>
+          <button onClick={() => setError('')} style={{ background: 'none', border: 'none', color: C.red, cursor: 'pointer', fontWeight: 700, fontSize: 14 }}>{'\u2715'}</button>
         </div>
       )}
 

@@ -479,9 +479,9 @@ function DashboardTab({ dash }) {
     { label: 'Fornecedores Ativos', value: dash.fornecedoresAtivos ?? 0, bg: '#00B39D' },
     { label: 'Solic. Pendentes', value: dash.solicitacoesPendentes ?? 0, bg: '#f59e0b' },
     { label: 'Ped. Aguardando', value: dash.pedidosAguardando ?? 0, bg: '#3b82f6' },
-    { label: 'Ped. Em Trânsito', value: dash.pedidosEmTransito ?? 0, bg: '#0a0a0a' },
+    { label: 'Ped. Em Trânsito', value: dash.pedidosEmTransito ?? 0, bg: 'var(--cbrio-card)' },
     { label: 'Ped. Recebidos', value: dash.pedidosRecebidos ?? 0, bg: '#10b981' },
-    { label: 'Solic. Aprovadas', value: dash.solicitacoesAprovadas ?? 0, bg: '#6b7280' },
+    { label: 'Solic. Aprovadas', value: dash.solicitacoesAprovadas ?? 0, bg: 'var(--cbrio-card)' },
     { label: 'Valor Total Pedidos', value: fmtMoney(dash.valorTotalPedidos), bg: '#00B39D' },
   ];
   return (
