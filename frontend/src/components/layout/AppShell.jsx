@@ -20,16 +20,16 @@ const NAV_ITEMS = [
       {
         title: 'Gestão',
         items: [
-          { label: 'Recursos Humanos', description: 'Funcionários, treinamentos e férias', icon: Users, path: '/admin/rh' },
-          { label: 'Financeiro', description: 'Contas, transações e reembolsos', icon: DollarSign, path: '/admin/financeiro' },
-          { label: 'Logística', description: 'Fornecedores, compras e pedidos', icon: Truck, path: '/admin/logistica' },
-          { label: 'Patrimônio', description: 'Bens, localizações e inventário', icon: Tag, path: '/admin/patrimonio' },
+          { label: 'Recursos Humanos', description: 'Funcionários, treinamentos e férias', icon: Users, path: '/admin/rh', perm: 'canRH' },
+          { label: 'Financeiro', description: 'Contas, transações e reembolsos', icon: DollarSign, path: '/admin/financeiro', perm: 'canFinanceiro' },
+          { label: 'Logística', description: 'Fornecedores, compras e pedidos', icon: Truck, path: '/admin/logistica', perm: 'canLogistica' },
+          { label: 'Patrimônio', description: 'Bens, localizações e inventário', icon: Tag, path: '/admin/patrimonio', perm: 'canPatrimonio' },
         ],
       },
       {
         title: 'Inteligência',
         items: [
-          { label: 'Assistente IA', description: 'Agentes de auditoria e análise', icon: BrainCircuit, path: '/assistente-ia' },
+          { label: 'Assistente IA', description: 'Agentes de auditoria e análise', icon: BrainCircuit, path: '/assistente-ia', perm: 'canIA' },
         ],
       },
     ],
@@ -80,7 +80,17 @@ const NAV_ITEMS = [
 ];
 
 export default function AppShell() {
-  const { profile, role, signOut } = useAuth();
+  const { profile, role, signOut, isAdmin, canRH, canFinanceiro, canLogistica, canPatrimonio, canMembresia, canProjetos, canAgenda, canIA } = useAuth();
+  const permMap = { canRH, canFinanceiro, canLogistica, canPatrimonio, canMembresia, canProjetos, canAgenda, canIA };
+
+  // Filtrar itens de navegação por permissões
+  const filteredNavItems = NAV_ITEMS.map(section => ({
+    ...section,
+    subMenus: section.subMenus.map(sub => ({
+      ...sub,
+      items: sub.items.filter(item => !item.perm || permMap[item.perm] !== false),
+    })).filter(sub => sub.items.length > 0),
+  })).filter(section => section.subMenus.length > 0);
   const { isDark, setIsDark } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
@@ -161,7 +171,7 @@ export default function AppShell() {
 
         {/* Mega Menu — centered */}
         <nav className="flex-1 flex items-center justify-center">
-          <MegaMenu items={NAV_ITEMS} role={role} />
+          <MegaMenu items={filteredNavItems} role={role} />
         </nav>
 
         {/* Right side: theme toggle, notifications, user */}

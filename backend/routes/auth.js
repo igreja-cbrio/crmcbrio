@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const { supabase } = require('../utils/supabase');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, getMyPermissions } = require('../middleware/auth');
 
 // GET /api/auth/me — retorna perfil do usuário autenticado
 router.get('/me', authenticate, async (req, res) => {
@@ -51,6 +51,9 @@ router.get('/users', authenticate, async (req, res) => {
     res.status(500).json({ error: 'Erro interno' });
   }
 });
+
+// GET /api/auth/my-permissions — retorna permissões granulares do usuário
+router.get('/my-permissions', authenticate, getMyPermissions);
 
 // Nota: login, registro, OAuth (Google/Microsoft) são tratados
 // diretamente pelo Supabase Auth no frontend — sem passar pelo backend.

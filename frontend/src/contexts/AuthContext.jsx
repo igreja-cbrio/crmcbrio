@@ -1,11 +1,13 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 
+const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);       // Supabase auth user
   const [profile, setProfile] = useState(null); // profiles table row
+  const [modulePerms, setModulePerms] = useState(null); // granular permissions
   const [loading, setLoading] = useState(true);
 
   async function fetchProfile(userId) {
@@ -17,19 +19,42 @@ export function AuthProvider({ children }) {
     setProfile(data ?? null);
   }
 
+  async function fetchPermissions() {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+      const res = await fetch(`${API}/api/auth/my-permissions`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setModulePerms(data.granular?.modulePerms ?? null);
+      }
+    } catch { /* ignore */ }
+  }
+
   useEffect(() => {
     // Sessão inicial
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setUser(session?.user ?? null);
-      if (session?.user) await fetchProfile(session.user.id);
+      if (session?.user) {
+        await fetchProfile(session.user.id);
+        // Load granular permissions after profile
+        fetchPermissions();
+      }
       setLoading(false);
     });
 
     // Listener de mudanças de auth
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id);
-      else setProfile(null);
+      if (session?.user) {
+        fetchProfile(session.user.id);
+        fetchPermissions();
+      } else {
+        setProfile(null);
+        setModulePerms(null);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -57,6 +82,31 @@ export function AuthProvider({ children }) {
     await supabase.auth.signOut();
   }
 
+  // Helper: verifica se o usuário pode acessar um módulo
+  // moduleNames: array de nomes do módulo na tabela modulos (ex: ['DP', 'Pessoas'])
+  function canAccessModule(moduleNames, tipo = 'leitura', nivelMinimo = 2) {
+    // Admin/Diretor sempre podem
+    if (['admin', 'diretor'].includes(profile?.role)) return true;
+    // Se não tem permissões granulares carregadas, não pode
+    if (!modulePerms) return false;
+    // Verificar se tem nível suficiente em qualquer módulo
+    for (const name of moduleNames) {
+      const perm = modulePerms[name];
+      if (perm && perm[tipo] >= nivelMinimo) return true;
+    }
+    return false;
+  }
+
+  // Atalhos para módulos específicos
+  const canRH = canAccessModule(['DP', 'Pessoas']);
+  const canFinanceiro = canAccessModule(['Financeiro']);
+  const canLogistica = canAccessModule(['Logística']);
+  const canPatrimonio = canAccessModule(['Patrimônio']);
+  const canMembresia = canAccessModule(['Membresia']);
+  const canProjetos = canAccessModule(['Projetos', 'Tarefas']);
+  const canAgenda = canAccessModule(['Agenda']);
+  const canIA = canAccessModule(['IA / Agentes']);
+
   const value = {
     user,
     profile,
@@ -64,6 +114,9 @@ export function AuthProvider({ children }) {
     role: profile?.role ?? null,
     isAdmin: ['admin', 'diretor'].includes(profile?.role),
     isDiretor: profile?.role === 'diretor',
+    modulePerms,
+    canAccessModule,
+    canRH, canFinanceiro, canLogistica, canPatrimonio, canMembresia, canProjetos, canAgenda, canIA,
     signInWithGoogle,
     signInWithMicrosoft,
     signInWithEmail,
