@@ -155,18 +155,22 @@ export default function AppShell() {
       >
         {/* Logo */}
         <div className="flex items-center gap-3 mr-12 shrink-0">
-          <img
-            src="/images/logo-cbrio.svg"
-            alt="CBRio"
-            className="h-6 w-6"
-            style={{ filter: isDark
-              ? 'invert(56%) sepia(30%) saturate(600%) hue-rotate(140deg) brightness(85%)'
-              : 'invert(35%) sepia(20%) saturate(800%) hue-rotate(140deg) brightness(75%)'
-            }}
-          />
-          <span className="text-sm font-bold whitespace-nowrap" style={{ color: 'var(--cbrio-text)' }}>
-            CBRio ERP
-          </span>
+          <div className="flex items-center justify-center h-9 w-9 rounded-lg" style={{ background: '#00B39D', color: '#fff' }}>
+            <img
+              src="/images/logo-cbrio.svg"
+              alt="CBRio"
+              className="h-6 w-6"
+              style={{ filter: 'brightness(0) invert(1)' }}
+            />
+          </div>
+          <div className="flex flex-col leading-tight">
+            <span className="text-sm font-bold whitespace-nowrap" style={{ color: 'var(--cbrio-text)' }}>
+              CBRio
+            </span>
+            <span className="text-[10px] font-medium whitespace-nowrap" style={{ color: 'var(--cbrio-text3)' }}>
+              ERP
+            </span>
+          </div>
         </div>
 
         {/* Mega Menu — centered */}
