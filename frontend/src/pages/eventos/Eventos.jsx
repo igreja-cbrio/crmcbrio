@@ -283,11 +283,12 @@ function EvStatCard({ label, value, bg, svg }) {
 // COMPONENTE PRINCIPAL
 // ═══════════════════════════════════════════════════════════
 export default function Eventos() {
-  const { profile, user } = useAuth();
+  const { profile, user, getAccessLevel, userAreas } = useAuth();
   const userRole = profile?.role || '';
   const userArea = profile?.area || '';
   const userId = user?.id || '';
   const isPMO = ['diretor', 'admin'].includes(userRole);
+  const accessLevel = getAccessLevel(['Agenda']);
 
   // URL params para drill-down (ex: /eventos?status=atrasado&id=xxx)
   const urlParams = new URLSearchParams(window.location.search);

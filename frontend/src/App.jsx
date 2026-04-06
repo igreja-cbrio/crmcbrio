@@ -44,6 +44,13 @@ function ProtectedRoute({ children, roles }) {
   return children;
 }
 
+function PermissionGate({ module, minLevel = 2, children }) {
+  const { getAccessLevel, loading } = useAuth();
+  if (loading) return <Loading />;
+  if (getAccessLevel(module) < minLevel) return <Navigate to="/" replace />;
+  return children;
+}
+
 function AppRoutes() {
   const { user, loading } = useAuth();
   if (loading) return <Loading />;
@@ -65,13 +72,33 @@ function AppRoutes() {
         <Route index element={<Navigate to="/eventos" replace />} />
 
         {/* Planejamento (hub PMO) */}
-        <Route path="planejamento" element={<Suspense fallback={<Loading />}><Planejamento /></Suspense>} />
+        <Route path="planejamento" element={
+          <PermissionGate module={['Projetos', 'Tarefas', 'Agenda']}>
+            <Suspense fallback={<Loading />}><Planejamento /></Suspense>
+          </PermissionGate>
+        } />
 
         {/* Projetos e Eventos */}
-        <Route path="eventos" element={<Suspense fallback={<Loading />}><Eventos /></Suspense>} />
-        <Route path="eventos/:id" element={<Suspense fallback={<Loading />}><EventDetail /></Suspense>} />
-        <Route path="projetos" element={<Suspense fallback={<Loading />}><Projetos /></Suspense>} />
-        <Route path="expansao" element={<Suspense fallback={<Loading />}><Expansao /></Suspense>} />
+        <Route path="eventos" element={
+          <PermissionGate module={['Agenda']}>
+            <Suspense fallback={<Loading />}><Eventos /></Suspense>
+          </PermissionGate>
+        } />
+        <Route path="eventos/:id" element={
+          <PermissionGate module={['Agenda']}>
+            <Suspense fallback={<Loading />}><EventDetail /></Suspense>
+          </PermissionGate>
+        } />
+        <Route path="projetos" element={
+          <PermissionGate module={['Projetos', 'Tarefas']}>
+            <Suspense fallback={<Loading />}><Projetos /></Suspense>
+          </PermissionGate>
+        } />
+        <Route path="expansao" element={
+          <PermissionGate module={['Projetos']}>
+            <Suspense fallback={<Loading />}><Expansao /></Suspense>
+          </PermissionGate>
+        } />
 
 
         {/* Administrativo */}

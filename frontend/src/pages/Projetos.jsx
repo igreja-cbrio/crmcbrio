@@ -225,10 +225,12 @@ const TABS = ['Home', 'Lista', 'Kanban', 'Gantt'];
 // COMPONENTE PRINCIPAL
 // ═══════════════════════════════════════════════════════════
 export default function Projetos() {
-  const { profile, user, isDiretor } = useAuth();
+  const { profile, user, isDiretor, getAccessLevel, userAreas } = useAuth();
   const userRole = profile?.role || '';
   const userArea = profile?.area || '';
   const isPMO = ['diretor', 'admin'].includes(userRole);
+  const accessLevel = getAccessLevel(['Projetos', 'Tarefas']);
+  const userId = user?.id;
 
   // URL params drill-down
   const urlParams = new URLSearchParams(window.location.search);
