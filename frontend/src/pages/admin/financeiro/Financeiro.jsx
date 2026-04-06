@@ -322,7 +322,7 @@ export default function Financeiro() {
   // TAB: DASHBOARD
   // ═══════════════════════════════════════════════════════════
   const renderDashboard = () => {
-    if (!dash) return <div style={styles.empty}>Carregando...</div>;
+    if (!dash) return <div style={styles.empty}><div className="flex items-center justify-center py-6 gap-2"><div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground/25 border-t-primary" /><span className="text-xs text-muted-foreground">Carregando...</span></div></div>;
     const kpis = [
       { label: 'Saldo Total', value: fmtMoney(dash.saldoTotal), bg: '#00B39D' },
       { label: 'Contas Ativas', value: dash.contasAtivas ?? 0, bg: '#3b82f6' },
@@ -431,9 +431,9 @@ export default function Financeiro() {
       </div>
       <div style={styles.card}>
         {loading ? (
-          <div style={styles.empty}>Carregando...</div>
+          <div style={styles.empty}><div className="flex items-center justify-center py-6 gap-2"><div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground/25 border-t-primary" /><span className="text-xs text-muted-foreground">Carregando...</span></div></div>
         ) : transacoes.length === 0 ? (
-          <div style={styles.empty}>Nenhuma transacao encontrada.</div>
+          <div style={styles.empty}><div className="flex flex-col items-center py-10 gap-2"><div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mb-1"><svg className="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg></div><span className="text-sm font-medium text-foreground">Nenhuma transacao encontrada.</span></div></div>
         ) : (
           <table style={styles.table}>
             <thead>
@@ -509,9 +509,9 @@ export default function Financeiro() {
       </div>
       <div style={styles.card}>
         {loading ? (
-          <div style={styles.empty}>Carregando...</div>
+          <div style={styles.empty}><div className="flex items-center justify-center py-6 gap-2"><div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground/25 border-t-primary" /><span className="text-xs text-muted-foreground">Carregando...</span></div></div>
         ) : contasPagar.length === 0 ? (
-          <div style={styles.empty}>Nenhuma conta a pagar encontrada.</div>
+          <div style={styles.empty}><div className="flex flex-col items-center py-10 gap-2"><div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mb-1"><svg className="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg></div><span className="text-sm font-medium text-foreground">Nenhuma conta a pagar encontrada.</span></div></div>
         ) : (
           <table style={styles.table}>
             <thead>
@@ -573,9 +573,9 @@ export default function Financeiro() {
       </div>
       <div style={styles.card}>
         {loading ? (
-          <div style={styles.empty}>Carregando...</div>
+          <div style={styles.empty}><div className="flex items-center justify-center py-6 gap-2"><div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground/25 border-t-primary" /><span className="text-xs text-muted-foreground">Carregando...</span></div></div>
         ) : reembolsos.length === 0 ? (
-          <div style={styles.empty}>Nenhum reembolso encontrado.</div>
+          <div style={styles.empty}><div className="flex flex-col items-center py-10 gap-2"><div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mb-1"><svg className="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg></div><span className="text-sm font-medium text-foreground">Nenhum reembolso encontrado</span></div></div>
         ) : (
           <table style={styles.table}>
             <thead>

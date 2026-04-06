@@ -809,9 +809,7 @@ export default function Projetos() {
                 const catColor = p.project_categories?.color || getCatColor(p.category_id);
                 const pct = p.tasks_total > 0 ? Math.round((p.tasks_done / p.tasks_total) * 100) : 0;
                 return (
-                  <tr key={p.id} style={styles.clickRow} onClick={() => loadDetail(p.id)}
-                    onMouseEnter={e => e.currentTarget.style.background = 'var(--cbrio-bg)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                  <tr key={p.id} className="cbrio-row" onClick={() => loadDetail(p.id)}>
                     <td style={{ ...styles.td, fontWeight: 600 }}>{p.name}</td>
                     <td style={styles.td}><span style={styles.badge(catColor, catColor + '18')}>{catName}</span></td>
                     <td style={styles.td}>{p.leader || p.responsible || '\u2014'}</td>

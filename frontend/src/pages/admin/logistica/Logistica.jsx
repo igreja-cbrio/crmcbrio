@@ -506,8 +506,8 @@ function FornecedoresTab({ data, loading, isDiretor, filtroAtivo, setFiltroAtivo
       <th style={styles.th}>Nome</th><th style={styles.th}>CNPJ</th><th style={styles.th}>Categoria</th><th style={styles.th}>Contato</th><th style={styles.th}>Status</th>
       {isDiretor && <th style={styles.th}>Ações</th>}
     </tr></thead><tbody>
-      {loading ? <tr><td style={styles.td} colSpan={6}>Carregando...</td></tr>
-      : data.length === 0 ? <tr><td style={styles.td} colSpan={6}><div style={styles.empty}>Nenhum fornecedor</div></td></tr>
+      {loading ? <tr><td colSpan={6}><div className="flex items-center justify-center py-6 gap-2"><div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground/25 border-t-primary" /><span className="text-xs text-muted-foreground">Carregando...</span></div></td></tr>
+      : data.length === 0 ? <tr><td colSpan={6}><div className="flex flex-col items-center py-10 gap-2"><div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mb-1"><svg className="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg></div><span className="text-sm font-medium text-foreground">Nenhum fornecedor</span></div></td></tr>
       : data.map(f => (
         <tr key={f.id}>
           <td style={styles.td}><div style={{ fontWeight: 600 }}>{f.nome_fantasia || f.razao_social}</div>{f.nome_fantasia && <div style={{ fontSize: 11, color: C.text3 }}>{f.razao_social}</div>}</td>
@@ -542,8 +542,8 @@ function SolicitacoesTab({ data, loading, isDiretor, filtroStatus, setFiltroStat
       <th style={styles.th}>Título</th><th style={styles.th}>Solicitante</th><th style={styles.th}>Área</th><th style={styles.th}>Valor Est.</th><th style={styles.th}>Urgência</th><th style={styles.th}>Status</th>
       <th style={styles.th}>Ações</th>
     </tr></thead><tbody>
-      {loading ? <tr><td style={styles.td} colSpan={7}>Carregando...</td></tr>
-      : data.length === 0 ? <tr><td style={styles.td} colSpan={7}><div style={styles.empty}>Nenhuma solicitação</div></td></tr>
+      {loading ? <tr><td colSpan={7}><div className="flex items-center justify-center py-6 gap-2"><div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground/25 border-t-primary" /><span className="text-xs text-muted-foreground">Carregando...</span></div></td></tr>
+      : data.length === 0 ? <tr><td colSpan={7}><div className="flex flex-col items-center py-10 gap-2"><div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mb-1"><svg className="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg></div><span className="text-sm font-medium text-foreground">Nenhuma solicitação</span></div></td></tr>
       : data.map(s => (
         <tr key={s.id}>
           <td style={{ ...styles.td, fontWeight: 600 }}>{s.titulo}</td>
@@ -607,8 +607,8 @@ function PedidosTab({ data, loading, isDiretor, filtroStatus, setFiltroStatus, o
       <th style={{ ...styles.th, width: 36 }}><input type="checkbox" checked={selected.length === data.length && data.length > 0} onChange={toggleAll} /></th>
       <th style={styles.th}>Descrição</th><th style={styles.th}>Fornecedor</th><th style={styles.th}>Valor</th><th style={styles.th}>Data Prev.</th><th style={styles.th}>Rastreio</th><th style={styles.th}>Status</th><th style={styles.th}>Ações</th>
     </tr></thead><tbody>
-      {loading ? <tr><td style={styles.td} colSpan={8}>Carregando...</td></tr>
-      : data.length === 0 ? <tr><td style={styles.td} colSpan={8}><div style={styles.empty}>Nenhum pedido</div></td></tr>
+      {loading ? <tr><td colSpan={8}><div className="flex items-center justify-center py-6 gap-2"><div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground/25 border-t-primary" /><span className="text-xs text-muted-foreground">Carregando...</span></div></td></tr>
+      : data.length === 0 ? <tr><td colSpan={8}><div className="flex flex-col items-center py-10 gap-2"><div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mb-1"><svg className="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg></div><span className="text-sm font-medium text-foreground">Nenhum pedido</span></div></td></tr>
       : data.map(p => (
         <tr key={p.id} style={{ background: selected.includes(p.id) ? '#00B39D08' : 'transparent' }}>
           <td style={{ ...styles.td, width: 36 }}><input type="checkbox" checked={selected.includes(p.id)} onChange={() => toggleSelect(p.id)} /></td>
@@ -747,8 +747,8 @@ function NotasFiscaisTab({ data, loading, onNew, onDelete, onReload }) {
     <div style={styles.card}><table style={styles.table}><thead><tr>
       <th style={styles.th}>Número</th><th style={styles.th}>Emitente</th><th style={styles.th}>Valor</th><th style={styles.th}>Emissão</th><th style={styles.th}>Origem</th><th style={styles.th}>PDF</th><th style={styles.th}>Ações</th>
     </tr></thead><tbody>
-      {loading ? <tr><td style={styles.td} colSpan={7}>Carregando...</td></tr>
-      : data.length === 0 ? <tr><td style={styles.td} colSpan={7}><div style={styles.empty}>Nenhuma nota fiscal — importe do ML ou Arquivei</div></td></tr>
+      {loading ? <tr><td colSpan={7}><div className="flex items-center justify-center py-6 gap-2"><div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground/25 border-t-primary" /><span className="text-xs text-muted-foreground">Carregando...</span></div></td></tr>
+      : data.length === 0 ? <tr><td colSpan={7}><div className="flex flex-col items-center py-10 gap-2"><div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mb-1"><svg className="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg></div><span className="text-sm font-medium text-foreground">Nenhuma nota fiscal</span><span className="text-xs text-muted-foreground">Importe do ML ou Arquivei</span></div></td></tr>
       : data.map(n => (
         <tr key={n.id}>
           <td style={{ ...styles.td, fontWeight: 600 }}>
@@ -899,7 +899,7 @@ function ItensPedidoModal({ open, pedidoId, onClose }) {
           <Button variant="ghost" onClick={() => setLocalError('')}>&#x2715;</Button>
         </div>
       )}
-      {loading ? <div style={styles.empty}>Carregando...</div> : (<>
+      {loading ? <div className="flex items-center justify-center py-6 gap-2"><div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground/25 border-t-primary" /><span className="text-xs text-muted-foreground">Carregando...</span></div> : (<>
         <table style={styles.table}><thead><tr>
           <th style={styles.th}>Descrição</th><th style={styles.th}>Qtd</th><th style={styles.th}>Un.</th><th style={styles.th}>V. Unit.</th><th style={styles.th}>V. Total</th><th style={styles.th}></th>
         </tr></thead><tbody>
@@ -1085,8 +1085,8 @@ function ComprasMLTab() {
     </div>
 
     {/* Cards de compras */}
-    {loading ? <div style={styles.empty}>Carregando compras...</div>
-    : orders.length === 0 ? <div style={styles.empty}>Nenhuma compra encontrada</div>
+    {loading ? <div className="flex items-center justify-center py-6 gap-2"><div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground/25 border-t-primary" /><span className="text-xs text-muted-foreground">Carregando compras...</span></div>
+    : orders.length === 0 ? <div className="flex flex-col items-center py-10 gap-2"><div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mb-1"><svg className="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg></div><span className="text-sm font-medium text-foreground">Nenhuma compra encontrada</span></div>
     : <div style={{ display: 'grid', gap: 12 }}>
       {orders.map(o => {
         const isExpanded = expanded === o.id;

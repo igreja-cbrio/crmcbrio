@@ -133,6 +133,30 @@ h1, h2, h3, h4, h5, h6 {
 
 #root { min-height: 100vh; }
 
+/* ── Table row hover (global) ───────────────────── */
+tr.cbrio-row {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+tr.cbrio-row:hover {
+  background: var(--cbrio-input-bg);
+}
+
+/* ── Typography tokens ──────────────────────────── */
+.cbrio-page-title { font-size: 24px; font-weight: 800; color: var(--cbrio-text); }
+.cbrio-page-subtitle { font-size: 14px; color: var(--cbrio-text3); margin-top: 2px; }
+.cbrio-section-title { font-size: 15px; font-weight: 700; color: var(--cbrio-text); }
+.cbrio-card-title { font-size: 13px; font-weight: 700; color: var(--cbrio-text); }
+.cbrio-body { font-size: 13px; color: var(--cbrio-text); }
+.cbrio-body-sm { font-size: 12px; color: var(--cbrio-text2); }
+.cbrio-caption { font-size: 11px; color: var(--cbrio-text3); }
+
+/* ── Spacing tokens ─────────────────────────────── */
+.cbrio-page { padding: 0 24px; }
+.cbrio-card { background: var(--cbrio-card); border-radius: 12px; border: 1px solid var(--cbrio-border); box-shadow: 0 1px 3px rgba(0,0,0,0.04); overflow: hidden; }
+.cbrio-card-header { padding: 16px 20px; border-bottom: 1px solid var(--cbrio-border); display: flex; justify-content: space-between; align-items: center; }
+.cbrio-card-body { padding: 16px 20px; }
+
 /* ── Loading shimmer animation ───────────────────── */
 @keyframes cbrio-shimmer {
   0% { mask-position: 200% center; -webkit-mask-position: 200% center; }

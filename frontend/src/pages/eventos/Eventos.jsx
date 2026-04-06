@@ -1201,10 +1201,8 @@ export default function Eventos() {
                   <tr><td colSpan={6} style={styles.empty}>{loading ? 'Carregando...' : 'Nenhum evento encontrado.'}</td></tr>
                 );
                 return list.map(ev => (
-                <tr key={ev.id} style={styles.clickRow}
+                <tr key={ev.id} className="cbrio-row"
                   onClick={() => loadDetail(ev.id)}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--cbrio-input-bg)'}
-                  onMouseLeave={e => e.currentTarget.style.background = ''}
                 >
                   <td style={{ ...styles.td, fontWeight: 600 }}>{ev.name}</td>
                   <td style={styles.td}>{fmtDate(ev.date)}</td>
