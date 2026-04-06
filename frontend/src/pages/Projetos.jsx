@@ -246,6 +246,7 @@ export default function Projetos() {
   const [fCategory, setFCategory] = useState('');
   const [fPriority, setFPriority] = useState('');
   const [fSearch, setFSearch] = useState('');
+  const [fLeader, setFLeader] = useState('');
   const [hideDone, setHideDone] = useState(true);
 
   // Kanban (3 níveis: fase strip → 4 colunas tarefas → filtros)
@@ -257,6 +258,8 @@ export default function Projetos() {
   const [kanbanExpanded, setKanbanExpanded] = useState(null);
   const [dragId, setDragId] = useState(null);
   const [dropCol, setDropCol] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [modalSaving, setModalSaving] = useState(false);
 
   // Gantt
   const [ganttExpanded, setGanttExpanded] = useState({});
@@ -386,8 +389,8 @@ export default function Projetos() {
     { label: 'Atrasados', value: d.by_status?.['atrasado'] ?? counts['atrasado'], color: C.red, action: () => kpiDrillDown('atrasado') },
     { label: 'Concluidos', value: d.by_status?.['concluido'] ?? counts['concluido'], color: C.blue, action: () => kpiDrillDown('concluido') },
     null,
-    { label: 'Tarefas abertas', value: d.tasks_open || 0, color: C.t2, action: () => {} },
-    { label: 'Tarefas atrasadas', value: d.tasks_overdue || 0, color: C.red, action: () => {} },
+    { label: 'Tarefas abertas', value: d.tasks_open || 0, color: C.t2, action: () => { setTab(2); } },
+    { label: 'Tarefas atrasadas', value: d.tasks_overdue || 0, color: C.red, action: () => { setTab(2); } },
   ];
 
   // ── Category map ──
@@ -399,12 +402,14 @@ export default function Projetos() {
   // ── CRUD handlers ──
   async function saveProject(data) {
     try {
+      setModalSaving(true);
       if (data.id) await projects.update(data.id, data);
       else await projects.create(data);
       setModalProject(null);
       loadList(); loadDash();
       if (detail && data.id === detail.id) refreshDetail();
-    } catch (e) { alert(e.message); }
+    } catch (e) { setError(e.message); }
+    finally { setModalSaving(false); }
   }
 
   async function deleteProject(id) {
@@ -413,7 +418,7 @@ export default function Projetos() {
       await projects.remove(id);
       setDetail(null); setTab(0);
       loadList(); loadDash();
-    } catch (e) { alert(e.message); }
+    } catch (e) { setError(e.message); }
   }
 
   async function toggleProjectStatus(id, currentStatus) {
@@ -422,7 +427,7 @@ export default function Projetos() {
       await projects.update(id, { status: newStatus });
       loadList(); loadDash();
       if (detail?.id === id) refreshDetail();
-    } catch (e) { alert(e.message); }
+    } catch (e) { setError(e.message); }
   }
 
   // Phase
@@ -442,37 +447,40 @@ export default function Projetos() {
         await projects.createPhase(detail.id, { name: defaultPhases[i].name, order_index: i, status: 'pendente' });
       }
       refreshDetail();
-    } catch (e) { alert(e.message); }
+    } catch (e) { setError(e.message); }
   }
 
   async function updatePhaseField(phaseId, field, value) {
     try {
       await projects.updatePhase(phaseId, { [field]: value });
       refreshDetail();
-    } catch (e) { alert(e.message); }
+    } catch (e) { setError(e.message); }
   }
 
   // Task
   async function saveTask(data) {
     try {
+      setModalSaving(true);
       if (data.id) await projects.updateTask(data.id, data);
       else await projects.createTask(detail.id, data);
       setModalTask(null); refreshDetail();
-    } catch (e) { alert(e.message); }
+    } catch (e) { setError(e.message); }
+    finally { setModalSaving(false); }
   }
 
   async function changeTaskStatus(taskId, status) {
     try {
+      setSaving(true);
       await projects.updateTaskStatus(taskId, status);
       refreshDetail();
-      // Reload kanban tasks too
       tasksApi.all({ source: 'projeto' }).then(d => setKanbanTasks(Array.isArray(d) ? d : [])).catch(() => {});
-    } catch (e) { alert(e.message); }
+    } catch (e) { setError(e.message); }
+    finally { setSaving(false); }
   }
 
   async function deleteTask(taskId) {
     if (!window.confirm('Excluir tarefa?')) return;
-    try { await projects.removeTask(taskId); refreshDetail(); } catch (e) { alert(e.message); }
+    try { await projects.removeTask(taskId); refreshDetail(); } catch (e) { setError(e.message); }
   }
 
   // Subtask
@@ -483,15 +491,15 @@ export default function Projetos() {
       await projects.createSubtask(taskId, { name });
       setNewSubtask(prev => ({ ...prev, [taskId]: '' }));
       refreshDetail();
-    } catch (e) { alert(e.message); }
+    } catch (e) { setError(e.message); }
   }
 
   async function toggleSubtask(subId, done) {
-    try { await projects.toggleSubtask(subId, done); refreshDetail(); } catch (e) { alert(e.message); }
+    try { await projects.toggleSubtask(subId, done); refreshDetail(); } catch (e) { setError(e.message); }
   }
 
   async function deleteSubtask(subId) {
-    try { await projects.removeSubtask(subId); refreshDetail(); } catch (e) { alert(e.message); }
+    try { await projects.removeSubtask(subId); refreshDetail(); } catch (e) { setError(e.message); }
   }
 
   // Comment
@@ -502,62 +510,70 @@ export default function Projetos() {
       await projects.addComment(taskId, text);
       setNewComment(prev => ({ ...prev, [taskId]: '' }));
       refreshDetail();
-    } catch (e) { alert(e.message); }
+    } catch (e) { setError(e.message); }
   }
 
   // Milestone
   async function saveMilestone(data) {
     try {
+      setModalSaving(true);
       if (data.id) await projects.updateMilestone(data.id, data);
       else await projects.createMilestone(detail.id, data);
       setModalMilestone(null); refreshDetail();
-    } catch (e) { alert(e.message); }
+    } catch (e) { setError(e.message); }
+    finally { setModalSaving(false); }
   }
 
   async function changeMilestoneStatus(mId, status) {
-    try { await projects.updateMilestoneStatus(mId, status); refreshDetail(); } catch (e) { alert(e.message); }
+    try { await projects.updateMilestoneStatus(mId, status); refreshDetail(); } catch (e) { setError(e.message); }
   }
 
   // KPI
   async function saveKpi(data) {
     try {
+      setModalSaving(true);
       if (data.id) await projects.updateKpi(data.id, data);
       else await projects.createKpi(detail.id, data);
       setModalKpi(null); refreshDetail();
-    } catch (e) { alert(e.message); }
+    } catch (e) { setError(e.message); }
+    finally { setModalSaving(false); }
   }
 
   async function deleteKpi(kpiId) {
     if (!window.confirm('Remover KPI?')) return;
-    try { await projects.removeKpi(kpiId); refreshDetail(); } catch (e) { alert(e.message); }
+    try { await projects.removeKpi(kpiId); refreshDetail(); } catch (e) { setError(e.message); }
   }
 
   // Risk
   async function saveRisk(data) {
     try {
+      setModalSaving(true);
       if (data.id) await projects.updateRisk(data.id, data);
       else await projects.createRisk(detail.id, data);
       setModalRisk(null); refreshDetail();
-    } catch (e) { alert(e.message); }
+    } catch (e) { setError(e.message); }
+    finally { setModalSaving(false); }
   }
 
   async function deleteRisk(riskId) {
     if (!window.confirm('Remover risco?')) return;
-    try { await projects.removeRisk(riskId); refreshDetail(); } catch (e) { alert(e.message); }
+    try { await projects.removeRisk(riskId); refreshDetail(); } catch (e) { setError(e.message); }
   }
 
   // Budget
   async function saveBudgetItem(data) {
     try {
+      setModalSaving(true);
       if (data.id) await projects.updateBudgetItem(data.id, data);
       else await projects.createBudgetItem(detail.id, data);
       setModalBudget(null); refreshDetail();
-    } catch (e) { alert(e.message); }
+    } catch (e) { setError(e.message); }
+    finally { setModalSaving(false); }
   }
 
   async function deleteBudgetItem(itemId) {
     if (!window.confirm('Remover item?')) return;
-    try { await projects.removeBudgetItem(itemId); refreshDetail(); } catch (e) { alert(e.message); }
+    try { await projects.removeBudgetItem(itemId); refreshDetail(); } catch (e) { setError(e.message); }
   }
 
   // Retrospective
@@ -567,7 +583,7 @@ export default function Projetos() {
       await projects.saveRetrospective(detail.id, retroForm);
       const r = await projects.getRetrospective(detail.id);
       setRetroData(r); setRetroForm(r || {});
-    } catch (e) { alert(e.message); }
+    } catch (e) { setError(e.message); }
   }
 
   // Kanban project status change
@@ -575,7 +591,7 @@ export default function Projetos() {
     try {
       await projects.update(projectId, { status: newStatus });
       loadList(); loadDash();
-    } catch (e) { alert(e.message); }
+    } catch (e) { setError(e.message); }
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -667,6 +683,38 @@ export default function Projetos() {
             </div>
           </div>
         )}
+        {/* Minhas Tarefas */}
+        {profile?.name && (() => {
+          const myTasks = kanbanTasks.filter(t => t.responsible === profile.name && t.status !== 'concluida').slice(0, 8);
+          if (myTasks.length === 0) return null;
+          return (
+            <div style={{ ...styles.card, marginTop: 16 }}>
+              <div style={{ ...styles.cardHeader }}>
+                <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>Minhas Tarefas ({myTasks.length})</span>
+                <button onClick={() => { setTab(2); setKanbanViewMode('minhas'); }} style={{ fontSize: 11, padding: '4px 12px', borderRadius: 6, background: C.primary, color: '#fff', border: 'none', cursor: 'pointer' }}>Ver todas</button>
+              </div>
+              <div style={{ padding: '12px 16px' }}>
+                {myTasks.map(t => {
+                  const dl = normDate(t.deadline);
+                  const diff = dl ? Math.ceil((new Date(dl + 'T12:00:00') - new Date()) / 86400000) : null;
+                  const dc = diff === null ? null : diff < 0 ? C.red : diff <= 3 ? C.amber : C.green;
+                  const dt = diff === null ? '' : diff < 0 ? `${Math.abs(diff)}d atras` : diff === 0 ? 'Hoje' : `${diff}d`;
+                  return (
+                    <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: `1px solid ${C.border}` }}>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: (TASK_STATUS_MAP[t.status] || {}).c || C.t3, flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 500, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</div>
+                        <div style={{ fontSize: 10, color: C.t3 }}>{t.parent_name || '\u2014'}</div>
+                      </div>
+                      <Badge status={t.status} map={TASK_STATUS_MAP} />
+                      {dc && <span style={{ fontSize: 11, fontWeight: 700, color: dc, flexShrink: 0 }}>{dt}</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
         <div style={{ height: 40 }} />
       </>
     );
@@ -678,6 +726,7 @@ export default function Projetos() {
   function renderList() {
     let filtered = [...list];
     if (hideDone) filtered = filtered.filter(p => p.status !== 'concluido');
+    if (fLeader) filtered = filtered.filter(p => p.leader === fLeader);
     if (fSearch) {
       const q = fSearch.toLowerCase();
       filtered = filtered.filter(p =>
@@ -722,6 +771,12 @@ export default function Projetos() {
             <option value="">Todas as prioridades</option>
             {Object.entries(PRIORITY_MAP).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
           </select>
+          <select value={fLeader} onChange={e => setFLeader(e.target.value)} style={styles.select}>
+            <option value="">Todos os lideres</option>
+            {[...new Set(list.map(p => p.leader).filter(Boolean))].sort().map(l => (
+              <option key={l} value={l}>{l}</option>
+            ))}
+          </select>
           <input style={{ ...styles.input, width: 200 }} placeholder="Buscar..." value={fSearch} onChange={e => setFSearch(e.target.value)} />
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.t2, cursor: 'pointer' }}>
             <input type="checkbox" checked={hideDone} onChange={e => setHideDone(e.target.checked)} />
@@ -732,7 +787,7 @@ export default function Projetos() {
         {/* Table */}
         <div style={styles.card}>
           <table style={styles.table}>
-            <thead>
+            <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
               <tr>
                 {[{ key: 'name', label: 'Nome' }, { key: 'category', label: 'Categoria' }, { key: 'leader', label: 'Lider' }, { key: 'status', label: 'Status' }, { key: 'priority', label: 'Prioridade' }, { key: 'progress', label: 'Progresso' }, { key: 'deadline', label: 'Prazo' }].map(col => (
                   <th key={col.key} style={{ ...styles.th, cursor: 'pointer', userSelect: 'none' }} onClick={() => thClick(col.key)}>
@@ -745,7 +800,7 @@ export default function Projetos() {
               {loading ? (
                 <tr><td style={styles.td} colSpan={7}>Carregando...</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td style={styles.empty} colSpan={7}>Nenhum projeto encontrado.</td></tr>
+                <tr><td style={styles.empty} colSpan={7}>Nenhum projeto encontrado. Crie um novo ou ajuste os filtros.</td></tr>
               ) : filtered.map(p => {
                 const catName = p.project_categories?.name || getCatName(p.category_id);
                 const catColor = p.project_categories?.color || getCatColor(p.category_id);
@@ -949,6 +1004,7 @@ export default function Projetos() {
           <span style={{ fontSize: 12, fontWeight: 400, color: C.t3, marginLeft: 12 }}>
             {phaseTasks.filter(t => t.status === 'concluida').length}/{phaseTasks.length} tarefas
           </span>
+          <button onClick={() => setModalTask({})} style={{ marginLeft: 8, fontSize: 11, padding: '3px 10px', borderRadius: 6, background: '#7c3aed', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600 }}>+ Tarefa</button>
         </div>
 
         {/* ─── NÍVEL 2: 4 colunas kanban ─── */}
@@ -1628,7 +1684,7 @@ export default function Projetos() {
 
             {taskView === 'lista' ? (
               /* Task list view */
-              tasks.length === 0 ? <div style={styles.empty}>Nenhuma tarefa cadastrada.</div> : (
+              tasks.length === 0 ? <div style={styles.empty}>Nenhuma tarefa nesta fase. Use o botao + Tarefa para adicionar.</div> : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {sortByUrgency(tasks).map(t => {
                     const subs = t.subtasks || [];
@@ -1769,7 +1825,39 @@ export default function Projetos() {
               <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>Riscos ({risks.length})</div>
               {isDiretor && <button style={{ ...styles.btn('primary'), ...styles.btnSm }} onClick={() => setModalRisk({})}>+ Risco</button>}
             </div>
-            {risks.length === 0 ? <div style={styles.empty}>Nenhum risco cadastrado.</div> : (
+            {/* Matriz de Riscos 5x5 */}
+            {(detail.risks || []).length > 0 && (
+              <div style={{ marginBottom: 20, padding: 16, background: 'var(--cbrio-bg)', borderRadius: 10 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--cbrio-text)', marginBottom: 10 }}>Matriz de Riscos</div>
+                <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end' }}>
+                  <div style={{ width: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                    {[5,4,3,2,1].map(p => <div key={p} style={{ height: 34, display: 'flex', alignItems: 'center', fontSize: 10, color: 'var(--cbrio-text3)' }}>{p}</div>)}
+                    <div style={{ fontSize: 9, color: 'var(--cbrio-text3)', marginTop: 4 }}>Prob.</div>
+                  </div>
+                  <div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 34px)', gap: 2 }}>
+                      {[5,4,3,2,1].flatMap(prob => [1,2,3,4,5].map(imp => {
+                        const score = prob * imp;
+                        const cellRisks = (detail.risks || []).filter(r => r.probability === prob && r.impact === imp);
+                        const bg = score >= 15 ? '#ef444430' : score >= 8 ? '#f59e0b30' : score >= 4 ? '#10b98130' : 'var(--cbrio-card)';
+                        const bdr = cellRisks.length > 0 ? `2px solid ${score >= 15 ? '#ef4444' : score >= 8 ? '#f59e0b' : '#10b981'}` : `1px solid var(--cbrio-border)`;
+                        return (
+                          <div key={`${prob}-${imp}`} title={`Prob: ${prob} \u00d7 Imp: ${imp} = ${score}${cellRisks.length ? '\n' + cellRisks.map(r => r.title).join(', ') : ''}`}
+                            style={{ width: 34, height: 34, borderRadius: 4, background: bg, border: bdr, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 600, color: cellRisks.length ? 'var(--cbrio-text)' : 'var(--cbrio-text3)' }}>
+                            {cellRisks.length || ''}
+                          </div>
+                        );
+                      }))}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, padding: '0 2px' }}>
+                      {[1,2,3,4,5].map(i => <div key={i} style={{ width: 34, textAlign: 'center', fontSize: 10, color: 'var(--cbrio-text3)' }}>{i}</div>)}
+                    </div>
+                    <div style={{ textAlign: 'center', fontSize: 9, color: 'var(--cbrio-text3)', marginTop: 2 }}>Impacto</div>
+                  </div>
+                </div>
+              </div>
+            )}
+            {risks.length === 0 ? <div style={styles.empty}>Nenhum risco cadastrado. Adicione riscos para monitorar ameacas ao projeto.</div> : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {risks.map(r => {
                   const score = (Number(r.probability) || 1) * (Number(r.impact) || 1);
@@ -1853,7 +1941,7 @@ export default function Projetos() {
               <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>Itens ({budgetItems.length})</div>
               {isDiretor && <button style={{ ...styles.btn('primary'), ...styles.btnSm }} onClick={() => setModalBudget({})}>+ Item</button>}
             </div>
-            {budgetItems.length === 0 ? <div style={styles.empty}>Nenhum item de orcamento.</div> : (
+            {budgetItems.length === 0 ? <div style={styles.empty}>Nenhum item de orcamento. Adicione itens para acompanhar gastos.</div> : (
               <div style={styles.card}>
                 <table style={styles.table}>
                   <thead>
@@ -1968,7 +2056,12 @@ export default function Projetos() {
         </div>
       )}
 
-      {error && <div style={{ color: C.red, marginBottom: 12, fontSize: 13 }}>{error}</div>}
+      {error && (
+        <div style={{ background: '#fee2e2', color: '#ef4444', padding: '10px 16px', borderRadius: 8, marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 }}>
+          <span>{error}</span>
+          <button onClick={() => setError('')} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontWeight: 700, fontSize: 14 }}>{'\u2715'}</button>
+        </div>
+      )}
 
       {tab === 0 && renderHome()}
       {tab === 1 && renderList()}
@@ -1981,22 +2074,22 @@ export default function Projetos() {
       {/* ═══════════════════════════════════════════════════ */}
 
       {/* Project Form Modal */}
-      <ProjectFormModal open={!!modalProject} data={modalProject} categories={categories} onClose={() => setModalProject(null)} onSave={saveProject} isDiretor={isDiretor} />
+      <ProjectFormModal open={!!modalProject} data={modalProject} categories={categories} onClose={() => setModalProject(null)} onSave={saveProject} isDiretor={isDiretor} modalSaving={modalSaving} />
 
       {/* Task Form Modal */}
-      <TaskFormModal open={!!modalTask} data={modalTask} milestones={detail?.milestones || []} usersList={usersList} onClose={() => setModalTask(null)} onSave={saveTask} />
+      <TaskFormModal open={!!modalTask} data={modalTask} milestones={detail?.milestones || []} usersList={usersList} onClose={() => setModalTask(null)} onSave={saveTask} modalSaving={modalSaving} />
 
       {/* Risk Form Modal */}
-      <RiskFormModal open={!!modalRisk} data={modalRisk} onClose={() => setModalRisk(null)} onSave={saveRisk} />
+      <RiskFormModal open={!!modalRisk} data={modalRisk} onClose={() => setModalRisk(null)} onSave={saveRisk} modalSaving={modalSaving} />
 
       {/* KPI Form Modal */}
-      <KpiFormModal open={!!modalKpi} data={modalKpi} onClose={() => setModalKpi(null)} onSave={saveKpi} />
+      <KpiFormModal open={!!modalKpi} data={modalKpi} onClose={() => setModalKpi(null)} onSave={saveKpi} modalSaving={modalSaving} />
 
       {/* Budget Item Form Modal */}
-      <BudgetItemFormModal open={!!modalBudget} data={modalBudget} onClose={() => setModalBudget(null)} onSave={saveBudgetItem} />
+      <BudgetItemFormModal open={!!modalBudget} data={modalBudget} onClose={() => setModalBudget(null)} onSave={saveBudgetItem} modalSaving={modalSaving} />
 
       {/* Milestone Form Modal */}
-      <MilestoneFormModal open={!!modalMilestone} data={modalMilestone} onClose={() => setModalMilestone(null)} onSave={saveMilestone} />
+      <MilestoneFormModal open={!!modalMilestone} data={modalMilestone} onClose={() => setModalMilestone(null)} onSave={saveMilestone} modalSaving={modalSaving} />
     </div>
   );
 }
@@ -2005,7 +2098,7 @@ export default function Projetos() {
 // MODALS
 // ═══════════════════════════════════════════════════════════
 
-function ProjectFormModal({ open, data, categories, onClose, onSave, isDiretor }) {
+function ProjectFormModal({ open, data, categories, onClose, onSave, isDiretor, modalSaving }) {
   const [form, setForm] = useState({});
   useEffect(() => { if (data) setForm({ status: 'no-prazo', priority: 'media', year: new Date().getFullYear(), ...data }); }, [data]);
   if (!open || !isDiretor) return null;
@@ -2016,7 +2109,7 @@ function ProjectFormModal({ open, data, categories, onClose, onSave, isDiretor }
   };
   return (
     <Modal open title={form.id ? 'Editar Projeto' : 'Novo Projeto'} onClose={onClose}
-      footer={<><button style={styles.btn('ghost')} onClick={onClose}>Cancelar</button><button style={styles.btn('primary')} onClick={handleSave}>Salvar</button></>}>
+      footer={<><button style={styles.btn('ghost')} onClick={onClose}>Cancelar</button><button disabled={modalSaving} style={{ ...styles.btn('primary'), opacity: modalSaving ? 0.5 : 1 }} onClick={handleSave}>{modalSaving ? 'Salvando...' : 'Salvar'}</button></>}>
       <Input label="Nome *" value={form.name || ''} onChange={e => set('name', e.target.value)} />
       <div style={styles.formRow}>
         <Select label="Categoria" value={form.category_id || ''} onChange={e => set('category_id', e.target.value)}>
@@ -2103,7 +2196,7 @@ function ProjectFormModal({ open, data, categories, onClose, onSave, isDiretor }
   );
 }
 
-function TaskFormModal({ open, data, milestones, usersList, onClose, onSave }) {
+function TaskFormModal({ open, data, milestones, usersList, onClose, onSave, modalSaving }) {
   const [form, setForm] = useState({});
   useEffect(() => { if (data) setForm({ status: 'pendente', priority: 'media', ...data }); }, [data]);
   if (!open) return null;
@@ -2114,7 +2207,7 @@ function TaskFormModal({ open, data, milestones, usersList, onClose, onSave }) {
   };
   return (
     <Modal open title={form.id ? 'Editar Tarefa' : 'Nova Tarefa'} onClose={onClose}
-      footer={<><button style={styles.btn('ghost')} onClick={onClose}>Cancelar</button><button style={styles.btn('primary')} onClick={handleSave}>Salvar</button></>}>
+      footer={<><button style={styles.btn('ghost')} onClick={onClose}>Cancelar</button><button disabled={modalSaving} style={{ ...styles.btn('primary'), opacity: modalSaving ? 0.5 : 1 }} onClick={handleSave}>{modalSaving ? 'Salvando...' : 'Salvar'}</button></>}>
       <Input label="Nome *" value={form.name || ''} onChange={e => set('name', e.target.value)} />
       <div style={styles.formGroup}>
         <label style={styles.label}>Responsavel</label>
@@ -2146,7 +2239,7 @@ function TaskFormModal({ open, data, milestones, usersList, onClose, onSave }) {
   );
 }
 
-function RiskFormModal({ open, data, onClose, onSave }) {
+function RiskFormModal({ open, data, onClose, onSave, modalSaving }) {
   const [form, setForm] = useState({});
   useEffect(() => { if (data) setForm({ probability: 1, impact: 1, ...data }); }, [data]);
   if (!open) return null;
@@ -2157,7 +2250,7 @@ function RiskFormModal({ open, data, onClose, onSave }) {
   };
   return (
     <Modal open title={form.id ? 'Editar Risco' : 'Novo Risco'} onClose={onClose}
-      footer={<><button style={styles.btn('ghost')} onClick={onClose}>Cancelar</button><button style={styles.btn('primary')} onClick={handleSave}>Salvar</button></>}>
+      footer={<><button style={styles.btn('ghost')} onClick={onClose}>Cancelar</button><button disabled={modalSaving} style={{ ...styles.btn('primary'), opacity: modalSaving ? 0.5 : 1 }} onClick={handleSave}>{modalSaving ? 'Salvando...' : 'Salvar'}</button></>}>
       <Input label="Titulo *" value={form.title || ''} onChange={e => set('title', e.target.value)} />
       <Textarea label="Descricao" value={form.description || ''} onChange={e => set('description', e.target.value)} />
       <div style={styles.formRow}>
@@ -2174,7 +2267,7 @@ function RiskFormModal({ open, data, onClose, onSave }) {
   );
 }
 
-function KpiFormModal({ open, data, onClose, onSave }) {
+function KpiFormModal({ open, data, onClose, onSave, modalSaving }) {
   const [form, setForm] = useState({});
   useEffect(() => { if (data) setForm({ ...data }); }, [data]);
   if (!open) return null;
@@ -2185,7 +2278,7 @@ function KpiFormModal({ open, data, onClose, onSave }) {
   };
   return (
     <Modal open title={form.id ? 'Editar KPI' : 'Novo KPI'} onClose={onClose}
-      footer={<><button style={styles.btn('ghost')} onClick={onClose}>Cancelar</button><button style={styles.btn('primary')} onClick={handleSave}>Salvar</button></>}>
+      footer={<><button style={styles.btn('ghost')} onClick={onClose}>Cancelar</button><button disabled={modalSaving} style={{ ...styles.btn('primary'), opacity: modalSaving ? 0.5 : 1 }} onClick={handleSave}>{modalSaving ? 'Salvando...' : 'Salvar'}</button></>}>
       <Input label="Nome *" value={form.name || ''} onChange={e => set('name', e.target.value)} />
       <div style={styles.formRow}>
         <Input label="Valor Alvo" type="number" value={form.target_value || ''} onChange={e => set('target_value', e.target.value)} />
@@ -2199,7 +2292,7 @@ function KpiFormModal({ open, data, onClose, onSave }) {
   );
 }
 
-function BudgetItemFormModal({ open, data, onClose, onSave }) {
+function BudgetItemFormModal({ open, data, onClose, onSave, modalSaving }) {
   const [form, setForm] = useState({});
   useEffect(() => { if (data) setForm({ ...data }); }, [data]);
   if (!open) return null;
@@ -2210,7 +2303,7 @@ function BudgetItemFormModal({ open, data, onClose, onSave }) {
   };
   return (
     <Modal open title={form.id ? 'Editar Item' : 'Novo Item de Orcamento'} onClose={onClose}
-      footer={<><button style={styles.btn('ghost')} onClick={onClose}>Cancelar</button><button style={styles.btn('primary')} onClick={handleSave}>Salvar</button></>}>
+      footer={<><button style={styles.btn('ghost')} onClick={onClose}>Cancelar</button><button disabled={modalSaving} style={{ ...styles.btn('primary'), opacity: modalSaving ? 0.5 : 1 }} onClick={handleSave}>{modalSaving ? 'Salvando...' : 'Salvar'}</button></>}>
       <Input label="Descricao *" value={form.description || ''} onChange={e => set('description', e.target.value)} />
       <Select label="Categoria" value={form.category || ''} onChange={e => set('category', e.target.value)}>
         <option value="">Selecione</option>
@@ -2225,7 +2318,7 @@ function BudgetItemFormModal({ open, data, onClose, onSave }) {
   );
 }
 
-function MilestoneFormModal({ open, data, onClose, onSave }) {
+function MilestoneFormModal({ open, data, onClose, onSave, modalSaving }) {
   const [form, setForm] = useState({});
   useEffect(() => { if (data) setForm({ ...data }); }, [data]);
   if (!open) return null;
@@ -2236,7 +2329,7 @@ function MilestoneFormModal({ open, data, onClose, onSave }) {
   };
   return (
     <Modal open title={form.id ? 'Editar Marco' : 'Novo Marco'} onClose={onClose}
-      footer={<><button style={styles.btn('ghost')} onClick={onClose}>Cancelar</button><button style={styles.btn('primary')} onClick={handleSave}>Salvar</button></>}>
+      footer={<><button style={styles.btn('ghost')} onClick={onClose}>Cancelar</button><button disabled={modalSaving} style={{ ...styles.btn('primary'), opacity: modalSaving ? 0.5 : 1 }} onClick={handleSave}>{modalSaving ? 'Salvando...' : 'Salvar'}</button></>}>
       <Input label="Nome *" value={form.name || ''} onChange={e => set('name', e.target.value)} />
       <div style={styles.formRow}>
         <Input label="Data Inicio" type="date" value={normDate(form.date_start) || ''} onChange={e => set('date_start', e.target.value)} />

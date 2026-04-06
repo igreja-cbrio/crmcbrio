@@ -101,7 +101,7 @@ router.patch('/:source/:taskId/status', async (req, res) => {
         if (phaseMatch) {
           const phaseName = phaseMatch[1].trim();
           const { data: allPhaseTasks } = await supabase.from('project_tasks')
-            .select('id, status').eq('project_id', data.project_id).like('description', `Fase: ${phaseName}`);
+            .select('id, status').eq('project_id', data.project_id).ilike('description', `%Fase: ${phaseName}%`);
           const total = allPhaseTasks?.length || 0;
           const done = allPhaseTasks?.filter(t => t.status === 'concluida').length || 0;
           if (total > 0 && done === total) {
@@ -109,16 +109,20 @@ router.patch('/:source/:taskId/status', async (req, res) => {
               .select('id, phase_order, status').eq('project_id', data.project_id).eq('name', phaseName).maybeSingle();
             if (phase && phase.status !== 'concluida') {
               await supabase.from('project_phases').update({ status: 'concluida' }).eq('id', phase.id);
-              await supabase.from('project_phases').update({ status: 'em-andamento' })
-                .eq('project_id', data.project_id).eq('phase_order', phase.phase_order + 1).eq('status', 'pendente');
+              if (phase.phase_order < 7) {
+                await supabase.from('project_phases').update({ status: 'em-andamento' })
+                  .eq('project_id', data.project_id).eq('phase_order', phase.phase_order + 1).eq('status', 'pendente');
+              }
               const { data: proj } = await supabase.from('projects').select('name').eq('id', data.project_id).single();
-              await notificar({
-                modulo: 'projetos', tipo: 'fase_concluida',
-                titulo: `Fase "${phaseName}" concluída`,
-                mensagem: `Todas as tarefas da fase "${phaseName}" foram concluídas no projeto "${proj?.name}".`,
-                link: `/projetos?id=${data.project_id}`, severidade: 'info',
-                chaveDedup: `phase_done_${phase.id}`,
-              });
+              try {
+                await notificar({
+                  modulo: 'projetos', tipo: 'fase_concluida',
+                  titulo: `Fase "${phaseName}" concluída`,
+                  mensagem: `Todas as tarefas da fase "${phaseName}" foram concluídas no projeto "${proj?.name}".`,
+                  link: `/projetos?id=${data.project_id}`, severidade: 'info',
+                  chaveDedup: `phase_done_${phase.id}`,
+                });
+              } catch (notifErr) { console.error('[Tasks] Erro ao notificar:', notifErr.message); }
             }
           }
         }
