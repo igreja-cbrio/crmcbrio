@@ -64,20 +64,21 @@ export default function TabAvaliacoes({ funcionarios = [] }) {
 
   useEffect(() => { load(); }, [load]);
 
+  const [localError, setLocalError] = useState('');
+
   async function salvar(overrides = {}) {
     setSaving(true);
     const payload = { ...panel, ...overrides };
     try {
       if (payload.id) await rh.avaliacoes.update(payload.id, payload);
       else await rh.avaliacoes.create(payload);
-      setPanel(null); load();
-    } catch (e) { alert(e.message); }
+      setPanel(null); load(); setLocalError('');
+    } catch (e) { setLocalError(e.message); }
     setSaving(false);
   }
 
   async function excluir(id) {
-    if (!confirm('Excluir esta avaliação?')) return;
-    try { await rh.avaliacoes.remove(id); load(); } catch (e) { alert(e.message); }
+    try { await rh.avaliacoes.remove(id); load(); } catch (e) { setLocalError(e.message); }
   }
 
   const upd = (k, v) => setPanel(p => ({ ...p, [k]: v }));
@@ -93,6 +94,7 @@ export default function TabAvaliacoes({ funcionarios = [] }) {
   }
 
   return (<>
+    {localError && <div style={{ color: '#ef4444', background: '#ef444418', border: '1px solid #ef444450', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: 13 }}>{localError}</div>}
     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
       <div style={{ fontSize: 13, color: C.text2 }}>{avaliacoes.length} avaliação(ões) registrada(s)</div>
       <Button onClick={() => setPanel({ funcionario_id: '', periodo: `${thisYear}-Q${Math.ceil((new Date().getMonth() + 1) / 3)}`, data_avaliacao: new Date().toISOString().slice(0, 10), status: 'rascunho' })}>

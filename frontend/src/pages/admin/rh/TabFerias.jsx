@@ -51,6 +51,7 @@ export default function TabFerias() {
   const [mostrarForm, setMostrarForm] = useState(false);
   const [funcionarios, setFuncionarios] = useState([]);
   const [showSaldos, setShowSaldos] = useState(false);
+  const [localError, setLocalError] = useState('');
   const [form, setForm] = useState({ funcionario_id: '', tipo: 'ferias', data_inicio: '', data_fim: '', observacoes: '' });
 
   async function fetchFerias() {
@@ -83,9 +84,10 @@ export default function TabFerias() {
   async function handleSalvar(e) {
     e.preventDefault();
     if (form.data_inicio && form.data_fim && form.data_fim < form.data_inicio) {
-      alert('A data de fim deve ser igual ou posterior à data de início.');
+      setLocalError('A data de fim deve ser igual ou posterior à data de início.');
       return;
     }
+    setLocalError('');
     const token = await getToken();
     const res = await fetch(`${API}/api/rh/ferias`, {
       method: 'POST',
@@ -93,7 +95,7 @@ export default function TabFerias() {
       body: JSON.stringify(form),
     });
     if (res.ok) { setMostrarForm(false); fetchFerias(); }
-    else { const d = await res.json(); alert(d.error); }
+    else { const d = await res.json(); setLocalError(d.error); }
   }
 
   async function handleAprovar(id, status) {
@@ -180,6 +182,8 @@ export default function TabFerias() {
           </table>
         </div>
       )}
+
+      {localError && <div style={{ color: '#ef4444', background: '#ef444418', border: '1px solid #ef444450', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: 13 }}>{localError}</div>}
 
       {mostrarForm && (
         <form onSubmit={handleSalvar} style={{ background: 'var(--cbrio-card)', borderRadius: 12, padding: 20, marginBottom: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>

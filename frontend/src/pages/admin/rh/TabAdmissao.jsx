@@ -270,25 +270,25 @@ export default function TabAdmissao() {
 
   useEffect(() => { load(); }, [load]);
 
+  const [localError, setLocalError] = useState('');
+
   async function salvar(data) {
     setSaving(true);
     try {
       if (data.id) await rh.admissoes.update(data.id, data);
       else await rh.admissoes.create(data);
       setModalForm(null);
-      load();
-    } catch (e) { alert(e.message); }
+      load(); setLocalError('');
+    } catch (e) { setLocalError(e.message); }
     setSaving(false);
   }
 
   async function excluir(id) {
-    if (!confirm('Excluir esta admissão?')) return;
-    try { await rh.admissoes.remove(id); load(); } catch (e) { alert(e.message); }
+    try { await rh.admissoes.remove(id); load(); } catch (e) { setLocalError(e.message); }
   }
 
   async function concluir(id) {
-    if (!confirm('Concluir admissão e criar o colaborador no sistema?')) return;
-    try { await rh.admissoes.concluir(id); load(); } catch (e) { alert(e.message); }
+    try { await rh.admissoes.concluir(id); load(); } catch (e) { setLocalError(e.message); }
   }
 
   function abrirContrato(adm) {
@@ -310,13 +310,14 @@ export default function TabAdmissao() {
       });
       setModalContrato(null);
       load();
-    } catch (e) { alert(e.message); }
+    } catch (e) { setLocalError(e.message); }
     setSaving(false);
   }
 
   const fmtDate = (d) => d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
 
   return (<>
+    {localError && <div style={{ color: '#ef4444', background: '#ef444418', border: '1px solid #ef444450', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: 13 }}>{localError}</div>}
     <div style={styles.filterRow}>
       <select style={{ ...styles.select, width: 'auto' }} value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
         <option value="">Todos os status</option>

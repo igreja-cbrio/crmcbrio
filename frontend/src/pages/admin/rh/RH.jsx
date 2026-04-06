@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Users, Pencil, Trash2, Palmtree } from 'lucide-react';
+import { Users, Pencil, Trash2, Palmtree, X, Save, AlertTriangle } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { useAuth } from '../../../contexts/AuthContext';
 import { rh, permissoes } from '../../../api';
@@ -11,16 +11,46 @@ import TabExtras from './TabExtras';
 
 // ── Tema ────────────────────────────────────────────────────
 const C = {
-  bg: 'var(--cbrio-bg)', card: 'var(--cbrio-card)', primary: '#00B39D', primaryBg: '#00B39D18',
+  bg: 'var(--cbrio-bg)', card: 'var(--cbrio-card)', primary: 'var(--cbrio-primary, #00B39D)', primaryBg: '#00B39D18',
   text: 'var(--cbrio-text)', text2: 'var(--cbrio-text2)', text3: 'var(--cbrio-text3)',
   border: 'var(--cbrio-border)', green: '#10b981', greenBg: '#10b98118',
   red: '#ef4444', redBg: '#ef444418', amber: '#f59e0b', amberBg: '#f59e0b18',
   blue: '#3b82f6', blueBg: '#3b82f618',
 };
 
+// ── Toast de feedback ───────────────────────────────────────
+function Toast({ message, type = 'error', onClose }) {
+  if (!message) return null;
+  const colors = { error: { bg: '#ef444418', border: '#ef444450', text: '#ef4444' }, success: { bg: '#10b98118', border: '#10b98150', text: '#10b981' }, warning: { bg: '#f59e0b18', border: '#f59e0b50', text: '#f59e0b' } };
+  const c = colors[type] || colors.error;
+  return (
+    <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 9999, background: 'var(--cbrio-card)', border: `1px solid ${c.border}`, borderLeft: `4px solid ${c.text}`, borderRadius: 10, padding: '12px 16px', maxWidth: 400, boxShadow: '0 8px 30px rgba(0,0,0,0.3)', animation: 'slideInRight 0.25s ease-out', display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ flex: 1, fontSize: 13, color: c.text, fontWeight: 500 }}>{message}</div>
+      <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--cbrio-text3)', fontSize: 16 }}>✕</button>
+    </div>
+  );
+}
+
+// ── Confirm inline ──────────────────────────────────────────
+function ConfirmDialog({ message, onConfirm, onCancel }) {
+  if (!message) return null;
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)' }}>
+      <div style={{ background: 'var(--cbrio-modal-bg)', borderRadius: 16, padding: 28, maxWidth: 400, boxShadow: '0 20px 60px rgba(0,0,0,0.3)', textAlign: 'center' }}>
+        <AlertTriangle style={{ width: 36, height: 36, color: '#f59e0b', margin: '0 auto 12px' }} />
+        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--cbrio-text)', marginBottom: 20 }}>{message}</div>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+          <Button variant="ghost" onClick={onCancel}>Cancelar</Button>
+          <Button variant="destructive" onClick={onConfirm}>Confirmar</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const STATUS_COLORS = {
   ativo: { c: C.green, bg: C.greenBg, label: 'Ativo' },
-  inativo: { c: C.text3, bg: '#73737318', label: 'Inativo' },
+  inativo: { c: C.text3, bg: 'var(--cbrio-text3-bg, #73737318)', label: 'Inativo' },
   ferias: { c: C.blue, bg: C.blueBg, label: 'Férias' },
   licenca: { c: C.amber, bg: C.amberBg, label: 'Licença' },
 };
@@ -109,14 +139,15 @@ const fmtMoney = (v) => v != null ? `R$ ${Number(v).toLocaleString('pt-BR', { mi
 function Modal({ open, onClose, title, children, footer }) {
   if (!open) return null;
   return (
-    <div style={styles.overlay} onClick={onClose}>
-      <div style={styles.modal} onClick={e => e.stopPropagation()}>
-        <div style={styles.modalHeader}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex' }}>
+      <div style={{ flex: 1, background: 'rgba(0,0,0,0.5)' }} onClick={onClose} />
+      <div style={{ width: '50%', minWidth: 440, maxWidth: 600, background: 'var(--cbrio-modal-bg)', overflowY: 'auto', boxShadow: '-8px 0 30px rgba(0,0,0,0.3)', animation: 'slideInRight 0.25s ease-out', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--cbrio-modal-bg)', padding: '20px 24px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={styles.modalTitle}>{title}</div>
-          <Button variant="ghost" className="text-lg" onClick={onClose}>✕</Button>
+          <Button variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4" /></Button>
         </div>
-        <div style={styles.modalBody}>{children}</div>
-        {footer && <div style={styles.modalFooter}>{footer}</div>}
+        <div style={{ padding: '16px 24px 24px', flex: 1 }}>{children}</div>
+        {footer && <div style={{ padding: '12px 24px 20px', display: 'flex', gap: 8, justifyContent: 'flex-end', borderTop: `1px solid ${C.border}` }}>{footer}</div>}
       </div>
     </div>
   );
@@ -172,6 +203,13 @@ export default function RH() {
   const [modalDetail, setModalDetail] = useState(null);
   const [modalDoc, setModalDoc] = useState(null);
 
+  // Toast & confirmação
+  const [toast, setToast] = useState(null); // { message, type }
+  const [confirmAction, setConfirmAction] = useState(null); // { message, onConfirm }
+  const showToast = (message, type = 'error') => { setToast({ message, type }); setTimeout(() => setToast(null), 4000); };
+  const showSuccess = (msg) => showToast(msg, 'success');
+  const askConfirm = (message, onConfirm) => setConfirmAction({ message, onConfirm });
+
   // ── Loaders ──
   const loadDash = useCallback(async () => {
     try { setDash(await rh.dashboard()); } catch (e) { console.error(e); }
@@ -203,17 +241,19 @@ export default function RH() {
       else await rh.funcionarios.create(data);
       setModalFunc(null);
       loadFuncs(); loadDash();
-    } catch (e) { alert(e.message); }
+      showSuccess(data.id ? 'Colaborador atualizado!' : 'Colaborador criado!');
+    } catch (e) { showToast(e.message); }
   }
 
-  async function deleteFuncionario(id) {
-    if (!confirm('Remover este colaborador?')) return;
-    try { await rh.funcionarios.remove(id); loadFuncs(); loadDash(); setModalDetail(null); }
-    catch (e) { alert(e.message); }
+  function deleteFuncionario(id) {
+    askConfirm('Remover este colaborador?', async () => {
+      try { await rh.funcionarios.remove(id); loadFuncs(); loadDash(); setModalDetail(null); showSuccess('Colaborador removido'); }
+      catch (e) { showToast(e.message); }
+    });
   }
 
   async function openDetail(id) {
-    try { setModalDetail(await rh.funcionarios.get(id)); } catch (e) { alert(e.message); }
+    try { setModalDetail(await rh.funcionarios.get(id)); } catch (e) { showToast(e.message); }
   }
 
   async function saveTreinamento(data) {
@@ -221,23 +261,26 @@ export default function RH() {
       if (data.id) await rh.treinamentos.update(data.id, data);
       else await rh.treinamentos.create(data);
       setModalTreino(null); loadTreinos();
-    } catch (e) { alert(e.message); }
+      showSuccess('Treinamento salvo!');
+    } catch (e) { showToast(e.message); }
   }
 
-  async function deleteTreinamento(id) {
-    if (!confirm('Remover treinamento?')) return;
-    try { await rh.treinamentos.remove(id); loadTreinos(); } catch (e) { alert(e.message); }
+  function deleteTreinamento(id) {
+    askConfirm('Remover treinamento?', async () => {
+      try { await rh.treinamentos.remove(id); loadTreinos(); } catch (e) { showToast(e.message); }
+    });
   }
 
   async function saveFerias(data) {
     try {
       await rh.ferias.create(data.funcionario_id, data);
       setModalFerias(null); loadDash();
-    } catch (e) { alert(e.message); }
+      showSuccess('Solicitação registrada!');
+    } catch (e) { showToast(e.message); }
   }
 
   async function aprovarFerias(id, status) {
-    try { await rh.ferias.update(id, { status }); loadDash(); } catch (e) { alert(e.message); }
+    try { await rh.ferias.update(id, { status }); loadDash(); } catch (e) { showToast(e.message); }
   }
 
   async function saveDocumento(funcId, data) {
@@ -245,12 +288,14 @@ export default function RH() {
       await rh.documentos.create(funcId, data);
       setModalDoc(null);
       openDetail(funcId);
-    } catch (e) { alert(e.message); }
+      showSuccess('Documento salvo!');
+    } catch (e) { showToast(e.message); }
   }
 
-  async function deleteDocumento(docId, funcId) {
-    if (!confirm('Remover documento?')) return;
-    try { await rh.documentos.remove(docId); openDetail(funcId); } catch (e) { alert(e.message); }
+  function deleteDocumento(docId, funcId) {
+    askConfirm('Remover documento?', async () => {
+      try { await rh.documentos.remove(docId); openDetail(funcId); } catch (e) { showToast(e.message); }
+    });
   }
 
   // ── Render ──
@@ -259,7 +304,7 @@ export default function RH() {
       {/* Header */}
       <div style={styles.header}>
         <div>
-          <div style={{ ...styles.title, display: 'flex', alignItems: 'center', gap: 10 }}><Users className="h-7 w-7" style={{ color: '#00B39D' }} /> Recursos Humanos</div>
+          <div style={{ ...styles.title, display: 'flex', alignItems: 'center', gap: 10 }}><Users className="h-7 w-7" style={{ color: C.primary }} /> Recursos Humanos</div>
           <div style={styles.subtitle}>Gestão de colaboradores, treinamentos e férias</div>
         </div>
       </div>
@@ -281,6 +326,7 @@ export default function RH() {
           filtroStatus={filtroStatus} setFiltroStatus={setFiltroStatus}
           filtroArea={filtroArea} setFiltroArea={setFiltroArea}
           onNew={() => setModalFunc({})} onEdit={(f) => setModalFunc(f)} onDetail={openDetail} onDelete={deleteFuncionario} onImport={() => { loadFuncs(); loadDash(); }}
+          showToast={showToast}
         />
       )}
       {tab === 2 && <TabAdmissao />}
@@ -291,6 +337,7 @@ export default function RH() {
         <TreinamentosTab treinos={treinos} funcs={funcs}
           onNew={() => setModalTreino({})} onEdit={(t) => setModalTreino(t)} onDelete={deleteTreinamento}
           onInscrever={async (treinoId, funcId) => { await rh.treinamentos.inscrever(treinoId, { funcionario_id: funcId }); loadTreinos(); }}
+          showToast={showToast}
         />
       )}
       {tab === 7 && (
@@ -314,8 +361,23 @@ export default function RH() {
         onDelete={deleteFuncionario}
         onNewDoc={(funcId) => setModalDoc({ funcionario_id: funcId })}
         onDeleteDoc={deleteDocumento}
+        onSaveInline={async (updated) => {
+          await rh.funcionarios.update(modalDetail.id, updated);
+          showSuccess('Colaborador atualizado!');
+          const refreshed = await rh.funcionarios.get(modalDetail.id);
+          setModalDetail(refreshed);
+          loadFuncs(); loadDash();
+        }}
       />
       <DocumentoFormModal open={!!modalDoc} data={modalDoc} onClose={() => setModalDoc(null)} onSave={saveDocumento} />
+
+      {/* Toast & Confirm */}
+      <Toast message={toast?.message} type={toast?.type} onClose={() => setToast(null)} />
+      <ConfirmDialog
+        message={confirmAction?.message}
+        onConfirm={() => { confirmAction?.onConfirm(); setConfirmAction(null); }}
+        onCancel={() => setConfirmAction(null)}
+      />
     </div>
   );
 }
@@ -449,22 +511,24 @@ function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
 // ═══════════════════════════════════════════════════════════
 // TAB: FUNCIONÁRIOS
 // ═══════════════════════════════════════════════════════════
-function FuncionariosTab({ funcs, loading, busca, setBusca, filtroStatus, setFiltroStatus, filtroArea, setFiltroArea, onNew, onDetail, onDelete, onImport }) {
+function FuncionariosTab({ funcs, loading, busca, setBusca, filtroStatus, setFiltroStatus, filtroArea, setFiltroArea, onNew, onDetail, onDelete, onImport, showToast }) {
   const areas = [...new Set(funcs.map(f => f.area).filter(Boolean))];
   const csvRef = useRef(null);
+  const [localError, setLocalError] = useState('');
+  const setError = (msg) => { setLocalError(msg); if (showToast) showToast(msg, msg.includes('concluída') ? 'success' : 'warning'); };
 
   async function handleCSVImport(e) {
     const file = e.target.files?.[0];
     if (!file) return;
     const text = await file.text();
     const lines = text.split('\n').map(l => l.split(',').map(c => c.replace(/^"|"$/g, '').trim()));
-    if (lines.length < 2) { alert('CSV vazio ou inválido'); return; }
+    if (lines.length < 2) { setError('CSV vazio ou inválido'); return; }
     const header = lines[0].map(h => h.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
     const map = (name) => header.indexOf(name);
     const iNome = map('nome'); const iCargo = map('cargo'); const iArea = map('area');
     const iEmail = map('email'); const iTel = map('telefone'); const iCpf = map('cpf');
     const iTipo = map('tipo_contrato'); const iAdm = map('data_admissao'); const iSal = map('salario');
-    if (iNome < 0) { alert('CSV precisa ter coluna "Nome"'); return; }
+    if (iNome < 0) { setError('CSV precisa ter coluna "Nome"'); return; }
     let ok = 0, errs = 0;
     for (let i = 1; i < lines.length; i++) {
       const r = lines[i];
@@ -480,7 +544,7 @@ function FuncionariosTab({ funcs, loading, busca, setBusca, filtroStatus, setFil
         ok++;
       } catch { errs++; }
     }
-    alert(`Importação concluída: ${ok} importados, ${errs} erros`);
+    setError(`Importação concluída: ${ok} importados, ${errs} erros`);
     if (csvRef.current) csvRef.current.value = '';
     onImport?.();
   }
@@ -572,7 +636,7 @@ const MATERIAL_STATUS = {
 const FILE_ICONS = { 'application/pdf': '📄', 'application/vnd.ms-powerpoint': '📊', 'application/vnd.openxmlformats-officedocument.presentationml.presentation': '📊' };
 const getFileIcon = (mime) => FILE_ICONS[mime] || '📎';
 
-function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever, onReload }) {
+function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever, onReload, showToast }) {
   const [inscrevendo, setInscrevendo] = useState(null);
   const [funcSel, setFuncSel] = useState('');
   // Materiais
@@ -600,7 +664,7 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
   }
 
   async function handleUploadMaterial(treinoId) {
-    if (!matForm.titulo) { alert('Título é obrigatório'); return; }
+    if (!matForm.titulo) { showToast?.('Título é obrigatório'); return; }
     setUploading(true);
     try {
       let arquivo_url = null, arquivo_nome = null, arquivo_tipo = null;
@@ -625,7 +689,7 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
       await loadMateriais(treinoId);
     } catch (err) {
       console.error(err);
-      alert('Erro ao adicionar material: ' + err.message);
+      showToast?.('Erro ao adicionar material: ' + err.message);
     } finally { setUploading(false); }
   }
 
@@ -636,20 +700,19 @@ function TreinamentosTab({ treinos, funcs, onNew, onEdit, onDelete, onInscrever,
       setShowEnviar(null);
       setEnviarSel([]);
       await loadMateriais(treinoId);
-    } catch (e) { alert(e.message); }
+    } catch (e) { showToast?.(e.message); }
   }
 
   async function handleStatusUpdate(mfId, status, treinoId) {
     try {
       await rh.materiais.atualizarStatus(mfId, { status });
       await loadMateriais(treinoId);
-    } catch (e) { alert(e.message); }
+    } catch (e) { showToast?.(e.message); }
   }
 
   async function handleDeleteMaterial(matId, treinoId) {
-    if (!confirm('Remover este material?')) return;
     try { await rh.materiais.remove(matId); await loadMateriais(treinoId); }
-    catch (e) { alert(e.message); }
+    catch (e) { showToast?.(e.message); }
   }
 
   function handleFileDrop(e) {
@@ -1312,14 +1375,15 @@ function FuncionarioFormModal({ open, data, onClose, onSave, funcionarios = [] }
   const [f, setF] = useState({});
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const [uploadError, setUploadError] = useState('');
   const fileRef = useRef(null);
   useEffect(() => { if (data) setF({ ...data }); }, [data]);
   const upd = (k, v) => setF(p => ({ ...p, [k]: v }));
 
   async function uploadFoto(file) {
     if (!file) return;
-    if (!file.type.startsWith('image/')) { alert('Selecione um arquivo de imagem (JPG, PNG, etc.)'); return; }
-    if (file.size > 5 * 1024 * 1024) { alert('A imagem deve ter no máximo 5MB'); return; }
+    if (!file.type.startsWith('image/')) { setUploadError('Selecione um arquivo de imagem (JPG, PNG, etc.)'); return; }
+    if (file.size > 5 * 1024 * 1024) { setUploadError('A imagem deve ter no máximo 5MB'); return; }
     setUploading(true);
     try {
       const ext = file.name.split('.').pop();
@@ -1330,7 +1394,7 @@ function FuncionarioFormModal({ open, data, onClose, onSave, funcionarios = [] }
       upd('foto_url', publicUrl);
     } catch (err) {
       console.error('Erro upload:', err);
-      alert('Erro ao enviar foto. Tente novamente.');
+      setUploadError('Erro ao enviar foto. Tente novamente.');
     } finally { setUploading(false); }
   }
 
@@ -1721,6 +1785,7 @@ const DOCS_OBRIGATORIOS = {
 
 function DocumentosSection({ data, onNewDoc, onDeleteDoc }) {
   const [uploading, setUploading] = useState(false);
+  const [docError, setDocError] = useState('');
   const fileRef = useRef(null);
 
   // Verificar docs obrigatórios faltando
@@ -1732,7 +1797,7 @@ function DocumentosSection({ data, onNewDoc, onDeleteDoc }) {
 
   async function handleUploadDoc(file) {
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) { alert('Arquivo deve ter no máximo 10MB'); return; }
+    if (file.size > 10 * 1024 * 1024) { setDocError('Arquivo deve ter no máximo 10MB'); return; }
     setUploading(true);
     try {
       const ext = file.name.split('.').pop();
@@ -1743,11 +1808,11 @@ function DocumentosSection({ data, onNewDoc, onDeleteDoc }) {
       // Create document record
       const tipo = ext.toLowerCase() === 'pdf' ? 'contrato' : ext.toLowerCase();
       await rh.documentos.create(data.id, { nome: file.name, tipo, storage_path: publicUrl });
-      alert('Documento enviado com sucesso!');
+      setDocError(''); // success
       // Reload - parent should handle
     } catch (e) {
       console.error(e);
-      alert('Erro ao enviar documento: ' + e.message);
+      setDocError('Erro ao enviar documento: ' + e.message);
     } finally { setUploading(false); }
   }
 
@@ -1844,11 +1909,15 @@ function NotasColaborador({ funcId, initialValue }) {
 const NIVEL_LABELS = { 1: 'Sem acesso', 2: 'Pessoal', 3: 'Área', 4: 'Setor', 5: 'Admin' };
 const NIVEL_COLORS = { 1: C.red, 2: C.amber, 3: C.blue, 4: C.green, 5: '#8b5cf6' };
 
-function FuncionarioDetailPanel({ open, data, onClose, onEdit, onDelete, onNewDoc, onDeleteDoc }) {
+function FuncionarioDetailPanel({ open, data, onClose, onEdit, onDelete, onNewDoc, onDeleteDoc, onSaveInline }) {
   const [showPerms, setShowPerms] = useState(false);
   const [permData, setPermData] = useState(null);
   const [estrutura, setEstrutura] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [permError, setPermError] = useState('');
+  const [editMode, setEditMode] = useState(false);
+  const [editForm, setEditForm] = useState({});
+  const [savingInline, setSavingInline] = useState(false);
 
   useEffect(() => { if (data && open) { setShowPerms(false); setPermData(null); } }, [data, open]);
 
@@ -1880,7 +1949,7 @@ function FuncionarioDetailPanel({ open, data, onClose, onEdit, onDelete, onNewDo
       await permissoes.setCargo(permData.usuario.id, cargoId);
       const perms = await permissoes.usuario(permData.usuario.id);
       setPermData(perms);
-    } catch (e) { alert(e.message); }
+    } catch (e) { setPermError(e.message); }
     setSaving(false);
   }
 
@@ -1893,7 +1962,7 @@ function FuncionarioDetailPanel({ open, data, onClose, onEdit, onDelete, onNewDo
       await permissoes.setAreas(permData.usuario.id, newIds);
       const perms = await permissoes.usuario(permData.usuario.id);
       setPermData(perms);
-    } catch (e) { alert(e.message); }
+    } catch (e) { setPermError(e.message); }
     setSaving(false);
   }
 
@@ -1912,7 +1981,7 @@ function FuncionarioDetailPanel({ open, data, onClose, onEdit, onDelete, onNewDo
       });
       const perms = await permissoes.usuario(permData.usuario.id);
       setPermData(perms);
-    } catch (e) { alert(e.message); }
+    } catch (e) { setPermError(e.message); }
     setSaving(false);
   }
 
@@ -1925,10 +1994,29 @@ function FuncionarioDetailPanel({ open, data, onClose, onEdit, onDelete, onNewDo
       <div style={{ width: '55%', minWidth: 500, maxWidth: 800, background: 'var(--cbrio-modal-bg)', overflowY: 'auto', boxShadow: '-8px 0 30px rgba(0,0,0,0.3)', animation: 'slideInRight 0.25s ease-out' }}>
         {/* Header */}
         <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--cbrio-modal-bg)', padding: '20px 28px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>👤 {data.nome}</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>👤 {editMode ? 'Editando' : data.nome}</div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => onEdit(data)}><Pencil className="h-3.5 w-3.5" />Editar</Button>
-            <Button variant="ghost" className="text-lg" onClick={onClose}>✕</Button>
+            {editMode ? (
+              <>
+                <Button variant="ghost" size="sm" onClick={() => setEditMode(false)}>Cancelar</Button>
+                <Button size="sm" className="gap-1.5" disabled={savingInline} onClick={async () => {
+                  setSavingInline(true);
+                  try {
+                    await onSaveInline(editForm);
+                    setEditMode(false);
+                  } catch {}
+                  setSavingInline(false);
+                }}>
+                  <Save className="h-3.5 w-3.5" />{savingInline ? 'Salvando...' : 'Salvar Alterações'}
+                </Button>
+              </>
+            ) : (
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => {
+                setEditForm({ nome: data.nome, cargo: data.cargo, area: data.area || '', email: data.email || '', telefone: data.telefone || '', cpf: data.cpf || '', tipo_contrato: data.tipo_contrato, status: data.status, data_admissao: data.data_admissao || '', salario: data.salario || '', gestor_id: data.gestor_id || '' });
+                setEditMode(true);
+              }}><Pencil className="h-3.5 w-3.5" />Editar</Button>
+            )}
+            <Button variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4" /></Button>
           </div>
         </div>
         <div style={{ padding: '24px 28px' }}>
@@ -1947,24 +2035,56 @@ function FuncionarioDetailPanel({ open, data, onClose, onEdit, onDelete, onNewDo
           <Badge status={data.status} map={STATUS_COLORS} />
         </div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', marginBottom: 20 }}>
-        <div><span style={{ fontSize: 11, color: C.text2 }}>Cargo:</span><div style={{ fontSize: 14, fontWeight: 600 }}>{data.cargo}</div></div>
-        <div><span style={{ fontSize: 11, color: C.text2 }}>Área:</span><div style={{ fontSize: 14 }}>{data.area || '—'}</div></div>
-        <div><span style={{ fontSize: 11, color: C.text2 }}>CPF:</span><div style={{ fontSize: 14 }}>{data.cpf || '—'}</div></div>
-        <div><span style={{ fontSize: 11, color: C.text2 }}>Email:</span><div style={{ fontSize: 14 }}>{data.email || '—'}</div></div>
-        <div><span style={{ fontSize: 11, color: C.text2 }}>Telefone:</span><div style={{ fontSize: 14 }}>{data.telefone || '—'}</div></div>
-        <div><span style={{ fontSize: 11, color: C.text2 }}>Contrato:</span><div style={{ fontSize: 14 }}>{TIPO_CONTRATO[data.tipo_contrato]}</div></div>
-        <div><span style={{ fontSize: 11, color: C.text2 }}>Admissão:</span><div style={{ fontSize: 14 }}>{fmtDate(data.data_admissao)}</div></div>
-        <div><span style={{ fontSize: 11, color: C.text2 }}>Salário:</span><div style={{ fontSize: 14 }}>{fmtMoney(data.salario)}</div></div>
-        <div><span style={{ fontSize: 11, color: C.text2 }}>Status:</span><div><Badge status={data.status} map={STATUS_COLORS} /></div></div>
-      </div>
+      {editMode ? (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 16px', marginBottom: 20, background: 'var(--cbrio-input-bg)', borderRadius: 10, padding: 16 }}>
+          {[
+            { key: 'nome', label: 'Nome *', full: true },
+            { key: 'cargo', label: 'Cargo *' },
+            { key: 'area', label: 'Área' },
+            { key: 'email', label: 'Email', type: 'email' },
+            { key: 'telefone', label: 'Telefone' },
+            { key: 'cpf', label: 'CPF' },
+            { key: 'data_admissao', label: 'Admissão', type: 'date' },
+            { key: 'salario', label: 'Salário (R$)', type: 'number' },
+          ].map(f => (
+            <div key={f.key} style={f.full ? { gridColumn: '1 / -1' } : undefined}>
+              <label style={styles.label}>{f.label}</label>
+              <input style={styles.input} type={f.type || 'text'} value={editForm[f.key] || ''} onChange={e => setEditForm(p => ({ ...p, [f.key]: e.target.value }))} />
+            </div>
+          ))}
+          <div>
+            <label style={styles.label}>Contrato</label>
+            <select style={{ ...styles.select, width: '100%' }} value={editForm.tipo_contrato || 'clt'} onChange={e => setEditForm(p => ({ ...p, tipo_contrato: e.target.value }))}>
+              {Object.entries(TIPO_CONTRATO).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={styles.label}>Status</label>
+            <select style={{ ...styles.select, width: '100%' }} value={editForm.status || 'ativo'} onChange={e => setEditForm(p => ({ ...p, status: e.target.value }))}>
+              {Object.entries(STATUS_COLORS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+            </select>
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', marginBottom: 20 }}>
+          <div><span style={{ fontSize: 11, color: C.text2 }}>Cargo:</span><div style={{ fontSize: 14, fontWeight: 600 }}>{data.cargo}</div></div>
+          <div><span style={{ fontSize: 11, color: C.text2 }}>Área:</span><div style={{ fontSize: 14 }}>{data.area || '—'}</div></div>
+          <div><span style={{ fontSize: 11, color: C.text2 }}>CPF:</span><div style={{ fontSize: 14 }}>{data.cpf || '—'}</div></div>
+          <div><span style={{ fontSize: 11, color: C.text2 }}>Email:</span><div style={{ fontSize: 14 }}>{data.email || '—'}</div></div>
+          <div><span style={{ fontSize: 11, color: C.text2 }}>Telefone:</span><div style={{ fontSize: 14 }}>{data.telefone || '—'}</div></div>
+          <div><span style={{ fontSize: 11, color: C.text2 }}>Contrato:</span><div style={{ fontSize: 14 }}>{TIPO_CONTRATO[data.tipo_contrato]}</div></div>
+          <div><span style={{ fontSize: 11, color: C.text2 }}>Admissão:</span><div style={{ fontSize: 14 }}>{fmtDate(data.data_admissao)}</div></div>
+          <div><span style={{ fontSize: 11, color: C.text2 }}>Salário:</span><div style={{ fontSize: 14 }}>{fmtMoney(data.salario)}</div></div>
+          <div><span style={{ fontSize: 11, color: C.text2 }}>Status:</span><div><Badge status={data.status} map={STATUS_COLORS} /></div></div>
+        </div>
+      )}
 
       {/* Anotações editáveis */}
       <NotasColaborador funcId={data.id} initialValue={data.observacoes || ''} />
 
       {/* Benefícios e Remuneração */}
       <BeneficiosSection data={data} onSave={async (updated) => {
-        try { await rh.funcionarios.update(data.id, updated); onClose(); } catch (e) { alert(e.message); }
+        try { await rh.funcionarios.update(data.id, updated); onClose(); } catch (e) { console.error(e); }
       }} />
 
       {/* Documentos com upload */}
