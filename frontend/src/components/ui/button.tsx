@@ -255,18 +255,18 @@ const Ripple = React.forwardRef<
     >
       <div
         className={cn(
-          "absolute inset-0 bg-current transition-opacity duration-[15ms] linear",
-          hovered ? "opacity-[0.08]" : "opacity-0"
+          "absolute inset-0 bg-primary/10 transition-opacity duration-150 ease-out",
+          hovered ? "opacity-100" : "opacity-0"
         )}
       />
       <div
         ref={rippleEffectRef}
-        className="absolute rounded-full opacity-0 bg-current"
+        className="absolute rounded-full opacity-0"
         style={{
           background:
-            "radial-gradient(closest-side, currentColor max(calc(100% - 70px), 65%), transparent 100%)",
+            "radial-gradient(closest-side, var(--color-primary) max(calc(100% - 70px), 65%), transparent 100%)",
           transition: "opacity 375ms linear",
-          opacity: pressed ? "0.12" : "0",
+          opacity: pressed ? "0.10" : "0",
           transitionDuration: pressed ? "105ms" : "375ms",
         }}
       />
