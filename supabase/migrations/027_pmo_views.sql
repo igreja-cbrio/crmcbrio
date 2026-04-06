@@ -4,6 +4,10 @@
 -- vw_workload (tasks per responsible)
 -- ============================================================
 
+-- Dropar views antigas (podem ter colunas diferentes)
+DROP VIEW IF EXISTS vw_pmo_kpis CASCADE;
+DROP VIEW IF EXISTS vw_workload CASCADE;
+
 -- ── View: KPIs PMO (single-row aggregate) ───────────────────
 CREATE OR REPLACE VIEW vw_pmo_kpis AS
 SELECT
