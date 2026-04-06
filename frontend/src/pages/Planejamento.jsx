@@ -214,67 +214,205 @@ export default function Planejamento() {
 
       {/* ═══ TAB: Dashboard ═══ */}
       {tab === 0 && (
-        <div>
-          {/* KPIs */}
-          <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: '14px 24px', marginBottom: 20, display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center' }}>
-            {[
-              { label: 'Eventos', value: k.total_events || 0, color: C.accent, action: () => { window.location.href = '/eventos'; } },
-              { label: 'No Prazo', value: k.events_on_track || 0, color: '#10b981', action: () => { window.location.href = '/eventos?status=no-prazo'; } },
-              { label: 'Em Risco', value: k.events_at_risk || 0, color: '#f59e0b', action: () => { window.location.href = '/eventos?status=em-risco'; } },
-              { label: 'Atrasados', value: k.events_overdue || 0, color: '#ef4444', action: () => { window.location.href = '/eventos?status=atrasado'; } },
-              null,
-              { label: 'Tarefas abertas', value: k.tasks_open || 0, color: C.t2, action: () => drillDown({}) },
-              { label: 'Tarefas atrasadas', value: k.tasks_overdue || 0, color: '#ef4444', action: () => drillDown({ status: 'atrasada' }) },
-              { label: 'Riscos abertos', value: k.risks_open || 0, color: '#f59e0b', action: () => { window.location.href = '/eventos?tab=riscos'; } },
-            ].map((item, i) => {
-              if (!item) return <div key={i} style={{ width: 1, height: 24, background: C.border }} />;
+  <div>
+    {/* ── KPI Bar consolidada ── */}
+    <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: '14px 24px', marginBottom: 20, display: 'flex', gap: 16, alignItems: 'center', overflowX: 'auto' }}>
+      {[
+        { label: 'Eventos', value: k.total_events || 0, color: C.accent, action: () => { window.location.href = '/eventos'; } },
+        { label: 'Projetos', value: projectsData.length, color: '#8b5cf6', action: () => { window.location.href = '/projetos'; } },
+        { label: 'Estratégico', value: strategicData.length, color: '#f59e0b', action: () => {} },
+        null,
+        { label: 'Tarefas abertas', value: k.tasks_open || 0, color: C.t2, action: () => drillDown({}) },
+        { label: 'Tarefas atrasadas', value: k.tasks_overdue || 0, color: '#ef4444', action: () => drillDown({ status: 'atrasada' }) },
+        { label: 'Riscos', value: k.risks_open || 0, color: '#f59e0b', action: () => { window.location.href = '/eventos'; } },
+      ].map((item, i) => {
+        if (!item) return <div key={i} style={{ width: 1, height: 24, background: C.border }} />;
+        return (
+          <div key={item.label} onClick={item.action} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '2px 4px', borderRadius: 6, transition: 'background .15s' }}
+            onMouseEnter={e => e.currentTarget.style.background = `${item.color}15`}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+            <span style={{ fontSize: 20, fontWeight: 800, color: item.color }}>{item.value}</span>
+            <span style={{ fontSize: 11, fontWeight: 600, color: C.t3, textTransform: 'uppercase', letterSpacing: 0.3, whiteSpace: 'nowrap' }}>{item.label}</span>
+          </div>
+        );
+      })}
+    </div>
+
+    {/* ── Cards resumo (grid 3 colunas) ── */}
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16, marginBottom: 20 }}>
+
+      {/* Card Eventos */}
+      <div onClick={() => { window.location.href = '/eventos'; }} style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: '20px 24px', cursor: 'pointer', transition: 'box-shadow .15s' }}
+        onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)'}
+        onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>Eventos</span>
+          <span style={{ fontSize: 9, padding: '2px 8px', borderRadius: 99, background: `${C.accent}15`, color: C.accent, fontWeight: 600 }}>VER TODOS →</span>
+        </div>
+        <div style={{ display: 'flex', gap: 16 }}>
+          {[
+            { v: k.events_on_track || 0, l: 'No prazo', c: '#10b981' },
+            { v: k.events_at_risk || 0, l: 'Em risco', c: '#f59e0b' },
+            { v: k.events_overdue || 0, l: 'Atrasados', c: '#ef4444' },
+            { v: k.events_next_7d || 0, l: 'Próx. 7d', c: '#8b5cf6' },
+          ].map(x => (
+            <div key={x.l} style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: x.c }}>{x.v}</div>
+              <div style={{ fontSize: 9, color: C.t3, textTransform: 'uppercase' }}>{x.l}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Card Projetos */}
+      <div onClick={() => { window.location.href = '/projetos'; }} style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: '20px 24px', cursor: 'pointer', transition: 'box-shadow .15s' }}
+        onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)'}
+        onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>Projetos</span>
+          <span style={{ fontSize: 9, padding: '2px 8px', borderRadius: 99, background: '#8b5cf615', color: '#8b5cf6', fontWeight: 600 }}>VER TODOS →</span>
+        </div>
+        <div style={{ display: 'flex', gap: 16 }}>
+          {(() => {
+            const pc = { 'no-prazo': 0, 'em-risco': 0, 'atrasado': 0, 'concluido': 0 };
+            projectsData.forEach(p => { if (pc[p.status] !== undefined) pc[p.status]++; });
+            return [
+              { v: pc['no-prazo'], l: 'No prazo', c: '#10b981' },
+              { v: pc['em-risco'], l: 'Em risco', c: '#f59e0b' },
+              { v: pc['atrasado'], l: 'Atrasados', c: '#ef4444' },
+              { v: pc['concluido'], l: 'Concluídos', c: '#3b82f6' },
+            ].map(x => (
+              <div key={x.l} style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: x.c }}>{x.v}</div>
+                <div style={{ fontSize: 9, color: C.t3, textTransform: 'uppercase' }}>{x.l}</div>
+              </div>
+            ));
+          })()}
+        </div>
+      </div>
+
+      {/* Card Orçamento Global */}
+      {(k.budget_total > 0 || projectsData.some(p => p.budget_planned > 0)) && (
+        <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: '20px 24px' }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 12 }}>Orçamento Global</div>
+          {(() => {
+            const totalPlanned = Number(k.budget_total || 0) + projectsData.reduce((s, p) => s + Number(p.budget_planned || 0), 0);
+            const totalSpent = Number(k.budget_spent || 0) + projectsData.reduce((s, p) => s + Number(p.budget_spent || 0), 0);
+            const pct = totalPlanned > 0 ? Math.round((totalSpent / totalPlanned) * 100) : 0;
+            return (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: C.t2, marginBottom: 6 }}>
+                  <span>R$ {totalSpent.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                  <span>R$ {totalPlanned.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div style={{ height: 10, background: C.border, borderRadius: 5 }}>
+                  <div style={{ height: '100%', width: `${Math.min(pct, 100)}%`, borderRadius: 5, background: pct > 100 ? '#ef4444' : pct > 80 ? '#f59e0b' : '#10b981' }} />
+                </div>
+                <div style={{ fontSize: 11, color: C.t3, marginTop: 4, textAlign: 'right' }}>{pct}% utilizado</div>
+              </>
+            );
+          })()}
+        </div>
+      )}
+    </div>
+
+    {/* ── Carga de Trabalho + Itens Críticos (2 colunas) ── */}
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16, marginBottom: 20 }}>
+
+      {/* Carga de Trabalho */}
+      {workload.length > 0 && (
+        <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: '20px 24px' }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 12 }}>Carga de Trabalho</div>
+          {workload.slice(0, 10).map((w, i) => (
+            <div key={i} onClick={() => drillDown({ person: w.responsible })}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, cursor: 'pointer', padding: '4px 6px', borderRadius: 6, transition: 'background .1s' }}
+              onMouseEnter={e => e.currentTarget.style.background = `${C.accent}08`}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+              <div style={{ width: 24, height: 24, borderRadius: '50%', background: C.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 10, fontWeight: 700, flexShrink: 0 }}>
+                {(w.responsible || '?').charAt(0).toUpperCase()}
+              </div>
+              <span style={{ fontSize: 12, color: C.text, width: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.responsible}</span>
+              <div style={{ flex: 1, height: 8, background: C.border, borderRadius: 4 }}>
+                <div style={{ height: '100%', width: `${Math.min((w.total_tasks / Math.max(...workload.map(x => x.total_tasks), 1)) * 100, 100)}%`, borderRadius: 4, background: w.atrasadas > 0 ? '#ef4444' : '#10b981' }} />
+              </div>
+              <span style={{ fontSize: 11, color: w.atrasadas > 0 ? '#ef4444' : C.t3, fontWeight: 600, minWidth: 55, textAlign: 'right' }}>
+                {w.total_tasks}t{w.atrasadas > 0 ? ` (${w.atrasadas}⚠)` : ''}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Itens Críticos (atrasados cross-fonte) */}
+      {(() => {
+        const today = new Date();
+        const overdue = ganttTasks
+          .filter(t => t.status !== 'concluida' && t.deadline && new Date(normDate(t.deadline) + 'T12:00:00') < today)
+          .sort((a, b) => new Date(normDate(a.deadline)) - new Date(normDate(b.deadline)))
+          .slice(0, 8);
+        if (overdue.length === 0) return null;
+        const SOURCE_BADGE = { evento: { c: '#00B39D', l: 'Evento' }, ciclo: { c: '#00B39D', l: 'Ciclo' }, projeto: { c: '#8b5cf6', l: 'Projeto' }, planejamento: { c: '#f59e0b', l: 'Estratégico' } };
+        return (
+          <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: '20px 24px' }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 12 }}>
+              Itens Críticos <span style={{ fontSize: 11, fontWeight: 400, color: '#ef4444' }}>({overdue.length} atrasados)</span>
+            </div>
+            {overdue.map(t => {
+              const dl = normDate(t.deadline);
+              const diff = Math.ceil((new Date(dl + 'T12:00:00') - today) / 86400000);
+              const sb = SOURCE_BADGE[t.source] || SOURCE_BADGE.evento;
               return (
-                <div key={item.label} onClick={item.action} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '4px 8px', borderRadius: 8, transition: 'background .15s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = `${item.color}15`}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                  <span style={{ fontSize: 20, fontWeight: 800, color: item.color }}>{item.value}</span>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: C.t3, textTransform: 'uppercase', letterSpacing: 0.3 }}>{item.label}</span>
+                <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: `1px solid ${C.border}` }}>
+                  <span style={{ fontSize: 8, padding: '1px 5px', borderRadius: 99, background: `${sb.c}15`, color: sb.c, fontWeight: 600, flexShrink: 0 }}>{sb.l}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 500, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</div>
+                    <div style={{ fontSize: 10, color: C.t3 }}>{t.responsible || '—'} · {t.parent_name || '—'}</div>
+                  </div>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#ef4444', flexShrink: 0 }}>{Math.abs(diff)}d atrás</span>
                 </div>
               );
             })}
           </div>
+        );
+      })()}
+    </div>
 
-          {/* Orçamento + Carga */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginBottom: 20 }}>
-            {k.budget_total > 0 && (
-              <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: '20px 24px', flex: '1 1 300px' }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 12 }}>Orçamento Global</div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: C.t2, marginBottom: 6 }}>
-                  <span>R$ {Number(k.budget_spent || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                  <span>R$ {Number(k.budget_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                </div>
-                <div style={{ height: 10, background: C.border, borderRadius: 5 }}>
-                  <div style={{ height: '100%', width: `${Math.min(((k.budget_spent || 0) / k.budget_total) * 100, 100)}%`, borderRadius: 5, background: (k.budget_spent || 0) > k.budget_total ? '#ef4444' : '#10b981' }} />
-                </div>
-              </div>
-            )}
-            {workload.length > 0 && (
-              <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: '20px 24px', flex: '1 1 300px' }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 12 }}>Carga de Trabalho</div>
-                {workload.slice(0, 10).map((w, i) => (
-                  <div key={i} onClick={() => drillDown({ person: w.responsible })}
-                    style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, cursor: 'pointer', padding: '4px 6px', borderRadius: 6, transition: 'background .1s' }}
-                    onMouseEnter={e => e.currentTarget.style.background = `${C.accent}08`}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                    <span style={{ fontSize: 12, color: C.text, width: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.responsible}</span>
-                    <div style={{ flex: 1, height: 8, background: C.border, borderRadius: 4 }}>
-                      <div style={{ height: '100%', width: `${Math.min((w.total_tasks / Math.max(...workload.map(x => x.total_tasks), 1)) * 100, 100)}%`, borderRadius: 4, background: w.atrasadas > 0 ? '#ef4444' : '#10b981' }} />
-                    </div>
-                    <span style={{ fontSize: 12, color: w.atrasadas > 0 ? '#ef4444' : C.t3, fontWeight: 600, minWidth: 50, textAlign: 'right' }}>
-                      {w.total_tasks}t{w.atrasadas > 0 ? ` (${w.atrasadas} ⚠)` : ''}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
+    {/* ── Próximos Prazos (7 dias) ── */}
+    {(() => {
+      const today = new Date();
+      const limit = new Date(); limit.setDate(limit.getDate() + 7);
+      const upcoming = ganttTasks
+        .filter(t => t.status !== 'concluida' && t.deadline && (() => { const d = new Date(normDate(t.deadline) + 'T12:00:00'); return d >= today && d <= limit; })())
+        .sort((a, b) => new Date(normDate(a.deadline)) - new Date(normDate(b.deadline)))
+        .slice(0, 10);
+      if (upcoming.length === 0) return null;
+      const SOURCE_BADGE = { evento: { c: '#00B39D', l: 'Evento' }, ciclo: { c: '#00B39D', l: 'Ciclo' }, projeto: { c: '#8b5cf6', l: 'Projeto' }, planejamento: { c: '#f59e0b', l: 'Estratégico' } };
+      return (
+        <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: '20px 24px', marginBottom: 20 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 12 }}>
+            Próximos Prazos <span style={{ fontSize: 11, fontWeight: 400, color: '#f59e0b' }}>({upcoming.length} nos próx. 7 dias)</span>
           </div>
+          {upcoming.map(t => {
+            const dl = normDate(t.deadline);
+            const diff = Math.ceil((new Date(dl + 'T12:00:00') - today) / 86400000);
+            const sb = SOURCE_BADGE[t.source] || SOURCE_BADGE.evento;
+            const dc = diff <= 2 ? '#f59e0b' : '#10b981';
+            return (
+              <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: `1px solid ${C.border}` }}>
+                <span style={{ fontSize: 8, padding: '1px 5px', borderRadius: 99, background: `${sb.c}15`, color: sb.c, fontWeight: 600, flexShrink: 0 }}>{sb.l}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</div>
+                  <div style={{ fontSize: 10, color: C.t3 }}>{t.responsible || '—'} · {t.parent_name || '—'}</div>
+                </div>
+                <span style={{ fontSize: 11, fontWeight: 700, color: dc, flexShrink: 0 }}>{diff === 0 ? 'Hoje' : `${diff}d`}</span>
+              </div>
+            );
+          })}
         </div>
-      )}
+      );
+    })()}
+  </div>
+)}
 
       {/* ═══ TAB: Kanban ═══ */}
       {tab === 1 && (
@@ -373,8 +511,145 @@ export default function Planejamento() {
             </select>
           </div>
 
+          {/* ══ KANBAN "TODOS" — swim lanes por responsável ══ */}
+          {typeFilter === 'all' && (() => {
+  const TASK_COLS = [
+    { key: 'pendente', label: 'A fazer', color: '#9ca3af' },
+    { key: 'em-andamento', label: 'Em andamento', color: '#3b82f6' },
+    { key: 'bloqueada', label: 'Bloqueada', color: '#ef4444' },
+    { key: 'concluida', label: 'Concluída', color: '#10b981' },
+  ];
+  const SOURCE_BADGE = { evento: { c: '#00B39D', l: 'Ev' }, ciclo: { c: '#00B39D', l: 'Ci' }, projeto: { c: '#8b5cf6', l: 'Pj' }, planejamento: { c: '#f59e0b', l: 'Es' } };
+
+  // All tasks from all sources
+  let allUnified = [...ganttTasks];
+  allUnified = filterByHorizon(allUnified, horizon, 'deadline');
+
+  // Permission filter
+  const isAssistant = !isPMO && !userArea;
+  if (!isPMO && userArea) {
+    allUnified = allUnified.filter(t => t.area === userArea || t.responsible === profile?.name);
+  } else if (!isPMO) {
+    allUnified = allUnified.filter(t => t.responsible === profile?.name);
+  }
+
+  // For assistants: flat 4-column kanban (no swim lanes)
+  if (isAssistant || (!isPMO && !userArea)) {
+    const myTasks = allUnified.filter(t => t.responsible === profile?.name);
+    return (
+      <div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 10 }}>
+          Minhas Tarefas
+          <span style={{ fontSize: 12, fontWeight: 400, color: C.t3, marginLeft: 8 }}>
+            {myTasks.filter(t => t.status === 'concluida').length}/{myTasks.length}
+          </span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, minHeight: 200 }}>
+          {TASK_COLS.map(col => {
+            const colT = sortByUrgency(myTasks.filter(t => (t.status === col.key) || (col.key === 'pendente' && t.status === 'a_fazer')));
+            return (
+              <div key={col.key} style={{ background: C.bg, borderRadius: 10, padding: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: col.color, textTransform: 'uppercase' }}>{col.label}</span>
+                  <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 99, background: C.card, border: `1px solid ${C.border}`, color: C.t3 }}>{colT.length}</span>
+                </div>
+                {colT.length === 0 && <div style={{ padding: 16, textAlign: 'center', fontSize: 10, color: C.t3, border: '1.5px dashed var(--cbrio-border)', borderRadius: 8 }}>—</div>}
+                {colT.map(task => {
+                  const sb = SOURCE_BADGE[task.source] || SOURCE_BADGE.evento;
+                  const dl = normDate(task.deadline);
+                  const diff = dl ? Math.ceil((new Date(dl + 'T12:00:00') - new Date()) / 86400000) : null;
+                  const dc = diff === null || task.status === 'concluida' ? null : diff < 0 ? '#ef4444' : diff <= 3 ? '#f59e0b' : '#10b981';
+                  const dt = diff === null ? '' : diff < 0 ? `${Math.abs(diff)}d atrás` : diff === 0 ? 'Hoje' : `${diff}d`;
+                  return (
+                    <div key={task.id} style={{ background: C.card, borderRadius: 8, padding: 8, marginBottom: 4, border: dc === '#ef4444' ? '1px solid #fecaca' : `1px solid ${C.border}` }}>
+                      <div style={{ display: 'flex', gap: 4, marginBottom: 3 }}>
+                        <span style={{ fontSize: 8, padding: '1px 5px', borderRadius: 99, background: `${sb.c}15`, color: sb.c, fontWeight: 600 }}>{sb.l}</span>
+                      </div>
+                      <div style={{ fontSize: 11, fontWeight: 500, color: C.text, lineHeight: 1.3, marginBottom: 2 }}>{task.name}</div>
+                      <div style={{ fontSize: 9, color: C.t3 }}>{task.parent_name || '—'}</div>
+                      {dc && <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: dc }}>{dt}</span>
+                      </div>}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // PMO/Area: swim lanes by responsible
+  const byPerson = {};
+  allUnified.forEach(t => {
+    const key = t.responsible || 'Sem responsável';
+    if (!byPerson[key]) byPerson[key] = [];
+    byPerson[key].push(t);
+  });
+  // Sort by most tasks first
+  const personList = Object.entries(byPerson).sort((a, b) => b[1].length - a[1].length);
+
+  return (
+    <div>
+      {personList.length === 0 && <div style={{ padding: 40, textAlign: 'center', color: C.t3, fontSize: 13 }}>Nenhuma tarefa encontrada. Ajuste o horizonte ou os filtros.</div>}
+      {personList.map(([person, tasks]) => {
+        const done = tasks.filter(t => t.status === 'concluida').length;
+        const pct = tasks.length > 0 ? Math.round((done / tasks.length) * 100) : 0;
+        return (
+          <div key={person} style={{ marginBottom: 20 }}>
+            {/* Person header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', background: C.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, fontWeight: 700 }}>
+                {person.charAt(0).toUpperCase()}
+              </div>
+              <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{person}</span>
+              <span style={{ fontSize: 11, color: C.t3 }}>{done}/{tasks.length} tarefas</span>
+              <div style={{ flex: 1, maxWidth: 120, height: 4, background: C.border, borderRadius: 2 }}>
+                <div style={{ height: '100%', width: `${pct}%`, borderRadius: 2, background: pct >= 100 ? '#10b981' : C.accent }} />
+              </div>
+            </div>
+            {/* 4 columns */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginLeft: 38 }}>
+              {TASK_COLS.map(col => {
+                const colT = sortByUrgency(tasks.filter(t => (t.status === col.key) || (col.key === 'pendente' && t.status === 'a_fazer')));
+                return (
+                  <div key={col.key} style={{ background: C.bg, borderRadius: 8, padding: 6, minHeight: 40 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ fontSize: 9, fontWeight: 600, color: col.color, textTransform: 'uppercase' }}>{col.label}</span>
+                      <span style={{ fontSize: 8, color: C.t3 }}>{colT.length}</span>
+                    </div>
+                    {colT.slice(0, 5).map(task => {
+                      const sb = SOURCE_BADGE[task.source] || SOURCE_BADGE.evento;
+                      const dl = normDate(task.deadline);
+                      const diff = dl ? Math.ceil((new Date(dl + 'T12:00:00') - new Date()) / 86400000) : null;
+                      const dc = diff === null || task.status === 'concluida' ? null : diff < 0 ? '#ef4444' : diff <= 3 ? '#f59e0b' : '#10b981';
+                      const dt = diff === null ? '' : diff < 0 ? `${Math.abs(diff)}d` : diff === 0 ? 'Hj' : `${diff}d`;
+                      return (
+                        <div key={task.id} style={{ background: C.card, borderRadius: 6, padding: '4px 6px', marginBottom: 3, border: dc === '#ef4444' ? '1px solid #fecaca' : `1px solid ${C.border}`, fontSize: 10 }}>
+                          <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+                            <span style={{ fontSize: 7, padding: '0 3px', borderRadius: 3, background: `${sb.c}15`, color: sb.c, fontWeight: 600 }}>{sb.l}</span>
+                            <span style={{ color: C.text, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{task.name}</span>
+                            {dc && <span style={{ fontSize: 9, fontWeight: 700, color: dc, flexShrink: 0 }}>{dt}</span>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {colT.length > 5 && <div style={{ fontSize: 9, color: C.t3, textAlign: 'center', padding: 2 }}>+{colT.length - 5} mais</div>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+})()}
+
           {/* ══ KANBAN EVENTOS (fases do ciclo) ══ */}
-          {(typeFilter === 'all' || typeFilter === 'eventos') && <>
+          {(typeFilter === 'eventos') && <>
           <div style={{ overflowX: 'auto', marginBottom: 16, paddingBottom: 6 }}>
             <div style={{ display: 'flex', gap: 5, minWidth: 'max-content', justifyContent: 'center' }}>
               {phaseNums.map((num, i) => {
