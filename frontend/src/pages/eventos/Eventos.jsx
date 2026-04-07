@@ -5,6 +5,7 @@ import CycleView from './components/CycleView';
 import BudgetPanel from './components/BudgetPanel';
 import { Button } from '../../components/ui/button';
 import AttachmentButton from '../../components/AttachmentButton';
+import CompletionSection from '../../components/CompletionSection';
 
 // ── Tema ────────────────────────────────────────────────────
 const C = {
@@ -974,12 +975,26 @@ export default function Eventos() {
                     </div>
                   )}
 
+                  {/* Conclusão */}
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--cbrio-text2)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Conclusão</div>
+                    <CompletionSection
+                      task={task}
+                      phase={phase}
+                      eventName={evName}
+                      isPMO={isPMO}
+                      onComplete={() => { loadKanban(); setKanbanSelectedTask(null); }}
+                    />
+                  </div>
+
                   {/* Ações */}
                   <div style={{ display: 'flex', gap: 8, paddingTop: 16, borderTop: '1px solid var(--cbrio-border)' }}>
-                    <select value={task.status} onChange={async e => { await kanbanChangeStatus(task.id, e.target.value); setKanbanSelectedTask(null); }}
-                      style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--cbrio-border)', fontSize: 13, background: 'var(--cbrio-input-bg, #fff)', color: 'var(--cbrio-text)' }}>
-                      {Object.entries(TASK_ST).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                    </select>
+                    {task.status !== 'concluida' && (
+                      <select value={task.status} onChange={async e => { await kanbanChangeStatus(task.id, e.target.value); setKanbanSelectedTask(null); }}
+                        style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--cbrio-border)', fontSize: 13, background: 'var(--cbrio-input-bg, #fff)', color: 'var(--cbrio-text)' }}>
+                        {Object.entries(TASK_ST).filter(([k]) => k !== 'concluida').map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                      </select>
+                    )}
                     <button onClick={async () => { await cyclesApi.deleteTask(task.id); loadKanban(); setKanbanSelectedTask(null); }}
                       style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#ef4444', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
                       Excluir

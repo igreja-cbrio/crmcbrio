@@ -1,7 +1,7 @@
 # CLAUDE.md — CBRio ERP
 
 Guia para Claude Code e agentes de IA trabalhando neste repositório.
-Atualizado em: 2026-04-06 (v9) — Sistema de entregáveis (anexos) + relatório IA por evento
+Atualizado em: 2026-04-07 (v10) — Card completions (conclusão formal + reopen) + relatório IA enriquecido
 
 ---
 
@@ -439,7 +439,17 @@ Estes arquivos afetam o sistema inteiro. Alterações devem ser feitas via **Pul
   - Relatório estruturado: resumo executivo, entregas por área, status, pontos de atenção, recomendações
   - Tabela `event_reports` armazena relatórios gerados com custo em tokens
   - Tab "Relatórios" no detalhe do evento com histórico + visualização + copiar
-  - Fase B futura: migrar para SharePoint via Microsoft Graph API (App Registration necessário)
+  - SharePoint integrado via Microsoft Graph API (App Registration configurado)
+  - Sync automático Supabase→SharePoint via cron /api/cron/sharepoint-sync
+- **Card Completions (v10):**
+  - Tabela `card_completions`: registro formal de conclusão com observação + arquivo + snapshot
+  - Botão "Concluir tarefa" nos modais de detalhe (CycleView + Eventos kanban)
+  - Ao concluir: observação opcional + upload de arquivo → status muda para 'concluida' → fase recalculada
+  - Badge "Concluído por X em DD/MM" com observação e link do arquivo
+  - PMO pode "Reabrir" card concluído com motivo (volta para 'a_fazer')
+  - Dropdown de status oculta opção 'concluida' (só via botão Concluir)
+  - View SQL `vw_phase_progress`: progresso por fase/área (migration 033)
+  - Relatório IA enriquecido: inclui dados de conclusões (quem, quando, observações)
 - Ciclos criativos com 11 fases + 35 tarefas ADM + 138 subtarefas automáticas
 - **KPIs clicáveis** — todos os números do dashboard navegam para os dados filtrados
 - **Abas Riscos + Histórico + Retrospectiva** no detalhe do evento
@@ -463,7 +473,7 @@ Estes arquivos afetam o sistema inteiro. Alterações devem ser feitas via **Pul
 **Project ref:** `hhntwfawfnxvuobhdfkb`
 **URL:** `https://hhntwfawfnxvuobhdfkb.supabase.co`
 
-Migrations aplicadas: 001-022, 027, 030, 031, 032
+Migrations aplicadas: 001-022, 027, 030, 031, 032, 033
 
 Para novas migrations: criar arquivo em `supabase/migrations/` e rodar manualmente no Supabase SQL Editor.
 

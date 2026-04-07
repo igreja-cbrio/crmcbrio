@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { cycles as api } from '../../../api';
 import AttachmentButton from '../../../components/AttachmentButton';
+import CompletionSection from '../../../components/CompletionSection';
 
 const C = { dark: 'var(--cbrio-text)', t2: 'var(--cbrio-text2)', t3: 'var(--cbrio-text3)', border: 'var(--cbrio-border)', accent: '#00B39D' };
 
@@ -593,12 +594,26 @@ export default function CycleView({ eventId }) {
                   </div>
                 )}
 
+                {/* ── Conclusão ── */}
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: C.t2, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Conclusão</div>
+                  <CompletionSection
+                    task={task}
+                    phase={phase}
+                    eventName={data?.cycle?.events?.name || ''}
+                    isPMO={isPMO}
+                    onComplete={() => { load(); setSelectedTask(null); }}
+                  />
+                </div>
+
                 {/* ── Ações ── */}
                 <div style={{ display: 'flex', gap: 8, paddingTop: 16, borderTop: '1px solid var(--cbrio-border)' }}>
-                  <select value={task.status} onChange={async e => { await handleTaskStatus(task.id, e.target.value); setSelectedTask(null); }}
-                    style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: 'var(--cbrio-input-bg, #fff)', color: C.dark }}>
-                    {Object.entries(TASK_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                  </select>
+                  {task.status !== 'concluida' && (
+                    <select value={task.status} onChange={async e => { await handleTaskStatus(task.id, e.target.value); setSelectedTask(null); }}
+                      style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: 'var(--cbrio-input-bg, #fff)', color: C.dark }}>
+                      {Object.entries(TASK_STATUS).filter(([k]) => k !== 'concluida').map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                    </select>
+                  )}
                   <button onClick={async () => { await handleDeleteTask(task.id); setSelectedTask(null); }}
                     style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#ef4444', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
                     Excluir

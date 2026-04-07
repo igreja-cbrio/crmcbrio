@@ -463,3 +463,10 @@ export const reports = {
   list: (eventId) => get(`/events/${eventId}/reports`),
   get: (eventId, id) => get(`/events/${eventId}/reports/${id}`),
 };
+
+export const completions = {
+  complete: (formData) => requestFile('/completions', formData),
+  getByTask: (taskId) => get(`/completions/task/${taskId}`),
+  reopen: (taskId, reason) => request(`/completions/${taskId}/reopen`, { method: 'DELETE', body: JSON.stringify({ reason }) }),
+  listByEvent: (eventId) => get(`/completions/event/${eventId}`),
+};

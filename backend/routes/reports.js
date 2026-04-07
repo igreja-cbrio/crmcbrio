@@ -52,8 +52,18 @@ router.post('/:eventId/report', async (req, res) => {
     if (type === 'phase' && phase_name) q = q.eq('phase_name', phase_name);
     const { data: attachs } = await q.order('created_at');
 
-    if (!attachs || attachs.length === 0) {
-      return res.status(400).json({ error: 'Nenhum anexo encontrado para gerar relatório.' });
+    // Buscar conclusões de cards (card_completions)
+    let compQ = supabase.from('card_completions').select('*').eq('event_id', eventId).is('reopened_at', null);
+    if (type === 'phase' && phase_name) {
+      // Buscar phase_number da fase pelo nome
+      const { data: phaseRow } = await supabase.from('event_cycle_phases')
+        .select('numero_fase').eq('event_id', eventId).eq('nome_fase', phase_name).limit(1).maybeSingle();
+      if (phaseRow) compQ = compQ.eq('phase_number', phaseRow.numero_fase);
+    }
+    const { data: completions } = await compQ.order('completed_at');
+
+    if ((!attachs || attachs.length === 0) && (!completions || completions.length === 0)) {
+      return res.status(400).json({ error: 'Nenhum anexo ou conclusão encontrado para gerar relatório.' });
     }
 
     // Extrair texto dos arquivos
@@ -78,28 +88,41 @@ router.post('/:eventId/report', async (req, res) => {
       });
     }
 
+    // Montar dados de conclusões para o prompt
+    const completionsSummary = (completions || []).map(c =>
+      `- Card: "${c.card_titulo}" | Área: ${c.area} | Fase: ${c.phase_number} | Concluído por: ${c.completed_by_name || 'desconhecido'} em ${new Date(c.completed_at).toLocaleDateString('pt-BR')}${c.observacao ? ` | Observação: "${c.observacao}"` : ''}${c.file_name ? ` | Arquivo: ${c.file_name}` : ''}`
+    ).join('\n');
+
     // Montar prompt
     const scope = type === 'phase' ? `Fase: ${phase_name}` : 'Evento Completo';
     const system = `Você é um analista de eventos da Igreja Comunidade Batista do Rio de Janeiro (CBRio).
-Gere um relatório estruturado em markdown com base nos entregáveis anexados.
+Gere um relatório estruturado em markdown com base nos entregáveis e conclusões de cards.
 
 Evento: ${event.name}
 Data: ${event.date || 'não definida'}
 Escopo: ${scope}
-Total de anexos: ${attachs.length}
+Total de anexos: ${attachs?.length || 0}
+Total de cards concluídos: ${completions?.length || 0}
 
 O relatório deve conter:
 1. **Resumo Executivo** — visão geral do que foi entregue
-2. **Entregas por Área** — o que cada área (marketing, produção, financeiro, etc.) entregou
-3. **Status Geral** — avaliação da completude das entregas
-4. **Pontos de Atenção** — gaps, entregas faltantes ou problemas identificados
-5. **Recomendações** — próximos passos sugeridos
+2. **Entregas por Área** — o que cada área (marketing, produção, financeiro, etc.) entregou, quem concluiu e quando
+3. **Status Geral** — avaliação da completude (cards concluídos vs pendentes)
+4. **Observações dos Responsáveis** — destaque as observações relevantes registradas nas conclusões
+5. **Pontos de Atenção** — gaps, entregas faltantes ou problemas identificados
+6. **Recomendações** — próximos passos sugeridos
 
-Baseie-se APENAS nos documentos fornecidos. Não invente informações.`;
+Baseie-se APENAS nos dados fornecidos. Não invente informações.`;
 
-    const userMessage = fileContents.map((f, i) =>
-      `--- Arquivo ${i + 1}: ${f.file_name} ---\nÁrea: ${f.area}\nFase: ${f.phase}\nDescrição: ${f.description}\nEnviado por: ${f.uploaded_by}\n\nConteúdo:\n${f.content}\n`
-    ).join('\n');
+    let userMessage = '';
+    if (fileContents.length > 0) {
+      userMessage += '=== ARQUIVOS ANEXADOS ===\n' + fileContents.map((f, i) =>
+        `--- Arquivo ${i + 1}: ${f.file_name} ---\nÁrea: ${f.area}\nFase: ${f.phase}\nDescrição: ${f.description}\nEnviado por: ${f.uploaded_by}\n\nConteúdo:\n${f.content}\n`
+      ).join('\n');
+    }
+    if (completionsSummary) {
+      userMessage += '\n=== CONCLUSÕES DE CARDS ===\n' + completionsSummary;
+    }
 
     // Criar run do agente
     const agent = await AgentService.createRun('event_report', req.user.userId, { eventId, type, phase_name });
