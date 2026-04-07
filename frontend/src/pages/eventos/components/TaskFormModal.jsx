@@ -62,7 +62,6 @@ export default function TaskFormModal({ task, onSave, onClose }) {
                 <option value="pendente">Pendente</option>
                 <option value="em-andamento">Em andamento</option>
                 <option value="concluida">Concluída</option>
-                <option value="bloqueada">Bloqueada</option>
               </select>
             </div>
             <div style={{ flex: 1, marginBottom: 12 }}>

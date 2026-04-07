@@ -751,7 +751,7 @@ export default function Eventos() {
               const relevantPhaseIds = relevantPhases.map(p => p.id);
               const pTasks = allTasks.filter(t => relevantPhaseIds.includes(t.event_phase_id) && (kanbanEvent === 'all' || t.event_id === kanbanEvent));
               const pDone = pTasks.filter(t => t.status === 'concluida').length;
-              const pBlocked = pTasks.filter(t => t.status === 'bloqueada').length;
+              const pBlocked = 0;
               const isDone = pTasks.length > 0 && pDone === pTasks.length;
               const pPct = pTasks.length > 0 ? Math.round((pDone / pTasks.length) * 100) : 0;
 
@@ -874,7 +874,7 @@ export default function Eventos() {
           const p = normDate(task.prazo);
           const diff = p ? Math.ceil((new Date(p + 'T12:00:00') - new Date()) / 86400000) : null;
           const daysColor = diff === null || task.status === 'concluida' ? null : diff < 0 ? '#ef4444' : diff <= 7 ? '#f59e0b' : '#10b981';
-          const TASK_ST = { a_fazer: { label: 'A fazer', color: '#9ca3af' }, em_andamento: { label: 'Em andamento', color: '#3b82f6' }, bloqueada: { label: 'Bloqueada', color: '#ef4444' }, concluida: { label: 'Concluída', color: '#10b981' } };
+          const TASK_ST = { a_fazer: { label: 'A fazer', color: '#9ca3af' }, em_andamento: { label: 'Em andamento', color: '#3b82f6' }, concluida: { label: 'Concluída', color: '#10b981' } };
           const ts = TASK_ST[task.status] || TASK_ST.a_fazer;
 
           return (
