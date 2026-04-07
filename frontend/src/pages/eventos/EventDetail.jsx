@@ -23,7 +23,6 @@ const TASK_STATUS = {
   'pendente':      { label: 'Pendente',      color: 'var(--cbrio-text3)', bg: 'var(--cbrio-bg)' },
   'em-andamento':  { label: 'Em andamento',  color: '#3b82f6', bg: '#eff6ff' },
   'concluida':     { label: 'Concluída',     color: '#10b981', bg: '#ecfdf5' },
-  'bloqueada':     { label: 'Bloqueada',     color: '#ef4444', bg: '#fef2f2' },
 };
 
 const PRIORITY = {

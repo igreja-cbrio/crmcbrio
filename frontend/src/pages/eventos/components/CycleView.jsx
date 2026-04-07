@@ -9,7 +9,6 @@ const C = { dark: 'var(--cbrio-text)', t2: 'var(--cbrio-text2)', t3: 'var(--cbri
 const TASK_STATUS = {
   a_fazer:       { label: 'A fazer',       color: 'var(--cbrio-text3)' },
   em_andamento:  { label: 'Em andamento',  color: '#3b82f6' },
-  bloqueada:     { label: 'Bloqueada',     color: '#ef4444' },
   concluida:     { label: 'Concluída',     color: '#10b981' },
 };
 
@@ -180,7 +179,7 @@ export default function CycleView({ eventId, eventName }) {
             const isActive = phase.id === activePhase;
             const pTasks = tasks.filter(t => t.event_phase_id === phase.id);
             const pDone = pTasks.filter(t => t.status === 'concluida').length;
-            const pBlocked = pTasks.filter(t => t.status === 'bloqueada').length;
+            const pBlocked = 0;
             const isDone = pTasks.length > 0 && pDone === pTasks.length;
             const pPct = pTasks.length > 0 ? Math.round((pDone / pTasks.length) * 100) : 0;
             const progColor = isDone ? '#10b981' : pPct > 0 ? C.accent : 'var(--cbrio-border)';
@@ -239,7 +238,6 @@ export default function CycleView({ eventId, eventName }) {
             </div>
             <div style={{ fontSize: 11, color: C.t2, marginTop: 2 }}>
               {phaseTasks.filter(t => t.status === 'concluida').length}/{phaseTasks.length} tarefas
-              {phaseTasks.filter(t => t.status === 'bloqueada').length > 0 && <span style={{ color: '#ef4444' }}> · {phaseTasks.filter(t => t.status === 'bloqueada').length} bloqueadas</span>}
             </div>
           </div>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
