@@ -133,7 +133,7 @@ Baseie-se APENAS nos dados fornecidos. Não invente informações.`;
       maxTokens: 4096,
       role: 'report',
     });
-    await agent.finalize();
+    await agent.complete('Relatório gerado');
 
     const reportContent = result.text || 'Não foi possível gerar o relatório.';
 
