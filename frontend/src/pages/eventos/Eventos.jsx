@@ -806,55 +806,68 @@ export default function Eventos() {
           </div>
         )}
 
-        {/* Kanban 4 colunas (nível 2) */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, minHeight: 300 }}>
-          {COLS.map(col => {
-            const colTasks = sortByUrgency(phaseTasks.filter(t => t.status === col.key));
+        {/* Lista de cards agrupados por área */}
+        {phaseTasks.length === 0 && (
+          <div style={{ padding: 24, textAlign: 'center', color: 'var(--cbrio-text3)', fontSize: 13 }}>Nenhuma tarefa nesta fase com os filtros selecionados.</div>
+        )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {Object.entries(CAT).map(([catKey, catMeta]) => {
+            const catTasks = sortByUrgency(phaseTasks.filter(t => getCat(t) === catKey));
+            if (catTasks.length === 0) return null;
+            const done = catTasks.filter(t => t.status === 'concluida').length;
+            const pct = Math.round((done / catTasks.length) * 100);
             return (
-              <div key={col.key} style={{ background: 'var(--cbrio-bg)', borderRadius: 10, padding: 8 }}
-                onDragOver={e => e.preventDefault()}
-                onDrop={e => { const id = e.dataTransfer.getData('cycleKanbanId'); if (id) kanbanChangeStatus(id, col.key); }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <span style={{ fontSize: 10, fontWeight: 600, color: col.color, textTransform: 'uppercase', letterSpacing: 0.4 }}>{col.label}</span>
-                  <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 99, background: 'var(--cbrio-card)', border: `1px solid var(--cbrio-border)`, color: 'var(--cbrio-text3)' }}>{colTasks.length}</span>
+              <div key={catKey} style={{ background: 'var(--cbrio-card)', borderRadius: 10, border: '1px solid var(--cbrio-border)', overflow: 'hidden' }}>
+                {/* Header da área */}
+                <div style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid var(--cbrio-border)' }}>
+                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: catMeta.color, flexShrink: 0 }} />
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--cbrio-text)', flex: 1 }}>{catMeta.label}</span>
+                  <span style={{ fontSize: 11, color: 'var(--cbrio-text3)', fontWeight: 600 }}>{done}/{catTasks.length}</span>
+                  <div style={{ width: 60, height: 4, borderRadius: 2, background: 'var(--cbrio-border)', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${pct}%`, background: pct === 100 ? '#10b981' : catMeta.color, borderRadius: 2, transition: 'width 0.3s' }} />
+                  </div>
                 </div>
-                {colTasks.length === 0 && <div style={{ padding: 12, textAlign: 'center', fontSize: 10, color: 'var(--cbrio-text3)', border: '1.5px dashed var(--cbrio-border)', borderRadius: 8 }}>—</div>}
-                {colTasks.map(task => {
-                  const cat = CAT[getCat(task)] || CAT.outros;
+                {/* Cards */}
+                {catTasks.map(task => {
                   const evName = allEvents.find(e => e.id === task.event_id)?.name || '';
-                  const subs = task.subtasks || [];
-                  const subsDone = subs.filter(s => s.done).length;
-                  const isOpen = kanbanExpanded === task.id;
-                  // Dias até entrega
+                  const isDone = task.status === 'concluida';
                   const p = normDate(task.prazo);
                   const diff = p ? Math.ceil((new Date(p + 'T12:00:00') - new Date()) / 86400000) : null;
-                  const dColor = diff === null || task.status === 'concluida' ? null : diff < 0 ? '#ef4444' : diff <= 3 ? '#f59e0b' : '#10b981';
+                  const dColor = diff === null || isDone ? null : diff < 0 ? '#ef4444' : diff <= 3 ? '#f59e0b' : '#10b981';
                   const dText = diff === null ? '' : diff < 0 ? `${Math.abs(diff)}d atrás` : diff === 0 ? 'Hoje' : `${diff}d`;
-
                   return (
-                    <div key={task.id} draggable onDragStart={e => e.dataTransfer.setData('cycleKanbanId', task.id)}
-                      onClick={() => setKanbanSelectedTask(task)}
+                    <div key={task.id} onClick={() => setKanbanSelectedTask(task)}
                       style={{
-                        background: 'var(--cbrio-card)', borderRadius: 8, padding: 8, marginBottom: 4,
-                        border: kanbanSelectedTask?.id === task.id ? '1.5px solid #00B39D' : dColor === '#ef4444' ? '1px solid #fecaca' : `1px solid var(--cbrio-border)`,
-                        cursor: 'pointer', transition: 'box-shadow .15s',
+                        padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10,
+                        borderBottom: '1px solid var(--cbrio-border)', cursor: 'pointer',
+                        background: kanbanSelectedTask?.id === task.id ? 'rgba(0,179,157,0.06)' : 'transparent',
+                        opacity: isDone ? 0.65 : 1, transition: 'background 0.1s',
                       }}
-                      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'}
-                      onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 3 }}>
-                        <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 99, background: cat.bg, color: cat.color, fontWeight: 500 }}>{cat.label}</span>
+                      onMouseEnter={e => { if (!isDone) e.currentTarget.style.background = 'var(--cbrio-bg)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = kanbanSelectedTask?.id === task.id ? 'rgba(0,179,157,0.06)' : 'transparent'; }}>
+                      {/* Status icon */}
+                      <div style={{
+                        width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: isDone ? '#d1fae5' : 'var(--cbrio-bg)',
+                        border: isDone ? '2px solid #10b981' : '2px solid var(--cbrio-border)',
+                        fontSize: 11, color: isDone ? '#10b981' : 'var(--cbrio-text3)',
+                      }}>
+                        {isDone ? '✓' : ''}
                       </div>
-                      <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--cbrio-text)', lineHeight: 1.3, marginBottom: 3 }}>{task.titulo}</div>
-                      {evName && <div style={{ fontSize: 9, color: 'var(--cbrio-text3)', marginBottom: 2 }}>{evName}</div>}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 9, color: 'var(--cbrio-text3)' }}>
-                        <span>{task.responsavel_nome || '—'}</span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          {subs.length > 0 && <span>{subsDone}/{subs.length} ✓</span>}
-                          {dColor && task.status !== 'concluida' && (
-                            <span style={{ fontWeight: 700, color: dColor, padding: '1px 6px', borderRadius: 8, background: `${dColor}15` }}>{dText}</span>
-                          )}
+                      {/* Info */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: isDone ? 400 : 600, color: 'var(--cbrio-text)', textDecoration: isDone ? 'line-through' : 'none', lineHeight: 1.3 }}>{task.titulo}</div>
+                        <div style={{ fontSize: 11, color: 'var(--cbrio-text3)', marginTop: 2, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                          <span>{task.responsavel_nome || '—'}</span>
+                          {evName && <span>· {evName}</span>}
+                          {p && <span>· {fmtDate(p)}</span>}
                         </div>
                       </div>
+                      {/* Deadline badge */}
+                      {dColor && !isDone && (
+                        <span style={{ fontSize: 10, fontWeight: 700, color: dColor, padding: '2px 8px', borderRadius: 8, background: `${dColor}15`, flexShrink: 0 }}>{dText}</span>
+                      )}
                     </div>
                   );
                 })}
