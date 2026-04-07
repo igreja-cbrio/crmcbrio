@@ -4,6 +4,7 @@ import { events, meetings, cycles as cyclesApi, occurrences as occApi, tasks as 
 import CycleView from './components/CycleView';
 import BudgetPanel from './components/BudgetPanel';
 import { Button } from '../../components/ui/button';
+import AttachmentButton from '../../components/AttachmentButton';
 
 // ── Tema ────────────────────────────────────────────────────
 const C = {
@@ -621,6 +622,7 @@ export default function Eventos() {
   const [kanbanArea, setKanbanArea] = useState('all');
   const [kanbanHorizon, setKanbanHorizon] = useState(15);
   const [kanbanExpanded, setKanbanExpanded] = useState(null);
+  const [kanbanSelectedTask, setKanbanSelectedTask] = useState(null); // painel lateral
   const [kanbanCycleData, setKanbanCycleData] = useState(null);
   const [kanbanPhase, setKanbanPhase] = useState(null);
   const [kanbanEvent, setKanbanEvent] = useState('all');
@@ -830,44 +832,28 @@ export default function Eventos() {
 
                   return (
                     <div key={task.id} draggable onDragStart={e => e.dataTransfer.setData('cycleKanbanId', task.id)}
-                      onClick={() => setKanbanExpanded(isOpen ? null : task.id)}
+                      onClick={() => setKanbanSelectedTask(task)}
                       style={{
                         background: 'var(--cbrio-card)', borderRadius: 8, padding: 8, marginBottom: 4,
-                        border: isOpen ? '1.5px solid #00B39D' : dColor === '#ef4444' ? '1px solid #fecaca' : `1px solid var(--cbrio-border)`,
-                        cursor: 'grab', transition: 'box-shadow .15s',
+                        border: kanbanSelectedTask?.id === task.id ? '1.5px solid #00B39D' : dColor === '#ef4444' ? '1px solid #fecaca' : `1px solid var(--cbrio-border)`,
+                        cursor: 'pointer', transition: 'box-shadow .15s',
                       }}
                       onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'}
                       onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 3 }}>
                         <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 99, background: cat.bg, color: cat.color, fontWeight: 500 }}>{cat.label}</span>
-                        <button onClick={async e => { e.stopPropagation(); if (window.confirm('Excluir tarefa?')) { await cyclesApi.deleteTask(task.id); loadKanban(); } }}
-                          style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 10, padding: 0 }}>✕</button>
                       </div>
                       <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--cbrio-text)', lineHeight: 1.3, marginBottom: 3 }}>{task.titulo}</div>
                       {evName && <div style={{ fontSize: 9, color: 'var(--cbrio-text3)', marginBottom: 2 }}>{evName}</div>}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 9, color: 'var(--cbrio-text3)' }}>
                         <span>{task.responsavel_nome || '—'}</span>
-                        {subs.length > 0 && <span>{subsDone}/{subs.length}</span>}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          {subs.length > 0 && <span>{subsDone}/{subs.length} ✓</span>}
+                          {dColor && task.status !== 'concluida' && (
+                            <span style={{ fontWeight: 700, color: dColor, padding: '1px 6px', borderRadius: 8, background: `${dColor}15` }}>{dText}</span>
+                          )}
+                        </div>
                       </div>
-                      {/* DaysCounter colorido */}
-                      {dColor && task.status !== 'concluida' && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--cbrio-border)' }}>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: dColor }}>{fmtDate(task.prazo)}</span>
-                          <span style={{ fontSize: 10, fontWeight: 700, color: dColor, padding: '1px 6px', borderRadius: 8, background: `${dColor}15` }}>{dText}</span>
-                        </div>
-                      )}
-
-                      {/* Subtarefas expandidas */}
-                      {isOpen && subs.length > 0 && (
-                        <div style={{ marginTop: 6, paddingTop: 6, borderTop: `1px solid var(--cbrio-border)` }} onClick={e => e.stopPropagation()}>
-                          {subs.map(sub => (
-                            <div key={sub.id} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, padding: '2px 0', color: 'var(--cbrio-text)' }}>
-                              <input type="checkbox" checked={sub.done} onChange={() => { sub.done = !sub.done; setKanbanCycleData({ ...d }); }} style={{ cursor: 'pointer', width: 13, height: 13 }} />
-                              <span style={sub.done ? { textDecoration: 'line-through', color: 'var(--cbrio-text3)' } : {}}>{sub.name}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   );
                 })}
@@ -875,6 +861,134 @@ export default function Eventos() {
             );
           })}
         </div>
+
+        {/* ── PAINEL LATERAL — Detalhe da Tarefa ── */}
+        {kanbanSelectedTask && (() => {
+          const task = kanbanSelectedTask;
+          const phase = allPhases.find(p => p.id === task.event_phase_id);
+          const cat = CAT[getCat(task)] || CAT.outros;
+          const subs = task.subtasks || [];
+          const subsDone = subs.filter(s => s.done).length;
+          const subsPct = subs.length > 0 ? Math.round((subsDone / subs.length) * 100) : task.status === 'concluida' ? 100 : 0;
+          const evName = allEvents.find(e => e.id === task.event_id)?.name || '';
+          const p = normDate(task.prazo);
+          const diff = p ? Math.ceil((new Date(p + 'T12:00:00') - new Date()) / 86400000) : null;
+          const daysColor = diff === null || task.status === 'concluida' ? null : diff < 0 ? '#ef4444' : diff <= 7 ? '#f59e0b' : '#10b981';
+          const TASK_ST = { a_fazer: { label: 'A fazer', color: '#9ca3af' }, em_andamento: { label: 'Em andamento', color: '#3b82f6' }, bloqueada: { label: 'Bloqueada', color: '#ef4444' }, concluida: { label: 'Concluída', color: '#10b981' } };
+          const ts = TASK_ST[task.status] || TASK_ST.a_fazer;
+
+          return (
+            <>
+              <div onClick={() => setKanbanSelectedTask(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 900 }} />
+              <div style={{
+                position: 'fixed', top: 0, right: 0, bottom: 0, width: '100%', maxWidth: 480,
+                background: 'var(--cbrio-modal-bg, #fff)', zIndex: 901,
+                boxShadow: '-8px 0 30px rgba(0,0,0,0.15)', overflowY: 'auto',
+                animation: 'slideInRight 0.2s ease-out',
+              }}>
+                <style>{`@keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }`}</style>
+
+                {/* Header */}
+                <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid var(--cbrio-border)', position: 'sticky', top: 0, background: 'var(--cbrio-modal-bg, #fff)', zIndex: 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--cbrio-text)', lineHeight: 1.3, marginBottom: 8 }}>{task.titulo}</div>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                        <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 99, background: cat.bg, color: cat.color, fontWeight: 600 }}>{cat.label}</span>
+                        <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 99, background: `${ts.color}15`, color: ts.color, fontWeight: 600 }}>{ts.label}</span>
+                      </div>
+                    </div>
+                    <button onClick={() => setKanbanSelectedTask(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: 'var(--cbrio-text3)', padding: '4px 8px' }}>✕</button>
+                  </div>
+                  <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'var(--cbrio-text2)' }}>
+                    {evName && <div><span style={{ fontWeight: 600 }}>Evento:</span> {evName}</div>}
+                    <div><span style={{ fontWeight: 600 }}>Responsável:</span> {task.responsavel_nome || '—'}</div>
+                    {p && <div><span style={{ fontWeight: 600 }}>Prazo:</span> {fmtDate(p)} {daysColor && <span style={{ color: daysColor, fontWeight: 700 }}> ({diff < 0 ? `${Math.abs(diff)}d atrás` : diff === 0 ? 'Hoje' : `${diff}d`})</span>}</div>}
+                  </div>
+                </div>
+
+                <div style={{ padding: '16px 24px' }}>
+                  {/* Entregável Esperado */}
+                  {(phase?.entregas_padrao || task.entrega) && (
+                    <div style={{ marginBottom: 20 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: '#00B39D', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>📋 Entregável Esperado</div>
+                      <div style={{ background: 'rgba(0,179,157,0.06)', border: '1px solid rgba(0,179,157,0.2)', borderRadius: 10, padding: '14px 16px' }}>
+                        {phase?.entregas_padrao && <div style={{ fontSize: 13, color: 'var(--cbrio-text)', lineHeight: 1.6, whiteSpace: 'pre-line' }}>{phase.entregas_padrao}</div>}
+                        {task.entrega && <div style={{ fontSize: 12, color: 'var(--cbrio-text2)', marginTop: 8 }}><span style={{ fontWeight: 600 }}>Específico:</span> {task.entrega}</div>}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Fase */}
+                  {phase && (
+                    <div style={{ marginBottom: 20 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--cbrio-text2)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Fase</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--cbrio-text)' }}>Fase {phase.numero_fase} — {phase.nome_fase}</div>
+                      {phase.descricao_fase && <div style={{ fontSize: 12, color: 'var(--cbrio-text2)', marginTop: 4, lineHeight: 1.5 }}>{phase.descricao_fase}</div>}
+                    </div>
+                  )}
+
+                  {/* Descrição */}
+                  {task.descricao && (
+                    <div style={{ marginBottom: 20 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--cbrio-text2)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Descrição</div>
+                      <div style={{ fontSize: 13, color: 'var(--cbrio-text)', lineHeight: 1.6, whiteSpace: 'pre-line' }}>{task.descricao}</div>
+                    </div>
+                  )}
+
+                  {/* Checklist */}
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--cbrio-text2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Checklist ({subsDone}/{subs.length})</div>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: subsPct >= 100 ? '#10b981' : subsPct > 0 ? '#3b82f6' : 'var(--cbrio-text3)' }}>{subsPct}%</span>
+                    </div>
+                    <div style={{ height: 6, background: 'var(--cbrio-border)', borderRadius: 3, marginBottom: 10, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${subsPct}%`, background: subsPct >= 100 ? '#10b981' : '#3b82f6', borderRadius: 3, transition: 'width 0.3s' }} />
+                    </div>
+                    {subs.length === 0 ? (
+                      <div style={{ fontSize: 12, color: 'var(--cbrio-text3)', padding: 8 }}>Nenhuma subtarefa.</div>
+                    ) : subs.map(sub => (
+                      <div key={sub.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid var(--cbrio-border)' }}>
+                        <input type="checkbox" checked={sub.done} onChange={async () => {
+                          await cyclesApi.updateSubtask(sub.id, { done: !sub.done });
+                          loadKanban();
+                          setKanbanSelectedTask({ ...task, subtasks: subs.map(s => s.id === sub.id ? { ...s, done: !s.done } : s) });
+                        }} style={{ cursor: 'pointer', width: 16, height: 16, accentColor: '#00B39D' }} />
+                        <span style={{ fontSize: 13, color: 'var(--cbrio-text)', ...(sub.done ? { textDecoration: 'line-through', color: 'var(--cbrio-text3)' } : {}) }}>{sub.name}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Anexos */}
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--cbrio-text2)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>📎 Anexos / Entregáveis</div>
+                    <AttachmentButton eventId={task.event_id} taskId={task.id} taskType="cycle" phaseName={phase?.nome_fase || ''} area={task.area} onAttachmentChange={loadKanban} />
+                  </div>
+
+                  {/* Observações */}
+                  {task.observacoes && (
+                    <div style={{ marginBottom: 20 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--cbrio-text2)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Observações</div>
+                      <div style={{ fontSize: 12, color: 'var(--cbrio-text2)', lineHeight: 1.5, background: 'var(--cbrio-bg)', borderRadius: 8, padding: '10px 14px' }}>{task.observacoes}</div>
+                    </div>
+                  )}
+
+                  {/* Ações */}
+                  <div style={{ display: 'flex', gap: 8, paddingTop: 16, borderTop: '1px solid var(--cbrio-border)' }}>
+                    <select value={task.status} onChange={async e => { await kanbanChangeStatus(task.id, e.target.value); setKanbanSelectedTask(null); }}
+                      style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--cbrio-border)', fontSize: 13, background: 'var(--cbrio-input-bg, #fff)', color: 'var(--cbrio-text)' }}>
+                      {Object.entries(TASK_ST).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                    </select>
+                    <button onClick={async () => { await cyclesApi.deleteTask(task.id); loadKanban(); setKanbanSelectedTask(null); }}
+                      style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#ef4444', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                      Excluir
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </>
+          );
+        })()}
       </div>
     );
   }

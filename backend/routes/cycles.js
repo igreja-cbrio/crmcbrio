@@ -113,7 +113,7 @@ router.get('/kanban/all', async (req, res) => {
     const eventIds = activeCycles.map(c => c.event_id);
 
     const [phasesRes, tasksRes] = await Promise.all([
-      supabase.from('event_cycle_phases').select('*').in('event_id', eventIds).order('numero_fase'),
+      supabase.from('event_cycle_phases').select('*, cycle_phase_templates(descricao, entregas_padrao, responsavel_padrao)').in('event_id', eventIds).order('numero_fase'),
       supabase.from('cycle_phase_tasks').select('*').in('event_id', eventIds),
     ]);
 
@@ -126,6 +126,14 @@ router.get('/kanban/all', async (req, res) => {
     (allSubs || []).forEach(s => { if (!subsMap[s.task_id]) subsMap[s.task_id] = []; subsMap[s.task_id].push(s); });
 
     const tasksWithSubs = (tasksRes.data || []).map(t => ({ ...t, subtasks: subsMap[t.id] || [] }));
+
+    // Enriquecer fases com dados do template
+    const enrichedPhases = (phasesRes.data || []).map(p => ({
+      ...p,
+      entregas_padrao: p.cycle_phase_templates?.entregas_padrao || null,
+      descricao_fase: p.cycle_phase_templates?.descricao || null,
+      cycle_phase_templates: undefined,
+    }));
 
     const events = activeCycles.map(c => ({ id: c.event_id, name: c.events?.name || '—' }));
 
@@ -153,7 +161,7 @@ router.get('/kanban/all', async (req, res) => {
 
     res.json({
       events: allEvents,
-      phases: phasesRes.data || [],
+      phases: enrichedPhases,
       tasks: [...tasksWithSubs, ...mappedSimpleTasks],
     });
   } catch (err) { console.error(err); res.status(500).json({ error: err.message }); }
