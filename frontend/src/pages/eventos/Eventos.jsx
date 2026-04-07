@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { events, meetings, cycles as cyclesApi, occurrences as occApi, tasks as tasksApi, dashboard as dashApi, risks as risksApi, retrospective as retroApi, history as historyApi, users as usersApi, reports as reportsApi } from '../../api';
+import { events, meetings, cycles as cyclesApi, occurrences as occApi, dashboard as dashApi, risks as risksApi, retrospective as retroApi, history as historyApi, users as usersApi, reports as reportsApi } from '../../api';
 import CycleView from './components/CycleView';
 import BudgetPanel from './components/BudgetPanel';
 import { Button } from '../../components/ui/button';
@@ -622,8 +622,7 @@ export default function Eventos() {
   const [kanbanViewMode, setKanbanViewMode] = useState(isPMO ? 'pmo' : accessLevel >= 3 ? 'area' : 'minhas');
   const [kanbanArea, setKanbanArea] = useState('all');
   const [kanbanHorizon, setKanbanHorizon] = useState(15);
-  const [kanbanExpanded, setKanbanExpanded] = useState(null);
-  const [kanbanSelectedTask, setKanbanSelectedTask] = useState(null); // painel lateral
+  const [kanbanSelectedTask, setKanbanSelectedTask] = useState(null);
   const [kanbanCycleData, setKanbanCycleData] = useState(null);
   const [kanbanPhase, setKanbanPhase] = useState(null);
   const [kanbanEvent, setKanbanEvent] = useState('all');
@@ -642,13 +641,6 @@ export default function Eventos() {
     finally { setKanbanLoading(false); }
   }
 
-  async function kanbanChangeStatus(taskId, newStatus) {
-    try {
-      await cyclesApi.updateTask(taskId, { status: newStatus });
-      loadKanban();
-    } catch (e) { setError(e.message); }
-  }
-
   // ═══════════════════════════════════════════════════════════
   // RENDER — KANBAN (dois níveis: fases + kanban por fase)
   // ═══════════════════════════════════════════════════════════
@@ -662,12 +654,6 @@ export default function Eventos() {
       cozinha:    { label: 'Cozinha',    color: '#ec4899', bg: '#fce7f3' },
       outros:     { label: 'Outros',     color: 'var(--cbrio-text3)', bg: 'var(--cbrio-bg)' },
     };
-    const COLS = [
-      { key: 'a_fazer', label: 'A fazer', color: 'var(--cbrio-text3)' },
-      { key: 'em_andamento', label: 'Em andamento', color: '#3b82f6' },
-      { key: 'bloqueada', label: 'Bloqueada', color: '#ef4444' },
-      { key: 'concluida', label: 'Concluída', color: '#10b981' },
-    ];
     const getCat = (t) => { if (t.area === 'marketing') return 'marketing'; const m = (t.observacoes || '').match(/Área:\s*(\w+)/i); return m ? m[1] : 'outros'; };
 
     const d = kanbanCycleData;
@@ -771,7 +757,7 @@ export default function Eventos() {
 
               return (
                 <div key={num} style={{ display: 'flex', alignItems: 'center' }}>
-                  <div onClick={() => { setKanbanPhase(num); setKanbanExpanded(null); }} style={{
+                  <div onClick={() => { setKanbanPhase(num); setKanbanSelectedTask(null); }} style={{
                     borderRadius: 8, padding: '8px 10px', cursor: 'pointer', minWidth: 100, maxWidth: 120,
                     border: isActive ? '2px solid #00B39D' : `1px solid var(--cbrio-border)`,
                     background: isActive ? 'rgba(0,179,157,0.1)' : isDone ? 'var(--cbrio-bg)' : 'var(--cbrio-card)',
@@ -1857,7 +1843,7 @@ export default function Eventos() {
         {detailTab === 'ciclo' && (
           <div>
             <BudgetPanel eventId={ev.id} budget={null} onReload={() => refreshDetail()} />
-            <CycleView eventId={ev.id} />
+            <CycleView eventId={ev.id} eventName={ev.name} />
           </div>
         )}
 
