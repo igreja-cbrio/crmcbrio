@@ -96,9 +96,9 @@ export default function Membresia() {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Users style={{ width: 28, height: 28, color: C.primary }} />
-            <h1 style={{ fontSize: 28, fontWeight: 800, color: C.text, margin: 0 }}>Membresia</h1>
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: C.text, margin: 0, lineHeight: 1.25 }}>Membresia</h1>
           </div>
-          <p style={{ fontSize: 13, color: C.text2, marginTop: 4 }}>Cadastro de membros, famílias e trilha dos valores</p>
+          <p style={{ fontSize: 14, color: C.text2, marginTop: 4, lineHeight: 1.5 }}>Cadastro de membros, famílias e trilha dos valores</p>
         </div>
         {isDiretor && (
           <Button onClick={() => setShowForm(true)}>
@@ -123,8 +123,8 @@ export default function Membresia() {
           { label: 'Famílias', value: kpis.familias, color: C.amber },
         ].map((k, i) => (
           <div key={i} style={{ background: C.card, borderRadius: 12, padding: '18px 22px', border: `1px solid ${C.border}`, borderLeft: `4px solid ${k.color}` }}>
-            <div style={{ fontSize: 28, fontWeight: 800, color: C.text }}>{k.value}</div>
-            <div style={{ fontSize: 11, fontWeight: 600, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>{k.label}</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: C.text, lineHeight: 1.25 }}>{k.value}</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>{k.label}</div>
           </div>
         ))}
       </div>
