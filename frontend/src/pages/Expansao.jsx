@@ -44,38 +44,38 @@ const MONTHS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', '
 const styles = {
   page: { maxWidth: 1600, margin: '0 auto', padding: '0 24px' },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 },
-  title: { fontSize: 20, fontWeight: 700, color: C.text, letterSpacing: -0.5 },
-  subtitle: { fontSize: 14, color: C.t2, marginTop: 2 },
+  title: { fontSize: 28, fontWeight: 800, color: C.text, letterSpacing: -0.5 },
+  subtitle: { fontSize: 13, color: C.t2, marginTop: 2 },
   tabs: { display: 'flex', gap: 0, borderBottom: `2px solid ${C.border}`, marginBottom: 24 },
   tab: (a) => ({
-    padding: '12px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer', border: 'none', background: 'none',
+    padding: '10px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer', border: 'none', background: 'none',
     color: a ? C.primary : C.t2, borderBottom: a ? `2px solid ${C.primary}` : '2px solid transparent',
     marginBottom: -2, transition: 'all 0.15s',
   }),
-  card: { background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', overflow: 'hidden' },
-  cardHeader: { padding: '16px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  cardTitle: { fontSize: 14, fontWeight: 700, color: C.text },
+  card: { background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, boxShadow: '0 1px 3px rgba(0,0,0,0.04)', overflow: 'hidden' },
+  cardHeader: { padding: '16px 20px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  cardTitle: { fontSize: 15, fontWeight: 700, color: C.text },
   table: { width: '100%', borderCollapse: 'collapse' },
-  th: { padding: '12px 16px', fontSize: 12, fontWeight: 700, color: C.t2, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'left', borderBottom: `1px solid ${C.border}`, background: 'var(--cbrio-table-header, #fafafa)' },
-  td: { padding: '12px 16px', fontSize: 14, color: C.text, borderBottom: `1px solid ${C.border}` },
-  badge: (color, bg) => ({ display: 'inline-block', padding: '2px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600, color, background: bg }),
+  th: { padding: '10px 16px', fontSize: 11, fontWeight: 700, color: C.t2, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'left', borderBottom: `1px solid ${C.border}`, background: 'var(--cbrio-table-header, #fafafa)' },
+  td: { padding: '12px 16px', fontSize: 13, color: C.text, borderBottom: `1px solid ${C.border}` },
+  badge: (color, bg) => ({ display: 'inline-block', padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, color, background: bg }),
   btn: (v = 'primary') => ({
-    padding: '8px 16px', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', border: 'none', transition: 'all 0.15s',
+    padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: 'none', transition: 'all 0.15s',
     ...(v === 'primary' ? { background: C.primary, color: '#fff' } : {}),
     ...(v === 'secondary' ? { background: 'transparent', color: C.primary, border: `1px solid ${C.primary}` } : {}),
     ...(v === 'danger' ? { background: C.red, color: '#fff' } : {}),
     ...(v === 'ghost' ? { background: 'transparent', color: C.t2, padding: '6px 12px' } : {}),
   }),
-  btnSm: { padding: '4px 10px', fontSize: 12 },
+  btnSm: { padding: '4px 10px', fontSize: 11 },
   filterRow: { display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' },
-  input: { padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 14, outline: 'none', width: '100%', background: 'var(--cbrio-input-bg, #fff)', color: C.text, boxSizing: 'border-box', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' },
-  select: { padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 14, background: 'var(--cbrio-input-bg, #fff)', color: C.text, outline: 'none', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' },
-  textarea: { padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 14, color: C.text, outline: 'none', width: '100%', boxSizing: 'border-box', minHeight: 60, resize: 'vertical', background: 'var(--cbrio-input-bg, #fff)', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' },
-  label: { fontSize: 12, fontWeight: 600, color: C.t2, marginBottom: 4, display: 'block', textTransform: 'uppercase', letterSpacing: 0.5 },
+  input: { padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, outline: 'none', width: '100%', background: 'var(--cbrio-input-bg, #fff)', color: C.text, boxSizing: 'border-box', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' },
+  select: { padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: 'var(--cbrio-input-bg, #fff)', color: C.text, outline: 'none', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' },
+  textarea: { padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, color: C.text, outline: 'none', width: '100%', boxSizing: 'border-box', minHeight: 60, resize: 'vertical', background: 'var(--cbrio-input-bg, #fff)', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' },
+  label: { fontSize: 11, fontWeight: 600, color: C.t2, marginBottom: 4, display: 'block', textTransform: 'uppercase', letterSpacing: 0.5 },
   formGroup: { marginBottom: 14 },
   formRow: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 },
   overlay: { position: 'fixed', inset: 0, background: 'var(--cbrio-overlay, rgba(0,0,0,0.5))', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: 60, zIndex: 1000 },
-  modal: { background: 'var(--cbrio-modal-bg, #fff)', borderRadius: 12, width: '95%', maxWidth: 680, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 16px 48px rgba(0,0,0,0.12)' },
+  modal: { background: 'var(--cbrio-modal-bg, #fff)', borderRadius: 16, width: '95%', maxWidth: 680, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' },
   modalHeader: { padding: '20px 24px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   modalTitle: { fontSize: 18, fontWeight: 700, color: C.text },
   modalBody: { padding: '16px 24px 24px' },
@@ -85,7 +85,7 @@ const styles = {
   section: { marginBottom: 24 },
   sectionTitle: { fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   infoGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 },
-  infoLabel: { fontSize: 12, fontWeight: 600, color: C.t3, textTransform: 'uppercase', letterSpacing: 0.5 },
+  infoLabel: { fontSize: 11, fontWeight: 600, color: C.t3, textTransform: 'uppercase', letterSpacing: 0.5 },
   infoValue: { fontSize: 14, fontWeight: 500, color: C.text, marginTop: 2 },
   progress: { height: 8, borderRadius: 4, background: C.border, overflow: 'hidden', flex: 1 },
   progressBar: (pct, color) => ({ height: '100%', borderRadius: 4, background: color || (pct >= 100 ? C.green : C.primary), width: `${Math.min(pct, 100)}%`, transition: 'width 0.3s' }),
@@ -114,7 +114,7 @@ function DaysCounter({ date, status }) {
   const diff = Math.ceil((new Date(s + 'T12:00:00') - new Date()) / 86400000);
   const color = diff < 0 ? C.red : diff <= 7 ? C.amber : C.green;
   const text = diff < 0 ? `${Math.abs(diff)}d atras` : diff === 0 ? 'Hoje' : `${diff}d`;
-  return <span style={{ fontSize: 12, fontWeight: 700, color, marginLeft: 6 }}>{text}</span>;
+  return <span style={{ fontSize: 11, fontWeight: 700, color, marginLeft: 6 }}>{text}</span>;
 }
 
 function calcTaskProgress(task) {
@@ -164,9 +164,9 @@ function ConfirmDialog({ message, onConfirm, onCancel }) {
   if (!message) return null;
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)' }}>
-      <div style={{ background: 'var(--cbrio-modal-bg)', borderRadius: 12, padding: 28, maxWidth: 400, boxShadow: '0 16px 48px rgba(0,0,0,0.12)', textAlign: 'center' }}>
+      <div style={{ background: 'var(--cbrio-modal-bg)', borderRadius: 16, padding: 28, maxWidth: 400, boxShadow: '0 20px 60px rgba(0,0,0,0.3)', textAlign: 'center' }}>
         <AlertTriangle style={{ width: 36, height: 36, color: '#f59e0b', margin: '0 auto 12px' }} />
-        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--cbrio-text)', marginBottom: 20 }}>{message}</div>
+        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--cbrio-text)', marginBottom: 20 }}>{message}</div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
           <button style={styles.btn('ghost')} onClick={onCancel}>Cancelar</button>
           <button style={styles.btn('danger')} onClick={onConfirm}>Confirmar</button>
@@ -202,7 +202,7 @@ function KpiBar({ items }) {
     <div style={{
       background: C.card, borderRadius: 12, border: `1px solid ${C.border}`,
       padding: '14px 24px', marginBottom: 20, display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center',
-      boxShadow: '0 1px 2px rgba(0,0,0,0.05)', overflowX: 'auto',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.04)', overflowX: 'auto',
     }}>
       {items.map((item, i) => {
         if (!item) return <div key={i} style={{ width: 1, height: 24, background: C.border }} />;
@@ -211,8 +211,8 @@ function KpiBar({ items }) {
             style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: item.action ? 'pointer' : 'default', padding: '2px 4px', borderRadius: 6, transition: 'background .15s' }}
             onMouseEnter={e => { if (item.action) e.currentTarget.style.background = `${item.color}15`; }}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-            <span style={{ fontSize: 20, fontWeight: 700, color: item.color }}>{item.value}</span>
-            <span style={{ fontSize: 12, fontWeight: 600, color: C.t3, textTransform: 'uppercase', letterSpacing: 0.3, whiteSpace: 'nowrap' }}>{item.label}</span>
+            <span style={{ fontSize: 20, fontWeight: 800, color: item.color }}>{item.value}</span>
+            <span style={{ fontSize: 11, fontWeight: 600, color: C.t3, textTransform: 'uppercase', letterSpacing: 0.3, whiteSpace: 'nowrap' }}>{item.label}</span>
           </div>
         );
       })}
@@ -498,12 +498,12 @@ export default function Expansao() {
         <div style={{ ...styles.card, padding: '20px 24px', marginBottom: 20 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
             <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>Progresso Geral</span>
-            <span style={{ fontSize: 20, fontWeight: 700, color: progressColor(overallPct) }}>{overallPct}%</span>
+            <span style={{ fontSize: 20, fontWeight: 800, color: progressColor(overallPct) }}>{overallPct}%</span>
           </div>
           <div style={{ height: 14, borderRadius: 7, background: C.border, overflow: 'hidden' }}>
             <div style={{ height: '100%', borderRadius: 7, background: `linear-gradient(90deg, ${AXES[2026].color}, ${AXES[2027].color}, ${AXES[2028].color}, ${AXES[2029].color})`, width: `${overallPct}%`, transition: 'width 0.5s' }} />
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: C.t3, marginTop: 6 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: C.t3, marginTop: 6 }}>
             <span>{counts.concluido} de {counts.total} marcos concluidos</span>
             <span>Meta: 93 marcos em 4 anos</span>
           </div>
@@ -527,14 +527,14 @@ export default function Expansao() {
                 onMouseLeave={e => { e.currentTarget.style.boxShadow = isCurrentYear ? `0 0 0 2px ${ax.color}40` : 'none'; e.currentTarget.style.transform = 'none'; }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                   <div>
-                    <div style={{ fontSize: 22, fontWeight: 700, color: ax.color }}>{year}</div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginTop: 2 }}>{ax.name}</div>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: ax.color }}>{year}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginTop: 2 }}>{ax.name}</div>
                   </div>
                   {isCurrentYear && <span style={styles.badge(ax.color, ax.bg)}>Atual</span>}
                 </div>
-                <div style={{ fontSize: 12, color: C.t3, marginBottom: 10, lineHeight: 1.3 }}>{ax.objective}</div>
+                <div style={{ fontSize: 11, color: C.t3, marginBottom: 10, lineHeight: 1.3 }}>{ax.objective}</div>
                 <ProgressBar pct={pct} color={ax.color} height={6} />
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: C.t3, marginTop: 6 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: C.t3, marginTop: 6 }}>
                   <span>{ac.done}/{ac.total} marcos</span>
                   <span style={{ fontWeight: 600, color: ax.color }}>{pct}%</span>
                 </div>
@@ -552,7 +552,7 @@ export default function Expansao() {
           {workloadArr.length > 0 && (
             <div style={{ ...styles.card, flex: '1 1 340px', minWidth: 280 }}>
               <div style={{ padding: '20px 24px' }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 12 }}>Carga por Responsavel</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 12 }}>Carga por Responsavel</div>
                 {workloadArr.map((w, i) => (
                   <div key={i} onClick={() => { setFResponsible(w.name); setTab(2); }}
                     style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, cursor: 'pointer', padding: '3px 4px', borderRadius: 6, transition: 'background .1s' }}
@@ -572,9 +572,9 @@ export default function Expansao() {
           {/* Upcoming milestones */}
           <div style={{ ...styles.card, flex: '1 1 340px', minWidth: 280 }}>
             <div style={{ padding: '20px 24px' }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 12 }}>Proximos Marcos (30 dias)</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 12 }}>Proximos Marcos (30 dias)</div>
               {upcoming.length === 0 ? (
-                <div style={{ fontSize: 14, color: C.t3 }}>Nenhum marco nos proximos 30 dias.</div>
+                <div style={{ fontSize: 13, color: C.t3 }}>Nenhum marco nos proximos 30 dias.</div>
               ) : (
                 upcoming.map(m => (
                   <div key={m.id} onClick={() => openDetail(m)}
@@ -583,11 +583,11 @@ export default function Expansao() {
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: axisColor(m.year), flexShrink: 0 }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</div>
-                      <div style={{ fontSize: 12, color: C.t3 }}>{m.area || '\u2014'} | {m.responsible || '\u2014'}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</div>
+                      <div style={{ fontSize: 11, color: C.t3 }}>{m.area || '\u2014'} | {m.responsible || '\u2014'}</div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ fontSize: 12, color: C.t3 }}>{fmtDate(m.date_end || m.expected_delivery)}</div>
+                      <div style={{ fontSize: 11, color: C.t3 }}>{fmtDate(m.date_end || m.expected_delivery)}</div>
                       <DaysCounter date={m.date_end || m.expected_delivery} status={m.status} />
                     </div>
                   </div>
@@ -653,7 +653,7 @@ export default function Expansao() {
 
     return (
       <>
-        <div style={{ fontSize: 14, color: C.t3, marginBottom: 12 }}>Clique em um marco para ver detalhes. Passe o mouse para informacoes rapidas.</div>
+        <div style={{ fontSize: 13, color: C.t3, marginBottom: 12 }}>Clique em um marco para ver detalhes. Passe o mouse para informacoes rapidas.</div>
 
         {/* Legend */}
         <div style={{ display: 'flex', gap: 16, marginBottom: 12, flexWrap: 'wrap' }}>
@@ -704,7 +704,7 @@ export default function Expansao() {
                     <div style={{ position: 'absolute', left: `${bandLeft}%`, width: `${bandWidth}%`, top: 0, height: '100%', background: `${ax.color}08` }} />
 
                     {/* Year label */}
-                    <div style={{ position: 'absolute', left: `${bandLeft}%`, top: 4, padding: '2px 8px', fontSize: 12, fontWeight: 700, color: ax.color, zIndex: 3 }}>
+                    <div style={{ position: 'absolute', left: `${bandLeft}%`, top: 4, padding: '2px 8px', fontSize: 11, fontWeight: 700, color: ax.color, zIndex: 3 }}>
                       {year} - {ax.name}
                     </div>
 
@@ -773,7 +773,7 @@ export default function Expansao() {
             boxShadow: '0 4px 16px rgba(0,0,0,0.2)', maxWidth: 260, pointerEvents: 'none',
           }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 4 }}>{tooltip.mi.name}</div>
-            <div style={{ fontSize: 12, color: C.t3 }}>
+            <div style={{ fontSize: 11, color: C.t3 }}>
               {fmtDate(tooltip.mi.date_start)} {'\u2192'} {fmtDate(tooltip.mi.date_end)}
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
@@ -813,7 +813,7 @@ export default function Expansao() {
           {/* Year buttons */}
           <div style={{ display: 'flex', gap: 4 }}>
             <button onClick={() => setFYear('')} style={{
-              padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: fYear === '' ? 700 : 400,
+              padding: '5px 12px', borderRadius: 20, fontSize: 11, fontWeight: fYear === '' ? 700 : 400,
               border: fYear === '' ? `2px solid ${C.primary}` : `1px solid ${C.border}`,
               background: fYear === '' ? `${C.primary}15` : 'transparent', color: fYear === '' ? C.primary : C.t3, cursor: 'pointer',
             }}>Todos</button>
@@ -822,7 +822,7 @@ export default function Expansao() {
               const active = fYear === String(y);
               return (
                 <button key={y} onClick={() => setFYear(active ? '' : String(y))} style={{
-                  padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: active ? 700 : 400,
+                  padding: '5px 12px', borderRadius: 20, fontSize: 11, fontWeight: active ? 700 : 400,
                   border: active ? `2px solid ${ax.color}` : `1px solid ${C.border}`,
                   background: active ? `${ax.color}15` : 'transparent', color: active ? ax.color : C.t3, cursor: 'pointer',
                 }}>{y}</button>
@@ -852,7 +852,7 @@ export default function Expansao() {
           </div>
         </div>
 
-        <div style={{ fontSize: 12, color: C.t3, marginBottom: 12 }}>{filtered.length} marco(s) encontrado(s)</div>
+        <div style={{ fontSize: 11, color: C.t3, marginBottom: 12 }}>{filtered.length} marco(s) encontrado(s)</div>
 
         {listView === 'list' ? renderMarcosTable(filtered) : renderMarcosKanban(filtered)}
       </>
@@ -886,7 +886,7 @@ export default function Expansao() {
                   <tr key={mi.id} style={styles.clickRow} onClick={() => openDetail(mi)}
                     onMouseEnter={e => e.currentTarget.style.background = C.bg}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                    <td style={{ ...styles.td, fontSize: 12, color: C.t3, fontWeight: 600 }}>{mi.sort_order || (idx + 1)}</td>
+                    <td style={{ ...styles.td, fontSize: 11, color: C.t3, fontWeight: 600 }}>{mi.sort_order || (idx + 1)}</td>
                     <td style={{ ...styles.td, fontWeight: 600 }}>{mi.name}</td>
                     <td style={styles.td}>
                       <span style={styles.badge(ax.color || C.t3, (ax.bg || '#f3f4f6'))}>
@@ -963,7 +963,7 @@ export default function Expansao() {
                   <div style={{ width: 10, height: 10, borderRadius: '50%', background: col.color }} />
                   <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{col.label}</span>
                 </div>
-                <span style={{ fontSize: 12, fontWeight: 600, color: C.t3 }}>{colItems.length}</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: C.t3 }}>{colItems.length}</span>
               </div>
               {colItems.map(mi => {
                 const ax = AXES[mi.year] || {};
@@ -983,7 +983,7 @@ export default function Expansao() {
                     }}
                     onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'}
                     onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: C.text, marginBottom: 6 }}>{mi.name}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 6 }}>{mi.name}</div>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
                       <span style={{ ...styles.badge(ax.color || C.t3, ax.bg || '#f3f4f6'), fontSize: 9 }}>{mi.year}</span>
                       {mi.area && <span style={{ fontSize: 10, color: C.t3 }}>{mi.area}</span>}
@@ -1041,14 +1041,14 @@ export default function Expansao() {
       <>
         {/* Filters */}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
-          <span style={{ fontSize: 12, color: C.t2, fontWeight: 600 }}>Ano:</span>
+          <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Ano:</span>
           {['', '2026', '2027', '2028', '2029'].map(y => {
             const active = ganttYearFilter === y;
             const ax = y ? AXES[Number(y)] : null;
             const color = ax ? ax.color : C.primary;
             return (
               <button key={y || 'all'} onClick={() => setGanttYearFilter(y)} style={{
-                padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: active ? 700 : 400, cursor: 'pointer',
+                padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: active ? 700 : 400, cursor: 'pointer',
                 border: active ? `2px solid ${color}` : `1px solid ${C.border}`,
                 background: active ? `${color}15` : 'transparent', color: active ? color : C.t3,
               }}>{y || 'Todos'}</button>
@@ -1088,13 +1088,13 @@ export default function Expansao() {
 
         {visible.length > 0 && (
           <>
-            <div style={{ fontSize: 12, color: C.t3, marginBottom: 8 }}>{visible.length} marco(s) exibido(s)</div>
+            <div style={{ fontSize: 11, color: C.t3, marginBottom: 8 }}>{visible.length} marco(s) exibido(s)</div>
             <div style={{ ...styles.card, overflow: 'hidden' }}>
               <div style={{ display: 'flex' }}>
                 {/* Left column: names */}
                 <div style={{ width: NW, flexShrink: 0, borderRight: `1px solid ${C.border}` }}>
                   <div style={{ height: 30, borderBottom: `1px solid ${C.border}`, background: 'var(--cbrio-table-header, #fafafa)', padding: '0 12px', display: 'flex', alignItems: 'center' }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: C.t2, textTransform: 'uppercase' }}>Marco</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: C.t2, textTransform: 'uppercase' }}>Marco</span>
                   </div>
                   {visible.map(m => {
                     const ax = AXES[m.year] || {};
@@ -1216,13 +1216,13 @@ export default function Expansao() {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <button onClick={() => { setSelectedMilestone(null); setTab(2); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.primary, fontWeight: 600, fontSize: 14, padding: 0, marginBottom: 8 }}>{'\u2190'} Voltar aos marcos</button>
-            <div style={{ fontSize: 22, fontWeight: 700, color: C.text, marginBottom: 8 }}>{mi.name}</div>
+            <button onClick={() => { setSelectedMilestone(null); setTab(2); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.primary, fontWeight: 600, fontSize: 13, padding: 0, marginBottom: 8 }}>{'\u2190'} Voltar aos marcos</button>
+            <div style={{ fontSize: 22, fontWeight: 800, color: C.text, marginBottom: 8 }}>{mi.name}</div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <span style={styles.badge(ax.color || C.t3, ax.bg || '#f3f4f6')}>{mi.year} {'\u00B7'} {ax.name || '\u2014'}</span>
               <span style={styles.badge(st.c, st.bg)}>{st.label}</span>
               {mi.area && <span style={styles.badge(C.primary, C.primaryBg)}>{mi.area}</span>}
-              {mi.phase && <span style={{ fontSize: 12, color: C.t3, padding: '2px 8px' }}>Fase: {mi.phase}</span>}
+              {mi.phase && <span style={{ fontSize: 11, color: C.t3, padding: '2px 8px' }}>Fase: {mi.phase}</span>}
             </div>
           </div>
           {canEditItem(mi) && (
@@ -1234,10 +1234,10 @@ export default function Expansao() {
         </div>
 
         {/* Progress bar */}
-        <div style={{ ...styles.card, padding: '16px', marginBottom: 16 }}>
+        <div style={{ ...styles.card, padding: '16px 20px', marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>Progresso do Marco</span>
-            <span style={{ fontSize: 18, fontWeight: 700, color: progressColor(pct) }}>{pct}%</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Progresso do Marco</span>
+            <span style={{ fontSize: 18, fontWeight: 800, color: progressColor(pct) }}>{pct}%</span>
           </div>
           <ProgressBar pct={pct} height={10} showLabel={false} />
         </div>
@@ -1282,7 +1282,7 @@ export default function Expansao() {
             </div>
           </div>
           {mi.description && (
-            <div style={{ marginTop: 8, padding: '12px 16px', background: C.bg, borderRadius: 8, fontSize: 14, color: C.t2, lineHeight: 1.5 }}>
+            <div style={{ marginTop: 8, padding: '12px 16px', background: C.bg, borderRadius: 8, fontSize: 13, color: C.t2, lineHeight: 1.5 }}>
               {mi.description}
             </div>
           )}
@@ -1301,14 +1301,14 @@ export default function Expansao() {
                 { key: 'swot_opportunities', label: 'Oportunidades', color: C.blue, bg: C.blueBg, icon: 'O' },
                 { key: 'swot_threats', label: 'Ameacas', color: C.amber, bg: C.amberBg, icon: 'T' },
               ].map(q => (
-                <div key={q.key} style={{ padding: '16px', borderRight: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}` }}>
+                <div key={q.key} style={{ padding: '16px 20px', borderRight: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}` }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                     <span style={{
                       width: 24, height: 24, borderRadius: 6, background: q.bg,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 12, fontWeight: 700, color: q.color,
+                      fontSize: 12, fontWeight: 800, color: q.color,
                     }}>{q.icon}</span>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: q.color }}>{q.label}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: q.color }}>{q.label}</span>
                   </div>
                   <div style={{ fontSize: 12, color: C.t2, lineHeight: 1.5, whiteSpace: 'pre-line' }}>
                     {mi[q.key] || 'Nenhum registrado.'}
@@ -1357,7 +1357,7 @@ export default function Expansao() {
     <div style={styles.page}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 60, gap: 12 }}>
         <div style={{ width: 28, height: 28, border: `3px solid ${C.border}`, borderTopColor: C.primary, borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-        <span style={{ fontSize: 14, color: C.t3 }}>Carregando plano de expansao...</span>
+        <span style={{ fontSize: 13, color: C.t3 }}>Carregando plano de expansao...</span>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     </div>
@@ -1379,7 +1379,7 @@ export default function Expansao() {
       </div>
 
       {error && (
-        <div style={{ padding: '12px 16px', borderRadius: 8, background: C.redBg, color: C.red, fontSize: 14, marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ padding: '10px 16px', borderRadius: 8, background: C.redBg, color: C.red, fontSize: 13, marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>{error}</span>
           <button onClick={() => setError('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.red, fontSize: 16 }}>{'\u2715'}</button>
         </div>
@@ -1478,7 +1478,7 @@ function TaskRow({ task, canEdit, onEdit, onDelete, onAddSubtask, onUpdateSubtas
         <div>
           {(task.subtasks || []).map(st => (
             <div key={st.id} style={styles.subtaskRow}>
-              <span style={{ fontSize: 14, color: C.text, flex: 1 }}>{st.name}</span>
+              <span style={{ fontSize: 13, color: C.text, flex: 1 }}>{st.name}</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 180 }}>
                 <input
                   type="range" min="0" max="100" step="5"
@@ -1491,7 +1491,7 @@ function TaskRow({ task, canEdit, onEdit, onDelete, onAddSubtask, onUpdateSubtas
                   {st.pct || 0}%
                 </span>
                 {canEdit && (
-                  <button style={{ ...styles.iconBtn, fontSize: 12, color: C.red }} onClick={() => onDeleteSubtask(st.id)} title="Excluir">{'\u2715'}</button>
+                  <button style={{ ...styles.iconBtn, fontSize: 11, color: C.red }} onClick={() => onDeleteSubtask(st.id)} title="Excluir">{'\u2715'}</button>
                 )}
               </div>
             </div>
@@ -1650,7 +1650,7 @@ function MilestoneFormModal({ open, data, saving, onSave, onClose, usersList }) 
         </Field>
 
         {/* SWOT */}
-        <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginTop: 16, marginBottom: 8 }}>Analise SWOT (opcional)</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginTop: 16, marginBottom: 8 }}>Analise SWOT (opcional)</div>
         <div style={styles.formRow}>
           <Field label="Forcas (S)">
             <textarea style={{ ...styles.textarea, minHeight: 40 }} value={form.swot_strengths || ''} onChange={e => set('swot_strengths', e.target.value)} />
