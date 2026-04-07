@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { events, meetings, cycles as cyclesApi, occurrences as occApi, tasks as tasksApi, dashboard as dashApi, risks as risksApi, retrospective as retroApi, history as historyApi, users as usersApi } from '../../api';
+import { events, meetings, cycles as cyclesApi, occurrences as occApi, tasks as tasksApi, dashboard as dashApi, risks as risksApi, retrospective as retroApi, history as historyApi, users as usersApi, reports as reportsApi } from '../../api';
 import CycleView from './components/CycleView';
 import BudgetPanel from './components/BudgetPanel';
 import { Button } from '../../components/ui/button';
@@ -1358,6 +1358,7 @@ export default function Eventos() {
             { key: 'reunioes', label: `Reuniões (${expandedOcc ? (expandedOcc.meetings?.length || 0) : meetingsList.length})` },
             { key: 'riscos', label: `Riscos (${eventRisks.length})` },
             { key: 'historico', label: `Histórico (${auditHistory.length})` },
+            { key: 'relatorios', label: 'Relatórios' },
             ...(ev.status === 'concluido' ? [{ key: 'retro', label: 'Retrospectiva' }] : []),
           ].map(t => (
             <button key={t.key} style={styles.tab(detailTab === t.key)} onClick={() => { setDetailTab(t.key); setExpandedCard(null); }}>{t.label}</button>
@@ -1723,6 +1724,11 @@ export default function Eventos() {
           </div>
         )}
 
+        {/* ── ABA: Relatórios IA ── */}
+        {detailTab === 'relatorios' && (
+          <ReportTab eventId={ev.id} isPMO={isPMO} />
+        )}
+
         {/* ── ABA: Retrospectiva (só evento concluído) ── */}
         {detailTab === 'retro' && (
           <div>
@@ -2005,6 +2011,115 @@ export default function Eventos() {
       {/* Modals */}
       {renderEventModal()}
       {renderTaskModal()}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// ReportTab — Gerar e visualizar relatórios IA do evento
+// ═══════════════════════════════════════════════════════════
+function ReportTab({ eventId, isPMO }) {
+  const [reportsList, setReportsList] = useState([]);
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState('');
+  const [viewReport, setViewReport] = useState(null);
+  const [reportType, setReportType] = useState('full');
+
+  useEffect(() => {
+    reportsApi.list(eventId).then(setReportsList).catch(() => {});
+  }, [eventId]);
+
+  const generate = async () => {
+    setGenerating(true);
+    setError('');
+    try {
+      const report = await reportsApi.generate(eventId, { type: reportType });
+      setReportsList(prev => [report, ...prev]);
+      setViewReport(report);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  return (
+    <div style={{ padding: '20px 0' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--cbrio-text)' }}>Relatórios do Evento</div>
+        {isPMO && (
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <select value={reportType} onChange={e => setReportType(e.target.value)}
+              style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid var(--cbrio-border)', fontSize: 12, background: 'var(--cbrio-input-bg, #fff)', color: 'var(--cbrio-text)' }}>
+              <option value="full">Evento Completo</option>
+              <option value="phase">Por Fase</option>
+            </select>
+            <button onClick={generate} disabled={generating}
+              style={{
+                padding: '8px 16px', borderRadius: 8, border: 'none', fontSize: 13, fontWeight: 600,
+                background: generating ? '#9ca3af' : '#7c3aed', color: '#fff', cursor: generating ? 'wait' : 'pointer',
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+              {generating ? 'Gerando...' : '🤖 Gerar Relatório'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {error && (
+        <div style={{ padding: '10px 16px', borderRadius: 8, background: '#fee2e2', color: '#ef4444', fontSize: 13, marginBottom: 16 }}>
+          {error}
+        </div>
+      )}
+
+      {/* Relatório expandido */}
+      {viewReport && (
+        <div style={{ background: 'var(--cbrio-card)', borderRadius: 12, border: '1px solid var(--cbrio-border)', marginBottom: 16, overflow: 'hidden' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--cbrio-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--cbrio-text)' }}>
+                {viewReport.report_type === 'full' ? 'Relatório Completo' : `Relatório: ${viewReport.phase_name}`}
+              </span>
+              <span style={{ fontSize: 11, color: 'var(--cbrio-text3)', marginLeft: 12 }}>
+                {viewReport.attachments_count} arquivo(s) analisado(s) · ${viewReport.token_cost?.toFixed(4) || '0'} USD
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button onClick={() => navigator.clipboard.writeText(viewReport.content)} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid var(--cbrio-border)', background: 'transparent', fontSize: 11, cursor: 'pointer', color: 'var(--cbrio-text2)' }}>Copiar</button>
+              <button onClick={() => setViewReport(null)} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid var(--cbrio-border)', background: 'transparent', fontSize: 11, cursor: 'pointer', color: 'var(--cbrio-text2)' }}>Fechar</button>
+            </div>
+          </div>
+          <div style={{ padding: '20px 24px', fontSize: 13, lineHeight: 1.7, color: 'var(--cbrio-text)', whiteSpace: 'pre-wrap' }}>
+            {viewReport.content}
+          </div>
+        </div>
+      )}
+
+      {/* Lista de relatórios anteriores */}
+      {reportsList.length === 0 && !viewReport ? (
+        <div style={{ textAlign: 'center', padding: 40, color: 'var(--cbrio-text3)', fontSize: 13 }}>
+          Nenhum relatório gerado ainda. Anexe entregáveis nas tarefas e clique em "Gerar Relatório".
+        </div>
+      ) : !viewReport && (
+        <div style={{ background: 'var(--cbrio-card)', borderRadius: 12, border: '1px solid var(--cbrio-border)', overflow: 'hidden' }}>
+          {reportsList.map(r => (
+            <div key={r.id} style={{ padding: '12px 20px', borderBottom: '1px solid var(--cbrio-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+              onClick={() => setViewReport(r)}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--cbrio-bg)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+              <div>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--cbrio-text)' }}>
+                  {r.report_type === 'full' ? 'Evento Completo' : `Fase: ${r.phase_name}`}
+                </span>
+                <span style={{ fontSize: 11, color: 'var(--cbrio-text3)', marginLeft: 8 }}>
+                  {r.attachments_count} anexo(s) · {new Date(r.created_at).toLocaleDateString('pt-BR')}
+                </span>
+              </div>
+              <span style={{ fontSize: 11, color: '#7c3aed', fontWeight: 600 }}>Ver →</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
