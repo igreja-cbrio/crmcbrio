@@ -5,3 +5,7 @@ dist/
 .DS_Store
 .vercel
 supabase/.temp/
+
+frontend/.env.local
+.env.vercel
+scripts/
