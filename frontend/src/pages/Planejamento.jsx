@@ -199,8 +199,8 @@ export default function Planejamento() {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: C.text }}>Planejamento</div>
-          <div style={{ fontSize: 14, color: C.t2, marginTop: 2 }}>Visão consolidada de eventos, projetos e planejamento estratégico</div>
+          <div style={{ fontSize: 24, fontWeight: 800, color: C.text }}>Planejamento</div>
+          <div style={{ fontSize: 13, color: C.t2, marginTop: 2 }}>Visão consolidada de eventos, projetos e planejamento estratégico</div>
         </div>
       </div>
 
@@ -208,8 +208,8 @@ export default function Planejamento() {
       <div style={{ display: 'flex', borderBottom: `2px solid ${C.border}`, marginBottom: 20 }}>
         {['Dashboard', 'Kanban', 'Lista', 'Gantt'].map((t, i) => (
           <button key={t} onClick={() => setTab(i)} style={{
-            padding: '12px 20px', border: 'none', background: 'none', cursor: 'pointer',
-            fontSize: 14, fontWeight: 600, color: tab === i ? C.accent : C.t3,
+            padding: '10px 20px', border: 'none', background: 'none', cursor: 'pointer',
+            fontSize: 13, fontWeight: 600, color: tab === i ? C.accent : C.t3,
             borderBottom: tab === i ? `2px solid ${C.accent}` : '2px solid transparent', marginBottom: -2,
           }}>{t}</button>
         ))}
@@ -234,8 +234,8 @@ export default function Planejamento() {
           <div key={item.label} onClick={item.action} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '2px 4px', borderRadius: 6, transition: 'background .15s' }}
             onMouseEnter={e => e.currentTarget.style.background = `${item.color}15`}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-            <span style={{ fontSize: 20, fontWeight: 700, color: item.color }}>{item.value}</span>
-            <span style={{ fontSize: 12, fontWeight: 600, color: C.t3, textTransform: 'uppercase', letterSpacing: 0.3, whiteSpace: 'nowrap' }}>{item.label}</span>
+            <span style={{ fontSize: 20, fontWeight: 800, color: item.color }}>{item.value}</span>
+            <span style={{ fontSize: 11, fontWeight: 600, color: C.t3, textTransform: 'uppercase', letterSpacing: 0.3, whiteSpace: 'nowrap' }}>{item.label}</span>
           </div>
         );
       })}
@@ -249,7 +249,7 @@ export default function Planejamento() {
         onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)'}
         onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>Eventos</span>
+          <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>Eventos</span>
           <span style={{ fontSize: 9, padding: '2px 8px', borderRadius: 99, background: `${C.accent}15`, color: C.accent, fontWeight: 600 }}>VER TODOS →</span>
         </div>
         <div style={{ display: 'flex', gap: 16 }}>
@@ -260,7 +260,7 @@ export default function Planejamento() {
             { v: k.events_next_7d || 0, l: 'Próx. 7d', c: '#8b5cf6' },
           ].map(x => (
             <div key={x.l} style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 22, fontWeight: 700, color: x.c }}>{x.v}</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: x.c }}>{x.v}</div>
               <div style={{ fontSize: 9, color: C.t3, textTransform: 'uppercase' }}>{x.l}</div>
             </div>
           ))}
@@ -272,7 +272,7 @@ export default function Planejamento() {
         onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)'}
         onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>Projetos</span>
+          <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>Projetos</span>
           <span style={{ fontSize: 9, padding: '2px 8px', borderRadius: 99, background: '#8b5cf615', color: '#8b5cf6', fontWeight: 600 }}>VER TODOS →</span>
         </div>
         <div style={{ display: 'flex', gap: 16 }}>
@@ -286,7 +286,7 @@ export default function Planejamento() {
               { v: pc['concluido'], l: 'Concluídos', c: '#3b82f6' },
             ].map(x => (
               <div key={x.l} style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 22, fontWeight: 700, color: x.c }}>{x.v}</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: x.c }}>{x.v}</div>
                 <div style={{ fontSize: 9, color: C.t3, textTransform: 'uppercase' }}>{x.l}</div>
               </div>
             ));
@@ -297,21 +297,21 @@ export default function Planejamento() {
       {/* Card Orçamento Global */}
       {(k.budget_total > 0 || projectsData.some(p => p.budget_planned > 0)) && (
         <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: '20px 24px' }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 12 }}>Orçamento Global</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 12 }}>Orçamento Global</div>
           {(() => {
             const totalPlanned = Number(k.budget_total || 0) + projectsData.reduce((s, p) => s + Number(p.budget_planned || 0), 0);
             const totalSpent = Number(k.budget_spent || 0) + projectsData.reduce((s, p) => s + Number(p.budget_spent || 0), 0);
             const pct = totalPlanned > 0 ? Math.round((totalSpent / totalPlanned) * 100) : 0;
             return (
               <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: C.t2, marginBottom: 6 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: C.t2, marginBottom: 6 }}>
                   <span>R$ {totalSpent.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                   <span>R$ {totalPlanned.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                 </div>
                 <div style={{ height: 10, background: C.border, borderRadius: 5 }}>
                   <div style={{ height: '100%', width: `${Math.min(pct, 100)}%`, borderRadius: 5, background: pct > 100 ? '#ef4444' : pct > 80 ? '#f59e0b' : '#10b981' }} />
                 </div>
-                <div style={{ fontSize: 12, color: C.t3, marginTop: 4, textAlign: 'right' }}>{pct}% utilizado</div>
+                <div style={{ fontSize: 11, color: C.t3, marginTop: 4, textAlign: 'right' }}>{pct}% utilizado</div>
               </>
             );
           })()}
@@ -325,7 +325,7 @@ export default function Planejamento() {
       {/* Carga de Trabalho */}
       {workload.length > 0 && (
         <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: '20px 24px' }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 12 }}>Carga de Trabalho</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 12 }}>Carga de Trabalho</div>
           {workload.slice(0, 10).map((w, i) => (
             <div key={i} onClick={() => drillDown({ person: w.responsible })}
               style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, cursor: 'pointer', padding: '4px 6px', borderRadius: 6, transition: 'background .1s' }}
@@ -338,7 +338,7 @@ export default function Planejamento() {
               <div style={{ flex: 1, height: 8, background: C.border, borderRadius: 4 }}>
                 <div style={{ height: '100%', width: `${Math.min((w.total_tasks / Math.max(...workload.map(x => x.total_tasks), 1)) * 100, 100)}%`, borderRadius: 4, background: w.atrasadas > 0 ? '#ef4444' : '#10b981' }} />
               </div>
-              <span style={{ fontSize: 12, color: w.atrasadas > 0 ? '#ef4444' : C.t3, fontWeight: 600, minWidth: 55, textAlign: 'right' }}>
+              <span style={{ fontSize: 11, color: w.atrasadas > 0 ? '#ef4444' : C.t3, fontWeight: 600, minWidth: 55, textAlign: 'right' }}>
                 {w.total_tasks}t{w.atrasadas > 0 ? ` (${w.atrasadas}⚠)` : ''}
               </span>
             </div>
@@ -357,8 +357,8 @@ export default function Planejamento() {
         const SOURCE_BADGE = { evento: { c: '#00B39D', l: 'Evento' }, ciclo: { c: '#00B39D', l: 'Ciclo' }, projeto: { c: '#8b5cf6', l: 'Projeto' }, planejamento: { c: '#f59e0b', l: 'Estratégico' } };
         return (
           <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: '20px 24px' }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 12 }}>
-              Itens Críticos <span style={{ fontSize: 12, fontWeight: 400, color: '#ef4444' }}>({overdue.length} atrasados)</span>
+            <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 12 }}>
+              Itens Críticos <span style={{ fontSize: 11, fontWeight: 400, color: '#ef4444' }}>({overdue.length} atrasados)</span>
             </div>
             {overdue.map(t => {
               const dl = normDate(t.deadline);
@@ -371,7 +371,7 @@ export default function Planejamento() {
                     <div style={{ fontSize: 12, fontWeight: 500, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</div>
                     <div style={{ fontSize: 10, color: C.t3 }}>{t.responsible || '—'} · {t.parent_name || '—'}</div>
                   </div>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: '#ef4444', flexShrink: 0 }}>{Math.abs(diff)}d atrás</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#ef4444', flexShrink: 0 }}>{Math.abs(diff)}d atrás</span>
                 </div>
               );
             })}
@@ -392,8 +392,8 @@ export default function Planejamento() {
       const SOURCE_BADGE = { evento: { c: '#00B39D', l: 'Evento' }, ciclo: { c: '#00B39D', l: 'Ciclo' }, projeto: { c: '#8b5cf6', l: 'Projeto' }, planejamento: { c: '#f59e0b', l: 'Estratégico' } };
       return (
         <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: '20px 24px', marginBottom: 20 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 12 }}>
-            Próximos Prazos <span style={{ fontSize: 12, fontWeight: 400, color: '#f59e0b' }}>({upcoming.length} nos próx. 7 dias)</span>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 12 }}>
+            Próximos Prazos <span style={{ fontSize: 11, fontWeight: 400, color: '#f59e0b' }}>({upcoming.length} nos próx. 7 dias)</span>
           </div>
           {upcoming.map(t => {
             const dl = normDate(t.deadline);
@@ -407,7 +407,7 @@ export default function Planejamento() {
                   <div style={{ fontSize: 12, fontWeight: 500, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</div>
                   <div style={{ fontSize: 10, color: C.t3 }}>{t.responsible || '—'} · {t.parent_name || '—'}</div>
                 </div>
-                <span style={{ fontSize: 12, fontWeight: 700, color: dc, flexShrink: 0 }}>{diff === 0 ? 'Hoje' : `${diff}d`}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: dc, flexShrink: 0 }}>{diff === 0 ? 'Hoje' : `${diff}d`}</span>
               </div>
             );
           })}
@@ -422,7 +422,7 @@ export default function Planejamento() {
         <div>
           {/* Toggle de visão */}
           <div style={{ display: 'flex', gap: 6, marginBottom: 12, alignItems: 'center' }}>
-            <span style={{ fontSize: 12, color: C.t2, fontWeight: 600 }}>Visão:</span>
+            <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Visão:</span>
             {[
               { key: 'pmo', label: 'PMO (por fase)', desc: 'Todas as fases e tarefas' },
               ...(userArea ? [{ key: 'area', label: `Minha área (${userArea})`, desc: `Tarefas de ${userArea}` }] : []),
@@ -440,7 +440,7 @@ export default function Planejamento() {
           {/* Filtros */}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
             {/* Tipo */}
-            <span style={{ fontSize: 12, color: C.t2, fontWeight: 600 }}>Tipo:</span>
+            <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Tipo:</span>
             {[
               { key: 'all', label: 'Todos', color: C.accent },
               { key: 'eventos', label: 'Eventos', color: '#00B39D' },
@@ -448,7 +448,7 @@ export default function Planejamento() {
               { key: 'estrategico', label: 'Planejamento', color: '#f59e0b' },
             ].map(f => (
               <button key={f.key} onClick={() => { setTypeFilter(f.key); setEventFilter('all'); }} style={{
-                padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: typeFilter === f.key ? 600 : 400, cursor: 'pointer',
+                padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: typeFilter === f.key ? 600 : 400, cursor: 'pointer',
                 border: typeFilter === f.key ? `2px solid ${f.color}` : `1px solid ${C.border}`,
                 background: typeFilter === f.key ? `${f.color}15` : 'transparent',
                 color: typeFilter === f.key ? f.color : C.t3,
@@ -460,7 +460,7 @@ export default function Planejamento() {
             {/* Dropdown contextual por tipo */}
             {(typeFilter === 'all' || typeFilter === 'eventos') && allEvents.length > 0 && (
               <>
-                <span style={{ fontSize: 12, color: C.t2, fontWeight: 600 }}>{typeFilter === 'eventos' ? 'Evento:' : 'Evento/Projeto:'}</span>
+                <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>{typeFilter === 'eventos' ? 'Evento:' : 'Evento/Projeto:'}</span>
                 <select value={eventFilter} onChange={e => setEventFilter(e.target.value)}
                   style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.inputBg }}>
                   <option value="all">Todos</option>
@@ -470,7 +470,7 @@ export default function Planejamento() {
             )}
             {typeFilter === 'projetos' && (
               <>
-                <span style={{ fontSize: 12, color: C.t2, fontWeight: 600 }}>Projeto:</span>
+                <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Projeto:</span>
                 <select value={eventFilter} onChange={e => setEventFilter(e.target.value)}
                   style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.inputBg }}>
                   <option value="all">Todos os projetos</option>
@@ -480,7 +480,7 @@ export default function Planejamento() {
             )}
             {typeFilter === 'estrategico' && (
               <>
-                <span style={{ fontSize: 12, color: C.t2, fontWeight: 600 }}>Marco:</span>
+                <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Marco:</span>
                 <select value={eventFilter} onChange={e => setEventFilter(e.target.value)}
                   style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.inputBg }}>
                   <option value="all">Todos os marcos</option>
@@ -492,10 +492,10 @@ export default function Planejamento() {
             <span style={{ width: 1, height: 20, background: C.border }} />
 
             {/* Área */}
-            <span style={{ fontSize: 12, color: C.t2, fontWeight: 600 }}>Área:</span>
+            <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Área:</span>
             {[{ key: 'all', label: 'Todas' }, ...Object.entries(CAT).filter(([k]) => k !== 'outros').map(([k, v]) => ({ key: k, label: v.label, color: v.color, bg: v.bg }))].map(f => (
               <button key={f.key} onClick={() => setAreaFilter(f.key)} style={{
-                padding: '4px 10px', borderRadius: 20, fontSize: 12, fontWeight: areaFilter === f.key ? 600 : 400, cursor: 'pointer',
+                padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: areaFilter === f.key ? 600 : 400, cursor: 'pointer',
                 border: areaFilter === f.key ? `2px solid ${f.color || C.accent}` : `1px solid ${C.border}`,
                 background: areaFilter === f.key ? (f.bg || `${C.accent}15`) : 'transparent',
                 color: areaFilter === f.key ? (f.color || C.accent) : C.t3,
@@ -505,7 +505,7 @@ export default function Planejamento() {
             <span style={{ width: 1, height: 20, background: C.border }} />
 
             {/* Horizonte temporal */}
-            <span style={{ fontSize: 12, color: C.t2, fontWeight: 600 }}>Horizonte:</span>
+            <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Horizonte:</span>
             <select value={horizon} onChange={e => setHorizon(parseInt(e.target.value))}
               style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.inputBg }}>
               <option value={15}>Próx. 15 dias</option>
@@ -568,7 +568,7 @@ export default function Planejamento() {
                       <div style={{ display: 'flex', gap: 4, marginBottom: 3 }}>
                         <span style={{ fontSize: 8, padding: '1px 5px', borderRadius: 99, background: `${sb.c}15`, color: sb.c, fontWeight: 600 }}>{sb.l}</span>
                       </div>
-                      <div style={{ fontSize: 12, fontWeight: 500, color: C.text, lineHeight: 1.3, marginBottom: 2 }}>{task.name}</div>
+                      <div style={{ fontSize: 11, fontWeight: 500, color: C.text, lineHeight: 1.3, marginBottom: 2 }}>{task.name}</div>
                       <div style={{ fontSize: 9, color: C.t3 }}>{task.parent_name || '—'}</div>
                       {dc && <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
                         <span style={{ fontSize: 10, fontWeight: 700, color: dc }}>{dt}</span>
@@ -608,7 +608,7 @@ export default function Planejamento() {
                 {person.charAt(0).toUpperCase()}
               </div>
               <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{person}</span>
-              <span style={{ fontSize: 12, color: C.t3 }}>{done}/{tasks.length} tarefas</span>
+              <span style={{ fontSize: 11, color: C.t3 }}>{done}/{tasks.length} tarefas</span>
               <div style={{ flex: 1, maxWidth: 120, height: 4, background: C.border, borderRadius: 2 }}>
                 <div style={{ height: '100%', width: `${pct}%`, borderRadius: 2, background: pct >= 100 ? '#10b981' : C.accent }} />
               </div>
@@ -748,7 +748,7 @@ export default function Planejamento() {
                             onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'}
                             onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
                             <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 99, background: cat.bg, color: cat.color, fontWeight: 500, display: 'inline-block', marginBottom: 4 }}>{cat.label}</span>
-                            <div style={{ fontSize: 12, fontWeight: 500, color: C.text, lineHeight: 1.3, marginBottom: 2 }}>{task.titulo}</div>
+                            <div style={{ fontSize: 11, fontWeight: 500, color: C.text, lineHeight: 1.3, marginBottom: 2 }}>{task.titulo}</div>
                             {evN && <div style={{ fontSize: 9, color: C.t3, marginBottom: 2 }}>{evN}</div>}
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: C.t3 }}>
                               <span>{task.responsavel_nome || '—'}</span>
@@ -756,7 +756,7 @@ export default function Planejamento() {
                             </div>
                             {dc && task.status !== 'concluida' && (
                               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, paddingTop: 6, borderTop: `1px solid ${C.border}` }}>
-                                <span style={{ fontSize: 12, fontWeight: 700, color: dc }}>{fmtDate(task.prazo)}</span>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: dc }}>{fmtDate(task.prazo)}</span>
                                 <span style={{ fontSize: 10, fontWeight: 700, color: dc, padding: '1px 6px', borderRadius: 8, background: `${dc}15` }}>{dt}</span>
                               </div>
                             )}
@@ -823,7 +823,7 @@ export default function Planejamento() {
               <div>
                 {/* Filtro por projeto */}
                 <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
-                  <span style={{ fontSize: 12, color: C.t2, fontWeight: 600 }}>Projeto:</span>
+                  <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Projeto:</span>
                   <select value={projKanbanProject} onChange={e => setProjKanbanProject(e.target.value)}
                     style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.inputBg, maxWidth: 280 }}>
                     <option value="all">Todos os projetos ({projectsData.length})</option>
@@ -906,14 +906,14 @@ export default function Planejamento() {
                               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
                                 <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 99, background: `${C.accent}15`, color: C.accent, fontWeight: 500 }}>{task.area || 'gestao'}</span>
                               </div>
-                              <div style={{ fontSize: 12, fontWeight: 500, color: C.text, lineHeight: 1.3, marginBottom: 2 }}>{task.name}</div>
+                              <div style={{ fontSize: 11, fontWeight: 500, color: C.text, lineHeight: 1.3, marginBottom: 2 }}>{task.name}</div>
                               {projName && <div style={{ fontSize: 9, color: C.t3, marginBottom: 2 }}>{projName}</div>}
                               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: C.t3 }}>
                                 <span>{task.responsible || '—'}</span>
                               </div>
                               {dc && task.status !== 'concluida' && (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, paddingTop: 6, borderTop: `1px solid ${C.border}` }}>
-                                  <span style={{ fontSize: 12, fontWeight: 700, color: dc }}>{fmtDate(dl)}</span>
+                                  <span style={{ fontSize: 11, fontWeight: 700, color: dc }}>{fmtDate(dl)}</span>
                                   <span style={{ fontSize: 10, fontWeight: 700, color: dc, padding: '1px 6px', borderRadius: 8, background: `${dc}15` }}>{dt}</span>
                                 </div>
                               )}
@@ -957,7 +957,7 @@ export default function Planejamento() {
                             border: isActive ? `2px solid ${a.color}` : `1px solid ${C.border}`,
                             background: isActive ? `${a.color}10` : C.card,
                           }}>
-                            <div style={{ fontSize: 14, fontWeight: isActive ? 700 : 500, color: isActive ? a.color : C.text }}>{a.label}</div>
+                            <div style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? a.color : C.text }}>{a.label}</div>
                             <div style={{ fontSize: 10, color: C.t3, marginTop: 2 }}>{count} marcos</div>
                           </div>
                           {i < AREAS.length - 1 && <div style={{ width: 12, height: 2, background: C.border, flexShrink: 0 }} />}
@@ -974,7 +974,7 @@ export default function Planejamento() {
                     return (
                       <div key={col.key} style={{ background: C.bg, borderRadius: 10, padding: 10 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: col.color, textTransform: 'uppercase' }}>{col.label}</span>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: col.color, textTransform: 'uppercase' }}>{col.label}</span>
                           <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 99, background: C.card, border: `1px solid ${C.border}`, color: C.t3 }}>{colPlans.length}</span>
                         </div>
                         {colPlans.length === 0 && <div style={{ padding: 16, textAlign: 'center', fontSize: 10, color: C.t3, border: '1.5px dashed var(--cbrio-border)', borderRadius: 8 }}>—</div>}
@@ -990,7 +990,7 @@ export default function Planejamento() {
                                 <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 99, background: `${p.category_color || '#9ca3af'}20`, color: p.category_color || C.t3, fontWeight: 500 }}>{p.category_name}</span>
                                 <span style={{ fontSize: 9, color: C.t3 }}>{p.area_group}</span>
                               </div>
-                              <div style={{ fontSize: 14, fontWeight: 600, color: C.text, marginBottom: 4 }}>{p.name}</div>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 4 }}>{p.name}</div>
                               {p.responsible && <div style={{ fontSize: 10, color: C.t3, marginBottom: 4 }}>{p.responsible}</div>}
                               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                                 <div style={{ flex: 1, height: 4, background: C.border, borderRadius: 2 }}>
@@ -1071,7 +1071,7 @@ export default function Planejamento() {
           <div>
             {/* Filtros */}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16, alignItems: 'center' }}>
-              <span style={{ fontSize: 12, color: C.t2, fontWeight: 600 }}>Horizonte:</span>
+              <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Horizonte:</span>
               <select value={listHorizon} onChange={e => setListHorizon(parseInt(e.target.value))}
                 style={{ fontSize: 12, padding: '4px 8px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.inputBg }}>
                 <option value={15}>15 dias</option>
@@ -1079,14 +1079,14 @@ export default function Planejamento() {
                 <option value={0}>Sem filtro</option>
               </select>
               <span style={{ width: 1, height: 20, background: C.border }} />
-              <span style={{ fontSize: 12, color: C.t2, fontWeight: 600 }}>Visão:</span>
+              <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Visão:</span>
               {[
                 { key: 'pmo', label: isPMO ? 'Todas' : (userArea ? `Minha área + minhas` : 'Minhas tarefas') },
                 ...(userArea ? [{ key: 'area', label: `Só ${userArea}` }] : []),
                 { key: 'minhas', label: 'Só minhas' },
               ].map(v => (
                 <button key={v.key} onClick={() => setViewMode(v.key)} style={{
-                  padding: '4px 12px', borderRadius: 8, fontSize: 12, fontWeight: listGroup === v.key ? 700 : 400, cursor: 'pointer',
+                  padding: '4px 12px', borderRadius: 8, fontSize: 11, fontWeight: listGroup === v.key ? 700 : 400, cursor: 'pointer',
                   border: listGroup === v.key ? `2px solid ${C.accent}` : `1px solid ${C.border}`,
                   background: listGroup === v.key ? `${C.accent}15` : 'transparent',
                   color: listGroup === v.key ? C.accent : C.t3,
@@ -1097,15 +1097,15 @@ export default function Planejamento() {
             {/* Filtros ativos (drill-down) */}
             {(listStatusFilter || listPersonFilter) && (
               <div style={{ display: 'flex', gap: 6, marginBottom: 12, alignItems: 'center' }}>
-                <span style={{ fontSize: 12, color: C.t2, fontWeight: 600 }}>Filtros:</span>
+                <span style={{ fontSize: 11, color: C.t2, fontWeight: 600 }}>Filtros:</span>
                 {listStatusFilter && (
-                  <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 20, background: '#ef444415', color: '#ef4444', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: '#ef444415', color: '#ef4444', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
                     {listStatusFilter === 'atrasada' ? 'Atrasadas' : listStatusFilter}
                     <button onClick={() => setListStatusFilter('')} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 12, padding: 0, marginLeft: 2 }}>✕</button>
                   </span>
                 )}
                 {listPersonFilter && (
-                  <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 20, background: `${C.accent}15`, color: C.accent, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: `${C.accent}15`, color: C.accent, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
                     {listPersonFilter}
                     <button onClick={() => setListPersonFilter('')} style={{ background: 'none', border: 'none', color: C.accent, cursor: 'pointer', fontSize: 12, padding: 0, marginLeft: 2 }}>✕</button>
                   </span>
@@ -1124,7 +1124,7 @@ export default function Planejamento() {
                     {person.charAt(0).toUpperCase()}
                   </div>
                   <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{person}</span>
-                  <span style={{ fontSize: 12, color: C.t3 }}>({tasks.length} tarefas)</span>
+                  <span style={{ fontSize: 11, color: C.t3 }}>({tasks.length} tarefas)</span>
                 </div>
                 {tasks.map(t => {
                   const d = normDate(t.deadline);
@@ -1139,11 +1139,11 @@ export default function Planejamento() {
                       onMouseLeave={e => e.currentTarget.style.background = C.card}>
                       <div style={{ width: 8, height: 8, borderRadius: '50%', background: sc, flexShrink: 0 }} />
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 14, fontWeight: 500, color: C.text }}>{t.name}</div>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{t.name}</div>
                         <div style={{ fontSize: 10, color: C.t3 }}>{t.event_name}</div>
                       </div>
                       <span style={{ fontSize: 10, fontWeight: 600, color: sc, padding: '2px 8px', borderRadius: 10, background: `${sc}15` }}>{STATUS_LABEL[t.status] || t.status}</span>
-                      {dc && <span style={{ fontSize: 12, fontWeight: 700, color: dc, padding: '2px 8px', borderRadius: 8, background: `${dc}15`, flexShrink: 0 }}>{dt}</span>}
+                      {dc && <span style={{ fontSize: 11, fontWeight: 700, color: dc, padding: '2px 8px', borderRadius: 8, background: `${dc}15`, flexShrink: 0 }}>{dt}</span>}
                       {d && <span style={{ fontSize: 10, color: C.t3, flexShrink: 0 }}>{fmtDate(d)}</span>}
                     </div>
                   );
@@ -1190,10 +1190,10 @@ export default function Planejamento() {
             {groups.map((group, gi) => (
               <div key={gi} style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, marginBottom: 16, overflow: 'hidden' }}>
                 {/* Header do evento */}
-                <div style={{ padding: '12px 16px', background: `${C.accent}10`, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ padding: '10px 16px', background: `${C.accent}10`, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: C.accent }} />
                   <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{group.name}</span>
-                  <span style={{ fontSize: 12, color: C.t3 }}>({group.phases.filter(p => p.status === 'concluida').length}/{group.phases.length} fases)</span>
+                  <span style={{ fontSize: 11, color: C.t3 }}>({group.phases.filter(p => p.status === 'concluida').length}/{group.phases.length} fases)</span>
                 </div>
 
                 {/* Gantt */}
@@ -1208,7 +1208,7 @@ export default function Planejamento() {
                       return (
                       <div key={ph.id} style={{ height: BAR_H, padding: '0 10px', display: 'flex', alignItems: 'center', gap: 6, borderBottom: `1px solid ${C.border}` }}>
                         <div style={{ width: 6, height: 6, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
-                        <span style={{ fontSize: 12, fontWeight: 500, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: 11, fontWeight: 500, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           F{ph.numero_fase} {ph.nome_fase}
                         </span>
                       </div>
@@ -1253,7 +1253,7 @@ export default function Planejamento() {
                                 background: barColor, opacity: isDone ? 0.5 : 0.9,
                                 display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 6px', overflow: 'hidden',
                               }}>
-                              <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap' }}>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap' }}>
                                 {daysText}
                               </span>
                             </div>
