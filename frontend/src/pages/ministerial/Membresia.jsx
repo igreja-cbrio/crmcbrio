@@ -42,7 +42,7 @@ const TRILHA_ETAPAS = [
 const Badge = ({ status }) => {
   const s = STATUS_MAP[status] || STATUS_MAP.visitante;
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, color: s.c, background: s.bg }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600, color: s.c, background: s.bg }}>
       {s.label}
     </span>
   );
@@ -96,9 +96,9 @@ export default function Membresia() {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Users style={{ width: 28, height: 28, color: C.primary }} />
-            <h1 style={{ fontSize: 28, fontWeight: 800, color: C.text, margin: 0 }}>Membresia</h1>
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: C.text, margin: 0 }}>Membresia</h1>
           </div>
-          <p style={{ fontSize: 13, color: C.text2, marginTop: 4 }}>Cadastro de membros, famílias e trilha dos valores</p>
+          <p style={{ fontSize: 14, color: C.text2, marginTop: 4 }}>Cadastro de membros, famílias e trilha dos valores</p>
         </div>
         {isDiretor && (
           <Button onClick={() => setShowForm(true)}>
@@ -108,7 +108,7 @@ export default function Membresia() {
       </div>
 
       {error && (
-        <div style={{ background: C.redBg, border: `1px solid ${C.red}30`, color: C.red, borderRadius: 10, padding: '10px 14px', fontSize: 13, marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
+        <div style={{ background: C.redBg, border: `1px solid ${C.red}30`, color: C.red, borderRadius: 10, padding: '10px 14px', fontSize: 14, marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
           {error}
           <X style={{ width: 16, height: 16, cursor: 'pointer' }} onClick={() => setError('')} />
         </div>
@@ -123,8 +123,8 @@ export default function Membresia() {
           { label: 'Famílias', value: kpis.familias, color: C.amber },
         ].map((k, i) => (
           <div key={i} style={{ background: C.card, borderRadius: 12, padding: '18px 22px', border: `1px solid ${C.border}`, borderLeft: `4px solid ${k.color}` }}>
-            <div style={{ fontSize: 28, fontWeight: 800, color: C.text }}>{k.value}</div>
-            <div style={{ fontSize: 11, fontWeight: 600, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>{k.label}</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: C.text }}>{k.value}</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>{k.label}</div>
           </div>
         ))}
       </div>
@@ -157,7 +157,7 @@ export default function Membresia() {
           <thead>
             <tr>
               {['Nome', 'Família', 'Status', 'Telefone', 'Ministério', ''].map((h, i) => (
-                <th key={i} style={{ textAlign: 'left', padding: '14px 18px', fontSize: 11, fontWeight: 600, color: C.text3, textTransform: 'uppercase', letterSpacing: 0.5, background: 'var(--cbrio-table-header)', borderBottom: `1px solid ${C.border}` }}>
+                <th key={i} style={{ textAlign: 'left', padding: '14px 18px', fontSize: 12, fontWeight: 600, color: C.text3, textTransform: 'uppercase', letterSpacing: 0.5, background: 'var(--cbrio-table-header)', borderBottom: `1px solid ${C.border}` }}>
                   {h}
                 </th>
               ))}
@@ -174,7 +174,7 @@ export default function Membresia() {
               >
                 <td style={{ padding: '14px 18px', borderBottom: `1px solid ${C.border}` }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: '50%', background: C.primaryBg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.primary, fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: '50%', background: C.primaryBg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.primary, fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
                       {m.nome?.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
                     </div>
                     <div>
@@ -187,19 +187,19 @@ export default function Membresia() {
                   {m.familia ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <Home style={{ width: 14, height: 14, color: C.text3 }} />
-                      <span style={{ fontSize: 13, color: C.text2 }}>{m.familia.nome}</span>
+                      <span style={{ fontSize: 14, color: C.text2 }}>{m.familia.nome}</span>
                     </div>
                   ) : (
-                    <span style={{ fontSize: 13, color: C.text3 }}>—</span>
+                    <span style={{ fontSize: 14, color: C.text3 }}>—</span>
                   )}
                 </td>
                 <td style={{ padding: '14px 18px', borderBottom: `1px solid ${C.border}` }}>
                   <Badge status={m.status} />
                 </td>
-                <td style={{ padding: '14px 18px', fontSize: 13, color: C.text2, borderBottom: `1px solid ${C.border}` }}>
+                <td style={{ padding: '14px 18px', fontSize: 14, color: C.text2, borderBottom: `1px solid ${C.border}` }}>
                   {m.telefone || '—'}
                 </td>
-                <td style={{ padding: '14px 18px', fontSize: 13, color: C.text2, borderBottom: `1px solid ${C.border}` }}>
+                <td style={{ padding: '14px 18px', fontSize: 14, color: C.text2, borderBottom: `1px solid ${C.border}` }}>
                   {m.ministerio || '—'}
                 </td>
                 <td style={{ padding: '14px 18px', borderBottom: `1px solid ${C.border}` }}>
@@ -214,7 +214,7 @@ export default function Membresia() {
       {/* Member Detail Modal */}
       {selectedMembro && (
         <div style={{ position: 'fixed', inset: 0, background: 'var(--cbrio-overlay)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => setSelectedMembro(null)}>
-          <div style={{ background: 'var(--cbrio-modal-bg)', borderRadius: 20, width: '100%', maxWidth: 700, maxHeight: '90vh', overflow: 'auto', border: `1px solid ${C.border}` }} onClick={e => e.stopPropagation()}>
+          <div style={{ background: 'var(--cbrio-modal-bg)', borderRadius: 12, width: '100%', maxWidth: 700, maxHeight: '90vh', overflow: 'auto', border: `1px solid ${C.border}` }} onClick={e => e.stopPropagation()}>
             {/* Header */}
             <div style={{ padding: '28px 32px 20px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
               <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
@@ -247,7 +247,7 @@ export default function Membresia() {
                   <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'start' }}>
                     <item.icon style={{ width: 16, height: 16, color: C.text3, marginTop: 2, flexShrink: 0 }} />
                     <div>
-                      <div style={{ fontSize: 11, color: C.text3, textTransform: 'uppercase', letterSpacing: 0.5 }}>{item.label}</div>
+                      <div style={{ fontSize: 12, color: C.text3, textTransform: 'uppercase', letterSpacing: 0.5 }}>{item.label}</div>
                       <div style={{ fontSize: 14, color: item.value ? C.text : C.text3, marginTop: 2 }}>{item.value || '—'}</div>
                     </div>
                   </div>
@@ -266,7 +266,7 @@ export default function Membresia() {
                         <div style={{ width: 28, height: 28, borderRadius: '50%', background: C.primary, color: 'var(--cbrio-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>
                           {f.nome?.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
                         </div>
-                        <span style={{ fontSize: 13, color: C.text, fontWeight: 500 }}>{f.nome}</span>
+                        <span style={{ fontSize: 14, color: C.text, fontWeight: 500 }}>{f.nome}</span>
                       </div>
                     ))}
                   </div>
@@ -305,11 +305,11 @@ export default function Membresia() {
                         </div>
                         {/* Content */}
                         <div style={{ padding: '6px 0', flex: 1 }}>
-                          <div style={{ fontSize: 13, fontWeight: concluida ? 600 : 400, color: concluida ? C.text : C.text3 }}>
+                          <div style={{ fontSize: 14, fontWeight: concluida ? 600 : 400, color: concluida ? C.text : C.text3 }}>
                             {etapa.label}
                           </div>
                           {registro?.data_conclusao && (
-                            <div style={{ fontSize: 11, color: C.text3, marginTop: 2 }}>
+                            <div style={{ fontSize: 12, color: C.text3, marginTop: 2 }}>
                               {new Date(registro.data_conclusao).toLocaleDateString('pt-BR')}
                             </div>
                           )}
@@ -328,10 +328,10 @@ export default function Membresia() {
                     {selectedMembro.historico.map(h => (
                       <div key={h.id} style={{ padding: '10px 14px', background: 'var(--cbrio-input-bg)', borderRadius: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
                         <div>
-                          <div style={{ fontSize: 13, color: C.text }}>{h.descricao}</div>
-                          <div style={{ fontSize: 11, color: C.text3, marginTop: 2 }}>{h.registrado?.name || ''}</div>
+                          <div style={{ fontSize: 14, color: C.text }}>{h.descricao}</div>
+                          <div style={{ fontSize: 12, color: C.text3, marginTop: 2 }}>{h.registrado?.name || ''}</div>
                         </div>
-                        <div style={{ fontSize: 11, color: C.text3, flexShrink: 0 }}>
+                        <div style={{ fontSize: 12, color: C.text3, flexShrink: 0 }}>
                           {new Date(h.data).toLocaleDateString('pt-BR')}
                         </div>
                       </div>

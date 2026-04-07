@@ -33,31 +33,31 @@ const INV_STATUS = {
 const styles = {
   page: { maxWidth: 1600, margin: '0 auto', padding: '0 24px' },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 },
-  title: { fontSize: 28, fontWeight: 800, color: C.text, letterSpacing: -0.5 },
-  subtitle: { fontSize: 13, color: C.text2, marginTop: 2 },
+  title: { fontSize: 20, fontWeight: 700, color: C.text, letterSpacing: -0.5 },
+  subtitle: { fontSize: 14, color: C.text2, marginTop: 2 },
   tabs: { display: 'flex', gap: 0, borderBottom: `2px solid ${C.border}`, marginBottom: 24 },
-  tab: (a) => ({ padding: '10px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer', border: 'none', background: 'none', color: a ? C.primary : C.text2, borderBottom: a ? `2px solid ${C.primary}` : '2px solid transparent', marginBottom: -2, transition: 'all 0.15s' }),
+  tab: (a) => ({ padding: '12px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer', border: 'none', background: 'none', color: a ? C.primary : C.text2, borderBottom: a ? `2px solid ${C.primary}` : '2px solid transparent', marginBottom: -2, transition: 'all 0.15s' }),
   kpiGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 24 },
-  kpi: (color) => ({ background: C.card, borderRadius: 12, padding: '16px 20px', border: `1px solid ${C.border}`, borderLeft: `4px solid ${color}`, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }),
-  kpiValue: { fontSize: 28, fontWeight: 800, color: C.text },
-  kpiLabel: { fontSize: 11, fontWeight: 600, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 },
-  card: { background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, boxShadow: '0 1px 3px rgba(0,0,0,0.04)', overflow: 'hidden' },
-  cardHeader: { padding: '16px 20px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  cardTitle: { fontSize: 15, fontWeight: 700, color: C.text },
+  kpi: (color) => ({ background: C.card, borderRadius: 12, padding: '16px', border: `1px solid ${C.border}`, borderLeft: `4px solid ${color}`, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }),
+  kpiValue: { fontSize: 20, fontWeight: 700, color: C.text },
+  kpiLabel: { fontSize: 12, fontWeight: 600, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 },
+  card: { background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', overflow: 'hidden' },
+  cardHeader: { padding: '16px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  cardTitle: { fontSize: 14, fontWeight: 700, color: C.text },
   table: { width: '100%', borderCollapse: 'collapse' },
-  th: { padding: '10px 16px', fontSize: 11, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'left', borderBottom: `1px solid ${C.border}`, background: 'var(--cbrio-table-header)' },
-  td: { padding: '12px 16px', fontSize: 13, color: C.text, borderBottom: `1px solid ${C.border}` },
-  badge: (c, bg) => ({ display: 'inline-block', padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, color: c, background: bg }),
-  btn: (v = 'primary') => ({ padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: 'none', transition: 'all 0.15s', ...(v === 'primary' ? { background: C.primary, color: '#fff' } : {}), ...(v === 'secondary' ? { background: 'transparent', color: C.primary, border: `1px solid ${C.primary}` } : {}), ...(v === 'danger' ? { background: C.red, color: '#fff' } : {}), ...(v === 'ghost' ? { background: 'transparent', color: C.text2, padding: '6px 12px' } : {}) }),
-  btnSm: { padding: '4px 10px', fontSize: 11 },
+  th: { padding: '12px 16px', fontSize: 12, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'left', borderBottom: `1px solid ${C.border}`, background: 'var(--cbrio-table-header)' },
+  td: { padding: '12px 16px', fontSize: 14, color: C.text, borderBottom: `1px solid ${C.border}` },
+  badge: (c, bg) => ({ display: 'inline-block', padding: '2px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600, color: c, background: bg }),
+  btn: (v = 'primary') => ({ padding: '8px 16px', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', border: 'none', transition: 'all 0.15s', ...(v === 'primary' ? { background: C.primary, color: '#fff' } : {}), ...(v === 'secondary' ? { background: 'transparent', color: C.primary, border: `1px solid ${C.primary}` } : {}), ...(v === 'danger' ? { background: C.red, color: '#fff' } : {}), ...(v === 'ghost' ? { background: 'transparent', color: C.text2, padding: '6px 12px' } : {}) }),
+  btnSm: { padding: '4px 10px', fontSize: 12 },
   filterRow: { display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' },
-  input: { padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, outline: 'none', width: '100%', background: 'var(--cbrio-input-bg)', color: 'var(--cbrio-text)' },
-  select: { padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: 'var(--cbrio-input-bg)', color: 'var(--cbrio-text)', outline: 'none' },
-  label: { fontSize: 11, fontWeight: 600, color: C.text2, marginBottom: 4, display: 'block', textTransform: 'uppercase', letterSpacing: 0.5 },
+  input: { padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 14, outline: 'none', width: '100%', background: 'var(--cbrio-input-bg)', color: 'var(--cbrio-text)' },
+  select: { padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 14, background: 'var(--cbrio-input-bg)', color: 'var(--cbrio-text)', outline: 'none' },
+  label: { fontSize: 12, fontWeight: 600, color: C.text2, marginBottom: 4, display: 'block', textTransform: 'uppercase', letterSpacing: 0.5 },
   formGroup: { marginBottom: 14 },
   formRow: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 },
   overlay: { position: 'fixed', inset: 0, background: 'var(--cbrio-overlay)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: 60, zIndex: 1000 },
-  modal: { background: 'var(--cbrio-modal-bg)', borderRadius: 16, width: '95%', maxWidth: 560, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' },
+  modal: { background: 'var(--cbrio-modal-bg)', borderRadius: 12, width: '95%', maxWidth: 560, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 16px 48px rgba(0,0,0,0.12)' },
   modalHeader: { padding: '20px 24px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   modalTitle: { fontSize: 18, fontWeight: 700, color: C.text },
   modalBody: { padding: '16px 24px 24px' },
@@ -227,7 +227,7 @@ function PatStatCard({ label, value, bg, svg }) {
     >
       {svg}
       <div style={{ position: 'relative', zIndex: 1 }}>
-        <div style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.8)', marginBottom: 8 }}>{label}</div>
+        <div style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.8)', marginBottom: 8 }}>{label}</div>
         <div style={{ fontSize: 32, fontWeight: 700, letterSpacing: -1 }}>{value}</div>
       </div>
     </div>
@@ -255,7 +255,7 @@ function DashboardTab({ dash }) {
           <div style={{ padding: 16 }}>
             {Object.entries(dash.porCategoria || {}).map(([k, v]) => (
               <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: `1px solid ${C.border}` }}>
-                <span style={{ fontSize: 13 }}>{k}</span><span style={{ fontSize: 13, fontWeight: 700, color: C.primary }}>{v}</span>
+                <span style={{ fontSize: 13 }}>{k}</span><span style={{ fontSize: 14, fontWeight: 700, color: C.primary }}>{v}</span>
               </div>
             ))}
             {Object.keys(dash.porCategoria || {}).length === 0 && <div style={styles.empty}>Nenhum dado</div>}
@@ -266,7 +266,7 @@ function DashboardTab({ dash }) {
           <div style={{ padding: 16 }}>
             {Object.entries(dash.porLocalizacao || {}).map(([k, v]) => (
               <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: `1px solid ${C.border}` }}>
-                <span style={{ fontSize: 13 }}>{k}</span><span style={{ fontSize: 13, fontWeight: 700, color: C.primary }}>{v}</span>
+                <span style={{ fontSize: 13 }}>{k}</span><span style={{ fontSize: 14, fontWeight: 700, color: C.primary }}>{v}</span>
               </div>
             ))}
             {Object.keys(dash.porLocalizacao || {}).length === 0 && <div style={styles.empty}>Nenhum dado</div>}
@@ -274,7 +274,7 @@ function DashboardTab({ dash }) {
         </div>
       </div>
       {dash.inventariosAbertos > 0 && (
-        <div style={{ ...styles.card, borderLeft: `4px solid ${C.amber}`, padding: 16, fontSize: 13, color: C.text }}>
+        <div style={{ ...styles.card, borderLeft: `4px solid ${C.amber}`, padding: 16, fontSize: 14, color: C.text }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><ClipboardList style={{ width: 16, height: 16, color: '#00B39D' }} /> {dash.inventariosAbertos} inventário(s) em andamento</span>
         </div>
       )}
@@ -365,7 +365,7 @@ function CatLocTab({ categorias, localizacoes, newCat, setNewCat, addCat, remove
           {localizacoes.length === 0 && <div style={styles.empty}>Nenhuma localização</div>}
           {localizacoes.map(l => (
             <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: `1px solid ${C.border}` }}>
-              <span style={{ fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 4 }}><MapPin style={{ width: 14, height: 14, color: '#00B39D' }} /> {l.nome}</span>
+              <span style={{ fontSize: 14, display: 'inline-flex', alignItems: 'center', gap: 4 }}><MapPin style={{ width: 14, height: 14, color: '#00B39D' }} /> {l.nome}</span>
               {isDiretor && <Button variant="ghost" size="xs" onClick={() => removeLoc(l.id)}><Trash2 style={{ width: 14, height: 14 }} /></Button>}
             </div>
           ))}
@@ -481,24 +481,24 @@ function BemDetailModal({ open, data, onClose, onEdit, onDelete, onMov, isDireto
   return (
     <Modal open={open} onClose={onClose} title={data.nome}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', marginBottom: 20 }}>
-        <div><span style={{ fontSize: 11, color: C.text2 }}>Código:</span><div style={{ fontSize: 14, fontFamily: 'monospace' }}>{data.codigo_barras}</div></div>
-        <div><span style={{ fontSize: 11, color: C.text2 }}>Status:</span><div><Badge status={data.status} map={STATUS_BEM} /></div></div>
-        <div><span style={{ fontSize: 11, color: C.text2 }}>Categoria:</span><div style={{ fontSize: 14 }}>{data.pat_categorias?.nome || '—'}</div></div>
-        <div><span style={{ fontSize: 11, color: C.text2 }}>Localização:</span><div style={{ fontSize: 14 }}>{data.pat_localizacoes?.nome || '—'}</div></div>
-        <div><span style={{ fontSize: 11, color: C.text2 }}>Marca/Modelo:</span><div style={{ fontSize: 14 }}>{[data.marca, data.modelo].filter(Boolean).join(' ') || '—'}</div></div>
-        <div><span style={{ fontSize: 11, color: C.text2 }}>Nº Série:</span><div style={{ fontSize: 14 }}>{data.numero_serie || '—'}</div></div>
-        <div><span style={{ fontSize: 11, color: C.text2 }}>Valor Aquisição:</span><div style={{ fontSize: 14, fontWeight: 600 }}>{fmtMoney(data.valor_aquisicao)}</div></div>
-        <div><span style={{ fontSize: 11, color: C.text2 }}>Data Aquisição:</span><div style={{ fontSize: 14 }}>{fmtDate(data.data_aquisicao)}</div></div>
+        <div><span style={{ fontSize: 12, color: C.text2 }}>Código:</span><div style={{ fontSize: 14, fontFamily: 'monospace' }}>{data.codigo_barras}</div></div>
+        <div><span style={{ fontSize: 12, color: C.text2 }}>Status:</span><div><Badge status={data.status} map={STATUS_BEM} /></div></div>
+        <div><span style={{ fontSize: 12, color: C.text2 }}>Categoria:</span><div style={{ fontSize: 14 }}>{data.pat_categorias?.nome || '—'}</div></div>
+        <div><span style={{ fontSize: 12, color: C.text2 }}>Localização:</span><div style={{ fontSize: 14 }}>{data.pat_localizacoes?.nome || '—'}</div></div>
+        <div><span style={{ fontSize: 12, color: C.text2 }}>Marca/Modelo:</span><div style={{ fontSize: 14 }}>{[data.marca, data.modelo].filter(Boolean).join(' ') || '—'}</div></div>
+        <div><span style={{ fontSize: 12, color: C.text2 }}>Nº Série:</span><div style={{ fontSize: 14 }}>{data.numero_serie || '—'}</div></div>
+        <div><span style={{ fontSize: 12, color: C.text2 }}>Valor Aquisição:</span><div style={{ fontSize: 14, fontWeight: 600 }}>{fmtMoney(data.valor_aquisicao)}</div></div>
+        <div><span style={{ fontSize: 12, color: C.text2 }}>Data Aquisição:</span><div style={{ fontSize: 14 }}>{fmtDate(data.data_aquisicao)}</div></div>
       </div>
-      {data.descricao && <div style={{ padding: '8px 12px', background: 'var(--cbrio-input-bg)', borderRadius: 8, marginBottom: 12, fontSize: 13, color: C.text2 }}>{data.descricao}</div>}
-      {data.observacoes && <div style={{ padding: '8px 12px', background: 'var(--cbrio-input-bg)', borderRadius: 8, marginBottom: 16, fontSize: 13, color: C.text2 }}>{data.observacoes}</div>}
+      {data.descricao && <div style={{ padding: '8px 12px', background: 'var(--cbrio-input-bg)', borderRadius: 8, marginBottom: 12, fontSize: 14, color: C.text2 }}>{data.descricao}</div>}
+      {data.observacoes && <div style={{ padding: '8px 12px', background: 'var(--cbrio-input-bg)', borderRadius: 8, marginBottom: 16, fontSize: 14, color: C.text2 }}>{data.observacoes}</div>}
 
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: C.text2, textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: 6 }}><ClipboardList style={{ width: 14, height: 14, color: '#00B39D' }} /> Movimentações ({(data.movimentacoes || []).length})</span>
           {isDiretor && <Button variant="ghost" size="xs" onClick={() => onMov(data.id)}>+ Registrar</Button>}
         </div>
-        {(data.movimentacoes || []).length === 0 && <div style={{ fontSize: 13, color: C.text3 }}>Nenhuma movimentação registrada</div>}
+        {(data.movimentacoes || []).length === 0 && <div style={{ fontSize: 14, color: C.text3 }}>Nenhuma movimentação registrada</div>}
         {(data.movimentacoes || []).map(m => (
           <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: `1px solid ${C.border}`, fontSize: 13 }}>
             <div><span style={{ fontWeight: 600 }}>{TIPO_MOV[m.tipo] || m.tipo}</span>{m.motivo && ` — ${m.motivo}`}</div>
@@ -688,7 +688,7 @@ function ScannerTab({ localizacoes, onMov, onDetail }) {
         {scanning && (
           <div style={{ textAlign: 'center' }}>
             <video ref={videoRef} style={{ width: '100%', maxWidth: 400, borderRadius: 12, background: '#000', border: `3px solid ${C.primary}` }} autoPlay playsInline muted />
-            <div style={{ fontSize: 13, color: C.text2, marginTop: 8 }}>Aponte a câmera para o código de barras do patrimônio</div>
+            <div style={{ fontSize: 14, color: C.text2, marginTop: 8 }}>Aponte a câmera para o código de barras do patrimônio</div>
             {!('BarcodeDetector' in window) && (
               <div style={{ fontSize: 12, color: C.amber, marginTop: 8 }}>
                 Scanner automático não disponível neste navegador. Use o campo acima para digitar manualmente.
@@ -708,7 +708,7 @@ function ScannerTab({ localizacoes, onMov, onDetail }) {
             <span style={{ fontSize: 28 }}>❌</span>
             <div>
               <div style={{ fontSize: 16, fontWeight: 700, color: C.text }}>Patrimônio não encontrado</div>
-              <div style={{ fontSize: 13, color: C.text2 }}>Código <strong style={{ fontFamily: 'monospace' }}>{codigo}</strong> não está cadastrado no sistema.</div>
+              <div style={{ fontSize: 14, color: C.text2 }}>Código <strong style={{ fontFamily: 'monospace' }}>{codigo}</strong> não está cadastrado no sistema.</div>
             </div>
           </div>
         </div>
@@ -720,19 +720,19 @@ function ScannerTab({ localizacoes, onMov, onDetail }) {
           <div style={{ padding: 20, borderBottom: `1px solid ${C.border}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
               <div>
-                <div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>{bem.nome}</div>
-                <div style={{ fontSize: 13, color: C.text2, fontFamily: 'monospace', marginTop: 4 }}>Cód: {bem.codigo_barras}</div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: C.text }}>{bem.nome}</div>
+                <div style={{ fontSize: 14, color: C.text2, fontFamily: 'monospace', marginTop: 4 }}>Cód: {bem.codigo_barras}</div>
               </div>
               <Badge status={bem.status} map={STATUS_BEM} />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px 20px', marginTop: 16 }}>
-              <div><div style={{ fontSize: 11, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>Categoria</div><div style={{ fontSize: 14, fontWeight: 500, color: C.text }}>{bem.pat_categorias?.nome || '—'}</div></div>
-              <div><div style={{ fontSize: 11, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>Localização</div><div style={{ fontSize: 14, fontWeight: 500, color: C.text }}>{bem.pat_localizacoes?.nome || '—'}</div></div>
-              <div><div style={{ fontSize: 11, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>Marca/Modelo</div><div style={{ fontSize: 14, fontWeight: 500, color: C.text }}>{[bem.marca, bem.modelo].filter(Boolean).join(' ') || '—'}</div></div>
-              <div><div style={{ fontSize: 11, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>N° Série</div><div style={{ fontSize: 14, fontWeight: 500, color: C.text }}>{bem.numero_serie || '—'}</div></div>
-              <div><div style={{ fontSize: 11, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>Valor Aquisição</div><div style={{ fontSize: 14, fontWeight: 500, color: C.text }}>{fmtMoney(bem.valor_aquisicao)}</div></div>
-              <div><div style={{ fontSize: 11, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>Data Aquisição</div><div style={{ fontSize: 14, fontWeight: 500, color: C.text }}>{fmtDate(bem.data_aquisicao)}</div></div>
+              <div><div style={{ fontSize: 12, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>Categoria</div><div style={{ fontSize: 14, fontWeight: 500, color: C.text }}>{bem.pat_categorias?.nome || '—'}</div></div>
+              <div><div style={{ fontSize: 12, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>Localização</div><div style={{ fontSize: 14, fontWeight: 500, color: C.text }}>{bem.pat_localizacoes?.nome || '—'}</div></div>
+              <div><div style={{ fontSize: 12, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>Marca/Modelo</div><div style={{ fontSize: 14, fontWeight: 500, color: C.text }}>{[bem.marca, bem.modelo].filter(Boolean).join(' ') || '—'}</div></div>
+              <div><div style={{ fontSize: 12, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>N° Série</div><div style={{ fontSize: 14, fontWeight: 500, color: C.text }}>{bem.numero_serie || '—'}</div></div>
+              <div><div style={{ fontSize: 12, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>Valor Aquisição</div><div style={{ fontSize: 14, fontWeight: 500, color: C.text }}>{fmtMoney(bem.valor_aquisicao)}</div></div>
+              <div><div style={{ fontSize: 12, color: C.text3, textTransform: 'uppercase', fontWeight: 600 }}>Data Aquisição</div><div style={{ fontSize: 14, fontWeight: 500, color: C.text }}>{fmtDate(bem.data_aquisicao)}</div></div>
             </div>
 
             {/* Ações */}
@@ -749,7 +749,7 @@ function ScannerTab({ localizacoes, onMov, onDetail }) {
           {/* Form de movimentação inline */}
           {showMov && (
             <div style={{ padding: 20, background: 'var(--cbrio-input-bg)', borderBottom: `1px solid ${C.border}` }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 12 }}>Nova Movimentação</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 12 }}>Nova Movimentação</div>
               <div style={styles.formGroup}>
                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Tipo de Movimentação *</label>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -757,7 +757,7 @@ function ScannerTab({ localizacoes, onMov, onDetail }) {
                     <button key={k} onClick={() => setMovForm(f => ({ ...f, tipo: k }))}
                       style={{ padding: '8px 14px', borderRadius: 8, border: `2px solid ${movForm.tipo === k ? v.c : C.border}`,
                         background: movForm.tipo === k ? v.bg : 'transparent', color: movForm.tipo === k ? v.c : C.text2,
-                        fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }}>
+                        fontSize: 14, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }}>
                       {v.icon} {v.label}
                     </button>
                   ))}
@@ -798,7 +798,7 @@ function ScannerTab({ localizacoes, onMov, onDetail }) {
           {/* Histórico de movimentações */}
           {(bem.movimentacoes || []).length > 0 && (
             <div style={{ padding: '0' }}>
-              <div style={{ padding: '12px 20px', fontSize: 11, fontWeight: 700, color: C.text2, textTransform: 'uppercase', borderBottom: `1px solid ${C.border}` }}>
+              <div style={{ padding: '12px 20px', fontSize: 12, fontWeight: 700, color: C.text2, textTransform: 'uppercase', borderBottom: `1px solid ${C.border}` }}>
                 Histórico de Movimentações ({bem.movimentacoes.length})
               </div>
               {bem.movimentacoes.map(m => (
@@ -806,7 +806,7 @@ function ScannerTab({ localizacoes, onMov, onDetail }) {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <span style={{ fontSize: 18 }}>{MOV_TIPO_COLORS[m.tipo]?.icon || '📋'}</span>
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>
                         <Badge status={m.tipo} map={MOV_TIPO_COLORS} />
                         {m.origem?.nome && m.destino?.nome && <span style={{ fontSize: 12, color: C.text2, marginLeft: 8 }}>{m.origem.nome} → {m.destino.nome}</span>}
                       </div>
@@ -815,7 +815,7 @@ function ScannerTab({ localizacoes, onMov, onDetail }) {
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: 12, color: C.text2 }}>{fmtDateTime(m.data_movimentacao)}</div>
-                    <div style={{ fontSize: 11, color: C.text3 }}>{m.profiles?.name || '—'}</div>
+                    <div style={{ fontSize: 12, color: C.text3 }}>{m.profiles?.name || '—'}</div>
                   </div>
                 </div>
               ))}
@@ -832,12 +832,12 @@ function ScannerTab({ localizacoes, onMov, onDetail }) {
             <div key={i} style={{ padding: '10px 20px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
               onClick={() => { setCodigo(s.codigo); buscarPorCodigo(s.codigo); }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 600, color: C.primary }}>{s.codigo}</span>
-                <span style={{ fontSize: 13, color: C.text }}>{s.nome}</span>
+                <span style={{ fontFamily: 'monospace', fontSize: 14, fontWeight: 600, color: C.primary }}>{s.codigo}</span>
+                <span style={{ fontSize: 14, color: C.text }}>{s.nome}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Badge status={s.status} map={STATUS_BEM} />
-                <span style={{ fontSize: 11, color: C.text3 }}>{s.time.toLocaleTimeString('pt-BR')}</span>
+                <span style={{ fontSize: 12, color: C.text3 }}>{s.time.toLocaleTimeString('pt-BR')}</span>
               </div>
             </div>
           ))}
@@ -914,7 +914,7 @@ function LogMovimentacoesTab({ data, loading, filtroTipo, setFiltroTipo, onNew, 
     {scanning && (
       <div style={{ ...styles.card, marginBottom: 16, padding: 16, textAlign: 'center' }}>
         <video ref={videoRef} style={{ width: '100%', maxWidth: 400, borderRadius: 12, background: '#000' }} autoPlay playsInline muted />
-        <div style={{ fontSize: 13, color: C.text2, marginTop: 8 }}>Aponte a câmera para o código de barras</div>
+        <div style={{ fontSize: 14, color: C.text2, marginTop: 8 }}>Aponte a câmera para o código de barras</div>
       </div>
     )}
 
