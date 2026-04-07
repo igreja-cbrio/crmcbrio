@@ -55,6 +55,21 @@ app.use('/api/events', require('./routes/reports')); // reports montado sob /api
 // ── Health check ──
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
+// ── Cron: sync arquivos pendentes para SharePoint ──
+app.get('/api/cron/sharepoint-sync', async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  try {
+    const { syncPendingToSharePoint } = require('./services/storageService');
+    const result = await syncPendingToSharePoint();
+    res.json({ ok: true, timestamp: new Date().toISOString(), ...result });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── Cron: run all agents every 6h ──
 app.get('/api/cron/agents', async (req, res) => {
   // Verify cron secret (Vercel sends this header)

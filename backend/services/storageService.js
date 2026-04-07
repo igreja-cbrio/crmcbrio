@@ -163,7 +163,7 @@ async function uploadFile(eventName, phaseName, fileName, fileBuffer, mimeType) 
   });
   if (error) throw new Error(`Upload error: ${error.message}`);
 
-  return { url: '', path, provider: 'supabase' };
+  return { url: '', path, provider: 'supabase', pendingSync: SHAREPOINT_CONFIGURED };
 }
 
 async function downloadFile(supabasePath, sharepointItemId) {
@@ -202,4 +202,57 @@ async function getSignedUrl(supabasePath) {
   return data.signedUrl;
 }
 
-module.exports = { uploadFile, downloadFile, deleteFile, getSignedUrl, MAX_FILE_SIZE, SHAREPOINT_CONFIGURED };
+/**
+ * Sync pendentes: busca attachments salvos no Supabase que deveriam estar no SharePoint,
+ * tenta fazer upload, e atualiza o registro.
+ * Chamado via cron endpoint.
+ */
+async function syncPendingToSharePoint() {
+  if (!SHAREPOINT_CONFIGURED) return { synced: 0, failed: 0, message: 'SharePoint não configurado' };
+
+  // Buscar attachments com supabase_path preenchido mas sem sharepoint_item_id
+  const { data: pending } = await supabase.from('event_task_attachments')
+    .select('id, supabase_path, file_name, file_type, event_id, phase_name')
+    .not('supabase_path', 'is', null)
+    .is('sharepoint_item_id', null)
+    .limit(20); // processar em lotes de 20
+
+  if (!pending || pending.length === 0) return { synced: 0, failed: 0, message: 'Nenhum pendente' };
+
+  let synced = 0, failed = 0;
+
+  for (const att of pending) {
+    try {
+      // Buscar nome do evento
+      const { data: event } = await supabase.from('events').select('name').eq('id', att.event_id).single();
+      const eventName = event?.name || att.event_id;
+
+      // Baixar do Supabase
+      const { data: fileData, error: dlErr } = await supabase.storage.from(BUCKET).download(att.supabase_path);
+      if (dlErr) throw new Error(dlErr.message);
+      const buffer = Buffer.from(await fileData.arrayBuffer());
+
+      // Upload para SharePoint
+      const result = await uploadToSharePoint(eventName, att.phase_name || '', att.file_name, buffer);
+
+      // Atualizar registro com dados do SharePoint
+      await supabase.from('event_task_attachments').update({
+        sharepoint_url: result.url,
+        sharepoint_item_id: result.itemId,
+      }).eq('id', att.id);
+
+      // Limpar do Supabase (opcional — manter como backup)
+      // await supabase.storage.from(BUCKET).remove([att.supabase_path]);
+
+      synced++;
+      console.log(`[Sync] ${att.file_name} → SharePoint OK`);
+    } catch (e) {
+      failed++;
+      console.error(`[Sync] ${att.file_name} failed:`, e.message);
+    }
+  }
+
+  return { synced, failed, total: pending.length, message: `${synced} sincronizado(s), ${failed} falha(s)` };
+}
+
+module.exports = { uploadFile, downloadFile, deleteFile, getSignedUrl, syncPendingToSharePoint, MAX_FILE_SIZE, SHAREPOINT_CONFIGURED };
