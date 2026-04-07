@@ -618,6 +618,9 @@ export default function Eventos() {
     { label: 'Sem responsável', value: k.events_no_owner || 0, color: '#9ca3af', action: () => kpiDrillDown('') },
   ];
 
+  // ── Relatório IA (modal no kanban)
+  const [reportModal, setReportModal] = useState(null); // null | { step: 'event' | 'scope' | 'phase' | 'generating' | 'done', eventId, eventName, type, phaseName, result, error }
+
   // ── Kanban (dois níveis)
   const [kanbanViewMode, setKanbanViewMode] = useState(isPMO ? 'pmo' : accessLevel >= 3 ? 'area' : 'minhas');
   const [kanbanArea, setKanbanArea] = useState('all');
@@ -693,6 +696,18 @@ export default function Eventos() {
 
     return (
       <div style={{ margin: '0 -32px', padding: '0 16px' }}>
+        {/* Header com botão relatório */}
+        {['admin', 'diretor'].includes(userRole) && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+            <button onClick={() => setReportModal({ step: 'event' })} style={{
+              padding: '7px 16px', borderRadius: 8, border: 'none', fontSize: 12, fontWeight: 600,
+              background: '#7c3aed', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+            }}>
+              🤖 Gerar Relatório
+            </button>
+          </div>
+        )}
+
         {/* Toggle visão */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 10, alignItems: 'center' }}>
           <span style={{ fontSize: 11, color: 'var(--cbrio-text2)', fontWeight: 600 }}>Visão:</span>
@@ -993,6 +1008,168 @@ export default function Eventos() {
                       Excluir
                     </button>
                   </div>
+                </div>
+              </div>
+            </>
+          );
+        })()}
+
+        {/* ── MODAL RELATÓRIO IA ── */}
+        {reportModal && (() => {
+          const rm = reportModal;
+          const d = kanbanCycleData;
+          const allEvts = d?.events || [];
+          const allPh = d?.phases || [];
+
+          const closeModal = () => setReportModal(null);
+
+          const selectEvent = (ev) => setReportModal({ ...rm, step: 'scope', eventId: ev.id, eventName: ev.name });
+
+          const selectScope = async (type) => {
+            if (type === 'full') {
+              setReportModal({ ...rm, step: 'generating', type: 'full' });
+              try {
+                const result = await reportsApi.generate(rm.eventId, { type: 'full' });
+                setReportModal({ ...rm, step: 'done', type: 'full', result });
+              } catch (e) { setReportModal({ ...rm, step: 'done', type: 'full', error: e.message }); }
+            } else {
+              setReportModal({ ...rm, step: 'phase', type: 'phase' });
+            }
+          };
+
+          const selectPhase = async (phaseName) => {
+            setReportModal({ ...rm, step: 'generating', type: 'phase', phaseName });
+            try {
+              const result = await reportsApi.generate(rm.eventId, { type: 'phase', phase_name: phaseName });
+              setReportModal({ ...rm, step: 'done', type: 'phase', phaseName, result });
+            } catch (e) { setReportModal({ ...rm, step: 'done', type: 'phase', phaseName, error: e.message }); }
+          };
+
+          const eventPhases = allPh.filter(p => p.event_id === rm.eventId);
+
+          return (
+            <>
+              <div onClick={closeModal} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 900 }} />
+              <div style={{
+                position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                width: '95%', maxWidth: 540, maxHeight: '85vh',
+                background: 'var(--cbrio-modal-bg, #fff)', zIndex: 901,
+                borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.2)', overflowY: 'auto',
+              }}>
+                <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--cbrio-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--cbrio-text)' }}>🤖 Gerar Relatório IA</span>
+                  <button onClick={closeModal} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: 'var(--cbrio-text3)' }}>✕</button>
+                </div>
+                <div style={{ padding: '16px 20px' }}>
+
+                  {/* Step 1: Selecionar evento */}
+                  {rm.step === 'event' && (
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--cbrio-text)', marginBottom: 12 }}>Selecione o evento ou série:</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        {allEvts.map(ev => (
+                          <button key={ev.id} onClick={() => selectEvent(ev)} style={{
+                            padding: '10px 14px', borderRadius: 8, border: '1px solid var(--cbrio-border)',
+                            background: 'transparent', cursor: 'pointer', textAlign: 'left',
+                            fontSize: 13, color: 'var(--cbrio-text)', transition: 'background 0.1s',
+                          }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'var(--cbrio-bg)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                            {ev.name}
+                          </button>
+                        ))}
+                        {allEvts.length === 0 && <div style={{ color: 'var(--cbrio-text3)', fontSize: 12 }}>Nenhum evento com ciclo ativo.</div>}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 2: Escopo */}
+                  {rm.step === 'scope' && (
+                    <div>
+                      <div style={{ fontSize: 11, color: 'var(--cbrio-text3)', marginBottom: 4 }}>{rm.eventName}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--cbrio-text)', marginBottom: 12 }}>Qual tipo de relatório?</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <button onClick={() => selectScope('full')} style={{
+                          padding: '14px 16px', borderRadius: 10, border: '1px solid var(--cbrio-border)',
+                          background: 'transparent', cursor: 'pointer', textAlign: 'left',
+                        }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'var(--cbrio-bg)'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--cbrio-text)' }}>Acumulado completo</div>
+                          <div style={{ fontSize: 11, color: 'var(--cbrio-text3)', marginTop: 2 }}>Tudo que foi entregue no evento/série até hoje</div>
+                        </button>
+                        <button onClick={() => selectScope('phase')} style={{
+                          padding: '14px 16px', borderRadius: 10, border: '1px solid var(--cbrio-border)',
+                          background: 'transparent', cursor: 'pointer', textAlign: 'left',
+                        }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'var(--cbrio-bg)'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--cbrio-text)' }}>Fase específica</div>
+                          <div style={{ fontSize: 11, color: 'var(--cbrio-text3)', marginTop: 2 }}>Relatório de uma fase do ciclo criativo</div>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 3: Selecionar fase */}
+                  {rm.step === 'phase' && (
+                    <div>
+                      <div style={{ fontSize: 11, color: 'var(--cbrio-text3)', marginBottom: 4 }}>{rm.eventName}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--cbrio-text)', marginBottom: 12 }}>Selecione a fase:</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        {eventPhases.map(p => (
+                          <button key={p.id} onClick={() => selectPhase(p.nome_fase)} style={{
+                            padding: '10px 14px', borderRadius: 8, border: '1px solid var(--cbrio-border)',
+                            background: 'transparent', cursor: 'pointer', textAlign: 'left',
+                            fontSize: 13, color: 'var(--cbrio-text)', transition: 'background 0.1s',
+                          }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'var(--cbrio-bg)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                            Fase {p.numero_fase} — {p.nome_fase}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 4: Gerando */}
+                  {rm.step === 'generating' && (
+                    <div style={{ textAlign: 'center', padding: 30 }}>
+                      <div style={{ width: 28, height: 28, border: '3px solid var(--cbrio-border)', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+                      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                      <div style={{ fontSize: 13, color: 'var(--cbrio-text2)' }}>Gerando relatório de {rm.eventName}...</div>
+                      <div style={{ fontSize: 11, color: 'var(--cbrio-text3)', marginTop: 4 }}>Analisando entregáveis e conclusões</div>
+                    </div>
+                  )}
+
+                  {/* Step 5: Resultado */}
+                  {rm.step === 'done' && (
+                    <div>
+                      {rm.error ? (
+                        <div style={{ padding: '12px 16px', background: '#fee2e2', color: '#ef4444', borderRadius: 8, fontSize: 13 }}>{rm.error}</div>
+                      ) : (
+                        <>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--cbrio-text)' }}>
+                                {rm.type === 'full' ? 'Relatório Completo' : `Fase: ${rm.phaseName}`}
+                              </div>
+                              <div style={{ fontSize: 11, color: 'var(--cbrio-text3)' }}>
+                                {rm.eventName} · {rm.result?.attachments_count || 0} arquivo(s)
+                              </div>
+                            </div>
+                            <button onClick={() => navigator.clipboard.writeText(rm.result?.content || '')} style={{
+                              padding: '5px 12px', borderRadius: 6, border: '1px solid var(--cbrio-border)',
+                              background: 'transparent', fontSize: 11, cursor: 'pointer', color: 'var(--cbrio-text2)',
+                            }}>Copiar</button>
+                          </div>
+                          <div style={{ fontSize: 13, lineHeight: 1.7, color: 'var(--cbrio-text)', whiteSpace: 'pre-wrap', maxHeight: 400, overflowY: 'auto', background: 'var(--cbrio-bg)', borderRadius: 8, padding: '14px 16px' }}>
+                            {rm.result?.content || 'Sem conteúdo.'}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </>
