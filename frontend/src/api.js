@@ -465,7 +465,8 @@ export const reports = {
 };
 
 export const completions = {
-  complete: (formData) => requestFile('/completions', formData),
+  getUploadUrl: (data) => post('/completions/upload-url', data),
+  complete: (data) => post('/completions', data),
   getByTask: (taskId) => get(`/completions/task/${taskId}`),
   reopen: (taskId, reason) => request(`/completions/${taskId}/reopen`, { method: 'DELETE', body: JSON.stringify({ reason }) }),
   listByEvent: (eventId) => get(`/completions/event/${eventId}`),
