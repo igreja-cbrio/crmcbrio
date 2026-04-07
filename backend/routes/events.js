@@ -393,4 +393,116 @@ router.get('/:id/history', async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'Erro ao buscar histórico' }); }
 });
 
+// ── ATTACHMENTS (entregáveis) ──
+const multer = require('multer');
+const storage = require('../services/storageService');
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: storage.MAX_FILE_SIZE } });
+
+// POST /api/events/:eventId/tasks/:taskId/attachments — upload file
+router.post('/:eventId/tasks/:taskId/attachments', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'Arquivo não fornecido' });
+
+    const { eventId, taskId } = req.params;
+    const { description, area, phase_name, task_type } = req.body; // task_type: 'event' | 'cycle'
+
+    // Buscar nome do evento para organizar pastas
+    const { data: event } = await supabase.from('events').select('name').eq('id', eventId).single();
+    const eventName = event?.name || eventId;
+
+    // Upload para storage
+    const result = await storage.uploadFile(eventName, phase_name || '', req.file.originalname, req.file.buffer, req.file.mimetype);
+
+    // Salvar registro no banco
+    const attachment = {
+      event_id: eventId,
+      file_name: req.file.originalname,
+      file_type: req.file.mimetype,
+      file_size: req.file.size,
+      supabase_path: result.path,
+      phase_name: phase_name || null,
+      area: area || req.user.area || null,
+      description: description || null,
+      uploaded_by: req.user.userId,
+      uploaded_by_name: req.user.name,
+    };
+
+    // Vincular a event_task ou cycle_phase_task
+    if (task_type === 'cycle') {
+      attachment.cycle_task_id = taskId;
+    } else {
+      attachment.event_task_id = taskId;
+    }
+
+    const { data, error } = await supabase.from('event_task_attachments').insert(attachment).select().single();
+    if (error) throw error;
+
+    // Gerar URL assinada para acesso imediato
+    data.signed_url = await storage.getSignedUrl(result.path);
+
+    res.json(data);
+  } catch (e) {
+    console.error('[Events] Upload attachment:', e.message);
+    res.status(500).json({ error: e.message || 'Erro ao fazer upload' });
+  }
+});
+
+// GET /api/events/:eventId/attachments — listar todos anexos do evento
+router.get('/:eventId/attachments', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('event_task_attachments')
+      .select('*')
+      .eq('event_id', req.params.eventId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: 'Erro ao listar anexos' });
+  }
+});
+
+// GET /api/events/:eventId/tasks/:taskId/attachments — listar anexos de uma task
+router.get('/:eventId/tasks/:taskId/attachments', async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    // Buscar por event_task_id OU cycle_task_id
+    const { data, error } = await supabase.from('event_task_attachments')
+      .select('*')
+      .or(`event_task_id.eq.${taskId},cycle_task_id.eq.${taskId}`)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+
+    // Gerar URLs assinadas
+    for (const a of data) {
+      if (a.supabase_path) {
+        try { a.signed_url = await storage.getSignedUrl(a.supabase_path); } catch {}
+      }
+    }
+
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: 'Erro ao listar anexos da tarefa' });
+  }
+});
+
+// DELETE /api/events/attachments/:attachId — remover anexo
+router.delete('/attachments/:attachId', async (req, res) => {
+  try {
+    // Buscar para obter path do storage
+    const { data: attach } = await supabase.from('event_task_attachments')
+      .select('supabase_path, sharepoint_item_id')
+      .eq('id', req.params.attachId)
+      .single();
+
+    if (attach?.supabase_path) await storage.deleteFile(attach.supabase_path);
+
+    const { error } = await supabase.from('event_task_attachments').delete().eq('id', req.params.attachId);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (e) {
+    console.error('[Events] Delete attachment:', e.message);
+    res.status(500).json({ error: 'Erro ao excluir anexo' });
+  }
+});
+
 module.exports = router;

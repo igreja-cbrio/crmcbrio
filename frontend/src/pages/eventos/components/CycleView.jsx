@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { cycles as api } from '../../../api';
+import AttachmentButton from '../../../components/AttachmentButton';
 
 const C = { dark: 'var(--cbrio-text)', t2: 'var(--cbrio-text2)', t3: 'var(--cbrio-text3)', border: 'var(--cbrio-border)', accent: '#00B39D' };
 
@@ -317,13 +318,15 @@ export default function CycleView({ eventId }) {
                         <span>{task.responsavel_nome || '—'}</span>
                         {subs.length > 0 && <span>{subsDone}/{subs.length}</span>}
                       </div>
-                      {/* DaysCounter colorido */}
-                      {daysColor && task.status !== 'concluida' && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, paddingTop: 6, borderTop: `1px solid ${C.border}` }}>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: daysColor }}>{fmtDate(task.prazo)}</span>
-                          <span style={{ fontSize: 10, fontWeight: 700, color: daysColor, padding: '1px 6px', borderRadius: 8, background: `${daysColor}15` }}>{daysText}</span>
-                        </div>
-                      )}
+                      {/* Attachment + DaysCounter */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6, paddingTop: 6, borderTop: `1px solid ${C.border}` }}>
+                        <AttachmentButton eventId={task.event_id} taskId={task.id} taskType="cycle" phaseName={phaseNames[kanbanPhase] || ''} area={task.area} onAttachmentChange={load} />
+                        {daysColor && task.status !== 'concluida' && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <span style={{ fontSize: 10, fontWeight: 700, color: daysColor, padding: '1px 6px', borderRadius: 8, background: `${daysColor}15` }}>{daysText}</span>
+                          </div>
+                        )}
+                      </div>
                       {isOpen && subs.length > 0 && (
                         <div style={{ marginTop: 6, paddingTop: 6, borderTop: `1px solid ${C.border}` }} onClick={e => e.stopPropagation()}>
                           {subs.map(sub => (
@@ -391,6 +394,7 @@ export default function CycleView({ eventId }) {
                             <select value={task.status} onChange={e => handleTaskStatus(task.id, e.target.value)} style={{ fontSize: 10, padding: '2px 4px', borderRadius: 6, border: `1px solid ${C.border}` }}>
                               {Object.entries(TASK_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                             </select>
+                            <AttachmentButton eventId={task.event_id} taskId={task.id} taskType="cycle" phaseName={phase?.nome_fase || ''} area={task.area} onAttachmentChange={load} />
                             <button onClick={() => handleDeleteTask(task.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 11, padding: '0 2px' }}>✕</button>
                           </div>
                         </div>

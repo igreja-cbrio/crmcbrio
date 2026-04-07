@@ -437,3 +437,29 @@ export const membresia = {
     create: (data) => post('/membresia/historico', data),
   },
 };
+
+// ── Upload helper (multipart/form-data) ──
+async function requestFile(path, formData) {
+  const token = await getToken();
+  const res = await fetch(`${API}${path}`, {
+    method: 'POST',
+    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: formData,
+  });
+  if (res.status === 401) { await supabase.auth.signOut(); window.location.href = '/login'; throw new Error('Sessão expirada'); }
+  if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `HTTP ${res.status}`); }
+  return res.json();
+}
+
+export const attachments = {
+  upload: (eventId, taskId, formData) => requestFile(`/events/${eventId}/tasks/${taskId}/attachments`, formData),
+  list: (eventId) => get(`/events/${eventId}/attachments`),
+  listByTask: (eventId, taskId) => get(`/events/${eventId}/tasks/${taskId}/attachments`),
+  remove: (id) => del(`/events/attachments/${id}`),
+};
+
+export const reports = {
+  generate: (eventId, data) => post(`/events/${eventId}/report`, data),
+  list: (eventId) => get(`/events/${eventId}/reports`),
+  get: (eventId, id) => get(`/events/${eventId}/reports/${id}`),
+};

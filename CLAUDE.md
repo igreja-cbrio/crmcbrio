@@ -1,7 +1,7 @@
 # CLAUDE.md — CBRio ERP
 
 Guia para Claude Code e agentes de IA trabalhando neste repositório.
-Atualizado em: 2026-04-06 (v8) — Permissões granulares nos 4 módulos de planejamento
+Atualizado em: 2026-04-06 (v9) — Sistema de entregáveis (anexos) + relatório IA por evento
 
 ---
 
@@ -428,6 +428,18 @@ Estes arquivos afetam o sistema inteiro. Alterações devem ser feitas via **Pul
   - Líder: dashboard filtrado por área, pode editar itens da área
   - PermissionGate nos routes (App.jsx) bloqueia acesso se nível < 2
   - Nav items filtrados por `canExpansao`, `canProjetos`, `canAgenda`
+- **Sistema de Entregáveis (v9):**
+  - Tabela `event_task_attachments`: anexos vinculados a event_tasks ou cycle_phase_tasks
+  - Upload via Supabase Storage (bucket `eventos-anexos`, privado, 10MB max)
+  - Componente `AttachmentButton.jsx` reutilizável em todos os cards de tarefa
+  - Integrado no CycleView.jsx (kanban + tabela) com ícone de clipe + contador
+  - Aceita: PDF, DOCX, XLSX, imagens (JPG/PNG/GIF)
+  - Extração de texto para IA: pdf-parse (PDF), mammoth (DOCX), xlsx (planilhas)
+  - **Relatório IA**: endpoint POST `/api/events/:eventId/report` gera relatório via Claude Sonnet
+  - Relatório estruturado: resumo executivo, entregas por área, status, pontos de atenção, recomendações
+  - Tabela `event_reports` armazena relatórios gerados com custo em tokens
+  - Tab "Relatórios" no detalhe do evento com histórico + visualização + copiar
+  - Fase B futura: migrar para SharePoint via Microsoft Graph API (App Registration necessário)
 - Ciclos criativos com 11 fases + 35 tarefas ADM + 138 subtarefas automáticas
 - **KPIs clicáveis** — todos os números do dashboard navegam para os dados filtrados
 - **Abas Riscos + Histórico + Retrospectiva** no detalhe do evento
@@ -451,7 +463,7 @@ Estes arquivos afetam o sistema inteiro. Alterações devem ser feitas via **Pul
 **Project ref:** `hhntwfawfnxvuobhdfkb`
 **URL:** `https://hhntwfawfnxvuobhdfkb.supabase.co`
 
-Migrations aplicadas: 001-022, 027, 030, 031
+Migrations aplicadas: 001-022, 027, 030, 031, 032
 
 Para novas migrations: criar arquivo em `supabase/migrations/` e rodar manualmente no Supabase SQL Editor.
 
