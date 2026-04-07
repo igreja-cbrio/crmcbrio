@@ -60,9 +60,9 @@ router.post('/:eventId/report', async (req, res) => {
     const fileContents = [];
     for (const a of attachs) {
       let text = '';
-      if (a.supabase_path) {
+      if (a.supabase_path || a.sharepoint_item_id) {
         try {
-          const buffer = await storage.downloadFile(a.supabase_path);
+          const buffer = await storage.downloadFile(a.supabase_path, a.sharepoint_item_id);
           text = await extractText(buffer, a.file_type, a.file_name);
         } catch (e) {
           text = `[Erro ao ler ${a.file_name}: ${e.message}]`;

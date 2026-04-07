@@ -1,84 +1,205 @@
 /**
- * Storage Service — abstrai upload/download de arquivos.
- * Fase A: Supabase Storage (bucket eventos-anexos)
- * Fase B: SharePoint via Microsoft Graph API (quando configurado)
+ * Storage Service — upload/download de arquivos.
+ * Primary: SharePoint via Microsoft Graph API (se configurado)
+ * Fallback: Supabase Storage (bucket eventos-anexos)
  */
 const { supabase } = require('../utils/supabase');
+require('dotenv').config();
 
 const BUCKET = 'eventos-anexos';
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
-// Sanitiza nome para usar como path de arquivo
+const SHAREPOINT_CONFIGURED = !!(
+  process.env.MICROSOFT_TENANT_ID &&
+  process.env.MICROSOFT_CLIENT_ID &&
+  process.env.MICROSOFT_CLIENT_SECRET &&
+  process.env.SHAREPOINT_SITE_ID
+);
+
+// ── Microsoft Graph auth (client credentials) ──
+let cachedToken = null;
+let tokenExpiry = 0;
+
+async function getGraphToken() {
+  if (cachedToken && Date.now() < tokenExpiry - 60000) return cachedToken;
+
+  const res = await fetch(`https://login.microsoftonline.com/${process.env.MICROSOFT_TENANT_ID}/oauth2/v2.0/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: process.env.MICROSOFT_CLIENT_ID,
+      client_secret: process.env.MICROSOFT_CLIENT_SECRET,
+      scope: 'https://graph.microsoft.com/.default',
+      grant_type: 'client_credentials',
+    }),
+  });
+  const data = await res.json();
+  if (!data.access_token) throw new Error(`Graph auth failed: ${data.error_description || data.error}`);
+
+  cachedToken = data.access_token;
+  tokenExpiry = Date.now() + (data.expires_in || 3600) * 1000;
+  return cachedToken;
+}
+
+// ── Helpers ──
 function sanitizePath(str) {
   return str
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove acentos
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-zA-Z0-9_\-. ]/g, '')
     .replace(/\s+/g, '_')
     .slice(0, 100);
 }
 
-function buildPath(eventName, phaseName, fileName) {
+function buildSupabasePath(eventName, phaseName, fileName) {
   const ev = sanitizePath(eventName);
   const ph = sanitizePath(phaseName || 'geral');
   const fn = sanitizePath(fileName);
   return `${ev}/${ph}/${Date.now()}_${fn}`;
 }
 
-/**
- * Upload de arquivo para storage
- * @returns {{ url: string, path: string, provider: 'supabase' | 'sharepoint' }}
- */
+// ── SharePoint functions ──
+const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
+
+async function graphRequest(path, opts = {}) {
+  const token = await getGraphToken();
+  const res = await fetch(`${GRAPH_BASE}${path}`, {
+    ...opts,
+    headers: { Authorization: `Bearer ${token}`, ...opts.headers },
+  });
+  if (!res.ok) {
+    const err = await res.text().catch(() => '');
+    throw new Error(`Graph API ${res.status}: ${err.slice(0, 200)}`);
+  }
+  return res;
+}
+
+async function ensureSharePointFolder(folderPath) {
+  const siteId = process.env.SHAREPOINT_SITE_ID;
+  // Try to get the folder — if 404, create it
+  try {
+    await graphRequest(`/sites/${siteId}/drive/root:/${folderPath}`);
+  } catch {
+    // Create folder recursively by creating each segment
+    const parts = folderPath.split('/');
+    let current = '';
+    for (const part of parts) {
+      const parent = current || 'root';
+      const parentPath = current ? `/sites/${siteId}/drive/root:/${current}:/children` : `/sites/${siteId}/drive/root/children`;
+      try {
+        await graphRequest(parentPath, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: part, folder: {}, '@microsoft.graph.conflictBehavior': 'fail' }),
+        });
+      } catch { /* folder may already exist */ }
+      current = current ? `${current}/${part}` : part;
+    }
+  }
+}
+
+async function uploadToSharePoint(eventName, phaseName, fileName, fileBuffer) {
+  const siteId = process.env.SHAREPOINT_SITE_ID;
+  const folder = `Eventos/${sanitizePath(eventName)}/${sanitizePath(phaseName || 'geral')}`;
+  const safeName = sanitizePath(fileName);
+
+  await ensureSharePointFolder(folder);
+
+  // Upload file (up to 4MB simple, larger needs upload session — for 10MB we use simple)
+  const filePath = `${folder}/${safeName}`;
+  const res = await graphRequest(`/sites/${siteId}/drive/root:/${filePath}:/content`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/octet-stream' },
+    body: fileBuffer,
+  });
+  const data = await res.json();
+
+  return {
+    url: data.webUrl || data['@microsoft.graph.downloadUrl'] || '',
+    itemId: data.id,
+    path: filePath,
+    provider: 'sharepoint',
+  };
+}
+
+async function downloadFromSharePoint(itemId) {
+  const siteId = process.env.SHAREPOINT_SITE_ID;
+  // Get download URL
+  const metaRes = await graphRequest(`/sites/${siteId}/drive/items/${itemId}`);
+  const meta = await metaRes.json();
+  const downloadUrl = meta['@microsoft.graph.downloadUrl'];
+  if (!downloadUrl) throw new Error('Download URL not available');
+
+  const fileRes = await fetch(downloadUrl);
+  const arrayBuffer = await fileRes.arrayBuffer();
+  return Buffer.from(arrayBuffer);
+}
+
+async function deleteFromSharePoint(itemId) {
+  const siteId = process.env.SHAREPOINT_SITE_ID;
+  await graphRequest(`/sites/${siteId}/drive/items/${itemId}`, { method: 'DELETE' });
+}
+
+// ── Public API ──
+
 async function uploadFile(eventName, phaseName, fileName, fileBuffer, mimeType) {
   if (fileBuffer.length > MAX_FILE_SIZE) {
     throw new Error(`Arquivo excede o limite de ${MAX_FILE_SIZE / 1024 / 1024}MB`);
   }
 
-  // TODO Fase B: se SharePoint configurado, usar Graph API aqui
-  // if (process.env.SHAREPOINT_SITE_ID) { return uploadToSharePoint(...); }
+  // SharePoint primary
+  if (SHAREPOINT_CONFIGURED) {
+    try {
+      return await uploadToSharePoint(eventName, phaseName, fileName, fileBuffer);
+    } catch (e) {
+      console.error('[Storage] SharePoint upload failed, falling back to Supabase:', e.message);
+    }
+  }
 
-  const path = buildPath(eventName, phaseName, fileName);
+  // Supabase fallback
+  const path = buildSupabasePath(eventName, phaseName, fileName);
   const { error } = await supabase.storage.from(BUCKET).upload(path, fileBuffer, {
     contentType: mimeType || 'application/octet-stream',
     upsert: false,
   });
-  if (error) throw new Error(`Erro no upload: ${error.message}`);
+  if (error) throw new Error(`Upload error: ${error.message}`);
 
-  const { data: { publicUrl } } = supabase.storage.from(BUCKET).getPublicUrl(path);
-
-  return { url: publicUrl, path, provider: 'supabase' };
+  return { url: '', path, provider: 'supabase' };
 }
 
-/**
- * Download conteúdo do arquivo (para IA ler)
- * @returns {Buffer}
- */
-async function downloadFile(supabasePath) {
-  if (!supabasePath) throw new Error('Path não fornecido');
+async function downloadFile(supabasePath, sharepointItemId) {
+  // SharePoint primary
+  if (sharepointItemId && SHAREPOINT_CONFIGURED) {
+    try {
+      return await downloadFromSharePoint(sharepointItemId);
+    } catch (e) {
+      console.error('[Storage] SharePoint download failed:', e.message);
+    }
+  }
 
+  // Supabase fallback
+  if (!supabasePath) throw new Error('No file path available');
   const { data, error } = await supabase.storage.from(BUCKET).download(supabasePath);
-  if (error) throw new Error(`Erro ao baixar: ${error.message}`);
-
+  if (error) throw new Error(`Download error: ${error.message}`);
   const arrayBuffer = await data.arrayBuffer();
   return Buffer.from(arrayBuffer);
 }
 
-/**
- * Deletar arquivo do storage
- */
-async function deleteFile(supabasePath) {
-  if (!supabasePath) return;
-  const { error } = await supabase.storage.from(BUCKET).remove([supabasePath]);
-  if (error) console.error('[Storage] Delete error:', error.message);
+async function deleteFile(supabasePath, sharepointItemId) {
+  if (sharepointItemId && SHAREPOINT_CONFIGURED) {
+    try { await deleteFromSharePoint(sharepointItemId); } catch (e) {
+      console.error('[Storage] SharePoint delete failed:', e.message);
+    }
+  }
+  if (supabasePath) {
+    try { await supabase.storage.from(BUCKET).remove([supabasePath]); } catch {}
+  }
 }
 
-/**
- * Gerar URL assinada temporária (para download seguro)
- * @returns {string} URL válida por 1 hora
- */
 async function getSignedUrl(supabasePath) {
+  if (!supabasePath) return null;
   const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(supabasePath, 3600);
-  if (error) throw new Error(`Erro ao gerar URL: ${error.message}`);
+  if (error) return null;
   return data.signedUrl;
 }
 
-module.exports = { uploadFile, downloadFile, deleteFile, getSignedUrl, MAX_FILE_SIZE };
+module.exports = { uploadFile, downloadFile, deleteFile, getSignedUrl, MAX_FILE_SIZE, SHAREPOINT_CONFIGURED };
