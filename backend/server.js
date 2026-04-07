@@ -51,6 +51,7 @@ app.use('/api/membresia', require('./routes/membresia'));
 app.use('/api/notificacoes', require('./routes/notificacoes'));
 app.use('/api/permissoes', require('./routes/permissoes'));
 app.use('/api/events', require('./routes/reports')); // reports montado sob /api/events/:eventId/report(s)
+app.use('/api/completions', require('./routes/completions'));
 
 // ── Health check ──
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
