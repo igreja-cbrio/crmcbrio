@@ -581,7 +581,7 @@ export default function CycleView({ eventId }) {
                 {/* ── Anexos / Entregáveis ── */}
                 <div style={{ marginBottom: 20 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: C.t2, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>📎 Anexos / Entregáveis</div>
-                  <AttachmentButton eventId={task.event_id} taskId={task.id} taskType="cycle" phaseName={phase?.nome_fase || ''} area={task.area} onAttachmentChange={() => { load(); }} />
+                  <AttachmentButton eventId={task.event_id} taskId={task.id} taskType="cycle" phaseName={phase?.nome_fase || ''} area={task.area} onAttachmentChange={() => { load(); }} inline />
                 </div>
 
                 {/* ── Observações ── */}
