@@ -2,7 +2,7 @@ const router = require('express').Router();
 const { authenticate } = require('../middleware/auth');
 const { supabase } = require('../utils/supabase');
 const storage = require('../services/storageService');
-const AgentService = require('../services/agentService');
+const { AgentService } = require('../services/agentService');
 
 router.use(authenticate);
 
