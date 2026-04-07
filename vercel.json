@@ -5,9 +5,16 @@
   "installCommand": "cd backend && npm install && cd ../frontend && npm install",
   "functions": {
     "api/**/*.js": {
-      "includeFiles": "backend/**"
+      "includeFiles": "backend/**",
+      "maxDuration": 60
     }
   },
+  "crons": [
+    {
+      "path": "/api/cron/agents",
+      "schedule": "0 6 * * *"
+    }
+  ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/[...path].js" },
     { "handle": "filesystem" },

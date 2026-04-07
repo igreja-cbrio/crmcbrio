@@ -215,6 +215,8 @@ export const agents = {
   runSteps: (id) => get(`/agents/runs/${id}/steps`),
   cancelRun: (id) => post(`/agents/runs/${id}/cancel`),
   stats: () => get('/agents/stats'),
+  scores: () => get('/agents/scores'),
+  memory: (module) => get(`/agents/memory/${module}`),
 };
 
 export const financeiro = {

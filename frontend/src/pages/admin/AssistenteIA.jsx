@@ -24,7 +24,15 @@ const SEV_MAP = {
 };
 
 const AGENT_TYPES = [
-  { value: 'system_auditor', label: 'Auditor do Sistema', desc: 'Analisa dados reais de todos os módulos e identifica problemas, inconsistências e oportunidades de melhoria.' },
+  { value: 'system_auditor', label: '🔍 Auditor Geral', desc: 'Analisa dados reais de todos os módulos e identifica problemas, inconsistências e oportunidades de melhoria.', icon: '🔍' },
+  { value: 'module_rh', label: '👥 Agente RH', desc: 'Audita colaboradores, admissões, férias, treinamentos. Verifica campos faltantes e inconsistências.', icon: '👥' },
+  { value: 'module_financeiro', label: '💰 Agente Financeiro', desc: 'Audita contas, transações, contas a pagar e reembolsos. Detecta vencimentos e anomalias.', icon: '💰' },
+  { value: 'module_eventos', label: '📅 Agente Eventos', desc: 'Audita eventos, tarefas, orçamentos e reuniões. Identifica atrasos e eventos sem responsável.', icon: '📅' },
+  { value: 'module_projetos', label: '📊 Agente Projetos', desc: 'Audita projetos, fases, tarefas e riscos. Detecta progresso estagnado e marcos vencidos.', icon: '📊' },
+  { value: 'module_logistica', label: '🚚 Agente Logística', desc: 'Audita fornecedores, pedidos, solicitações e notas fiscais. Verifica atrasos e pendências.', icon: '🚚' },
+  { value: 'module_patrimonio', label: '🏢 Agente Patrimônio', desc: 'Audita bens, inventários e movimentações. Detecta bens extraviados e sem catalogação.', icon: '🏢' },
+  { value: 'module_membresia', label: '⛪ Agente Membresia', desc: 'Audita membros, integração e engajamento. Identifica dados incompletos e inativos.', icon: '⛪' },
+  { value: 'design_auditor', label: '🎨 Agente Design', desc: 'Analisa layout e UI do sistema, traz referências modernas (Linear, Vercel, Notion) e sugere melhorias concretas com Tailwind.', icon: '🎨' },
 ];
 
 const s = {
@@ -41,9 +49,47 @@ const fmtDate = (d) => d ? new Date(d).toLocaleString('pt-BR', { day: '2-digit',
 const fmtCost = (v) => `$${(Number(v) || 0).toFixed(4)}`;
 const fmtTokens = (v) => (v || 0).toLocaleString('pt-BR');
 
+// Mini bar chart for score history
+function ScoreChart({ scores = {} }) {
+  const moduleNames = { module_rh: 'RH', module_financeiro: 'Fin', module_eventos: 'Evt', module_projetos: 'Proj', module_logistica: 'Log', module_patrimonio: 'Pat', module_membresia: 'Mem', system_auditor: 'Geral' };
+  const entries = Object.entries(scores).filter(([, v]) => v.length > 0);
+  if (!entries.length) return null;
+
+  return (
+    <div style={{ ...s.card, padding: 20, marginBottom: 24 }}>
+      <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 16 }}>Evolução dos Scores</div>
+      <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+        {entries.map(([type, history]) => {
+          const last = history[history.length - 1];
+          const prev = history.length > 1 ? history[history.length - 2] : null;
+          const trend = prev ? last.score - prev.score : 0;
+          const scoreColor = last.score >= 8 ? C.green : last.score >= 5 ? C.amber : C.red;
+          return (
+            <div key={type} style={{ textAlign: 'center', minWidth: 60 }}>
+              <div style={{ fontSize: 24, fontWeight: 800, color: scoreColor }}>{last.score}</div>
+              <div style={{ fontSize: 10, color: C.text3 }}>{moduleNames[type] || type}</div>
+              {trend !== 0 && (
+                <div style={{ fontSize: 10, color: trend > 0 ? C.green : C.red, fontWeight: 600 }}>
+                  {trend > 0 ? `▲+${trend}` : `▼${trend}`}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: 2, justifyContent: 'center', marginTop: 4 }}>
+                {history.slice(-8).map((h, i) => (
+                  <div key={i} style={{ width: 4, height: h.score * 3, background: h.score >= 8 ? C.green : h.score >= 5 ? C.amber : C.red, borderRadius: 2, opacity: 0.3 + (i / history.length) * 0.7 }} />
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function AssistenteIA() {
   const [runs, setRuns] = useState([]);
   const [stats, setStats] = useState(null);
+  const [scores, setScores] = useState({});
   const [loading, setLoading] = useState(false);
   const [launching, setLaunching] = useState(false);
   const [selectedRun, setSelectedRun] = useState(null);
@@ -54,11 +100,15 @@ export default function AssistenteIA() {
     try { setRuns(await agents.runs()); } catch (e) { console.error(e); }
   }, []);
 
+  const loadScores = useCallback(async () => {
+    try { setScores(await agents.scores()); } catch (e) { console.error(e); }
+  }, []);
+
   const loadStats = useCallback(async () => {
     try { setStats(await agents.stats()); } catch (e) { console.error(e); }
   }, []);
 
-  useEffect(() => { loadRuns(); loadStats(); }, [loadRuns, loadStats]);
+  useEffect(() => { loadRuns(); loadStats(); loadScores(); }, [loadRuns, loadStats, loadScores]);
 
   // Polling para runs em execução
   useEffect(() => {
@@ -108,17 +158,45 @@ export default function AssistenteIA() {
         )}
       </div>
 
-      {/* Launch Panel */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12, marginBottom: 24 }}>
-        {AGENT_TYPES.map(at => (
-          <div key={at.value} style={{ ...s.card, padding: 20 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 6 }}>{at.label}</div>
-            <div style={{ fontSize: 12, color: C.text2, lineHeight: 1.5, marginBottom: 16 }}>{at.desc}</div>
-            <Button className="w-full" onClick={() => launchAgent(at.value)} disabled={launching}>
-              {launching ? 'Iniciando...' : 'Executar Agente'}
-            </Button>
-          </div>
-        ))}
+      {/* Score History Chart */}
+      <ScoreChart scores={scores} />
+
+      {/* Launch All */}
+      <div style={{ marginBottom: 16 }}>
+        <Button onClick={async () => { for (const at of AGENT_TYPES) { await launchAgent(at.value); } }} disabled={launching}>
+          {launching ? 'Iniciando...' : '🚀 Executar Todos os Agentes'}
+        </Button>
+      </div>
+
+      {/* Agent Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12, marginBottom: 24 }}>
+        {AGENT_TYPES.map(at => {
+          const lastRun = runs.find(r => r.agent_type === at.value);
+          const lastStatus = lastRun ? STATUS_MAP[lastRun.status] : null;
+          const score = lastRun?.config?.score;
+          const findingsCount = lastRun?.findings?.length || 0;
+          const scoreColor = score >= 8 ? C.green : score >= 5 ? C.amber : score ? C.red : C.text3;
+          return (
+            <div key={at.value} style={{ ...s.card, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{at.label}</div>
+                {score != null && (
+                  <div style={{ fontSize: 20, fontWeight: 800, color: scoreColor }}>{score}</div>
+                )}
+              </div>
+              <div style={{ fontSize: 11, color: C.text3, lineHeight: 1.4 }}>{at.desc}</div>
+              {lastRun && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, color: C.text3 }}>
+                  <span style={s.badge(lastStatus?.c || C.text3, lastStatus?.bg || '#73737318')}>{lastStatus?.label || '—'}</span>
+                  <span>{findingsCount > 0 ? `${findingsCount} finding(s)` : 'Sem alertas'}</span>
+                </div>
+              )}
+              <Button size="sm" variant={lastRun ? 'outline' : 'default'} className="w-full" onClick={() => launchAgent(at.value)} disabled={launching}>
+                {launching ? '...' : lastRun ? 'Executar Novamente' : 'Executar'}
+              </Button>
+            </div>
+          );
+        })}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: selectedRun ? '1fr 2fr' : '1fr', gap: 16 }}>
@@ -140,7 +218,9 @@ export default function AssistenteIA() {
                     transition: 'background 0.15s',
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{r.agent_type === 'system_auditor' ? 'Auditor' : r.agent_type}</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{
+                        { system_auditor: '🔍 Auditor', design_auditor: '🎨 Design', module_rh: '👥 RH', module_financeiro: '💰 Financeiro', module_eventos: '📅 Eventos', module_projetos: '📊 Projetos', module_logistica: '🚚 Logística', module_patrimonio: '🏢 Patrimônio', module_membresia: '⛪ Membresia' }[r.agent_type] || r.agent_type
+                      }</span>
                       <span style={s.badge(st.c, st.bg)}>{st.label}</span>
                     </div>
                     <div style={{ fontSize: 11, color: C.text3 }}>
@@ -196,9 +276,50 @@ export default function AssistenteIA() {
                         {f.suggestion && (
                           <div style={{ fontSize: 12, color: C.green, fontStyle: 'italic' }}>Sugestão: {f.suggestion}</div>
                         )}
+                        {f.reference && (
+                          <div style={{ fontSize: 11, color: C.blue, marginTop: 4 }}>Ref: {f.reference}</div>
+                        )}
+                        {f.category && (
+                          <span style={{ ...s.badge(C.text3, '#73737318'), fontSize: 9, marginTop: 4, display: 'inline-block' }}>{f.category}</span>
+                        )}
                       </div>
                     );
                   })}
+                </div>
+              </div>
+            )}
+
+            {/* Design References */}
+            {selectedRun.config?.topReferences?.length > 0 && (
+              <div style={s.card}>
+                <div style={s.cardHeader}>
+                  <div style={s.cardTitle}>🎨 Referências de Design</div>
+                </div>
+                <div style={{ padding: 16 }}>
+                  {selectedRun.config.topReferences.map((ref, i) => (
+                    <div key={i} style={{ padding: '10px 0', borderBottom: i < selectedRun.config.topReferences.length - 1 ? `1px solid ${C.border}` : 'none' }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: C.primary }}>{ref.name}</div>
+                      {ref.url && <div style={{ fontSize: 11, color: C.blue }}>{ref.url}</div>}
+                      <div style={{ fontSize: 12, color: C.text2, marginTop: 2 }}>{ref.why}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Quick Wins */}
+            {selectedRun.config?.quickWins?.length > 0 && (
+              <div style={{ ...s.card, borderLeft: `4px solid ${C.green}` }}>
+                <div style={s.cardHeader}>
+                  <div style={s.cardTitle}>⚡ Quick Wins</div>
+                </div>
+                <div style={{ padding: 16 }}>
+                  {selectedRun.config.quickWins.map((qw, i) => (
+                    <div key={i} style={{ padding: '6px 0', fontSize: 13, color: C.text, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                      <span style={{ color: C.green, fontWeight: 700 }}>→</span>
+                      <span>{qw}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

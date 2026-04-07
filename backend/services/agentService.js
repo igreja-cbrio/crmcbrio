@@ -187,6 +187,53 @@ class AgentService {
       completed_at: new Date().toISOString(),
     }).eq('id', this.runId);
   }
+
+  // ── Memory System ───────────────────────────────────────
+
+  /** Lê todas as memórias do agente */
+  async getMemories(module = null) {
+    let query = supabase.from('agent_memory')
+      .select('key, value, updated_at')
+      .eq('agent_type', this.agentType);
+    if (module) query = query.eq('module', module);
+    const { data } = await query.order('updated_at', { ascending: false });
+    return data || [];
+  }
+
+  /** Salva/atualiza uma memória */
+  async remember(key, value, module = null) {
+    const { error } = await supabase.from('agent_memory')
+      .upsert({
+        agent_type: this.agentType,
+        module: module || this.agentType.replace('module_', ''),
+        key,
+        value: typeof value === 'string' ? value : JSON.stringify(value),
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'agent_type,module,key' });
+    if (error) console.error('[AgentMemory] Erro ao salvar:', error.message);
+  }
+
+  /** Formata memórias para incluir no prompt */
+  formatMemories(memories) {
+    if (!memories.length) return 'Nenhuma memória anterior.';
+    return memories.map(m => `- ${m.key}: ${m.value}`).join('\n');
+  }
+
+  /** Lê o histórico de scores das últimas runs */
+  async getScoreHistory(module = null, limit = 10) {
+    let query = supabase.from('agent_runs')
+      .select('created_at, config, findings, summary')
+      .eq('agent_type', this.agentType)
+      .eq('status', 'completed')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    const { data } = await query;
+    return (data || []).map(r => ({
+      date: r.created_at,
+      score: r.config?.score || null,
+      findingsCount: r.findings?.length || 0,
+    }));
+  }
 }
 
 module.exports = { AgentService, GUARDRAILS };
