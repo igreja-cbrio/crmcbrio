@@ -482,15 +482,16 @@ export default function CycleView({ eventId }) {
         return (
           <>
             {/* Backdrop */}
-            <div onClick={() => setSelectedTask(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 900 }} />
-            {/* Panel */}
+            <div onClick={() => setSelectedTask(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 900, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 40 }} />
+            {/* Modal centralizado */}
             <div style={{
-              position: 'fixed', top: 0, right: 0, bottom: 0, width: '100%', maxWidth: 480,
+              position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+              width: '95%', maxWidth: 600, maxHeight: '90vh',
               background: 'var(--cbrio-modal-bg, #fff)', zIndex: 901,
-              boxShadow: '-8px 0 30px rgba(0,0,0,0.15)', overflowY: 'auto',
-              animation: 'slideInRight 0.2s ease-out',
+              borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.2)', overflowY: 'auto',
+              animation: 'fadeScaleIn 0.15s ease-out',
             }}>
-              <style>{`@keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }`}</style>
+              <style>{`@keyframes fadeScaleIn { from { opacity: 0; transform: translate(-50%, -50%) scale(0.96); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }`}</style>
 
               {/* Header */}
               <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid var(--cbrio-border)', position: 'sticky', top: 0, background: 'var(--cbrio-modal-bg, #fff)', zIndex: 1 }}>
