@@ -48,6 +48,7 @@ export default function CycleView({ eventId }) {
   const [cycleViewMode, setCycleViewMode] = useState('pmo');
   const [viewMode, setViewMode] = useState('kanban');
   const [expandedTask, setExpandedTask] = useState(null);
+  const [selectedTask, setSelectedTask] = useState(null); // painel lateral
   const [showNewPhase, setShowNewPhase] = useState(false);
   const [showNewTask, setShowNewTask] = useState(false);
 
@@ -295,11 +296,11 @@ export default function CycleView({ eventId }) {
                     <div key={task.id} draggable
                       onDragStart={e => { e.dataTransfer.setData('cycleTaskId', task.id); e.currentTarget.style.opacity = '0.4'; }}
                       onDragEnd={e => { e.currentTarget.style.opacity = '1'; }}
-                      onClick={() => setExpandedTask(isOpen ? null : `kb-${task.id}`)}
+                      onClick={() => setSelectedTask(task)}
                       style={{
                         background: 'var(--cbrio-card)', borderRadius: 8, padding: 8, marginBottom: 4,
-                        border: isOpen ? `1.5px solid ${C.accent}` : daysColor === '#ef4444' ? '1px solid #fecaca' : `1px solid ${C.border}`,
-                        cursor: 'grab', transition: 'opacity .15s, box-shadow .15s',
+                        border: selectedTask?.id === task.id ? `1.5px solid ${C.accent}` : daysColor === '#ef4444' ? '1px solid #fecaca' : `1px solid ${C.border}`,
+                        cursor: 'pointer', transition: 'opacity .15s, box-shadow .15s',
                       }}
                       onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'}
                       onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
@@ -310,33 +311,18 @@ export default function CycleView({ eventId }) {
                             style={{ fontSize: 9, padding: '1px 4px', borderRadius: 4, border: `1px solid ${C.border}`, background: 'var(--cbrio-card)' }}>
                             {Object.entries(TASK_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                           </select>
-                          <button onClick={() => handleDeleteTask(task.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 10, padding: 0 }}>✕</button>
                         </div>
                       </div>
                       <div style={{ fontSize: 11, fontWeight: 500, color: C.dark, lineHeight: 1.3, marginBottom: 3 }}>{task.titulo}</div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 9, color: C.t3 }}>
                         <span>{task.responsavel_nome || '—'}</span>
-                        {subs.length > 0 && <span>{subsDone}/{subs.length}</span>}
-                      </div>
-                      {/* Attachment + DaysCounter */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6, paddingTop: 6, borderTop: `1px solid ${C.border}` }}>
-                        <AttachmentButton eventId={task.event_id} taskId={task.id} taskType="cycle" phaseName={phaseNames[kanbanPhase] || ''} area={task.area} onAttachmentChange={load} />
-                        {daysColor && task.status !== 'concluida' && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <span style={{ fontSize: 10, fontWeight: 700, color: daysColor, padding: '1px 6px', borderRadius: 8, background: `${daysColor}15` }}>{daysText}</span>
-                          </div>
-                        )}
-                      </div>
-                      {isOpen && subs.length > 0 && (
-                        <div style={{ marginTop: 6, paddingTop: 6, borderTop: `1px solid ${C.border}` }} onClick={e => e.stopPropagation()}>
-                          {subs.map(sub => (
-                            <div key={sub.id} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, padding: '2px 0', color: C.dark }}>
-                              <input type="checkbox" checked={sub.done} onChange={async () => { await api.updateSubtask(sub.id, { done: !sub.done }); load(); }} style={{ cursor: 'pointer', width: 13, height: 13 }} />
-                              <span style={sub.done ? { textDecoration: 'line-through', color: C.t3 } : {}}>{sub.name}</span>
-                            </div>
-                          ))}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          {subs.length > 0 && <span>{subsDone}/{subs.length} ✓</span>}
+                          {daysColor && task.status !== 'concluida' && (
+                            <span style={{ fontWeight: 700, color: daysColor, padding: '1px 6px', borderRadius: 8, background: `${daysColor}15` }}>{daysText}</span>
+                          )}
                         </div>
-                      )}
+                      </div>
                     </div>
                   );
                 })}
@@ -493,6 +479,148 @@ export default function CycleView({ eventId }) {
           </div>
         </div>
       )}
+      {/* ── PAINEL LATERAL — Detalhe da Tarefa ── */}
+      {selectedTask && (() => {
+        const task = selectedTask;
+        const phase = phases.find(p => p.id === task.event_phase_id);
+        const cat = CAT[getCategory(task)] || CAT.outros;
+        const subs = task.subtasks || [];
+        const subsDone = subs.filter(s => s.done).length;
+        const subsPct = subs.length > 0 ? Math.round((subsDone / subs.length) * 100) : task.status === 'concluida' ? 100 : 0;
+        const ts = TASK_STATUS[task.status] || TASK_STATUS.a_fazer;
+        const p = normDate(task.prazo);
+        const diff = p ? Math.ceil((new Date(p + 'T12:00:00') - new Date()) / 86400000) : null;
+        const daysColor = diff === null || task.status === 'concluida' ? null : diff < 0 ? '#ef4444' : diff <= 7 ? '#f59e0b' : '#10b981';
+
+        return (
+          <>
+            {/* Backdrop */}
+            <div onClick={() => setSelectedTask(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 900 }} />
+            {/* Panel */}
+            <div style={{
+              position: 'fixed', top: 0, right: 0, bottom: 0, width: '100%', maxWidth: 480,
+              background: 'var(--cbrio-modal-bg, #fff)', zIndex: 901,
+              boxShadow: '-8px 0 30px rgba(0,0,0,0.15)', overflowY: 'auto',
+              animation: 'slideInRight 0.2s ease-out',
+            }}>
+              <style>{`@keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }`}</style>
+
+              {/* Header */}
+              <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid var(--cbrio-border)', position: 'sticky', top: 0, background: 'var(--cbrio-modal-bg, #fff)', zIndex: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 17, fontWeight: 700, color: C.dark, lineHeight: 1.3, marginBottom: 8 }}>{task.titulo}</div>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                      <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 99, background: cat.bg, color: cat.color, fontWeight: 600 }}>{cat.label}</span>
+                      <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 99, background: `${ts.color}15`, color: ts.color, fontWeight: 600 }}>{ts.label}</span>
+                      {task.prioridade && task.prioridade !== 'normal' && (
+                        <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 99, background: task.prioridade === 'alta' ? '#fee2e2' : '#f0fdf4', color: task.prioridade === 'alta' ? '#ef4444' : '#10b981', fontWeight: 600 }}>
+                          {task.prioridade === 'alta' ? '↑ Alta' : '↓ Baixa'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <button onClick={() => setSelectedTask(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: C.t3, padding: '4px 8px' }}>✕</button>
+                </div>
+
+                {/* Info rápida */}
+                <div style={{ display: 'flex', gap: 16, fontSize: 12, color: C.t2 }}>
+                  <div><span style={{ fontWeight: 600 }}>Responsável:</span> {task.responsavel_nome || '—'}</div>
+                  {p && <div><span style={{ fontWeight: 600 }}>Prazo:</span> {fmtDate(p)} {daysColor && <span style={{ color: daysColor, fontWeight: 700 }}> ({diff < 0 ? `${Math.abs(diff)}d atrás` : diff === 0 ? 'Hoje' : `${diff}d`})</span>}</div>}
+                </div>
+              </div>
+
+              <div style={{ padding: '16px 24px' }}>
+                {/* ── Entregável Esperado ── */}
+                {(phase?.entregas_padrao || task.entrega) && (
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: C.accent, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>📋 Entregável Esperado</div>
+                    <div style={{ background: `${C.accent}08`, border: `1px solid ${C.accent}30`, borderRadius: 10, padding: '14px 16px' }}>
+                      {phase?.entregas_padrao && (
+                        <div style={{ fontSize: 13, color: C.dark, lineHeight: 1.6, whiteSpace: 'pre-line' }}>{phase.entregas_padrao}</div>
+                      )}
+                      {task.entrega && (
+                        <div style={{ fontSize: 12, color: C.t2, marginTop: phase?.entregas_padrao ? 8 : 0, paddingTop: phase?.entregas_padrao ? 8 : 0, borderTop: phase?.entregas_padrao ? '1px solid var(--cbrio-border)' : 'none' }}>
+                          <span style={{ fontWeight: 600 }}>Específico:</span> {task.entrega}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Fase do Ciclo ── */}
+                {phase && (
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: C.t2, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Fase</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.dark }}>{phase.nome_fase}</div>
+                    {phase.descricao_fase && <div style={{ fontSize: 12, color: C.t2, marginTop: 4, lineHeight: 1.5 }}>{phase.descricao_fase}</div>}
+                  </div>
+                )}
+
+                {/* ── Descrição ── */}
+                {task.descricao && (
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: C.t2, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Descrição</div>
+                    <div style={{ fontSize: 13, color: C.dark, lineHeight: 1.6, whiteSpace: 'pre-line' }}>{task.descricao}</div>
+                  </div>
+                )}
+
+                {/* ── Subtasks / Checklist ── */}
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: C.t2, textTransform: 'uppercase', letterSpacing: 0.5 }}>Checklist ({subsDone}/{subs.length})</div>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: subsPct >= 100 ? '#10b981' : subsPct > 0 ? '#3b82f6' : C.t3 }}>{subsPct}%</span>
+                  </div>
+                  {/* Progress bar */}
+                  <div style={{ height: 6, background: 'var(--cbrio-border)', borderRadius: 3, marginBottom: 10, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${subsPct}%`, background: subsPct >= 100 ? '#10b981' : '#3b82f6', borderRadius: 3, transition: 'width 0.3s' }} />
+                  </div>
+                  {subs.length === 0 ? (
+                    <div style={{ fontSize: 12, color: C.t3, padding: 8 }}>Nenhuma subtarefa.</div>
+                  ) : subs.map(sub => (
+                    <div key={sub.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid var(--cbrio-border)' }}>
+                      <input type="checkbox" checked={sub.done} onChange={async () => {
+                        await api.updateSubtask(sub.id, { done: !sub.done });
+                        load();
+                        // Atualizar selectedTask
+                        const updated = { ...task, subtasks: subs.map(s => s.id === sub.id ? { ...s, done: !s.done } : s) };
+                        setSelectedTask(updated);
+                      }} style={{ cursor: 'pointer', width: 16, height: 16, accentColor: C.accent }} />
+                      <span style={{ fontSize: 13, color: C.dark, ...(sub.done ? { textDecoration: 'line-through', color: C.t3 } : {}) }}>{sub.name}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* ── Anexos / Entregáveis ── */}
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: C.t2, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>📎 Anexos / Entregáveis</div>
+                  <AttachmentButton eventId={task.event_id} taskId={task.id} taskType="cycle" phaseName={phase?.nome_fase || ''} area={task.area} onAttachmentChange={() => { load(); }} />
+                </div>
+
+                {/* ── Observações ── */}
+                {task.observacoes && (
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: C.t2, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Observações</div>
+                    <div style={{ fontSize: 12, color: C.t2, lineHeight: 1.5, background: 'var(--cbrio-bg)', borderRadius: 8, padding: '10px 14px' }}>{task.observacoes}</div>
+                  </div>
+                )}
+
+                {/* ── Ações ── */}
+                <div style={{ display: 'flex', gap: 8, paddingTop: 16, borderTop: '1px solid var(--cbrio-border)' }}>
+                  <select value={task.status} onChange={async e => { await handleTaskStatus(task.id, e.target.value); setSelectedTask(null); }}
+                    style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: 'var(--cbrio-input-bg, #fff)', color: C.dark }}>
+                    {Object.entries(TASK_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                  </select>
+                  <button onClick={async () => { await handleDeleteTask(task.id); setSelectedTask(null); }}
+                    style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#ef4444', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                    Excluir
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        );
+      })()}
     </div>
   );
 }

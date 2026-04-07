@@ -277,7 +277,7 @@ router.get('/:eventId', async (req, res) => {
     }
 
     const [phasesRes, tasksRes, admRes, budgetRes] = await Promise.all([
-      supabase.from('event_cycle_phases').select('*').eq('event_id', eventId).order('numero_fase'),
+      supabase.from('event_cycle_phases').select('*, cycle_phase_templates(descricao, entregas_padrao, responsavel_padrao)').eq('event_id', eventId).order('numero_fase'),
       supabase.from('cycle_phase_tasks').select('*').eq('event_id', eventId),
       supabase.from('event_adm_track').select('*').eq('event_id', eventId).order('semana').order('area'),
       supabase.from('event_budgets').select('*').eq('event_id', eventId).maybeSingle(),
@@ -300,9 +300,18 @@ router.get('/:eventId', async (req, res) => {
 
     const tasksWithSubs = (tasksRes.data || []).map(t => ({ ...t, subtasks: subsMap[t.id] || [] }));
 
+    // Enriquecer fases com dados do template (entregas_padrao, descricao)
+    const phases = (phasesRes.data || []).map(p => ({
+      ...p,
+      entregas_padrao: p.cycle_phase_templates?.entregas_padrao || null,
+      descricao_fase: p.cycle_phase_templates?.descricao || null,
+      responsavel_padrao: p.cycle_phase_templates?.responsavel_padrao || null,
+      cycle_phase_templates: undefined,
+    }));
+
     res.json({
       cycle: cycleData,
-      phases: phasesRes.data || [],
+      phases,
       tasks: tasksWithSubs,
       admTrack: admRes.data || [],
       budget: budgetRes.data ? { ...budgetRes.data, total_gasto: totalGasto } : null,
