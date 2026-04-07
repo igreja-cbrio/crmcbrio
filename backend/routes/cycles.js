@@ -2,8 +2,56 @@ const router = require('express').Router();
 const { authenticate, authorizeCycle } = require('../middleware/auth');
 const { supabase } = require('../utils/supabase');
 const ADM_TASKS_TEMPLATE = require('../adm_tasks_template.json');
+const { SHAREPOINT_CONFIGURED } = require('../services/storageService');
 
 router.use(authenticate);
+
+// ── SharePoint: criar estrutura de pastas ao ativar ciclo ──
+async function createSharePointFolders(eventName, phaseTemplates) {
+  if (!SHAREPOINT_CONFIGURED) return;
+  require('dotenv').config();
+
+  const tenantId = process.env.MICROSOFT_TENANT_ID;
+  const clientId = process.env.MICROSOFT_CLIENT_ID;
+  const clientSecret = process.env.MICROSOFT_CLIENT_SECRET;
+  const siteId = process.env.SHAREPOINT_SITE_ID;
+
+  // Get token
+  const tokenRes = await fetch(`https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ client_id: clientId, client_secret: clientSecret, scope: 'https://graph.microsoft.com/.default', grant_type: 'client_credentials' }),
+  });
+  const { access_token } = await tokenRes.json();
+  if (!access_token) throw new Error('Failed to get Graph token');
+
+  const sanitize = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9_\-. ]/g, '').replace(/\s+/g, '_').slice(0, 100);
+  const eventFolder = sanitize(eventName);
+
+  const createFolder = async (parentPath, name) => {
+    const endpoint = parentPath
+      ? `https://graph.microsoft.com/v1.0/sites/${siteId}/drive/root:/${parentPath}:/children`
+      : `https://graph.microsoft.com/v1.0/sites/${siteId}/drive/root/children`;
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${access_token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, folder: {}, '@microsoft.graph.conflictBehavior': 'fail' }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      if (err.error?.code !== 'nameAlreadyExists') throw new Error(`Folder ${name}: ${err.error?.message}`);
+    }
+  };
+
+  // Criar: Eventos/{NomeEvento}
+  await createFolder('Eventos', eventFolder);
+
+  // Criar subpastas para cada fase: Eventos/{NomeEvento}/Fase 01 - Pre Briefing
+  for (const t of phaseTemplates) {
+    const phaseName = sanitize(`Fase ${String(t.numero).padStart(2, '0')} - ${t.nome}`);
+    await createFolder(`Eventos/${eventFolder}`, phaseName);
+  }
+}
 
 // Helper: calcular datas das fases a partir do Dia D
 function calcDates(diaDDate, semanasInicio, semanasFim) {
@@ -196,6 +244,16 @@ router.post('/activate/:eventId', async (req, res) => {
           sort_order: i,
         }));
         await supabase.from('cycle_task_subtasks').insert(subs);
+      }
+    }
+
+    // ── Criar pastas no SharePoint para cada fase ──
+    if (SHAREPOINT_CONFIGURED) {
+      try {
+        await createSharePointFolders(event.name, templates);
+        console.log(`[CYCLE] SharePoint folders created for ${event.name}`);
+      } catch (spErr) {
+        console.error('[CYCLE] SharePoint folder creation failed (non-blocking):', spErr.message);
       }
     }
 
