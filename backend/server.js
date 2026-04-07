@@ -63,6 +63,7 @@ app.get('/api/cron/agents', async (req, res) => {
   }
   try {
     const { runModuleAudit } = require('./agents/moduleAuditor');
+    const { runDesignAudit } = require('./agents/designAuditor');
     const modules = ['module_rh', 'module_financeiro', 'module_eventos', 'module_projetos', 'module_logistica', 'module_patrimonio', 'module_membresia'];
     const results = [];
     for (const mod of modules) {
@@ -72,6 +73,13 @@ app.get('/api/cron/agents', async (req, res) => {
       } catch (e) {
         results.push({ module: mod, status: 'error', error: e.message });
       }
+    }
+    // Design auditor
+    try {
+      const result = await runDesignAudit('cron', {});
+      results.push({ module: 'design_auditor', status: 'ok', runId: result.runId, score: result.score });
+    } catch (e) {
+      results.push({ module: 'design_auditor', status: 'error', error: e.message });
     }
     res.json({ ok: true, timestamp: new Date().toISOString(), results });
   } catch (e) {

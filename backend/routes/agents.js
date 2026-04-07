@@ -6,6 +6,7 @@ const db = require('../utils/db');
 const { sanitizeObj } = require('../utils/sanitize');
 const { runSystemAudit } = require('../agents/systemAuditor');
 const { runModuleAudit, MODULE_PROMPTS } = require('../agents/moduleAuditor');
+const { runDesignAudit } = require('../agents/designAuditor');
 
 router.use(authenticate, authorizeModule('agents'));
 
@@ -29,6 +30,8 @@ router.post('/run', aiLimiter, async (req, res) => {
     let runPromise;
     if (agentType === 'system_auditor') {
       runPromise = runSystemAudit(req.user.id, config || {});
+    } else if (agentType === 'design_auditor') {
+      runPromise = runDesignAudit(req.user.id, config || {});
     } else if (agentType.startsWith('module_') && MODULE_PROMPTS[agentType.replace('module_', '')]) {
       runPromise = runModuleAudit(agentType, req.user.id, config || {});
     } else {

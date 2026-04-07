@@ -32,6 +32,7 @@ const AGENT_TYPES = [
   { value: 'module_logistica', label: '🚚 Agente Logística', desc: 'Audita fornecedores, pedidos, solicitações e notas fiscais. Verifica atrasos e pendências.', icon: '🚚' },
   { value: 'module_patrimonio', label: '🏢 Agente Patrimônio', desc: 'Audita bens, inventários e movimentações. Detecta bens extraviados e sem catalogação.', icon: '🏢' },
   { value: 'module_membresia', label: '⛪ Agente Membresia', desc: 'Audita membros, integração e engajamento. Identifica dados incompletos e inativos.', icon: '⛪' },
+  { value: 'design_auditor', label: '🎨 Agente Design', desc: 'Analisa layout e UI do sistema, traz referências modernas (Linear, Vercel, Notion) e sugere melhorias concretas com Tailwind.', icon: '🎨' },
 ];
 
 const s = {
@@ -217,7 +218,9 @@ export default function AssistenteIA() {
                     transition: 'background 0.15s',
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{r.agent_type === 'system_auditor' ? 'Auditor' : r.agent_type}</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{
+                        { system_auditor: '🔍 Auditor', design_auditor: '🎨 Design', module_rh: '👥 RH', module_financeiro: '💰 Financeiro', module_eventos: '📅 Eventos', module_projetos: '📊 Projetos', module_logistica: '🚚 Logística', module_patrimonio: '🏢 Patrimônio', module_membresia: '⛪ Membresia' }[r.agent_type] || r.agent_type
+                      }</span>
                       <span style={s.badge(st.c, st.bg)}>{st.label}</span>
                     </div>
                     <div style={{ fontSize: 11, color: C.text3 }}>
@@ -273,9 +276,50 @@ export default function AssistenteIA() {
                         {f.suggestion && (
                           <div style={{ fontSize: 12, color: C.green, fontStyle: 'italic' }}>Sugestão: {f.suggestion}</div>
                         )}
+                        {f.reference && (
+                          <div style={{ fontSize: 11, color: C.blue, marginTop: 4 }}>Ref: {f.reference}</div>
+                        )}
+                        {f.category && (
+                          <span style={{ ...s.badge(C.text3, '#73737318'), fontSize: 9, marginTop: 4, display: 'inline-block' }}>{f.category}</span>
+                        )}
                       </div>
                     );
                   })}
+                </div>
+              </div>
+            )}
+
+            {/* Design References */}
+            {selectedRun.config?.topReferences?.length > 0 && (
+              <div style={s.card}>
+                <div style={s.cardHeader}>
+                  <div style={s.cardTitle}>🎨 Referências de Design</div>
+                </div>
+                <div style={{ padding: 16 }}>
+                  {selectedRun.config.topReferences.map((ref, i) => (
+                    <div key={i} style={{ padding: '10px 0', borderBottom: i < selectedRun.config.topReferences.length - 1 ? `1px solid ${C.border}` : 'none' }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: C.primary }}>{ref.name}</div>
+                      {ref.url && <div style={{ fontSize: 11, color: C.blue }}>{ref.url}</div>}
+                      <div style={{ fontSize: 12, color: C.text2, marginTop: 2 }}>{ref.why}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Quick Wins */}
+            {selectedRun.config?.quickWins?.length > 0 && (
+              <div style={{ ...s.card, borderLeft: `4px solid ${C.green}` }}>
+                <div style={s.cardHeader}>
+                  <div style={s.cardTitle}>⚡ Quick Wins</div>
+                </div>
+                <div style={{ padding: 16 }}>
+                  {selectedRun.config.quickWins.map((qw, i) => (
+                    <div key={i} style={{ padding: '6px 0', fontSize: 13, color: C.text, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                      <span style={{ color: C.green, fontWeight: 700 }}>→</span>
+                      <span>{qw}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
