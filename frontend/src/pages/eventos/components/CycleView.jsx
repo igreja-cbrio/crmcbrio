@@ -361,8 +361,8 @@ export default function CycleView({ eventId }) {
                     const subsDone = subs.filter(s => s.done).length;
                     const ts = TASK_STATUS[task.status] || TASK_STATUS.a_fazer;
                     return (
-                      <div key={task.id} style={{ background: 'var(--cbrio-card)', borderRadius: 8, padding: '8px 12px', border: isOpen ? `1.5px solid ${C.accent}` : `1px solid ${C.border}`, marginBottom: 3, cursor: 'pointer', transition: 'box-shadow .15s' }}
-                        onClick={() => setExpandedTask(isOpen ? null : task.id)}
+                      <div key={task.id} style={{ background: 'var(--cbrio-card)', borderRadius: 8, padding: '8px 12px', border: selectedTask?.id === task.id ? `1.5px solid ${C.accent}` : `1px solid ${C.border}`, marginBottom: 3, cursor: 'pointer', transition: 'box-shadow .15s' }}
+                        onClick={() => setSelectedTask(task)}
                         onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.05)'}
                         onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
@@ -384,19 +384,6 @@ export default function CycleView({ eventId }) {
                             <button onClick={() => handleDeleteTask(task.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 11, padding: '0 2px' }}>✕</button>
                           </div>
                         </div>
-                        {isOpen && subs.length > 0 && (
-                          <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${C.border}` }} onClick={e => e.stopPropagation()}>
-                            <div style={{ height: 3, background: 'var(--cbrio-border)', borderRadius: 2, marginBottom: 6 }}>
-                              <div style={{ height: '100%', width: `${subs.length > 0 ? (subsDone / subs.length) * 100 : 0}%`, background: '#10b981', borderRadius: 2 }} />
-                            </div>
-                            {subs.map(sub => (
-                              <div key={sub.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, padding: '3px 0', color: C.dark }}>
-                                <input type="checkbox" checked={sub.done} onChange={async () => { await api.updateSubtask(sub.id, { done: !sub.done }); load(); }} style={{ cursor: 'pointer', width: 14, height: 14 }} />
-                                <span style={sub.done ? { textDecoration: 'line-through', color: C.t3 } : {}}>{sub.name}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
                       </div>
                     );
                   })}
