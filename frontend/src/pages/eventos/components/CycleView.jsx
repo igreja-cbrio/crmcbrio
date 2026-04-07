@@ -34,7 +34,7 @@ function sortByUrgency(tasks) {
 }
 function getCategory(task) { return (task.area || '').toLowerCase() || 'outros'; }
 
-export default function CycleView({ eventId }) {
+export default function CycleView({ eventId, eventName }) {
   const { profile, user } = useAuth();
   const userRole = profile?.role || '';
   const userArea = profile?.area || '';
@@ -48,8 +48,7 @@ export default function CycleView({ eventId }) {
   const [areaFilter, setAreaFilter] = useState('all');
   const [cycleViewMode, setCycleViewMode] = useState('pmo');
   const [viewMode, setViewMode] = useState('kanban');
-  const [expandedTask, setExpandedTask] = useState(null);
-  const [selectedTask, setSelectedTask] = useState(null); // painel lateral
+  const [selectedTask, setSelectedTask] = useState(null);
   const [showNewPhase, setShowNewPhase] = useState(false);
   const [showNewTask, setShowNewTask] = useState(false);
 
@@ -72,11 +71,6 @@ export default function CycleView({ eventId }) {
     try { await api.activate(eventId); load(); }
     catch (e) { alert(e.message); }
     finally { setActivating(false); }
-  };
-
-  const handleTaskStatus = async (taskId, status) => {
-    await api.updateTask(taskId, { status });
-    load();
   };
 
   const handlePhaseStatus = async (phaseId, status) => {
@@ -193,7 +187,7 @@ export default function CycleView({ eventId }) {
 
             return (
               <div key={phase.id} style={{ display: 'flex', alignItems: 'center' }}>
-                <div onClick={() => { setActivePhase(phase.id); setExpandedTask(null); }}
+                <div onClick={() => { setActivePhase(phase.id); setSelectedTask(null); }}
                   onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = `${C.accent}08`; e.currentTarget.style.transform = 'translateY(-1px)'; }}
                   onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = isDone ? 'var(--cbrio-bg)' : 'var(--cbrio-card)'; e.currentTarget.style.transform = ''; }}
                   style={{
@@ -352,7 +346,7 @@ export default function CycleView({ eventId }) {
                     <span style={{ fontSize: 11, color: C.t3 }}>({catDone}/{catTasks.length})</span>
                   </div>
                   {catTasks.map(task => {
-                    const isOpen = expandedTask === task.id;
+                    const isOpen = selectedTask?.id === task.id;
                     const subs = task.subtasks || [];
                     const subsDone = subs.filter(s => s.done).length;
                     const ts = TASK_STATUS[task.status] || TASK_STATUS.a_fazer;
@@ -591,7 +585,7 @@ export default function CycleView({ eventId }) {
                   <CompletionSection
                     task={task}
                     phase={phase}
-                    eventName={data?.cycle?.events?.name || ''}
+                    eventName={eventName || ''}
                     isPMO={isPMO}
                     onComplete={() => { load(); setSelectedTask(null); }}
                   />

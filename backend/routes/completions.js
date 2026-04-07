@@ -123,10 +123,25 @@ router.delete('/:taskId/reopen', async (req, res) => {
       .eq('task_id', req.params.taskId)
       .is('reopened_at', null);
 
-    // Voltar status do card
-    await supabase.from('cycle_phase_tasks')
+    // Voltar status do card e buscar phase_id para recalcular
+    const { data: task } = await supabase.from('cycle_phase_tasks')
       .update({ status: 'a_fazer' })
-      .eq('id', req.params.taskId);
+      .eq('id', req.params.taskId)
+      .select('event_phase_id')
+      .single();
+
+    // Recalcular status da fase
+    if (task?.event_phase_id) {
+      const { data: phaseTasks } = await supabase.from('cycle_phase_tasks')
+        .select('id, status').eq('event_phase_id', task.event_phase_id);
+      if (phaseTasks) {
+        const done = phaseTasks.filter(t => t.status === 'concluida').length;
+        const pct = Math.round(done / phaseTasks.length * 100);
+        const newStatus = pct === 100 ? 'concluida' : pct > 0 ? 'em_andamento' : 'pendente';
+        await supabase.from('event_cycle_phases')
+          .update({ status: newStatus }).eq('id', task.event_phase_id);
+      }
+    }
 
     res.json({ success: true });
   } catch (err) {
