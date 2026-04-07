@@ -373,10 +373,6 @@ export default function CycleView({ eventId }) {
                           </div>
                           <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
                             <span style={{ fontSize: 9, fontWeight: 600, color: ts.color, padding: '2px 8px', borderRadius: 10, background: `${ts.color}15` }}>{ts.label}</span>
-                            <select value={task.status} onChange={e => handleTaskStatus(task.id, e.target.value)} style={{ fontSize: 10, padding: '2px 4px', borderRadius: 6, border: `1px solid ${C.border}` }}>
-                              {Object.entries(TASK_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                            </select>
-                            <AttachmentButton eventId={task.event_id} taskId={task.id} taskType="cycle" phaseName={phase?.nome_fase || ''} area={task.area} onAttachmentChange={load} />
                             <button onClick={() => handleDeleteTask(task.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 11, padding: '0 2px' }}>✕</button>
                           </div>
                         </div>
@@ -602,13 +598,7 @@ export default function CycleView({ eventId }) {
                 </div>
 
                 {/* ── Ações ── */}
-                <div style={{ display: 'flex', gap: 8, paddingTop: 16, borderTop: '1px solid var(--cbrio-border)' }}>
-                  {task.status !== 'concluida' && (
-                    <select value={task.status} onChange={async e => { await handleTaskStatus(task.id, e.target.value); setSelectedTask(null); }}
-                      style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, background: 'var(--cbrio-input-bg, #fff)', color: C.dark }}>
-                      {Object.entries(TASK_STATUS).filter(([k]) => k !== 'concluida').map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                    </select>
-                  )}
+                <div style={{ display: 'flex', gap: 8, paddingTop: 16, borderTop: '1px solid var(--cbrio-border)', justifyContent: 'flex-end' }}>
                   <button onClick={async () => { await handleDeleteTask(task.id); setSelectedTask(null); }}
                     style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#ef4444', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
                     Excluir
