@@ -5,6 +5,7 @@ const { supabase } = require('../utils/supabase');
 const db = require('../utils/db');
 const { sanitizeObj } = require('../utils/sanitize');
 const { runSystemAudit } = require('../agents/systemAuditor');
+const { runModuleAudit, MODULE_PROMPTS } = require('../agents/moduleAuditor');
 
 router.use(authenticate, authorizeModule('agents'));
 
@@ -26,12 +27,12 @@ router.post('/run', aiLimiter, async (req, res) => {
 
     // Dispara o agente assincronamente
     let runPromise;
-    switch (agentType) {
-      case 'system_auditor':
-        runPromise = runSystemAudit(req.user.id, config || {});
-        break;
-      default:
-        return res.status(400).json({ error: `Tipo de agente desconhecido: ${agentType}` });
+    if (agentType === 'system_auditor') {
+      runPromise = runSystemAudit(req.user.id, config || {});
+    } else if (agentType.startsWith('module_') && MODULE_PROMPTS[agentType.replace('module_', '')]) {
+      runPromise = runModuleAudit(agentType, req.user.id, config || {});
+    } else {
+      return res.status(400).json({ error: `Tipo de agente desconhecido: ${agentType}` });
     }
 
     // Não aguarda — retorna imediatamente

@@ -24,7 +24,14 @@ const SEV_MAP = {
 };
 
 const AGENT_TYPES = [
-  { value: 'system_auditor', label: 'Auditor do Sistema', desc: 'Analisa dados reais de todos os módulos e identifica problemas, inconsistências e oportunidades de melhoria.' },
+  { value: 'system_auditor', label: '🔍 Auditor Geral', desc: 'Analisa dados reais de todos os módulos e identifica problemas, inconsistências e oportunidades de melhoria.', icon: '🔍' },
+  { value: 'module_rh', label: '👥 Agente RH', desc: 'Audita colaboradores, admissões, férias, treinamentos. Verifica campos faltantes e inconsistências.', icon: '👥' },
+  { value: 'module_financeiro', label: '💰 Agente Financeiro', desc: 'Audita contas, transações, contas a pagar e reembolsos. Detecta vencimentos e anomalias.', icon: '💰' },
+  { value: 'module_eventos', label: '📅 Agente Eventos', desc: 'Audita eventos, tarefas, orçamentos e reuniões. Identifica atrasos e eventos sem responsável.', icon: '📅' },
+  { value: 'module_projetos', label: '📊 Agente Projetos', desc: 'Audita projetos, fases, tarefas e riscos. Detecta progresso estagnado e marcos vencidos.', icon: '📊' },
+  { value: 'module_logistica', label: '🚚 Agente Logística', desc: 'Audita fornecedores, pedidos, solicitações e notas fiscais. Verifica atrasos e pendências.', icon: '🚚' },
+  { value: 'module_patrimonio', label: '🏢 Agente Patrimônio', desc: 'Audita bens, inventários e movimentações. Detecta bens extraviados e sem catalogação.', icon: '🏢' },
+  { value: 'module_membresia', label: '⛪ Agente Membresia', desc: 'Audita membros, integração e engajamento. Identifica dados incompletos e inativos.', icon: '⛪' },
 ];
 
 const s = {
@@ -108,17 +115,42 @@ export default function AssistenteIA() {
         )}
       </div>
 
-      {/* Launch Panel */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12, marginBottom: 24 }}>
-        {AGENT_TYPES.map(at => (
-          <div key={at.value} style={{ ...s.card, padding: 20 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 6 }}>{at.label}</div>
-            <div style={{ fontSize: 12, color: C.text2, lineHeight: 1.5, marginBottom: 16 }}>{at.desc}</div>
-            <Button className="w-full" onClick={() => launchAgent(at.value)} disabled={launching}>
-              {launching ? 'Iniciando...' : 'Executar Agente'}
-            </Button>
-          </div>
-        ))}
+      {/* Launch All */}
+      <div style={{ marginBottom: 16 }}>
+        <Button onClick={async () => { for (const at of AGENT_TYPES) { await launchAgent(at.value); } }} disabled={launching}>
+          {launching ? 'Iniciando...' : '🚀 Executar Todos os Agentes'}
+        </Button>
+      </div>
+
+      {/* Agent Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12, marginBottom: 24 }}>
+        {AGENT_TYPES.map(at => {
+          const lastRun = runs.find(r => r.agent_type === at.value);
+          const lastStatus = lastRun ? STATUS_MAP[lastRun.status] : null;
+          const score = lastRun?.config?.score;
+          const findingsCount = lastRun?.findings?.length || 0;
+          const scoreColor = score >= 8 ? C.green : score >= 5 ? C.amber : score ? C.red : C.text3;
+          return (
+            <div key={at.value} style={{ ...s.card, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{at.label}</div>
+                {score != null && (
+                  <div style={{ fontSize: 20, fontWeight: 800, color: scoreColor }}>{score}</div>
+                )}
+              </div>
+              <div style={{ fontSize: 11, color: C.text3, lineHeight: 1.4 }}>{at.desc}</div>
+              {lastRun && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, color: C.text3 }}>
+                  <span style={s.badge(lastStatus?.c || C.text3, lastStatus?.bg || '#73737318')}>{lastStatus?.label || '—'}</span>
+                  <span>{findingsCount > 0 ? `${findingsCount} finding(s)` : 'Sem alertas'}</span>
+                </div>
+              )}
+              <Button size="sm" variant={lastRun ? 'outline' : 'default'} className="w-full" onClick={() => launchAgent(at.value)} disabled={launching}>
+                {launching ? '...' : lastRun ? 'Executar Novamente' : 'Executar'}
+              </Button>
+            </div>
+          );
+        })}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: selectedRun ? '1fr 2fr' : '1fr', gap: 16 }}>
