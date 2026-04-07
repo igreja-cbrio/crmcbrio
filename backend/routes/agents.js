@@ -144,6 +144,45 @@ router.get('/stats', async (req, res) => {
   }
 });
 
+// GET /api/agents/scores — Score history per module
+router.get('/scores', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('agent_runs')
+      .select('agent_type, config, created_at')
+      .eq('status', 'completed')
+      .order('created_at', { ascending: true })
+      .limit(200);
+    if (error) throw error;
+
+    // Group by agent_type, extract score from config
+    const scores = {};
+    for (const r of data || []) {
+      const score = r.config?.score;
+      if (score == null) continue;
+      const type = r.agent_type;
+      if (!scores[type]) scores[type] = [];
+      scores[type].push({ date: r.created_at, score });
+    }
+    res.json(scores);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/agents/memory/:module — Get agent memories
+router.get('/memory/:module', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('agent_memory')
+      .select('*')
+      .eq('module', req.params.module)
+      .order('updated_at', { ascending: false });
+    if (error) throw error;
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ═══════════════════════════════════════════════════════════
 // Legacy: endpoints existentes
 // ═══════════════════════════════════════════════════════════

@@ -54,6 +54,31 @@ app.use('/api/permissoes', require('./routes/permissoes'));
 // ── Health check ──
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
+// ── Cron: run all agents every 6h ──
+app.get('/api/cron/agents', async (req, res) => {
+  // Verify cron secret (Vercel sends this header)
+  const authHeader = req.headers.authorization;
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  try {
+    const { runModuleAudit } = require('./agents/moduleAuditor');
+    const modules = ['module_rh', 'module_financeiro', 'module_eventos', 'module_projetos', 'module_logistica', 'module_patrimonio', 'module_membresia'];
+    const results = [];
+    for (const mod of modules) {
+      try {
+        const result = await runModuleAudit(mod, 'cron', {});
+        results.push({ module: mod, status: 'ok', runId: result.runId, score: result.score });
+      } catch (e) {
+        results.push({ module: mod, status: 'error', error: e.message });
+      }
+    }
+    res.json({ ok: true, timestamp: new Date().toISOString(), results });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── Serve frontend in production ──
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, 'public')));

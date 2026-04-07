@@ -48,9 +48,47 @@ const fmtDate = (d) => d ? new Date(d).toLocaleString('pt-BR', { day: '2-digit',
 const fmtCost = (v) => `$${(Number(v) || 0).toFixed(4)}`;
 const fmtTokens = (v) => (v || 0).toLocaleString('pt-BR');
 
+// Mini bar chart for score history
+function ScoreChart({ scores = {} }) {
+  const moduleNames = { module_rh: 'RH', module_financeiro: 'Fin', module_eventos: 'Evt', module_projetos: 'Proj', module_logistica: 'Log', module_patrimonio: 'Pat', module_membresia: 'Mem', system_auditor: 'Geral' };
+  const entries = Object.entries(scores).filter(([, v]) => v.length > 0);
+  if (!entries.length) return null;
+
+  return (
+    <div style={{ ...s.card, padding: 20, marginBottom: 24 }}>
+      <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 16 }}>Evolução dos Scores</div>
+      <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+        {entries.map(([type, history]) => {
+          const last = history[history.length - 1];
+          const prev = history.length > 1 ? history[history.length - 2] : null;
+          const trend = prev ? last.score - prev.score : 0;
+          const scoreColor = last.score >= 8 ? C.green : last.score >= 5 ? C.amber : C.red;
+          return (
+            <div key={type} style={{ textAlign: 'center', minWidth: 60 }}>
+              <div style={{ fontSize: 24, fontWeight: 800, color: scoreColor }}>{last.score}</div>
+              <div style={{ fontSize: 10, color: C.text3 }}>{moduleNames[type] || type}</div>
+              {trend !== 0 && (
+                <div style={{ fontSize: 10, color: trend > 0 ? C.green : C.red, fontWeight: 600 }}>
+                  {trend > 0 ? `▲+${trend}` : `▼${trend}`}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: 2, justifyContent: 'center', marginTop: 4 }}>
+                {history.slice(-8).map((h, i) => (
+                  <div key={i} style={{ width: 4, height: h.score * 3, background: h.score >= 8 ? C.green : h.score >= 5 ? C.amber : C.red, borderRadius: 2, opacity: 0.3 + (i / history.length) * 0.7 }} />
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function AssistenteIA() {
   const [runs, setRuns] = useState([]);
   const [stats, setStats] = useState(null);
+  const [scores, setScores] = useState({});
   const [loading, setLoading] = useState(false);
   const [launching, setLaunching] = useState(false);
   const [selectedRun, setSelectedRun] = useState(null);
@@ -61,11 +99,15 @@ export default function AssistenteIA() {
     try { setRuns(await agents.runs()); } catch (e) { console.error(e); }
   }, []);
 
+  const loadScores = useCallback(async () => {
+    try { setScores(await agents.scores()); } catch (e) { console.error(e); }
+  }, []);
+
   const loadStats = useCallback(async () => {
     try { setStats(await agents.stats()); } catch (e) { console.error(e); }
   }, []);
 
-  useEffect(() => { loadRuns(); loadStats(); }, [loadRuns, loadStats]);
+  useEffect(() => { loadRuns(); loadStats(); loadScores(); }, [loadRuns, loadStats, loadScores]);
 
   // Polling para runs em execução
   useEffect(() => {
@@ -114,6 +156,9 @@ export default function AssistenteIA() {
           </div>
         )}
       </div>
+
+      {/* Score History Chart */}
+      <ScoreChart scores={scores} />
 
       {/* Launch All */}
       <div style={{ marginBottom: 16 }}>

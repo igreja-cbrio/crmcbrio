@@ -102,6 +102,14 @@ async function runModuleAudit(agentType, triggeredBy, config = {}) {
   const agent = await AgentService.createRun(agentType, triggeredBy, config);
 
   try {
+    // Step 0: Carregar memórias anteriores
+    const memories = await agent.getMemories(moduleKey);
+    const memoryStr = agent.formatMemories(memories);
+    const scoreHistory = await agent.getScoreHistory(moduleKey, 5);
+    const historyStr = scoreHistory.length
+      ? scoreHistory.map(h => `${new Date(h.date).toLocaleDateString('pt-BR')}: score=${h.score}, ${h.findingsCount} findings`).join('\n')
+      : 'Primeira execução — sem histórico.';
+
     // Step 1: Coletar contexto específico do módulo
     const context = await buildContext([moduleKey]);
     const contextStr = serializeContext(context);
@@ -112,9 +120,21 @@ async function runModuleAudit(agentType, triggeredBy, config = {}) {
       'context'
     );
 
-    // Step 2: Análise profunda com Sonnet
+    // Step 2: Análise profunda com Sonnet (inclui memória + histórico)
     const analysisResult = await agent.callSonnet(
       `${moduleConfig.system}
+
+MEMÓRIA DE EXECUÇÕES ANTERIORES (use para comparar evolução):
+${memoryStr}
+
+HISTÓRICO DE SCORES:
+${historyStr}
+
+INSTRUÇÕES:
+- Compare com execuções anteriores: o que melhorou? O que piorou? O que é novo?
+- Se um problema foi reportado antes e continua, aumente a severidade
+- Se um problema foi resolvido, mencione como "info" positivo
+- Identifique tendências (score subindo/descendo)
 
 Responda APENAS em JSON válido:
 {
@@ -127,6 +147,10 @@ Responda APENAS em JSON válido:
       "detail": "Descrição com evidências dos dados",
       "suggestion": "O que fazer"
     }
+  ],
+  "learnings": [
+    "Aprendizado 1 para lembrar na próxima execução",
+    "Aprendizado 2..."
   ]
 }
 
@@ -137,31 +161,44 @@ O score vai de 1 (péssimo) a 10 (perfeito).`,
       'analysis'
     );
 
-    // Step 3: Parse
+    // Step 3: Parse findings + learnings
     let findings = [];
     let score = null;
+    let learnings = [];
     try {
       const jsonMatch = analysisResult.text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
         findings = parsed.findings || [];
         score = parsed.score || null;
+        learnings = parsed.learnings || [];
       }
     } catch (e) {
       findings = [{ severity: 'info', module: moduleKey, title: 'Resposta não-estruturada', detail: analysisResult.text.slice(0, 500), suggestion: 'Revisar manualmente' }];
     }
 
-    // Step 4: Resumo executivo
+    // Step 4: Salvar aprendizados na memória
+    const now = new Date().toLocaleDateString('pt-BR');
+    for (let i = 0; i < learnings.length; i++) {
+      await agent.remember(`learning_${now}_${i}`, learnings[i], moduleKey);
+    }
+    // Salvar resumo de findings para comparação futura
+    const critCount = findings.filter(f => f.severity === 'critico').length;
+    const warnCount = findings.filter(f => f.severity === 'aviso').length;
+    await agent.remember('last_run_summary', `Score: ${score}/10 | ${critCount} críticos, ${warnCount} avisos, ${findings.length} total | ${now}`, moduleKey);
+    await agent.remember('last_score', String(score), moduleKey);
+
+    // Step 5: Resumo executivo
     const summaryResult = await agent.callHaiku(
       'Gere um resumo executivo conciso em português.',
-      `Módulo: ${moduleConfig.name}\nScore: ${score}/10\nFindings:\n${JSON.stringify(findings, null, 2)}\n\nGere 3-5 linhas para o gestor.`,
+      `Módulo: ${moduleConfig.name}\nScore: ${score}/10\nFindings:\n${JSON.stringify(findings, null, 2)}\n\nGere 3-5 linhas para o gestor. Se houver comparação com runs anteriores, mencione.`,
       'summary'
     );
 
-    // Finalizar com score nos config
+    // Finalizar
     await agent.complete(summaryResult.text, findings, []);
 
-    // Salvar score no run
+    // Salvar score no run config
     if (score !== null) {
       const { supabase } = require('../utils/supabase');
       await supabase.from('agent_runs').update({
