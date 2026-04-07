@@ -1019,6 +1019,11 @@ export default function Eventos() {
     aPhases.forEach(ph => { if (evGroups[ph.event_id]) evGroups[ph.event_id].phases.push(ph); });
     const groups = Object.values(evGroups).filter(g => g.phases.length > 0);
     groups.forEach(g => g.phases.sort((a, b) => a.numero_fase - b.numero_fase));
+    groups.sort((a, b) => {
+      const da = a.phases[0]?.data_fim_prevista || '9999'; // Dia D ≈ última fase
+      const db = b.phases[0]?.data_fim_prevista || '9999';
+      return da.localeCompare(db);
+    });
 
     const allDts = aPhases.flatMap(p => [p.data_inicio_prevista, p.data_fim_prevista].filter(Boolean)).map(x => new Date(x));
     const today = new Date();
