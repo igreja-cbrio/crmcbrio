@@ -16,6 +16,7 @@ const Patrimonio   = lazy(() => import('./pages/admin/patrimonio/Patrimonio'));
 const Membresia    = lazy(() => import('./pages/ministerial/Membresia'));
 const Planejamento = lazy(() => import('./pages/Planejamento'));
 const AssistenteIA = lazy(() => import('./pages/admin/AssistenteIA'));
+const SolicitarCompra = lazy(() => import('./pages/SolicitarCompra'));
 const NotificacaoRegras = lazy(() => import('./pages/admin/NotificacaoRegras'));
 
 const Loading = () => (
@@ -118,6 +119,11 @@ function AppRoutes() {
           </PermissionGate>
         } />
 
+
+        {/* Solicitação de compra (acessível a todos) */}
+        <Route path="solicitar-compra" element={
+          <Suspense fallback={<Loading />}><SolicitarCompra /></Suspense>
+        } />
 
         {/* Administrativo */}
         <Route

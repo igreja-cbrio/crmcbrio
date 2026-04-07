@@ -8,7 +8,7 @@ import {
   Users, DollarSign, Truck, Tag,
   CalendarDays, FolderKanban, Map,
   UserCheck, UsersRound, Heart, HandHelping, BookOpen,
-  Megaphone, BrainCircuit,
+  Megaphone, BrainCircuit, ShoppingCart,
   Sun, Moon, Bell, LogOut, Check,
 } from 'lucide-react';
 
@@ -24,6 +24,12 @@ const NAV_ITEMS = [
           { label: 'Financeiro', description: 'Contas, transações e reembolsos', icon: DollarSign, path: '/admin/financeiro', perm: 'canFinanceiro' },
           { label: 'Logística', description: 'Fornecedores, compras e pedidos', icon: Truck, path: '/admin/logistica', perm: 'canLogistica' },
           { label: 'Patrimônio', description: 'Bens, localizações e inventário', icon: Tag, path: '/admin/patrimonio', perm: 'canPatrimonio' },
+        ],
+      },
+      {
+        title: 'Serviços',
+        items: [
+          { label: 'Solicitar Compra', description: 'Peça materiais ou serviços', icon: ShoppingCart, path: '/solicitar-compra' },
         ],
       },
       {
