@@ -419,7 +419,9 @@ router.post('/:eventId/tasks/:taskId/attachments', upload.single('file'), async 
       file_name: req.file.originalname,
       file_type: req.file.mimetype,
       file_size: req.file.size,
-      supabase_path: result.path,
+      supabase_path: result.provider === 'supabase' ? result.path : null,
+      sharepoint_url: result.url || null,
+      sharepoint_item_id: result.itemId || null,
       phase_name: phase_name || null,
       area: area || req.user.area || null,
       description: description || null,
@@ -472,9 +474,11 @@ router.get('/:eventId/tasks/:taskId/attachments', async (req, res) => {
       .order('created_at', { ascending: false });
     if (error) throw error;
 
-    // Gerar URLs assinadas
+    // Resolver URLs de acesso
     for (const a of data) {
-      if (a.supabase_path) {
+      if (a.sharepoint_url) {
+        a.signed_url = a.sharepoint_url; // SharePoint URL já é acessível
+      } else if (a.supabase_path) {
         try { a.signed_url = await storage.getSignedUrl(a.supabase_path); } catch {}
       }
     }
@@ -494,7 +498,7 @@ router.delete('/attachments/:attachId', async (req, res) => {
       .eq('id', req.params.attachId)
       .single();
 
-    if (attach?.supabase_path) await storage.deleteFile(attach.supabase_path);
+    if (attach) await storage.deleteFile(attach.supabase_path, attach.sharepoint_item_id);
 
     const { error } = await supabase.from('event_task_attachments').delete().eq('id', req.params.attachId);
     if (error) throw error;
