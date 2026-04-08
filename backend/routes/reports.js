@@ -4,38 +4,9 @@ const { supabase } = require('../utils/supabase');
 const storage = require('../services/storageService');
 const { AgentService } = require('../services/agentService');
 
-router.use(authenticate);
+const { extractText } = require('../services/textExtractor');
 
-// ── Text extraction helpers ──
-async function extractText(buffer, mimeType, fileName) {
-  try {
-    if (mimeType === 'application/pdf') {
-      const pdf = require('pdf-parse');
-      const data = await pdf(buffer);
-      return data.text?.slice(0, 15000) || '';
-    }
-    if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileName?.endsWith('.docx')) {
-      const mammoth = require('mammoth');
-      const result = await mammoth.extractRawText({ buffer });
-      return result.value?.slice(0, 15000) || '';
-    }
-    if (mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || fileName?.endsWith('.xlsx')) {
-      const XLSX = require('xlsx');
-      const workbook = XLSX.read(buffer, { type: 'buffer' });
-      let text = '';
-      for (const name of workbook.SheetNames) {
-        const sheet = workbook.Sheets[name];
-        text += `\n--- Planilha: ${name} ---\n`;
-        text += XLSX.utils.sheet_to_csv(sheet);
-      }
-      return text.slice(0, 15000);
-    }
-    // Images and others — just return metadata
-    return `[Arquivo binário: ${fileName || 'desconhecido'}, tipo: ${mimeType}]`;
-  } catch (e) {
-    return `[Erro ao extrair texto de ${fileName}: ${e.message}]`;
-  }
-}
+router.use(authenticate);
 
 // POST /api/events/:eventId/report — gerar relatório por IA
 router.post('/:eventId/report', async (req, res) => {
@@ -83,11 +54,15 @@ router.post('/:eventId/report', async (req, res) => {
       return res.status(400).json({ error: 'Nenhum dado encontrado para gerar relatório.' });
     }
 
-    // Extrair texto dos arquivos
+    // Montar conteúdo dos arquivos (usar digest se disponível, fallback para download)
     const fileContents = [];
     for (const a of attachs) {
       let text = '';
-      if (a.supabase_path || a.sharepoint_item_id) {
+      if (a.file_digest) {
+        // Digest já gerado na hora do upload — usar direto
+        text = a.file_digest;
+      } else if (a.supabase_path || a.sharepoint_item_id) {
+        // Fallback: arquivo antigo sem digest — baixar e extrair
         try {
           const buffer = await storage.downloadFile(a.supabase_path, a.sharepoint_item_id);
           text = await extractText(buffer, a.file_type, a.file_name);

@@ -1,10 +1,38 @@
 const router = require('express').Router();
 const { authenticate } = require('../middleware/auth');
 const { supabase } = require('../utils/supabase');
-const { getGraphToken, ensureSharePointFolder, sanitizePath, SHAREPOINT_CONFIGURED } = require('../services/storageService');
+const { getGraphToken, ensureSharePointFolder, sanitizePath, SHAREPOINT_CONFIGURED, downloadFile } = require('../services/storageService');
+const { extractText } = require('../services/textExtractor');
 require('dotenv').config();
 
 router.use(authenticate);
+
+// ── Gerar digest de arquivo em background (não bloqueia response) ──
+async function generateDigestsInBackground(attachmentRows) {
+  for (const att of attachmentRows) {
+    if (!att.sharepoint_item_id && !att.supabase_path) continue;
+    try {
+      const buffer = await downloadFile(att.supabase_path, att.sharepoint_item_id);
+      const text = await extractText(buffer, att.file_type, att.file_name, 8000);
+      if (!text || text.startsWith('[')) continue; // binário ou erro
+
+      const Anthropic = require('@anthropic-ai/sdk');
+      const client = new Anthropic();
+      const msg = await client.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 600,
+        messages: [{ role: 'user', content: `Resuma este documento em 200-300 palavras. Foco em: valores monetários, datas, itens/materiais, decisões, responsáveis e qualquer dado relevante para um evento de igreja.\n\nArquivo: ${att.file_name}\n\nConteúdo:\n${text}` }],
+      });
+      const digest = msg.content?.[0]?.text || '';
+      if (digest) {
+        await supabase.from('event_task_attachments').update({ file_digest: digest }).eq('id', att.id);
+        console.log(`[DIGEST] ${att.file_name} → ${digest.length} chars`);
+      }
+    } catch (e) {
+      console.error(`[DIGEST] Falha ${att.file_name}:`, e.message);
+    }
+  }
+}
 
 // ── POST /api/completions/upload-url — gerar URL de upload direto para SharePoint ──
 router.post('/upload-url', async (req, res) => {
@@ -101,7 +129,12 @@ router.post('/', async (req, res) => {
         uploaded_by: req.user.userId,
         uploaded_by_name: req.user.name,
       }));
-      await supabase.from('event_task_attachments').insert(attachments);
+      const { data: insertedAttachments } = await supabase.from('event_task_attachments').insert(attachments).select('id, file_name, file_type, sharepoint_item_id, supabase_path');
+
+      // Gerar digest em background (não bloqueia o response)
+      if (insertedAttachments?.length > 0) {
+        generateDigestsInBackground(insertedAttachments).catch(e => console.error('[DIGEST BG]', e.message));
+      }
     }
 
     // Atualizar status do card para 'concluida'
