@@ -4,7 +4,6 @@ import { events, meetings, cycles as cyclesApi, occurrences as occApi, dashboard
 import CycleView from './components/CycleView';
 import BudgetPanel from './components/BudgetPanel';
 import { Button } from '../../components/ui/button';
-import AttachmentButton from '../../components/AttachmentButton';
 import CompletionSection from '../../components/CompletionSection';
 
 // ── Tema ────────────────────────────────────────────────────
@@ -973,12 +972,6 @@ export default function Eventos() {
                         <span style={{ fontSize: 13, color: 'var(--cbrio-text)', ...(sub.done ? { textDecoration: 'line-through', color: 'var(--cbrio-text3)' } : {}) }}>{sub.name}</span>
                       </div>
                     ))}
-                  </div>
-
-                  {/* Anexos */}
-                  <div style={{ marginBottom: 20 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--cbrio-text2)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>📎 Anexos / Entregáveis</div>
-                    <AttachmentButton eventId={task.event_id} taskId={task.id} taskType="cycle" phaseName={phase?.nome_fase || ''} area={task.area} onAttachmentChange={loadKanban} inline />
                   </div>
 
                   {/* Observações */}

@@ -455,6 +455,7 @@ Estes arquivos afetam o sistema inteiro. Alterações devem ser feitas via **Pul
   - **Fix v10.1:** Token cache do Graph API unificado — `completions.js` reutiliza `getGraphToken` de `storageService.js` (antes eram caches duplicados)
   - **Fix v10.1:** Encoding de filenames com acentos corrigido — multer/busboy interpreta como latin1, agora usa `Buffer.from(originalname, 'latin1').toString('utf8')`
   - **Fix v10.1:** Upload agora usa mesma pasta do ciclo — formato `Fase_XX_-_Nome` (antes usava só `Nome`, criando pasta duplicada)
+  - **Fix v10.1:** Removida seção "Anexos / Entregáveis" (AttachmentButton) do detalhe de tarefa no CycleView e Eventos — upload unificado via CompletionSection
 - Ciclos criativos com 11 fases + 35 tarefas ADM + 138 subtarefas automáticas
 - **KPIs clicáveis** — todos os números do dashboard navegam para os dados filtrados
 - **Abas Riscos + Histórico + Retrospectiva** no detalhe do evento
