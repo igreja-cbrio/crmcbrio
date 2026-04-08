@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { financeiro } from '../../../api';
 import { Button } from '../../../components/ui/button';
+import { exportPDF } from '../../../lib/export';
 
 // ── Tema ────────────────────────────────────────────────────
 const C = {

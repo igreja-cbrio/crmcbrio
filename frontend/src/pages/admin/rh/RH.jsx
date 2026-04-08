@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Users, Pencil, Trash2, Palmtree, X, Save, AlertTriangle } from 'lucide-react';
+import { Users, Pencil, Trash2, Palmtree, X, Save, AlertTriangle, Download } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { useAuth } from '../../../contexts/AuthContext';
 import { rh, permissoes } from '../../../api';
+import { exportCSV, exportPDF } from '../../../lib/export';
 import { supabase } from '../../../supabaseClient';
 import TabAdmissao from './TabAdmissao';
 import TabFolha from './TabFolha';
@@ -572,6 +573,11 @@ function FuncionariosTab({ funcs, loading, busca, setBusca, filtroStatus, setFil
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
           <input ref={csvRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={handleCSVImport} />
           <Button variant="outline" size="sm" onClick={() => csvRef.current?.click()}>Importar CSV</Button>
+          <Button variant="outline" size="sm" onClick={() => {
+            const headers = ['Nome', 'Cargo', 'Área', 'Contrato', 'Admissão', 'Status', 'Email'];
+            const rows = funcs.map(f => [f.nome, f.cargo, f.area || '', f.tipo_contrato, f.data_admissao || '', f.status, f.email || '']);
+            exportPDF('Colaboradores', headers, rows, { subtitle: `${funcs.length} colaboradores` });
+          }}><Download className="h-3.5 w-3.5" /> Exportar</Button>
           <Button onClick={onNew}>+ Novo Colaborador</Button>
         </div>
       </div>
