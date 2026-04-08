@@ -68,6 +68,16 @@ export default function CompletionSection({ task, phase, eventName, isPMO, onCom
           },
           body: f.file,
         });
+
+        if (!uploadRes.ok) {
+          let errMsg = `SharePoint retornou ${uploadRes.status}`;
+          try {
+            const errData = await uploadRes.json();
+            errMsg = errData.error?.message || errData.error || errMsg;
+          } catch { /* resposta pode não ser JSON */ }
+          throw new Error(errMsg);
+        }
+
         const uploadData = await uploadRes.json();
 
         const result = {

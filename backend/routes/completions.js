@@ -1,49 +1,26 @@
 const router = require('express').Router();
 const { authenticate } = require('../middleware/auth');
 const { supabase } = require('../utils/supabase');
+const { getGraphToken, ensureSharePointFolder, sanitizePath, SHAREPOINT_CONFIGURED } = require('../services/storageService');
 require('dotenv').config();
 
 router.use(authenticate);
-
-// ── Helper: get Graph API token ──
-let cachedToken = null;
-let tokenExpiry = 0;
-async function getGraphToken() {
-  if (cachedToken && Date.now() < tokenExpiry - 60000) return cachedToken;
-  const res = await fetch(`https://login.microsoftonline.com/${process.env.MICROSOFT_TENANT_ID}/oauth2/v2.0/token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id: process.env.MICROSOFT_CLIENT_ID,
-      client_secret: process.env.MICROSOFT_CLIENT_SECRET,
-      scope: 'https://graph.microsoft.com/.default',
-      grant_type: 'client_credentials',
-    }),
-  });
-  const data = await res.json();
-  if (!data.access_token) throw new Error('Graph auth failed');
-  cachedToken = data.access_token;
-  tokenExpiry = Date.now() + (data.expires_in || 3600) * 1000;
-  return cachedToken;
-}
-
-function sanitize(s) {
-  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9_\-. ]/g, '').replace(/\s+/g, '_').slice(0, 100);
-}
 
 // ── POST /api/completions/upload-url — gerar URL de upload direto para SharePoint ──
 router.post('/upload-url', async (req, res) => {
   try {
     const { fileName, eventName, phaseName, area } = req.body;
     if (!fileName) return res.status(400).json({ error: 'fileName é obrigatório' });
+    if (!SHAREPOINT_CONFIGURED) return res.status(400).json({ error: 'SharePoint não configurado (variáveis de ambiente ausentes)' });
 
     const siteId = process.env.SHAREPOINT_SITE_ID;
-    if (!siteId) return res.status(400).json({ error: 'SharePoint não configurado' });
-
     const token = await getGraphToken();
-    const safeName = sanitize(fileName);
-    const folder = `Eventos/${sanitize(eventName || 'geral')}/${sanitize(phaseName || 'geral')}`;
+    const safeName = sanitizePath(fileName);
+    const folder = `Eventos/${sanitizePath(eventName || 'geral')}/${sanitizePath(phaseName || 'geral')}`;
     const filePath = `${folder}/${safeName}`;
+
+    // Garantir que a estrutura de pastas existe no SharePoint
+    await ensureSharePointFolder(folder);
 
     // Criar upload session (suporta arquivos de qualquer tamanho)
     const sessionRes = await fetch(`https://graph.microsoft.com/v1.0/sites/${siteId}/drive/root:/${filePath}:/createUploadSession`, {
@@ -106,6 +83,10 @@ router.post('/', async (req, res) => {
 
     // Salvar todos os arquivos em event_task_attachments (para relatório IA)
     if (files && files.length > 0) {
+      const filesWithoutUrl = files.filter(f => !f.file_url);
+      if (filesWithoutUrl.length > 0) {
+        console.warn(`[COMPLETION POST] ${filesWithoutUrl.length} arquivo(s) sem URL SharePoint:`, filesWithoutUrl.map(f => f.file_name));
+      }
       const attachments = files.map(f => ({
         cycle_task_id: task_id,
         event_id,
