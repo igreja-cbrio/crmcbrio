@@ -28,49 +28,68 @@ function StatisticsCard({
     <div
       data-slot="statistics-card"
       className={cn(
-        "flex flex-col bg-card text-card-foreground rounded-xl border border-border shadow-xs",
-        onClick && "cursor-pointer transition-all hover:shadow-md hover:-translate-y-px",
+        "group relative flex flex-col bg-card text-card-foreground rounded-xl border border-border overflow-hidden",
+        onClick && "cursor-pointer",
         className,
       )}
       onClick={onClick}
       {...props}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 pt-4 pb-1">
-        <span className="text-muted-foreground text-[11px] font-medium uppercase tracking-wider">
-          {title}
-        </span>
-        {Icon && (
-          <Icon
-            className="size-4 shrink-0"
-            style={iconColor ? { color: iconColor } : undefined}
-          />
-        )}
-      </div>
+      {/* Colored top accent */}
+      <div
+        className="h-1 w-full shrink-0"
+        style={{ background: iconColor || 'var(--color-primary)' }}
+      />
 
-      {/* Content */}
-      <div className="px-4 pb-4 space-y-1.5">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl font-semibold text-foreground tracking-tight">
-            {value}
+      <div className="flex items-start justify-between px-3 pt-3 pb-2.5">
+        <div className="min-w-0 flex-1">
+          <span className="text-muted-foreground text-[10px] font-semibold uppercase tracking-wider leading-none block mb-1.5 truncate">
+            {title}
           </span>
-          {delta !== undefined && delta !== 0 && (
-            <Badge
-              variant={delta > 0 ? "success" : "destructive"}
-              appearance="light"
-              className="text-[10px] font-semibold"
-            >
-              {delta > 0 ? <ArrowUp /> : <ArrowDown />}
-              {Math.abs(delta)}%
-            </Badge>
-          )}
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-xl font-bold text-foreground tracking-tight leading-none truncate">
+              {value}
+            </span>
+            {delta !== undefined && delta !== 0 && (
+              <Badge
+                variant={delta > 0 ? "success" : "destructive"}
+                appearance="light"
+                className="text-[9px] font-semibold shrink-0"
+              >
+                {delta > 0 ? <ArrowUp /> : <ArrowDown />}
+                {Math.abs(delta)}%
+              </Badge>
+            )}
+          </div>
         </div>
-        {subtitle && (
-          <div className="text-[11px] text-muted-foreground border-t border-border pt-2">
-            {subtitle}
+        {Icon && (
+          <div
+            className="flex items-center justify-center size-8 rounded-lg shrink-0 ml-2"
+            style={{
+              background: iconColor ? `${iconColor}15` : 'var(--color-primary-foreground)',
+              color: iconColor || 'var(--color-primary)',
+            }}
+          >
+            <Icon className="size-4" />
           </div>
         )}
       </div>
+
+      {subtitle && (
+        <div className="text-[10px] text-muted-foreground border-t border-border px-3 py-2">
+          {subtitle}
+        </div>
+      )}
+
+      {/* Hover glow */}
+      {onClick && (
+        <div
+          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none rounded-xl"
+          style={{
+            boxShadow: `0 0 0 1px ${iconColor || 'var(--color-primary)'}30, 0 4px 16px ${iconColor || 'var(--color-primary)'}10`,
+          }}
+        />
+      )}
     </div>
   )
 }

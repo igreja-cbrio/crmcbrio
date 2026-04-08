@@ -461,8 +461,8 @@ function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
 
   return (
     <div className="space-y-5">
-      {/* KPI Cards */}
-      <div className="cbrio-stagger grid gap-3 grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
+      {/* KPI Cards — main stats */}
+      <div className="cbrio-stagger grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-7">
         {stats.map((stat) => (
           <StatisticsCard
             key={stat.title}
@@ -476,7 +476,7 @@ function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
       </div>
 
       {/* Extra metrics */}
-      <div className="cbrio-stagger grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+      <div className="cbrio-stagger grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
         {extras.map((stat) => (
           <StatisticsCard
             key={stat.title}
