@@ -206,7 +206,7 @@ export default function CycleView({ eventId, eventName }) {
                     <div style={{ height: 3, borderRadius: 2, width: `${pPct}%`, background: progColor, transition: 'width .3s' }} />
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: C.t3, marginTop: 3 }}>
-                    <span>{pTasks.length > 0 ? `${pDone}/${pTasks.length}` : 'vazia'}</span>
+                    <span>{pTasks.length > 0 ? (isDone ? 'concluída' : `${pTasks.length - pDone} pendente(s)`) : 'vazia'}</span>
                     <button onClick={e => { e.stopPropagation(); handleDeletePhase(phase.id); }}
                       style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 10, padding: 0, lineHeight: 1 }}>✕</button>
                   </div>
