@@ -255,4 +255,4 @@ async function syncPendingToSharePoint() {
   return { synced, failed, total: pending.length, message: `${synced} sincronizado(s), ${failed} falha(s)` };
 }
 
-module.exports = { uploadFile, downloadFile, deleteFile, getSignedUrl, syncPendingToSharePoint, MAX_FILE_SIZE, SHAREPOINT_CONFIGURED };
+module.exports = { uploadFile, downloadFile, deleteFile, getSignedUrl, syncPendingToSharePoint, getGraphToken, ensureSharePointFolder, sanitizePath, MAX_FILE_SIZE, SHAREPOINT_CONFIGURED };

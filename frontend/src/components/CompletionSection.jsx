@@ -55,7 +55,7 @@ export default function CompletionSection({ task, phase, eventName, isPMO, onCom
         const { uploadUrl, sharepointPath, fileName } = await completions.getUploadUrl({
           fileName: f.file.name,
           eventName: eventName || '',
-          phaseName: phase?.nome_fase || '',
+          phaseName: phase ? `Fase ${String(phase.numero_fase).padStart(2, '0')} - ${phase.nome_fase}` : '',
           area: task.area || '',
         });
 
@@ -68,6 +68,16 @@ export default function CompletionSection({ task, phase, eventName, isPMO, onCom
           },
           body: f.file,
         });
+
+        if (!uploadRes.ok) {
+          let errMsg = `SharePoint retornou ${uploadRes.status}`;
+          try {
+            const errData = await uploadRes.json();
+            errMsg = errData.error?.message || errData.error || errMsg;
+          } catch { /* resposta pode não ser JSON */ }
+          throw new Error(errMsg);
+        }
+
         const uploadData = await uploadRes.json();
 
         const result = {
