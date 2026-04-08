@@ -5,6 +5,27 @@ Atualizado em: 2026-04-08 (v10.1) — Fix upload SharePoint via CompletionSectio
 
 ---
 
+## Regras de UI/Design — OBRIGATÓRIO
+
+> **⚠️ SEMPRE que for gerar ou alterar componentes visuais, consultar os MCPs de design ANTES de escrever código.**
+
+### MCPs de Design Disponíveis
+- **21st.dev Magic MCP** (`magic`): para gerar layouts completos e profissionais do zero — usar como referência principal de design moderno
+- **shadcn-ui MCP** (`shadcn-ui`): para componentes (Button, Card, Dialog, Table, etc.) com props e variantes corretos do registry oficial
+- **Magic UI MCP** (`magic-ui`): para animações e efeitos visuais (shimmer, blur fade, marquee, grid patterns, particle backgrounds)
+- **TailwindCSS MCP** (`tailwindcss`): para classes Tailwind v4 corretas e conversão CSS→Tailwind
+
+### Diretrizes de Design
+- Design limpo, profissional e consistente em todo o sistema
+- Seguir o design system existente (CSS variables `--cbrio-*`, dark/light mode)
+- Priorizar componentes shadcn/ui já existentes no projeto antes de criar novos
+- Usar animações do Magic UI para dar polish visual (KPI cards, loading states, transições)
+- Ao criar layouts novos, usar 21st.dev Magic como inspiração de design moderno
+- Manter responsividade e acessibilidade em todos os componentes
+- Nunca usar cores hardcoded — sempre CSS variables ou classes Tailwind
+
+---
+
 ## Visão Geral do Projeto
 
 Sistema ERP interno da Igreja CBRio. Arquitetura modular com React + Express + Supabase.
