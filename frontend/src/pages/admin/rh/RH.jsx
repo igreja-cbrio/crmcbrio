@@ -434,33 +434,6 @@ export default function RH() {
 // ═══════════════════════════════════════════════════════════
 // TAB: DASHBOARD
 // ═══════════════════════════════════════════════════════════
-// Stat Card com visual moderno (inspirado em reui/statistics-card)
-function StatCard({ label, value, bg, svg, onClick }) {
-  return (
-    <div onClick={onClick} style={{
-      position: 'relative', overflow: 'hidden', background: bg, borderRadius: 12, padding: '20px 24px', color: '#fff', minHeight: 100,
-      cursor: onClick ? 'pointer' : 'default', transition: 'transform 0.15s, box-shadow 0.15s',
-    }}
-      onMouseEnter={e => { if (onClick) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.3)'; } }}
-      onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
-    >
-      {svg}
-      <div style={{ position: 'relative', zIndex: 1, overflow: 'hidden' }}>
-        <div style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.8)', marginBottom: 8 }}>{label}</div>
-        <div style={{ fontSize: String(value).length > 10 ? 22 : 32, fontWeight: 700, letterSpacing: -1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</div>
-      </div>
-    </div>
-  );
-}
-
-const kpiSvgs = [
-  <svg key="s1" style={{ position: 'absolute', right: 0, top: 0, height: '100%', width: '67%', pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 300 200" fill="none"><circle cx="220" cy="100" r="90" fill="#fff" fillOpacity="0.08" /><circle cx="260" cy="60" r="60" fill="#fff" fillOpacity="0.10" /><circle cx="200" cy="160" r="50" fill="#fff" fillOpacity="0.07" /><circle cx="270" cy="150" r="30" fill="#fff" fillOpacity="0.12" /></svg>,
-  <svg key="s2" style={{ position: 'absolute', right: 0, top: 0, width: 192, height: 192, pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 200 200" fill="none"><ellipse cx="170" cy="60" rx="40" ry="18" fill="#fff" fillOpacity="0.13" /><rect x="120" y="20" width="60" height="20" rx="8" fill="#fff" fillOpacity="0.10" /><polygon points="150,0 200,0 200,50" fill="#fff" fillOpacity="0.07" /><circle cx="180" cy="100" r="14" fill="#fff" fillOpacity="0.16" /></svg>,
-  <svg key="s3" style={{ position: 'absolute', right: 0, top: 0, width: 192, height: 192, pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 200 200" fill="none"><rect x="120" y="0" width="70" height="70" rx="35" fill="#fff" fillOpacity="0.09" /><ellipse cx="170" cy="80" rx="28" ry="12" fill="#fff" fillOpacity="0.12" /><polygon points="200,0 200,60 140,0" fill="#fff" fillOpacity="0.07" /><circle cx="150" cy="30" r="10" fill="#fff" fillOpacity="0.15" /></svg>,
-  <svg key="s4" style={{ position: 'absolute', right: 0, top: 0, width: 192, height: 192, pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 200 200" fill="none"><polygon points="200,0 200,100 100,0" fill="#fff" fillOpacity="0.09" /><ellipse cx="170" cy="40" rx="30" ry="18" fill="#fff" fillOpacity="0.13" /><rect x="140" y="60" width="40" height="18" rx="8" fill="#fff" fillOpacity="0.10" /><circle cx="150" cy="30" r="14" fill="#fff" fillOpacity="0.18" /></svg>,
-  <svg key="s5" style={{ position: 'absolute', right: 0, top: 0, width: 192, height: 192, pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 200 200" fill="none"><circle cx="160" cy="50" r="40" fill="#fff" fillOpacity="0.10" /><rect x="130" y="80" width="50" height="16" rx="8" fill="#fff" fillOpacity="0.08" /><polygon points="180,0 200,0 200,40" fill="#fff" fillOpacity="0.12" /></svg>,
-];
-
 function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
   if (!dash) return <div className="flex items-center justify-center py-12 gap-2"><div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground/25 border-t-primary" /><span className="text-sm text-muted-foreground">Carregando dashboard...</span></div>;
 
@@ -489,7 +462,7 @@ function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
   return (
     <div className="space-y-5">
       {/* KPI Cards */}
-      <div className="grid gap-3 grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
+      <div className="cbrio-stagger grid gap-3 grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
         {stats.map((stat) => (
           <StatisticsCard
             key={stat.title}
@@ -503,7 +476,7 @@ function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
       </div>
 
       {/* Extra metrics */}
-      <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+      <div className="cbrio-stagger grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         {extras.map((stat) => (
           <StatisticsCard
             key={stat.title}
