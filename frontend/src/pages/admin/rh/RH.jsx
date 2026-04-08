@@ -256,17 +256,19 @@ export default function RH() {
   return (
     <div className="w-full" style={{ maxWidth: 1600, margin: '0 auto', padding: '0 24px' }}>
       {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
-            <div className="flex items-center justify-center size-8 rounded-lg bg-primary/10">
-              <Users className="size-4 text-primary" />
-            </div>
-            Recursos Humanos
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">Gestão de colaboradores, treinamentos e férias</p>
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between pb-2">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center size-9 rounded-lg bg-primary/10">
+            <Users className="size-4 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight text-foreground" style={{ lineHeight: 1.3 }}>
+              Recursos Humanos
+            </h1>
+            <p className="text-xs text-muted-foreground" style={{ marginTop: 2 }}>Colaboradores · Treinamentos · Férias</p>
+          </div>
         </div>
-        <Button className="gap-2" onClick={() => setModalFunc({})}>
+        <Button size="sm" className="gap-2" onClick={() => setModalFunc({})}>
           <UserPlus className="w-4 h-4" />
           Novo Colaborador
         </Button>
