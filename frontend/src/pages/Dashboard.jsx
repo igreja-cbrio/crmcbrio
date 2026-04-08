@@ -158,7 +158,7 @@ export default function Dashboard() {
   const dateStr = today.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
   return (
-    <div className="max-w-[1400px] mx-auto px-6 space-y-6">
+    <div className="max-w-[1400px] mx-auto px-6 space-y-8 pb-8">
       {/* ── Hero greeting ────────────────────────── */}
       <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm">
         {/* Decorative gradient mesh */}
@@ -168,7 +168,7 @@ export default function Dashboard() {
         <div className="absolute top-0 right-0 w-64 h-64 opacity-[0.02]" style={{
           background: 'radial-gradient(circle, #00B39D, transparent 70%)',
         }} />
-        <div className="relative px-6 py-6 sm:px-8 sm:py-7 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="relative px-6 py-7 sm:px-8 sm:py-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <p className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground mb-1.5">
               {dateStr}
@@ -209,13 +209,19 @@ export default function Dashboard() {
       </div>
 
       {/* ── KPI Cards ────────────────────────────── */}
-      {kpis.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <Activity className="w-4 h-4 text-primary" />
-            <h2 className="text-sm font-semibold text-foreground">Visão Geral</h2>
+      <section>
+        <div className="flex items-center gap-2 mb-4">
+          <Activity className="w-4 h-4 text-primary" />
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Visão Geral</h2>
+        </div>
+        {loading ? (
+          <div className="grid gap-5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="h-[96px] rounded-xl bg-muted animate-pulse" />
+            ))}
           </div>
-          <div className="cbrio-stagger grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
+        ) : kpis.length > 0 ? (
+          <div className="cbrio-stagger grid gap-5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
             {kpis.map((kpi, i) => (
               <StatisticsCard
                 key={i}
@@ -227,95 +233,109 @@ export default function Dashboard() {
               />
             ))}
           </div>
-        </div>
-      )}
-
-      {/* ── Loading skeleton ──────────────────────── */}
-      {loading && (
-        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-[88px] rounded-xl bg-muted animate-pulse" />
-          ))}
-        </div>
-      )}
-
-      {/* ── Main content grid ────────────────────── */}
-      <div className="grid gap-5 lg:grid-cols-[1fr_380px]">
-
-        {/* Left column — Quick access */}
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <LayoutGrid className="w-4 h-4 text-primary" />
-            <h2 className="text-sm font-semibold text-foreground">Acesso Rápido</h2>
+        ) : (
+          <div className="grid gap-5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+            <StatisticsCard title="Colaboradores" value="—" icon={Users} iconColor="#8b5cf6" />
+            <StatisticsCard title="Saldo" value="—" icon={DollarSign} iconColor="#10b981" />
+            <StatisticsCard title="Bens" value="—" icon={Package} iconColor="#6366f1" />
+            <StatisticsCard title="Pedidos" value="—" icon={Truck} iconColor="#ef4444" />
+            <StatisticsCard title="Notificações" value="0" icon={Bell} iconColor="#00B39D" />
           </div>
-          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
-            {links.map(link => {
-              const Icon = link.icon;
-              return (
-                <button
-                  key={link.path}
-                  onClick={() => navigate(link.path)}
-                  className="group flex items-center gap-3 rounded-xl border border-border/50 bg-card shadow-sm text-left transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-pointer w-full p-4"
+        )}
+      </section>
+
+      {/* ── Quick access modules ─────────────────── */}
+      <section>
+        <div className="flex items-center gap-2 mb-4">
+          <LayoutGrid className="w-4 h-4 text-primary" />
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Acesso Rápido</h2>
+        </div>
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {links.map(link => {
+            const Icon = link.icon;
+            return (
+              <button
+                key={link.path}
+                onClick={() => navigate(link.path)}
+                className="group flex items-center gap-4 rounded-xl border border-border/50 bg-card shadow-sm text-left transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 cursor-pointer w-full px-5 py-4"
+              >
+                <div
+                  className="flex items-center justify-center size-11 rounded-xl shrink-0 transition-transform group-hover:scale-110"
+                  style={{ background: `${link.color}14` }}
                 >
-                  <div
-                    className="flex items-center justify-center size-10 rounded-lg shrink-0 transition-transform group-hover:scale-110"
-                    style={{ background: `${link.color}12` }}
-                  >
-                    <Icon className="size-[18px]" style={{ color: link.color }} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-semibold text-foreground">{link.label}</div>
-                    <div className="text-[11px] text-muted-foreground">{link.desc}</div>
-                  </div>
-                  <ArrowRight className="size-3.5 shrink-0 opacity-0 group-hover:opacity-60 transition-all group-hover:translate-x-0.5 text-muted-foreground" />
-                </button>
-              );
-            })}
-          </div>
+                  <Icon className="size-5" style={{ color: link.color }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-foreground">{link.label}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{link.desc}</div>
+                </div>
+                <ArrowRight className="size-4 shrink-0 opacity-0 group-hover:opacity-60 transition-all group-hover:translate-x-0.5 text-muted-foreground" />
+              </button>
+            );
+          })}
         </div>
+      </section>
 
-        {/* Right column — Notifications feed */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Bell className="w-4 h-4 text-primary" />
-              <h2 className="text-sm font-semibold text-foreground">
-                Atividade Recente
-              </h2>
-              {unread.length > 0 && (
-                <span className="flex items-center justify-center h-5 min-w-5 rounded-full text-[10px] font-bold px-1.5 bg-primary text-primary-foreground">
-                  {unread.length}
-                </span>
-              )}
-            </div>
+      {/* ── Notifications feed — full width ──────── */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Bell className="w-4 h-4 text-primary" />
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Atividade Recente
+            </h2>
+            {unread.length > 0 && (
+              <span className="flex items-center justify-center h-5 min-w-5 rounded-full text-[10px] font-bold px-1.5 bg-primary text-primary-foreground">
+                {unread.length}
+              </span>
+            )}
           </div>
-          <Card className="py-0 gap-0 overflow-hidden">
-            <CardContent className="p-0">
-              {loading ? (
-                <div className="p-5 space-y-4">
-                  {[...Array(4)].map((_, i) => (
-                    <div key={i} className="flex items-start gap-3">
-                      <div className="w-2 h-2 rounded-full mt-1.5 animate-pulse bg-muted" />
-                      <div className="flex-1 space-y-2">
-                        <div className="h-3 rounded animate-pulse w-16 bg-muted" />
-                        <div className="h-4 rounded animate-pulse w-3/4 bg-muted" />
-                        <div className="h-3 rounded animate-pulse w-1/2 bg-muted" />
-                      </div>
+          {notifs.length > 0 && (
+            <button
+              onClick={() => navigate('/admin/notificacao-regras')}
+              className="text-xs font-medium text-primary hover:text-primary/80 transition-colors cursor-pointer"
+            >
+              Ver todas →
+            </button>
+          )}
+        </div>
+        <Card className="py-0 gap-0 overflow-hidden">
+          <CardContent className="p-0">
+            {loading ? (
+              <div className="p-5 space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <div className="w-2 h-2 rounded-full mt-1.5 animate-pulse bg-muted" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3 rounded animate-pulse w-16 bg-muted" />
+                      <div className="h-4 rounded animate-pulse w-3/4 bg-muted" />
+                      <div className="h-3 rounded animate-pulse w-1/2 bg-muted" />
                     </div>
+                  </div>
+                ))}
+              </div>
+            ) : notifs.length === 0 ? (
+              <div className="p-12 text-center">
+                <div className="size-14 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                  <Bell className="size-6 text-muted-foreground" />
+                </div>
+                <p className="text-sm font-medium text-foreground mb-1">Tudo em dia</p>
+                <p className="text-xs text-muted-foreground">Nenhuma notificação recente</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border/40">
+                <div className="py-1">
+                  {notifs.slice(0, Math.ceil(Math.min(notifs.length, 12) / 2)).map(n => (
+                    <NotifItem
+                      key={n.id}
+                      n={n}
+                      onClick={() => { if (n.link) navigate(n.link); }}
+                    />
                   ))}
                 </div>
-              ) : notifs.length === 0 ? (
-                <div className="p-10 text-center">
-                  <div className="size-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
-                    <Bell className="size-5 text-muted-foreground" />
-                  </div>
-                  <p className="text-sm font-medium text-foreground mb-1">Tudo em dia</p>
-                  <p className="text-xs text-muted-foreground">Nenhuma notificação recente</p>
-                </div>
-              ) : (
-                <>
-                  <div className="max-h-[460px] overflow-y-auto py-1">
-                    {notifs.slice(0, 12).map(n => (
+                {notifs.length > 1 && (
+                  <div className="py-1">
+                    {notifs.slice(Math.ceil(Math.min(notifs.length, 12) / 2), 12).map(n => (
                       <NotifItem
                         key={n.id}
                         n={n}
@@ -323,22 +343,12 @@ export default function Dashboard() {
                       />
                     ))}
                   </div>
-                  {notifs.length > 12 && (
-                    <div className="p-3 text-center border-t border-border">
-                      <button
-                        onClick={() => navigate('/admin/notificacao-regras')}
-                        className="text-xs font-medium text-primary hover:text-primary/80 transition-colors cursor-pointer"
-                      >
-                        Ver todas as notificações →
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </section>
     </div>
   );
 }
