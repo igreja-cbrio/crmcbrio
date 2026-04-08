@@ -1,40 +1,164 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { notificacoes as notifApi } from '../api';
+import { notificacoes as notifApi, rh, financeiro, patrimonio, logistica } from '../api';
+import { NumberTicker } from '../components/ui/number-ticker';
 import { Button } from '../components/ui/button';
 import {
   Users, DollarSign, CalendarDays, FolderKanban,
   Truck, Tag, BookOpen, ShoppingCart, Bell, ArrowRight,
+  TrendingUp, TrendingDown, Clock, AlertTriangle,
+  Package, CreditCard, UserPlus, BrainCircuit,
+  Activity, ChevronRight, Sparkles, BarChart3,
+  Shield, Zap,
 } from 'lucide-react';
 
-const C = {
-  text: 'var(--cbrio-text)', text2: 'var(--cbrio-text2)', text3: 'var(--cbrio-text3)',
-  card: 'var(--cbrio-card)', border: 'var(--cbrio-border)', primary: '#00B39D',
-};
-
-const QUICK_LINKS = [
-  { label: 'Recursos Humanos', icon: Users, path: '/admin/rh', color: '#8b5cf6', perm: 'canRH' },
-  { label: 'Financeiro', icon: DollarSign, path: '/admin/financeiro', color: '#10b981', perm: 'canFinanceiro' },
-  { label: 'Eventos', icon: CalendarDays, path: '/eventos', color: '#3b82f6', perm: 'canAgenda' },
-  { label: 'Projetos', icon: FolderKanban, path: '/projetos', color: '#f59e0b', perm: 'canProjetos' },
-  { label: 'Logística', icon: Truck, path: '/admin/logistica', color: '#ef4444', perm: 'canLogistica' },
-  { label: 'Patrimônio', icon: Tag, path: '/admin/patrimonio', color: '#6b7280', perm: 'canPatrimonio' },
-  { label: 'Membresia', icon: BookOpen, path: '/ministerial/membresia', color: '#00B39D', perm: 'canMembresia' },
-  { label: 'Solicitar Compra', icon: ShoppingCart, path: '/solicitar-compra', color: '#8b5cf6' },
+/* ── Quick-access modules ──────────────────────── */
+const MODULES = [
+  { label: 'Recursos Humanos', desc: 'Colaboradores e DP', icon: Users, path: '/admin/rh', color: '#8b5cf6', perm: 'canRH' },
+  { label: 'Financeiro', desc: 'Contas e transações', icon: DollarSign, path: '/admin/financeiro', color: '#10b981', perm: 'canFinanceiro' },
+  { label: 'Eventos', desc: 'Gestão de eventos', icon: CalendarDays, path: '/eventos', color: '#3b82f6', perm: 'canAgenda' },
+  { label: 'Projetos', desc: 'Acompanhamento', icon: FolderKanban, path: '/projetos', color: '#f59e0b', perm: 'canProjetos' },
+  { label: 'Logística', desc: 'Compras e pedidos', icon: Truck, path: '/admin/logistica', color: '#ef4444', perm: 'canLogistica' },
+  { label: 'Patrimônio', desc: 'Bens e inventário', icon: Tag, path: '/admin/patrimonio', color: '#6366f1', perm: 'canPatrimonio' },
+  { label: 'Membresia', desc: 'Membros e famílias', icon: BookOpen, path: '/ministerial/membresia', color: '#00B39D', perm: 'canMembresia' },
+  { label: 'Solicitar Compra', desc: 'Peça materiais', icon: ShoppingCart, path: '/solicitar-compra', color: '#ec4899' },
 ];
 
+/* ── KPI card component ────────────────────────── */
+function KpiCard({ icon: Icon, label, value, prefix, suffix, color, trend, trendLabel, onClick, delay = 0 }) {
+  return (
+    <button
+      onClick={onClick}
+      className="group relative overflow-hidden rounded-2xl border text-left transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 cursor-pointer w-full"
+      style={{
+        background: 'var(--cbrio-card)',
+        borderColor: 'var(--cbrio-border)',
+      }}
+    >
+      {/* Gradient accent top */}
+      <div
+        className="absolute top-0 left-0 right-0 h-[2px] opacity-60 group-hover:opacity-100 transition-opacity"
+        style={{ background: `linear-gradient(90deg, ${color}, ${color}80)` }}
+      />
+      <div className="p-5">
+        <div className="flex items-start justify-between mb-3">
+          <div
+            className="flex items-center justify-center w-10 h-10 rounded-xl transition-transform group-hover:scale-110"
+            style={{ background: `${color}15` }}
+          >
+            <Icon className="w-5 h-5" style={{ color }} />
+          </div>
+          {trend !== undefined && (
+            <div className="flex items-center gap-1 text-xs font-medium" style={{ color: trend >= 0 ? '#10b981' : '#ef4444' }}>
+              {trend >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+              <span>{trend >= 0 ? '+' : ''}{trend}%</span>
+            </div>
+          )}
+        </div>
+        <div className="mb-1">
+          <span className="text-2xl font-bold" style={{ color: 'var(--cbrio-text)' }}>
+            {value !== null && value !== undefined ? (
+              <NumberTicker value={value} prefix={prefix} suffix={suffix} delay={delay} />
+            ) : (
+              <span className="inline-block w-12 h-7 rounded animate-pulse" style={{ background: 'var(--cbrio-border)' }} />
+            )}
+          </span>
+        </div>
+        <p className="text-xs font-medium" style={{ color: 'var(--cbrio-text3)' }}>{label}</p>
+        {trendLabel && (
+          <p className="text-[10px] mt-1" style={{ color: 'var(--cbrio-text3)' }}>{trendLabel}</p>
+        )}
+      </div>
+    </button>
+  );
+}
+
+/* ── Notification item ─────────────────────────── */
+const SEV_COLORS = { urgente: '#ef4444', aviso: '#f59e0b', info: '#00B39D' };
+const MOD_COLORS = { rh: '#8b5cf6', financeiro: '#10b981', logistica: '#ef4444', patrimonio: '#6366f1', eventos: '#3b82f6', projetos: '#f59e0b', sistema: '#6b7280' };
+const MOD_LABELS = { rh: 'RH', financeiro: 'Financeiro', logistica: 'Logística', patrimonio: 'Patrimônio', eventos: 'Eventos', projetos: 'Projetos', sistema: 'Sistema' };
+
+function NotifItem({ n, onClick }) {
+  const sevColor = SEV_COLORS[n.severidade] || '#00B39D';
+  const modColor = MOD_COLORS[n.modulo] || '#6b7280';
+  const timeAgo = useMemo(() => {
+    const diff = Date.now() - new Date(n.created_at).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'agora';
+    if (mins < 60) return `${mins}min`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h`;
+    return `${Math.floor(hrs / 24)}d`;
+  }, [n.created_at]);
+
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-start gap-3 w-full text-left px-4 py-3 transition-colors rounded-xl group cursor-pointer"
+      style={{ background: n.lida ? 'transparent' : `${sevColor}06` }}
+      onMouseEnter={e => e.currentTarget.style.background = 'var(--cbrio-input-bg)'}
+      onMouseLeave={e => e.currentTarget.style.background = n.lida ? 'transparent' : `${sevColor}06`}
+    >
+      <div
+        className="w-2 h-2 rounded-full mt-1.5 shrink-0"
+        style={{ background: n.lida ? 'var(--cbrio-border)' : sevColor }}
+      />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-0.5">
+          <span
+            className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-px rounded"
+            style={{ background: `${modColor}18`, color: modColor }}
+          >
+            {MOD_LABELS[n.modulo] || n.modulo}
+          </span>
+          <span className="text-[10px] ml-auto shrink-0" style={{ color: 'var(--cbrio-text3)' }}>
+            {timeAgo}
+          </span>
+        </div>
+        <p className="text-sm truncate" style={{ color: 'var(--cbrio-text)', fontWeight: n.lida ? 400 : 600 }}>
+          {n.titulo}
+        </p>
+        <p className="text-xs truncate mt-0.5" style={{ color: 'var(--cbrio-text2)' }}>
+          {n.mensagem}
+        </p>
+      </div>
+      <ChevronRight className="w-4 h-4 mt-1 shrink-0 opacity-0 group-hover:opacity-60 transition-opacity" style={{ color: 'var(--cbrio-text3)' }} />
+    </button>
+  );
+}
+
+/* ── Main Dashboard ────────────────────────────── */
 export default function Dashboard() {
   const { profile, isAdmin, canRH, canFinanceiro, canLogistica, canPatrimonio, canAgenda, canProjetos, canMembresia } = useAuth();
   const navigate = useNavigate();
-  const [notifs, setNotifs] = useState([]);
 
   const permMap = { canRH, canFinanceiro, canLogistica, canPatrimonio, canAgenda, canProjetos, canMembresia };
+  const links = MODULES.filter(l => !l.perm || isAdmin || permMap[l.perm]);
 
-  const links = QUICK_LINKS.filter(l => !l.perm || isAdmin || permMap[l.perm]);
+  // ── Data state ──
+  const [notifs, setNotifs] = useState([]);
+  const [rhData, setRhData] = useState(null);
+  const [finData, setFinData] = useState(null);
+  const [patData, setPatData] = useState(null);
+  const [logData, setLogData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    notifApi.list().then(setNotifs).catch(() => {});
+    const promises = [];
+
+    promises.push(notifApi.list().then(setNotifs).catch(() => {}));
+
+    if (canRH !== false)
+      promises.push(rh.dashboard().then(setRhData).catch(() => {}));
+    if (canFinanceiro !== false)
+      promises.push(financeiro.dashboard().then(setFinData).catch(() => {}));
+    if (canPatrimonio !== false)
+      promises.push(patrimonio.dashboard().then(setPatData).catch(() => {}));
+    if (canLogistica !== false)
+      promises.push(logistica.dashboard().then(setLogData).catch(() => {}));
+
+    Promise.allSettled(promises).finally(() => setLoading(false));
   }, []);
 
   const unread = notifs.filter(n => !n.lida);
@@ -42,83 +166,239 @@ export default function Dashboard() {
   const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
   const firstName = (profile?.name || '').split(' ')[0];
 
-  return (
-    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px' }}>
-      {/* Greeting */}
-      <div style={{ marginBottom: 32, marginTop: 8 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: C.text, lineHeight: 1.25 }}>
-          {greeting}, {firstName} 👋
-        </h1>
-        <p style={{ fontSize: 14, color: C.text3, marginTop: 4, lineHeight: 1.5 }}>
-          Bem-vindo ao CBRio ERP. Aqui está um resumo rápido do seu dia.
-        </p>
-      </div>
+  // ── Build KPI cards from real data ──
+  const kpis = [];
 
-      {/* Notifications preview */}
-      {unread.length > 0 && (
-        <div style={{
-          background: C.card, borderRadius: 12, border: `1px solid ${C.border}`,
-          boxShadow: '0 1px 2px rgba(0,0,0,0.05)', padding: 16, marginBottom: 24,
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Bell className="h-4 w-4" style={{ color: C.primary }} />
-              <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{unread.length} notificação(ões) não lida(s)</span>
+  if (rhData) {
+    kpis.push(
+      { icon: Users, label: 'Colaboradores ativos', value: rhData.ativos ?? rhData.total ?? 0, color: '#8b5cf6', path: '/admin/rh', delay: 0 },
+    );
+    if (rhData.ferias > 0) kpis.push(
+      { icon: Clock, label: 'Em férias', value: rhData.ferias, color: '#f59e0b', path: '/admin/rh', delay: 0.1 },
+    );
+  }
+
+  if (finData) {
+    kpis.push(
+      { icon: DollarSign, label: 'Saldo total', value: finData.saldo ?? finData.saldoTotal ?? 0, prefix: 'R$ ', color: '#10b981', path: '/admin/financeiro', delay: 0.15 },
+    );
+    if ((finData.contasVencendo ?? finData.contas_vencendo ?? 0) > 0) kpis.push(
+      { icon: AlertTriangle, label: 'Contas vencendo', value: finData.contasVencendo ?? finData.contas_vencendo ?? 0, color: '#ef4444', path: '/admin/financeiro', delay: 0.2 },
+    );
+  }
+
+  if (patData) {
+    kpis.push(
+      { icon: Package, label: 'Bens cadastrados', value: patData.total ?? 0, color: '#6366f1', path: '/admin/patrimonio', delay: 0.25 },
+    );
+  }
+
+  if (logData) {
+    if ((logData.pedidosPendentes ?? logData.pedidos_pendentes ?? 0) > 0) kpis.push(
+      { icon: Truck, label: 'Pedidos pendentes', value: logData.pedidosPendentes ?? logData.pedidos_pendentes ?? 0, color: '#ef4444', path: '/admin/logistica', delay: 0.3 },
+    );
+  }
+
+  if (unread.length > 0) {
+    kpis.push(
+      { icon: Bell, label: 'Notificações não lidas', value: unread.length, color: '#00B39D', delay: 0.1 },
+    );
+  }
+
+  const today = new Date();
+  const dateStr = today.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+  return (
+    <div style={{ maxWidth: 1400, margin: '0 auto', padding: '0 24px' }}>
+      {/* ── Hero greeting ────────────────────────── */}
+      <div className="relative overflow-hidden rounded-2xl border mb-6" style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}>
+        {/* Decorative gradient */}
+        <div className="absolute inset-0 opacity-[0.03]" style={{
+          background: 'radial-gradient(ellipse at top right, #00B39D, transparent 60%), radial-gradient(ellipse at bottom left, #8b5cf6, transparent 60%)',
+        }} />
+        <div className="relative px-6 py-7 sm:px-8 sm:py-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide mb-1" style={{ color: 'var(--cbrio-text3)' }}>
+                {dateStr}
+              </p>
+              <h1 className="text-xl sm:text-2xl font-bold" style={{ color: 'var(--cbrio-text)' }}>
+                {greeting}, {firstName}
+              </h1>
+              <p className="text-sm mt-1" style={{ color: 'var(--cbrio-text2)' }}>
+                Aqui está o resumo do seu dia no CBRio ERP.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
+              >
+                <Zap className="w-3.5 h-3.5" />
+                Buscar
+                <kbd className="ml-1 inline-flex h-4 items-center rounded border px-1 text-[9px] font-medium" style={{ borderColor: 'var(--cbrio-border)', color: 'var(--cbrio-text3)' }}>
+                  ⌘K
+                </kbd>
+              </Button>
             </div>
           </div>
-          {unread.slice(0, 3).map(n => (
-            <div key={n.id} style={{
-              padding: '8px 0', borderBottom: `1px solid ${C.border}`, fontSize: 14, color: C.text2, lineHeight: 1.5,
-            }}>
-              <strong style={{ color: C.text }}>{n.titulo}</strong>
-              <span style={{ marginLeft: 8, fontSize: 12, color: C.text3 }}>{n.modulo}</span>
-            </div>
-          ))}
+        </div>
+      </div>
+
+      {/* ── KPI Cards ────────────────────────────── */}
+      {kpis.length > 0 && (
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Activity className="w-4 h-4" style={{ color: '#00B39D' }} />
+            <h2 className="text-sm font-semibold" style={{ color: 'var(--cbrio-text)' }}>Visão Geral</h2>
+          </div>
+          <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
+            {kpis.map((kpi, i) => (
+              <KpiCard
+                key={i}
+                icon={kpi.icon}
+                label={kpi.label}
+                value={kpi.value}
+                prefix={kpi.prefix}
+                suffix={kpi.suffix}
+                color={kpi.color}
+                trend={kpi.trend}
+                trendLabel={kpi.trendLabel}
+                onClick={kpi.path ? () => navigate(kpi.path) : undefined}
+                delay={kpi.delay}
+              />
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Quick links grid */}
-      <div style={{ marginBottom: 16 }}>
-        <h2 style={{ fontSize: 14, fontWeight: 600, color: C.text2, marginBottom: 12 }}>Acesso Rápido</h2>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12, marginBottom: 32 }}>
-        {links.map(link => {
-          const Icon = link.icon;
-          return (
-            <button
-              key={link.path}
-              onClick={() => navigate(link.path)}
-              className="cbrio-interactive"
-              style={{
-                background: C.card, borderRadius: 12, border: `1px solid ${C.border}`,
-                boxShadow: '0 1px 2px rgba(0,0,0,0.05)', padding: 16,
-                display: 'flex', alignItems: 'center', gap: 12,
-                cursor: 'pointer', textAlign: 'left', width: '100%',
-              }}
-            >
-              <div style={{
-                width: 40, height: 40, borderRadius: 10, background: `${link.color}15`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              }}>
-                <Icon style={{ width: 20, height: 20, color: link.color }} />
+      {/* ── Main content grid ────────────────────── */}
+      <div className="grid gap-6" style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 380px)' }}>
+
+        {/* Left column — Quick access */}
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="w-4 h-4" style={{ color: '#00B39D' }} />
+            <h2 className="text-sm font-semibold" style={{ color: 'var(--cbrio-text)' }}>Acesso Rápido</h2>
+          </div>
+          <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
+            {links.map(link => {
+              const Icon = link.icon;
+              return (
+                <button
+                  key={link.path}
+                  onClick={() => navigate(link.path)}
+                  className="group flex items-center gap-4 rounded-xl border p-4 text-left transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-pointer w-full"
+                  style={{
+                    background: 'var(--cbrio-card)',
+                    borderColor: 'var(--cbrio-border)',
+                  }}
+                >
+                  <div
+                    className="flex items-center justify-center w-11 h-11 rounded-xl shrink-0 transition-transform group-hover:scale-110"
+                    style={{ background: `${link.color}12` }}
+                  >
+                    <Icon className="w-5 h-5" style={{ color: link.color }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold" style={{ color: 'var(--cbrio-text)' }}>{link.label}</div>
+                    <div className="text-xs" style={{ color: 'var(--cbrio-text3)' }}>{link.desc}</div>
+                  </div>
+                  <ArrowRight
+                    className="w-4 h-4 shrink-0 opacity-0 group-hover:opacity-60 transition-all group-hover:translate-x-0.5"
+                    style={{ color: 'var(--cbrio-text3)' }}
+                  />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Right column — Notifications feed */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Bell className="w-4 h-4" style={{ color: '#00B39D' }} />
+              <h2 className="text-sm font-semibold" style={{ color: 'var(--cbrio-text)' }}>
+                Atividade Recente
+              </h2>
+              {unread.length > 0 && (
+                <span
+                  className="flex items-center justify-center h-5 min-w-5 rounded-full text-[10px] font-bold px-1.5"
+                  style={{ background: '#00B39D', color: '#fff' }}
+                >
+                  {unread.length}
+                </span>
+              )}
+            </div>
+          </div>
+          <div
+            className="rounded-2xl border overflow-hidden"
+            style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}
+          >
+            {loading ? (
+              <div className="p-6 space-y-4">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <div className="w-2 h-2 rounded-full mt-1.5 animate-pulse" style={{ background: 'var(--cbrio-border)' }} />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3 rounded animate-pulse w-16" style={{ background: 'var(--cbrio-border)' }} />
+                      <div className="h-4 rounded animate-pulse w-3/4" style={{ background: 'var(--cbrio-border)' }} />
+                      <div className="h-3 rounded animate-pulse w-1/2" style={{ background: 'var(--cbrio-border)' }} />
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{link.label}</div>
+            ) : notifs.length === 0 ? (
+              <div className="p-8 text-center">
+                <Bell className="w-8 h-8 mx-auto mb-2 opacity-20" style={{ color: 'var(--cbrio-text3)' }} />
+                <p className="text-sm" style={{ color: 'var(--cbrio-text3)' }}>Nenhuma notificação recente</p>
               </div>
-            </button>
-          );
-        })}
+            ) : (
+              <div className="divide-y" style={{ borderColor: 'var(--cbrio-border)' }}>
+                <div className="max-h-[420px] overflow-y-auto py-1">
+                  {notifs.slice(0, 10).map(n => (
+                    <NotifItem
+                      key={n.id}
+                      n={n}
+                      onClick={() => {
+                        if (n.link) navigate(n.link);
+                      }}
+                    />
+                  ))}
+                </div>
+                {notifs.length > 10 && (
+                  <div className="p-3 text-center">
+                    <button
+                      onClick={() => navigate('/admin/notificacao-regras')}
+                      className="text-xs font-medium transition-colors cursor-pointer"
+                      style={{ color: '#00B39D' }}
+                    >
+                      Ver todas as notificações →
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Tip */}
-      <div style={{
-        background: `${C.primary}08`, borderRadius: 12, border: `1px solid ${C.primary}20`,
-        padding: 16, display: 'flex', alignItems: 'center', gap: 12,
-      }}>
-        <span style={{ fontSize: 20 }}>💡</span>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>Dica: Use ⌘K para buscar</div>
-          <div style={{ fontSize: 12, color: C.text3, marginTop: 2 }}>Navegue rapidamente para qualquer módulo do sistema.</div>
+      {/* ── Tip bar ──────────────────────────────── */}
+      <div
+        className="flex items-center gap-3 rounded-xl border px-4 py-3 mt-6 mb-4"
+        style={{
+          background: '#00B39D08',
+          borderColor: '#00B39D20',
+        }}
+      >
+        <Shield className="w-4 h-4 shrink-0" style={{ color: '#00B39D' }} />
+        <div className="flex-1">
+          <span className="text-xs font-medium" style={{ color: 'var(--cbrio-text2)' }}>
+            Use <kbd className="inline-flex h-4 items-center rounded border px-1 mx-0.5 text-[9px] font-medium" style={{ borderColor: 'var(--cbrio-border)', color: 'var(--cbrio-text3)' }}>⌘K</kbd> para navegar rapidamente entre módulos
+          </span>
         </div>
       </div>
     </div>
