@@ -453,6 +453,7 @@ Estes arquivos afetam o sistema inteiro. Alterações devem ser feitas via **Pul
   - **Fix v10.1:** CompletionSection.jsx agora valida `uploadRes.ok` — antes, falhas no PUT ao SharePoint eram silenciosas (arquivo se perdia, tarefa ficava 'concluída' sem documento)
   - **Fix v10.1:** `completions.js` agora chama `ensureSharePointFolder()` antes de criar upload session (evita 404)
   - **Fix v10.1:** Token cache do Graph API unificado — `completions.js` reutiliza `getGraphToken` de `storageService.js` (antes eram caches duplicados)
+  - **Fix v10.1:** Encoding de filenames com acentos corrigido — multer/busboy interpreta como latin1, agora usa `Buffer.from(originalname, 'latin1').toString('utf8')`
 - Ciclos criativos com 11 fases + 35 tarefas ADM + 138 subtarefas automáticas
 - **KPIs clicáveis** — todos os números do dashboard navegam para os dados filtrados
 - **Abas Riscos + Histórico + Retrospectiva** no detalhe do evento
