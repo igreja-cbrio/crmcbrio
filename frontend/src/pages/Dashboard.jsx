@@ -23,49 +23,43 @@ const MODULES = [
   { label: 'Solicitar Compra', desc: 'Peça materiais', icon: ShoppingCart, path: '/solicitar-compra', color: '#ec4899' },
 ];
 
-/* ── KPI card component ────────────────────────── */
+/* ── KPI card component (statistics-card style) ── */
 function KpiCard({ icon: Icon, label, value, prefix, suffix, color, trend, trendLabel, onClick, delay = 0 }) {
   return (
     <button
       onClick={onClick}
-      className="group relative rounded-2xl border text-left transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 cursor-pointer w-full"
-      style={{
-        background: 'var(--cbrio-card)',
-        borderColor: 'var(--cbrio-border)',
-      }}
+      className="flex flex-col bg-card text-card-foreground rounded-xl border border-border shadow-xs text-left transition-all hover:shadow-md hover:-translate-y-px cursor-pointer w-full"
     >
-      {/* Gradient accent top */}
-      <div
-        className="absolute top-0 left-0 right-0 h-[2px] rounded-t-2xl opacity-60 group-hover:opacity-100 transition-opacity"
-        style={{ background: `linear-gradient(90deg, ${color}, ${color}80)` }}
-      />
-      <div style={{ padding: '28px 28px 24px' }}>
-        <div className="flex items-start justify-between mb-4">
-          <div
-            className="flex items-center justify-center w-12 h-12 rounded-xl transition-transform group-hover:scale-110"
-            style={{ background: `${color}15` }}
-          >
-            <Icon className="w-6 h-6" style={{ color }} />
-          </div>
-          {trend !== undefined && (
-            <div className="flex items-center gap-1 text-sm font-medium" style={{ color: trend >= 0 ? '#10b981' : '#ef4444' }}>
-              {trend >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
-              <span>{trend >= 0 ? '+' : ''}{trend}%</span>
-            </div>
-          )}
-        </div>
-        <div className="mb-2">
-          <span className="text-3xl font-bold" style={{ color: 'var(--cbrio-text)' }}>
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 pt-4 pb-1">
+        <span className="text-muted-foreground text-[11px] font-medium uppercase tracking-wider">{label}</span>
+        <Icon className="size-4 shrink-0" style={{ color }} />
+      </div>
+      {/* Value */}
+      <div className="px-4 pb-4 space-y-1">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl font-semibold text-foreground tracking-tight">
             {value !== null && value !== undefined ? (
               <NumberTicker value={value} prefix={prefix} suffix={suffix} delay={delay} />
             ) : (
-              <span className="inline-block w-16 h-8 rounded animate-pulse" style={{ background: 'var(--cbrio-border)' }} />
+              <span className="inline-block w-14 h-6 rounded animate-pulse bg-muted" />
             )}
           </span>
+          {trend !== undefined && (
+            <span
+              className="inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[10px] font-semibold"
+              style={{
+                background: trend >= 0 ? 'var(--color-green-100, #dcfce7)' : 'var(--color-red-50, #fef2f2)',
+                color: trend >= 0 ? 'var(--color-green-700, #15803d)' : 'var(--color-red-700, #b91c1c)',
+              }}
+            >
+              {trend >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+              {trend >= 0 ? '+' : ''}{trend}%
+            </span>
+          )}
         </div>
-        <p className="text-sm font-medium" style={{ color: 'var(--cbrio-text3)' }}>{label}</p>
         {trendLabel && (
-          <p className="text-xs mt-1" style={{ color: 'var(--cbrio-text3)' }}>{trendLabel}</p>
+          <div className="text-[11px] text-muted-foreground border-t border-border pt-2">{trendLabel}</div>
         )}
       </div>
     </button>
@@ -93,35 +87,35 @@ function NotifItem({ n, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="flex items-start gap-3 w-full text-left px-5 py-4 transition-colors rounded-xl group cursor-pointer"
+      className="flex items-start gap-2.5 w-full text-left px-4 py-3 transition-colors rounded-lg group cursor-pointer"
       style={{ background: n.lida ? 'transparent' : `${sevColor}06` }}
       onMouseEnter={e => e.currentTarget.style.background = 'var(--cbrio-input-bg)'}
       onMouseLeave={e => e.currentTarget.style.background = n.lida ? 'transparent' : `${sevColor}06`}
     >
       <div
-        className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0"
+        className="w-2 h-2 rounded-full mt-1.5 shrink-0"
         style={{ background: n.lida ? 'var(--cbrio-border)' : sevColor }}
       />
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
+        <div className="flex items-center gap-1.5 mb-0.5">
           <span
-            className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded"
+            className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-px rounded"
             style={{ background: `${modColor}18`, color: modColor }}
           >
             {MOD_LABELS[n.modulo] || n.modulo}
           </span>
-          <span className="text-[11px] ml-auto shrink-0" style={{ color: 'var(--cbrio-text3)' }}>
+          <span className="text-[10px] ml-auto shrink-0" style={{ color: 'var(--cbrio-text3)' }}>
             {timeAgo}
           </span>
         </div>
-        <p className="text-[15px] leading-snug" style={{ color: 'var(--cbrio-text)', fontWeight: n.lida ? 400 : 600 }}>
+        <p className="text-[13px] leading-snug" style={{ color: 'var(--cbrio-text)', fontWeight: n.lida ? 400 : 600 }}>
           {n.titulo}
         </p>
-        <p className="text-[13px] mt-1 leading-relaxed" style={{ color: 'var(--cbrio-text2)' }}>
+        <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: 'var(--cbrio-text2)' }}>
           {n.mensagem}
         </p>
       </div>
-      <ChevronRight className="w-4 h-4 mt-1.5 shrink-0 opacity-0 group-hover:opacity-60 transition-opacity" style={{ color: 'var(--cbrio-text3)' }} />
+      <ChevronRight className="w-3.5 h-3.5 mt-1.5 shrink-0 opacity-0 group-hover:opacity-60 transition-opacity" style={{ color: 'var(--cbrio-text3)' }} />
     </button>
   );
 }
@@ -209,19 +203,19 @@ export default function Dashboard() {
   return (
     <div style={{ maxWidth: 1400, margin: '0 auto', padding: '0 24px' }}>
       {/* ── Hero greeting ────────────────────────── */}
-      <div className="relative overflow-hidden rounded-2xl border mb-6" style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}>
+      <div className="relative overflow-hidden rounded-xl border mb-5" style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}>
         {/* Decorative gradient */}
         <div className="absolute inset-0 opacity-[0.03]" style={{
           background: 'radial-gradient(ellipse at top right, #00B39D, transparent 60%), radial-gradient(ellipse at bottom left, #8b5cf6, transparent 60%)',
         }} />
-        <div className="relative px-8 py-8 sm:px-10 sm:py-10">
-          <p className="text-sm font-medium uppercase tracking-wide mb-2" style={{ color: 'var(--cbrio-text3)' }}>
+        <div className="relative px-6 py-5 sm:px-8 sm:py-6">
+          <p className="text-xs font-medium uppercase tracking-wide mb-1" style={{ color: 'var(--cbrio-text3)' }}>
             {dateStr}
           </p>
-          <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--cbrio-text)' }}>
+          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: 'var(--cbrio-text)' }}>
             {greeting}, {firstName}
           </h1>
-          <p className="text-base mt-2" style={{ color: 'var(--cbrio-text2)' }}>
+          <p className="text-sm mt-1" style={{ color: 'var(--cbrio-text2)' }}>
             Aqui está o resumo do seu dia no CBRio ERP.
           </p>
         </div>
@@ -229,12 +223,12 @@ export default function Dashboard() {
 
       {/* ── KPI Cards ────────────────────────────── */}
       {kpis.length > 0 && (
-        <div className="mb-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Activity className="w-5 h-5" style={{ color: '#00B39D' }} />
-            <h2 className="text-base font-semibold" style={{ color: 'var(--cbrio-text)' }}>Visão Geral</h2>
+        <div className="mb-5">
+          <div className="flex items-center gap-2 mb-3">
+            <Activity className="w-4 h-4" style={{ color: '#00B39D' }} />
+            <h2 className="text-sm font-semibold" style={{ color: 'var(--cbrio-text)' }}>Visão Geral</h2>
           </div>
-          <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
+          <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
             {kpis.map((kpi, i) => (
               <KpiCard
                 key={i}
@@ -255,40 +249,40 @@ export default function Dashboard() {
       )}
 
       {/* ── Main content grid ────────────────────── */}
-      <div className="grid gap-6" style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 420px)' }}>
+      <div className="grid gap-5" style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 380px)' }}>
 
         {/* Left column — Quick access */}
         <div>
-          <div className="flex items-center gap-2 mb-4">
-            <Sparkles className="w-5 h-5" style={{ color: '#00B39D' }} />
-            <h2 className="text-base font-semibold" style={{ color: 'var(--cbrio-text)' }}>Acesso Rápido</h2>
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="w-4 h-4" style={{ color: '#00B39D' }} />
+            <h2 className="text-sm font-semibold" style={{ color: 'var(--cbrio-text)' }}>Acesso Rápido</h2>
           </div>
-          <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
+          <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
             {links.map(link => {
               const Icon = link.icon;
               return (
                 <button
                   key={link.path}
                   onClick={() => navigate(link.path)}
-                  className="group flex items-center gap-4 rounded-2xl border text-left transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-pointer w-full"
+                  className="group flex items-center gap-3 rounded-xl border text-left transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-pointer w-full"
                   style={{
                     background: 'var(--cbrio-card)',
                     borderColor: 'var(--cbrio-border)',
-                    padding: '20px 24px',
+                    padding: '12px 16px',
                   }}
                 >
                   <div
-                    className="flex items-center justify-center w-12 h-12 rounded-xl shrink-0 transition-transform group-hover:scale-110"
+                    className="flex items-center justify-center w-9 h-9 rounded-lg shrink-0 transition-transform group-hover:scale-110"
                     style={{ background: `${link.color}12` }}
                   >
-                    <Icon className="w-5.5 h-5.5" style={{ color: link.color }} />
+                    <Icon className="w-[18px] h-[18px]" style={{ color: link.color }} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[15px] font-semibold" style={{ color: 'var(--cbrio-text)' }}>{link.label}</div>
-                    <div className="text-[13px] mt-0.5" style={{ color: 'var(--cbrio-text3)' }}>{link.desc}</div>
+                    <div className="text-[13px] font-semibold" style={{ color: 'var(--cbrio-text)' }}>{link.label}</div>
+                    <div className="text-[11px]" style={{ color: 'var(--cbrio-text3)' }}>{link.desc}</div>
                   </div>
                   <ArrowRight
-                    className="w-4 h-4 shrink-0 opacity-0 group-hover:opacity-60 transition-all group-hover:translate-x-0.5"
+                    className="w-3.5 h-3.5 shrink-0 opacity-0 group-hover:opacity-60 transition-all group-hover:translate-x-0.5"
                     style={{ color: 'var(--cbrio-text3)' }}
                   />
                 </button>
@@ -301,8 +295,8 @@ export default function Dashboard() {
         <div>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <Bell className="w-5 h-5" style={{ color: '#00B39D' }} />
-              <h2 className="text-base font-semibold" style={{ color: 'var(--cbrio-text)' }}>
+              <Bell className="w-4 h-4" style={{ color: '#00B39D' }} />
+              <h2 className="text-sm font-semibold" style={{ color: 'var(--cbrio-text)' }}>
                 Atividade Recente
               </h2>
               {unread.length > 0 && (
@@ -316,7 +310,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div
-            className="rounded-2xl border overflow-hidden"
+            className="rounded-xl border overflow-hidden"
             style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}
           >
             {loading ? (
