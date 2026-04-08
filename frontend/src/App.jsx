@@ -17,6 +17,7 @@ const Membresia    = lazy(() => import('./pages/ministerial/Membresia'));
 const Planejamento = lazy(() => import('./pages/Planejamento'));
 const AssistenteIA = lazy(() => import('./pages/admin/AssistenteIA'));
 const SolicitarCompra = lazy(() => import('./pages/SolicitarCompra'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
 const NotificacaoRegras = lazy(() => import('./pages/admin/NotificacaoRegras'));
 
 const Loading = () => (
@@ -88,7 +89,8 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<DefaultRedirect />} />
+        <Route index element={<Suspense fallback={<Loading />}><Dashboard /></Suspense>} />
+        <Route path="dashboard" element={<Suspense fallback={<Loading />}><Dashboard /></Suspense>} />
 
         {/* Planejamento (hub PMO) */}
         <Route path="planejamento" element={
