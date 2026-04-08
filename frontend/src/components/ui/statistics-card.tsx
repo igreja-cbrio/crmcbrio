@@ -39,9 +39,9 @@ function StatisticsCard({
       {...props}
     >
       {/* Card content */}
-      <div className="flex items-start justify-between px-5 pt-5 pb-4">
+      <div className="flex items-start justify-between px-6 pt-6 pb-5">
         <div className="min-w-0 flex-1">
-          <span className="text-muted-foreground text-[11px] font-medium uppercase tracking-wider leading-tight block mb-2">
+          <span className="text-muted-foreground text-[11px] font-medium uppercase tracking-wider leading-tight block mb-2.5">
             {title}
           </span>
           <div className="flex items-baseline gap-2">
@@ -74,7 +74,7 @@ function StatisticsCard({
       </div>
 
       {subtitle && (
-        <div className="text-[11px] text-muted-foreground border-t border-border/50 px-5 py-2.5">
+        <div className="text-[11px] text-muted-foreground border-t border-border/30 px-6 py-3">
           {subtitle}
         </div>
       )}
@@ -95,7 +95,7 @@ function StatisticsCard({
 function StatisticsCardSkeleton({ className }: { className?: string }) {
   return (
     <div className={cn("flex flex-col bg-card rounded-xl border border-border/40 shadow-sm", className)}>
-      <div className="flex items-start justify-between px-5 pt-5 pb-4">
+      <div className="flex items-start justify-between px-6 pt-6 pb-5">
         <div className="flex-1 space-y-2.5">
           <div className="h-3 w-20 bg-muted rounded animate-pulse" />
           <div className="h-6 w-14 bg-muted rounded animate-pulse" />
