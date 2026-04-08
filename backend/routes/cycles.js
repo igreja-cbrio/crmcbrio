@@ -233,7 +233,7 @@ router.post('/activate/:eventId', async (req, res) => {
         event_phase_id: phaseId,
         event_id: eventId,
         titulo: tmpl.titulo,
-        area: tmpl.area === 'compras' || tmpl.area === 'financeiro' || tmpl.area === 'manutencao' || tmpl.area === 'limpeza' || tmpl.area === 'cozinha' ? 'adm' : 'marketing',
+        area: tmpl.area,
         prazo: dataFim.toISOString().split('T')[0],
         status: 'a_fazer',
         prioridade: 'normal',
