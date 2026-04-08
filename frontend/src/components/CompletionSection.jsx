@@ -55,7 +55,7 @@ export default function CompletionSection({ task, phase, eventName, isPMO, onCom
         const { uploadUrl, sharepointPath, fileName } = await completions.getUploadUrl({
           fileName: f.file.name,
           eventName: eventName || '',
-          phaseName: phase?.nome_fase || '',
+          phaseName: phase ? `Fase ${String(phase.numero_fase).padStart(2, '0')} - ${phase.nome_fase}` : '',
           area: task.area || '',
         });
 
