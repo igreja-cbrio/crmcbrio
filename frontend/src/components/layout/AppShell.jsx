@@ -199,8 +199,7 @@ export default function AppShell() {
             className="hidden sm:flex items-center gap-2 h-9 px-4 rounded-lg border border-border text-sm text-muted-foreground transition-colors cursor-pointer hover:bg-accent hover:text-foreground"
           >
             <Search className="h-4 w-4" />
-            <span>Buscar...</span>
-            <kbd className="ml-2 inline-flex h-5 items-center gap-0.5 rounded border border-border bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">⌘K</kbd>
+            <span>Buscar</span>
           </button>
 
           {/* Theme toggle */}
