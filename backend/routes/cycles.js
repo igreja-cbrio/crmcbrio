@@ -6,6 +6,21 @@ const { SHAREPOINT_CONFIGURED } = require('../services/storageService');
 
 router.use(authenticate);
 
+// ── Helper: buscar subtarefas em batches (evita URL >8KB no PostgREST) ──
+async function fetchSubtasksBatched(taskIds) {
+  if (!taskIds || taskIds.length === 0) return {};
+  const BATCH = 50;
+  const allSubs = [];
+  for (let i = 0; i < taskIds.length; i += BATCH) {
+    const batch = taskIds.slice(i, i + BATCH);
+    const { data } = await supabase.from('cycle_task_subtasks').select('*').in('task_id', batch).order('sort_order');
+    if (data) allSubs.push(...data);
+  }
+  const map = {};
+  allSubs.forEach(s => { if (!map[s.task_id]) map[s.task_id] = []; map[s.task_id].push(s); });
+  return map;
+}
+
 // ── SharePoint: criar estrutura de pastas ao ativar ciclo ──
 async function createSharePointFolders(eventName, phaseTemplates) {
   if (!SHAREPOINT_CONFIGURED) return;
@@ -117,14 +132,9 @@ router.get('/kanban/all', async (req, res) => {
       supabase.from('cycle_phase_tasks').select('*').in('event_id', eventIds),
     ]);
 
-    // Subtarefas
+    // Subtarefas (batched para evitar URL overflow no PostgREST)
     const taskIds = (tasksRes.data || []).map(t => t.id);
-    const { data: allSubs } = taskIds.length > 0
-      ? await supabase.from('cycle_task_subtasks').select('*').in('task_id', taskIds).order('sort_order').limit(5000)
-      : { data: [] };
-    const subsMap = {};
-    (allSubs || []).forEach(s => { if (!subsMap[s.task_id]) subsMap[s.task_id] = []; subsMap[s.task_id].push(s); });
-
+    const subsMap = await fetchSubtasksBatched(taskIds);
     const tasksWithSubs = (tasksRes.data || []).map(t => ({ ...t, subtasks: subsMap[t.id] || [] }));
 
     // Enriquecer fases com dados do template
@@ -298,14 +308,9 @@ router.get('/:eventId', async (req, res) => {
       totalGasto = (expenses || []).reduce((acc, e) => acc + Number(e.valor), 0);
     }
 
-    // Buscar subtarefas de todas as tasks do ciclo
+    // Buscar subtarefas de todas as tasks do ciclo (batched)
     const taskIds = (tasksRes.data || []).map(t => t.id);
-    const { data: allSubs } = taskIds.length > 0
-      ? await supabase.from('cycle_task_subtasks').select('*').in('task_id', taskIds).order('sort_order').limit(5000)
-      : { data: [] };
-    const subsMap = {};
-    (allSubs || []).forEach(s => { if (!subsMap[s.task_id]) subsMap[s.task_id] = []; subsMap[s.task_id].push(s); });
-
+    const subsMap = await fetchSubtasksBatched(taskIds);
     const tasksWithSubs = (tasksRes.data || []).map(t => ({ ...t, subtasks: subsMap[t.id] || [] }));
 
     // Enriquecer fases com dados do template (entregas_padrao, descricao)
