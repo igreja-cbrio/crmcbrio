@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Users, Pencil, Trash2, Palmtree, X, Save, AlertTriangle, Download } from 'lucide-react';
+import { Users, Pencil, Trash2, Palmtree, X, Save, AlertTriangle, Download, UserPlus, Briefcase, Calendar, Search, Filter, Eye, Edit, MoreVertical } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 import { useAuth } from '../../../contexts/AuthContext';
 import { rh, permissoes } from '../../../api';
 import { exportCSV, exportPDF } from '../../../lib/export';
@@ -179,13 +181,14 @@ function Badge({ status, map }) {
 
 // ── TABS ────────────────────────────────────────────────────
 const TABS = ['Dashboard', 'Colaboradores', 'Admissão', 'Organograma', 'Folha', 'Avaliações', 'Treinamentos', 'Férias/Licenças', 'Extras'];
+const TAB_KEYS = ['dashboard', 'colaboradores', 'admissao', 'organograma', 'folha', 'avaliacoes', 'treinamentos', 'ferias', 'extras'];
 
 // ═══════════════════════════════════════════════════════════
 // COMPONENTE PRINCIPAL
 // ═══════════════════════════════════════════════════════════
 export default function RH() {
   const { isDiretor } = useAuth();
-  const [tab, setTab] = useState(0);
+  const [tab, setTab] = useState('dashboard');
   const [dash, setDash] = useState(null);
   const [funcs, setFuncs] = useState([]);
   const [treinos, setTreinos] = useState([]);
@@ -309,56 +312,70 @@ export default function RH() {
 
   // ── Render ──
   return (
-    <div style={styles.page}>
+    <div className="w-full space-y-6" style={{ maxWidth: 1600, margin: '0 auto', padding: '0 24px' }}>
       {/* Header */}
-      <div style={styles.header}>
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <div style={{ ...styles.title, display: 'flex', alignItems: 'center', gap: 10 }}><Users className="h-7 w-7" style={{ color: C.primary }} /> Recursos Humanos</div>
-          <div style={styles.subtitle}>Gestão de colaboradores, treinamentos e férias</div>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-3">
+            <Users className="h-7 w-7 text-primary" />
+            Recursos Humanos
+          </h1>
+          <p className="text-muted-foreground mt-1">Gestão de colaboradores, treinamentos e férias</p>
         </div>
-      </div>
-
-      {/* Tabs */}
-      <div style={styles.tabs}>
-        {TABS.map((t, i) => (
-          <button key={t} style={styles.tab(tab === i)} onClick={() => setTab(i)}>{t}</button>
-        ))}
+        <Button className="gap-2" onClick={() => setModalFunc({})}>
+          <UserPlus className="w-4 h-4" />
+          Novo Colaborador
+        </Button>
       </div>
 
       {error && <div style={{ color: C.red, marginBottom: 12, fontSize: 13 }}>{error}</div>}
 
-      {/* Tab Content */}
-      {tab === 0 && <DashboardTab dash={dash} onNavigate={setTab} setFiltroStatus={setFiltroStatus} />}
-      {tab === 1 && (
-        <FuncionariosTab
-          funcs={funcs} loading={loading} busca={busca} setBusca={setBusca}
-          filtroStatus={filtroStatus} setFiltroStatus={setFiltroStatus}
-          filtroArea={filtroArea} setFiltroArea={setFiltroArea}
-          onNew={() => setModalFunc({})} onEdit={(f) => setModalFunc(f)} onDetail={openDetail} onDelete={deleteFuncionario} onImport={() => { loadFuncs(); loadDash(); }}
-          showToast={showToast}
-        />
-      )}
-      {tab === 2 && <TabAdmissao />}
-      {tab === 3 && <OrgChartTab funcs={funcs} onDetail={openDetail} />}
-      {tab === 4 && <TabFolha />}
-      {tab === 5 && <TabAvaliacoes funcionarios={funcs} />}
-      {tab === 6 && (
-        <TreinamentosTab treinos={treinos} funcs={funcs}
-          onNew={() => setModalTreino({})} onEdit={(t) => setModalTreino(t)} onDelete={deleteTreinamento}
-          onInscrever={async (treinoId, funcId) => { await rh.treinamentos.inscrever(treinoId, { funcionario_id: funcId }); loadTreinos(); }}
-          showToast={showToast}
-        />
-      )}
-      {tab === 7 && (
-        <FeriasTab dash={dash} funcs={funcs}
-          onNew={() => setModalFerias({})} onAprovar={aprovarFerias}
-        />
-      )}
-      {tab === 8 && (
-        <div style={{ minHeight: 200, padding: '4px 0' }}>
-          <TabExtras funcionarios={funcs} onRefresh={() => { loadDash(); loadFuncs(); }} />
+      {/* Tabs */}
+      <Tabs value={tab} onValueChange={setTab}>
+        <div className="overflow-x-auto">
+          <TabsList className="h-10 w-fit">
+            {TABS.map((t, i) => (
+              <TabsTrigger key={TAB_KEYS[i]} value={TAB_KEYS[i]} className="px-3 text-xs sm:text-sm">
+                {t}
+              </TabsTrigger>
+            ))}
+          </TabsList>
         </div>
-      )}
+
+        <TabsContent value="dashboard">
+          <DashboardTab dash={dash} onNavigate={setTab} setFiltroStatus={setFiltroStatus} />
+        </TabsContent>
+        <TabsContent value="colaboradores">
+          <FuncionariosTab
+            funcs={funcs} loading={loading} busca={busca} setBusca={setBusca}
+            filtroStatus={filtroStatus} setFiltroStatus={setFiltroStatus}
+            filtroArea={filtroArea} setFiltroArea={setFiltroArea}
+            onNew={() => setModalFunc({})} onEdit={(f) => setModalFunc(f)} onDetail={openDetail} onDelete={deleteFuncionario} onImport={() => { loadFuncs(); loadDash(); }}
+            showToast={showToast}
+          />
+        </TabsContent>
+        <TabsContent value="admissao"><TabAdmissao /></TabsContent>
+        <TabsContent value="organograma"><OrgChartTab funcs={funcs} onDetail={openDetail} /></TabsContent>
+        <TabsContent value="folha"><TabFolha /></TabsContent>
+        <TabsContent value="avaliacoes"><TabAvaliacoes funcionarios={funcs} /></TabsContent>
+        <TabsContent value="treinamentos">
+          <TreinamentosTab treinos={treinos} funcs={funcs}
+            onNew={() => setModalTreino({})} onEdit={(t) => setModalTreino(t)} onDelete={deleteTreinamento}
+            onInscrever={async (treinoId, funcId) => { await rh.treinamentos.inscrever(treinoId, { funcionario_id: funcId }); loadTreinos(); }}
+            showToast={showToast}
+          />
+        </TabsContent>
+        <TabsContent value="ferias">
+          <FeriasTab dash={dash} funcs={funcs}
+            onNew={() => setModalFerias({})} onAprovar={aprovarFerias}
+          />
+        </TabsContent>
+        <TabsContent value="extras">
+          <div style={{ minHeight: 200, padding: '4px 0' }}>
+            <TabExtras funcionarios={funcs} onRefresh={() => { loadDash(); loadFuncs(); }} />
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Modais */}
       <FuncionarioFormModal open={!!modalFunc} data={modalFunc} onClose={() => setModalFunc(null)} onSave={saveFuncionario} funcionarios={funcs} setores={setores} />
@@ -422,98 +439,133 @@ const kpiSvgs = [
 ];
 
 function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
-  if (!dash) return <div style={styles.empty}>Carregando dashboard...</div>;
+  if (!dash) return <div className="flex items-center justify-center py-12 gap-2"><div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground/25 border-t-primary" /><span className="text-sm text-muted-foreground">Carregando dashboard...</span></div>;
 
-  const goTo = (tab, status) => { if (setFiltroStatus) setFiltroStatus(status || ''); if (onNavigate) onNavigate(tab); };
+  const goTo = (tabKey, status) => { if (setFiltroStatus) setFiltroStatus(status || ''); if (onNavigate) onNavigate(tabKey); };
 
   const fmtM = (v) => v != null ? `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}` : '—';
-  const kpis = [
-    { label: 'Total Colaboradores', value: dash.total, bg: '#0a0a0a', onClick: () => goTo(1) },
-    { label: 'Ativos', value: dash.ativos, bg: '#00B39D', onClick: () => goTo(1, 'ativo') },
-    { label: 'Em Férias', value: dash.ferias, bg: '#3b82f6', onClick: () => goTo(7) },
-    { label: 'Em Licença', value: dash.licenca, bg: '#f59e0b', onClick: () => goTo(7) },
-    { label: 'Inativos', value: dash.inativos, bg: '#6b7280', onClick: () => goTo(1, 'inativo') },
-    { label: 'Custo Mensal', value: fmtM(dash.custoMensal), bg: '#dc2626' },
-    { label: 'Turnover', value: `${dash.turnover || 0}%`, bg: dash.turnover > 15 ? '#ef4444' : '#10b981' },
+
+  const stats = [
+    { title: 'Total Colaboradores', value: dash.total, icon: Users, color: 'text-blue-500', onClick: () => goTo('colaboradores') },
+    { title: 'Ativos', value: dash.ativos, icon: Users, color: 'text-green-500', onClick: () => goTo('colaboradores', 'ativo') },
+    { title: 'Em Férias', value: dash.ferias, icon: Calendar, color: 'text-yellow-500', onClick: () => goTo('ferias') },
+    { title: 'Em Licença', value: dash.licenca, icon: Calendar, color: 'text-amber-500', onClick: () => goTo('ferias') },
+    { title: 'Inativos', value: dash.inativos, icon: Users, color: 'text-gray-500', onClick: () => goTo('colaboradores', 'inativo') },
+    { title: 'Custo Mensal', value: fmtM(dash.custoMensal), icon: Briefcase, color: 'text-red-500' },
+    { title: 'Turnover', value: `${dash.turnover || 0}%`, icon: Briefcase, color: dash.turnover > 15 ? 'text-red-500' : 'text-green-500' },
+  ];
+
+  const extras = [
+    { title: 'Admissões (12m)', value: dash.admissoesAno ?? 0, icon: UserPlus, color: 'text-green-500' },
+    { title: 'Desligamentos (12m)', value: dash.desligamentosAno ?? 0, icon: Users, color: 'text-red-500' },
+    { title: 'Admissões Pendentes', value: dash.admissoesPendentes ?? 0, icon: UserPlus, color: 'text-amber-500' },
+    { title: 'Treinamentos Pend.', value: dash.treinosPendentes ?? 0, icon: Briefcase, color: 'text-blue-500' },
+    { title: 'Folha Salarial', value: fmtM(dash.totalSalarios), icon: Briefcase, color: 'text-foreground' },
   ];
 
   return (
-    <>
-      <div style={styles.kpiGrid}>
-        {kpis.map((k, i) => (
-          <StatCard key={k.label} label={k.label} value={k.value} bg={k.bg} svg={kpiSvgs[i]} onClick={k.onClick} />
-        ))}
+    <div className="space-y-6">
+      {/* KPI Cards */}
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
+        {stats.map((stat) => {
+          const Icon = stat.icon;
+          return (
+            <Card key={stat.title} className={stat.onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : ''} onClick={stat.onClick}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-xs font-medium text-muted-foreground">{stat.title}</CardTitle>
+                <Icon className={`w-4 h-4 ${stat.color}`} />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stat.value}</div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
-      {/* Métricas extras — mesmo layout StatCard */}
-      <div style={styles.kpiGrid}>
-        {[
-          { label: 'Admissões (12m)', value: dash.admissoesAno ?? 0, bg: '#10b981' },
-          { label: 'Desligamentos (12m)', value: dash.desligamentosAno ?? 0, bg: '#ef4444' },
-          { label: 'Admissões Pendentes', value: dash.admissoesPendentes ?? 0, bg: '#f59e0b' },
-          { label: 'Treinamentos Pend.', value: dash.treinosPendentes ?? 0, bg: '#3b82f6' },
-          { label: 'Folha Salarial', value: fmtM(dash.totalSalarios), bg: '#0a0a0a' },
-        ].map((k, i) => (
-          <StatCard key={k.label} label={k.label} value={k.value} bg={k.bg} svg={kpiSvgs[i % kpiSvgs.length]} />
-        ))}
+      {/* Extra metrics */}
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+        {extras.map((stat) => {
+          const Icon = stat.icon;
+          return (
+            <Card key={stat.title}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-xs font-medium text-muted-foreground">{stat.title}</CardTitle>
+                <Icon className={`w-4 h-4 ${stat.color}`} />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stat.value}</div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
-        <div style={styles.card}>
-          <div style={styles.cardHeader}><div style={styles.cardTitle}>Por Tipo de Contrato</div></div>
-          <div style={{ padding: 16 }}>
+      {/* Data cards */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Por Tipo de Contrato</CardTitle>
+          </CardHeader>
+          <CardContent>
             {Object.entries(dash.porContrato || {}).map(([tipo, qtd]) => (
-              <div key={tipo} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: `1px solid ${C.border}` }}>
-                <span style={{ fontSize: 13, color: C.text }}>{TIPO_CONTRATO[tipo] || tipo}</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: C.primary }}>{qtd}</span>
+              <div key={tipo} className="flex justify-between py-2 border-b border-border last:border-0">
+                <span className="text-sm text-foreground">{TIPO_CONTRATO[tipo] || tipo}</span>
+                <span className="text-sm font-bold text-primary">{qtd}</span>
               </div>
             ))}
-            {Object.keys(dash.porContrato || {}).length === 0 && <div style={styles.empty}>Nenhum dado</div>}
-          </div>
-        </div>
+            {Object.keys(dash.porContrato || {}).length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Nenhum dado</p>}
+          </CardContent>
+        </Card>
 
-        <div style={styles.card}>
-          <div style={styles.cardHeader}><div style={styles.cardTitle}>Por Área</div></div>
-          <div style={{ padding: 16 }}>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Por Área</CardTitle>
+          </CardHeader>
+          <CardContent>
             {Object.entries(dash.porArea || {}).map(([area, qtd]) => (
-              <div key={area} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: `1px solid ${C.border}` }}>
-                <span style={{ fontSize: 13, color: C.text }}>{area}</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: C.primary }}>{qtd}</span>
+              <div key={area} className="flex justify-between py-2 border-b border-border last:border-0">
+                <span className="text-sm text-foreground">{area}</span>
+                <span className="text-sm font-bold text-primary">{qtd}</span>
               </div>
             ))}
-            {Object.keys(dash.porArea || {}).length === 0 && <div style={styles.empty}>Nenhum dado</div>}
-          </div>
-        </div>
+            {Object.keys(dash.porArea || {}).length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Nenhum dado</p>}
+          </CardContent>
+        </Card>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        <div style={styles.card}>
-          <div style={styles.cardHeader}><div style={styles.cardTitle}>📅 Férias Próximas (30 dias)</div></div>
-          <div style={{ padding: 16 }}>
-            {(dash.feriasProximas || []).length === 0 && <div style={styles.empty}>Nenhuma férias agendada</div>}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Férias Próximas (30 dias)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {(dash.feriasProximas || []).length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Nenhuma férias agendada</p>}
             {(dash.feriasProximas || []).map(f => (
-              <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: `1px solid ${C.border}` }}>
-                <span style={{ fontSize: 13 }}>{f.rh_funcionarios?.nome || '—'}</span>
-                <span style={{ fontSize: 12, color: C.text2 }}>{fmtDate(f.data_inicio)} → {fmtDate(f.data_fim)}</span>
+              <div key={f.id} className="flex justify-between py-2 border-b border-border last:border-0">
+                <span className="text-sm">{f.rh_funcionarios?.nome || '—'}</span>
+                <span className="text-xs text-muted-foreground">{fmtDate(f.data_inicio)} → {fmtDate(f.data_fim)}</span>
               </div>
             ))}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div style={styles.card}>
-          <div style={styles.cardHeader}><div style={styles.cardTitle}>📄 Documentos Vencendo (60 dias)</div></div>
-          <div style={{ padding: 16 }}>
-            {(dash.docsVencendo || []).length === 0 && <div style={styles.empty}>Nenhum documento vencendo</div>}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Documentos Vencendo (60 dias)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {(dash.docsVencendo || []).length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Nenhum documento vencendo</p>}
             {(dash.docsVencendo || []).map(d => (
-              <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: `1px solid ${C.border}` }}>
-                <span style={{ fontSize: 13 }}>{d.rh_funcionarios?.nome} — {d.nome}</span>
-                <span style={{ fontSize: 12, color: C.red }}>{fmtDate(d.data_expiracao)}</span>
+              <div key={d.id} className="flex justify-between py-2 border-b border-border last:border-0">
+                <span className="text-sm">{d.rh_funcionarios?.nome} — {d.nome}</span>
+                <span className="text-xs text-destructive">{fmtDate(d.data_expiracao)}</span>
               </div>
             ))}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -559,31 +611,52 @@ function FuncionariosTab({ funcs, loading, busca, setBusca, filtroStatus, setFil
   }
 
   return (
-    <>
-      <div style={styles.filterRow}>
-        <input className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ maxWidth: 280 }} placeholder="🔍 Buscar por nome..." value={busca} onChange={e => setBusca(e.target.value)} />
-        <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
-          <option value="">Todos os status</option>
-          {Object.entries(STATUS_COLORS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-        </select>
-        <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={filtroArea} onChange={e => setFiltroArea(e.target.value)}>
-          <option value="">Todas as áreas</option>
-          {areas.map(a => <option key={a} value={a}>{a}</option>)}
-        </select>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+    <Card>
+      <CardHeader>
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <CardTitle>Diretório de Colaboradores</CardTitle>
+            <CardDescription>{funcs.length} colaboradores encontrados</CardDescription>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                className="flex h-9 w-full rounded-md border border-input bg-transparent pl-9 pr-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-[250px]"
+                placeholder="Buscar por nome..."
+                value={busca} onChange={e => setBusca(e.target.value)}
+              />
+            </div>
+            <select
+              className="flex h-9 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}
+            >
+              <option value="">Todos os status</option>
+              {Object.entries(STATUS_COLORS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+            </select>
+            <select
+              className="flex h-9 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              value={filtroArea} onChange={e => setFiltroArea(e.target.value)}
+            >
+              <option value="">Todas as áreas</option>
+              {areas.map(a => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="flex gap-2 mt-2 justify-end">
           <input ref={csvRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={handleCSVImport} />
           <Button variant="outline" size="sm" onClick={() => csvRef.current?.click()}>Importar CSV</Button>
           <Button variant="outline" size="sm" onClick={() => {
             const headers = ['Nome', 'Cargo', 'Área', 'Contrato', 'Admissão', 'Status', 'Email'];
             const rows = funcs.map(f => [f.nome, f.cargo, f.area || '', f.tipo_contrato, f.data_admissao || '', f.status, f.email || '']);
             exportPDF('Colaboradores', headers, rows, { subtitle: `${funcs.length} colaboradores` });
-          }}><Download className="h-3.5 w-3.5" /> Exportar</Button>
-          <Button onClick={onNew}>+ Novo Colaborador</Button>
+          }}>
+            <Download className="h-3.5 w-3.5" /> Exportar
+          </Button>
         </div>
-      </div>
-
-      <div style={styles.card}>
-        <div style={{ overflowX: 'auto' }}>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto rounded-md border border-border">
           <table style={styles.table}>
             <thead>
               <tr>
@@ -598,37 +671,42 @@ function FuncionariosTab({ funcs, loading, busca, setBusca, filtroStatus, setFil
             </thead>
             <tbody>
               {loading && <tr><td colSpan={7}><div className="flex items-center justify-center py-6 gap-2"><div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground/25 border-t-primary" /><span className="text-xs text-muted-foreground">Carregando...</span></div></td></tr>}
-              {!loading && funcs.length === 0 && <tr><td colSpan={7}><div className="flex flex-col items-center py-10 gap-2"><div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mb-1"><svg className="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg></div><span className="text-sm font-medium text-foreground">Nenhum colaborador encontrado</span><span className="text-xs text-muted-foreground">Tente ajustar os filtros</span></div></td></tr>}
+              {!loading && funcs.length === 0 && <tr><td colSpan={7}><div className="flex flex-col items-center py-10 gap-2"><div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mb-1"><Users className="h-5 w-5 text-muted-foreground" /></div><span className="text-sm font-medium text-foreground">Nenhum colaborador encontrado</span><span className="text-xs text-muted-foreground">Tente ajustar os filtros</span></div></td></tr>}
               {funcs.map(f => (
-                <tr key={f.id} className="cbrio-row"
+                <tr key={f.id} className="cbrio-row hover:bg-muted/50 transition-colors"
                   onClick={() => onDetail(f.id)}>
                   <td style={{ ...styles.td, fontWeight: 600 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div className="flex items-center gap-3">
                       {f.foto_url ? (
-                        <img src={f.foto_url} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                        <img src={f.foto_url} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
                       ) : (
-                        <div style={{ width: 32, height: 32, borderRadius: '50%', background: C.primaryBg, color: C.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, flexShrink: 0 }}>
+                        <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold shrink-0">
                           {(f.nome || '?')[0].toUpperCase()}
                         </div>
                       )}
-                      {f.nome}
+                      <div>
+                        <p className="font-medium text-sm">{f.nome}</p>
+                        {f.email && <p className="text-xs text-muted-foreground truncate max-w-[200px]">{f.email}</p>}
+                      </div>
                     </div>
                   </td>
-                  <td style={styles.td}>{f.cargo}</td>
-                  <td style={styles.td}>{f.area || '—'}</td>
-                  <td style={styles.td}>{TIPO_CONTRATO[f.tipo_contrato] || f.tipo_contrato}</td>
-                  <td style={styles.td}>{fmtDate(f.data_admissao)}</td>
+                  <td style={styles.td}><span className="text-sm">{f.cargo}</span></td>
+                  <td style={styles.td}><span className="text-sm text-muted-foreground">{f.area || '—'}</span></td>
+                  <td style={styles.td}><span className="text-sm">{TIPO_CONTRATO[f.tipo_contrato] || f.tipo_contrato}</span></td>
+                  <td style={styles.td}><span className="text-sm text-muted-foreground">{fmtDate(f.data_admissao)}</span></td>
                   <td style={styles.td}><Badge status={f.status} map={STATUS_COLORS} /></td>
                   <td style={styles.td}>
-                    <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); onDelete(f.id); }}>🗑</Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={e => { e.stopPropagation(); onDelete(f.id); }}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </div>
-    </>
+      </CardContent>
+    </Card>
   );
 }
 
