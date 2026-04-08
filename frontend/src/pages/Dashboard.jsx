@@ -3,14 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { notificacoes as notifApi, rh, financeiro, patrimonio, logistica } from '../api';
 import { NumberTicker } from '../components/ui/number-ticker';
-import { Button } from '../components/ui/button';
 import {
   Users, DollarSign, CalendarDays, FolderKanban,
   Truck, Tag, BookOpen, ShoppingCart, Bell, ArrowRight,
   TrendingUp, TrendingDown, Clock, AlertTriangle,
-  Package, CreditCard, UserPlus, BrainCircuit,
-  Activity, ChevronRight, Sparkles, BarChart3,
-  Shield, Zap,
+  Package, ChevronRight, Sparkles,
+  Activity,
 } from 'lucide-react';
 
 /* ── Quick-access modules ──────────────────────── */
@@ -30,7 +28,7 @@ function KpiCard({ icon: Icon, label, value, prefix, suffix, color, trend, trend
   return (
     <button
       onClick={onClick}
-      className="group relative overflow-hidden rounded-2xl border text-left transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 cursor-pointer w-full"
+      className="group relative rounded-2xl border text-left transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 cursor-pointer w-full"
       style={{
         background: 'var(--cbrio-card)',
         borderColor: 'var(--cbrio-border)',
@@ -38,10 +36,10 @@ function KpiCard({ icon: Icon, label, value, prefix, suffix, color, trend, trend
     >
       {/* Gradient accent top */}
       <div
-        className="absolute top-0 left-0 right-0 h-[2px] opacity-60 group-hover:opacity-100 transition-opacity"
+        className="absolute top-0 left-0 right-0 h-[2px] rounded-t-2xl opacity-60 group-hover:opacity-100 transition-opacity"
         style={{ background: `linear-gradient(90deg, ${color}, ${color}80)` }}
       />
-      <div className="p-6">
+      <div className="p-7">
         <div className="flex items-start justify-between mb-4">
           <div
             className="flex items-center justify-center w-12 h-12 rounded-xl transition-transform group-hover:scale-110"
@@ -217,33 +215,15 @@ export default function Dashboard() {
           background: 'radial-gradient(ellipse at top right, #00B39D, transparent 60%), radial-gradient(ellipse at bottom left, #8b5cf6, transparent 60%)',
         }} />
         <div className="relative px-8 py-8 sm:px-10 sm:py-10">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium uppercase tracking-wide mb-2" style={{ color: 'var(--cbrio-text3)' }}>
-                {dateStr}
-              </p>
-              <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--cbrio-text)' }}>
-                {greeting}, {firstName}
-              </h1>
-              <p className="text-base mt-2" style={{ color: 'var(--cbrio-text2)' }}>
-                Aqui está o resumo do seu dia no CBRio ERP.
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5"
-                onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
-              >
-                <Zap className="w-3.5 h-3.5" />
-                Buscar
-                <kbd className="ml-1 inline-flex h-4 items-center rounded border px-1 text-[9px] font-medium" style={{ borderColor: 'var(--cbrio-border)', color: 'var(--cbrio-text3)' }}>
-                  ⌘K
-                </kbd>
-              </Button>
-            </div>
-          </div>
+          <p className="text-sm font-medium uppercase tracking-wide mb-2" style={{ color: 'var(--cbrio-text3)' }}>
+            {dateStr}
+          </p>
+          <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--cbrio-text)' }}>
+            {greeting}, {firstName}
+          </h1>
+          <p className="text-base mt-2" style={{ color: 'var(--cbrio-text2)' }}>
+            Aqui está o resumo do seu dia no CBRio ERP.
+          </p>
         </div>
       </div>
 
@@ -386,21 +366,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── Tip bar ──────────────────────────────── */}
-      <div
-        className="flex items-center gap-3 rounded-xl border px-4 py-3 mt-6 mb-4"
-        style={{
-          background: '#00B39D08',
-          borderColor: '#00B39D20',
-        }}
-      >
-        <Shield className="w-4 h-4 shrink-0" style={{ color: '#00B39D' }} />
-        <div className="flex-1">
-          <span className="text-xs font-medium" style={{ color: 'var(--cbrio-text2)' }}>
-            Use <kbd className="inline-flex h-4 items-center rounded border px-1 mx-0.5 text-[9px] font-medium" style={{ borderColor: 'var(--cbrio-border)', color: 'var(--cbrio-text3)' }}>⌘K</kbd> para navegar rapidamente entre módulos
-          </span>
-        </div>
-      </div>
     </div>
   );
 }
