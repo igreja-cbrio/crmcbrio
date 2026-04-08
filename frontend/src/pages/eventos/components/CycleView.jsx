@@ -236,7 +236,7 @@ export default function CycleView({ eventId, eventName }) {
               {currentPhase.momento_chave && <span style={{ marginLeft: 8, color: '#f59e0b', fontSize: 12 }}>★ Momento-chave</span>}
             </div>
             <div style={{ fontSize: 11, color: C.t2, marginTop: 2 }}>
-              {phaseTasks.filter(t => t.status === 'concluida').length}/{phaseTasks.length} tarefas
+              {phaseTasks.filter(t => t.status !== 'concluida').length} pendente(s)
             </div>
           </div>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
