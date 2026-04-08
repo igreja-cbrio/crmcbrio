@@ -157,11 +157,11 @@ export default function AppShell() {
     <div className="flex flex-col h-screen" style={{ background: 'var(--cbrio-bg)', color: 'var(--cbrio-text)' }}>
       {/* Header */}
       <header
-        className="flex items-center h-16 px-8 shrink-0 border-b z-30"
+        className="flex items-center h-14 sm:h-16 px-4 sm:px-8 shrink-0 border-b z-30"
         style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}
       >
         {/* Logo */}
-        <div className="flex items-center gap-3 mr-12 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 mr-4 sm:mr-12 shrink-0">
           <div className="flex items-center justify-center h-9 w-9 rounded-lg" style={{ background: '#00B39D', color: '#fff' }}>
             <img
               src="/images/logo-cbrio.svg"
@@ -180,10 +180,11 @@ export default function AppShell() {
           </div>
         </div>
 
-        {/* Mega Menu — centered */}
-        <nav className="flex-1 flex items-center justify-center">
+        {/* Mega Menu — centered, hidden on mobile */}
+        <nav className="hidden md:flex flex-1 items-center justify-center">
           <MegaMenu items={filteredNavItems} role={role} />
         </nav>
+        <div className="flex-1 md:hidden" />
 
         {/* Right side: search, theme toggle, notifications, user */}
         <div className="flex items-center gap-3 shrink-0">

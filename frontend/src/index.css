@@ -178,6 +178,58 @@ tr.cbrio-row:hover {
   transform: translateY(0);
 }
 
+/* ── Mobile responsive ──────────────────────────── */
+@media (max-width: 768px) {
+  /* Page padding */
+  .cbrio-page { padding: 0 12px; }
+
+  /* Header */
+  header { padding-left: 12px !important; padding-right: 12px !important; }
+  header nav { display: none; }
+
+  /* Page titles */
+  [style*="maxWidth: 1600"], [style*="maxWidth: 1200"], [style*="max-width: 1600"], [style*="max-width: 1200"] {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  /* Tables scroll horizontally */
+  table { display: block; overflow-x: auto; white-space: nowrap; }
+  thead, tbody, tr { display: table; width: 100%; table-layout: auto; }
+
+  /* Grid columns → stack */
+  [style*="gridTemplateColumns: repeat"], [style*="grid-template-columns: repeat"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Form rows → stack */
+  [style*="gridTemplateColumns: 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Modals full width */
+  [style*="maxWidth: 560"], [style*="max-width: 560"], [style*="maxWidth: 700"], [style*="max-width: 700"] {
+    max-width: 100% !important;
+    margin: 0 8px !important;
+    border-radius: 12px !important;
+  }
+
+  /* Hide non-essential on mobile */
+  .hidden-mobile { display: none !important; }
+
+  /* Filter rows wrap */
+  [style*="display: flex"][style*="gap: 8"] {
+    flex-wrap: wrap !important;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Extra small adjustments */
+  .cbrio-card-header { padding: 12px !important; }
+  .cbrio-card-body { padding: 12px !important; }
+  th, td { padding: 8px 10px !important; font-size: 12px !important; }
+}
+
 /* ── Loading shimmer animation ───────────────────── */
 @keyframes cbrio-shimmer {
   0% { mask-position: 200% center; -webkit-mask-position: 200% center; }
