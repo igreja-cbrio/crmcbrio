@@ -120,7 +120,7 @@ router.get('/kanban/all', async (req, res) => {
     // Subtarefas
     const taskIds = (tasksRes.data || []).map(t => t.id);
     const { data: allSubs } = taskIds.length > 0
-      ? await supabase.from('cycle_task_subtasks').select('*').in('task_id', taskIds).order('sort_order')
+      ? await supabase.from('cycle_task_subtasks').select('*').in('task_id', taskIds).order('sort_order').limit(5000)
       : { data: [] };
     const subsMap = {};
     (allSubs || []).forEach(s => { if (!subsMap[s.task_id]) subsMap[s.task_id] = []; subsMap[s.task_id].push(s); });
@@ -301,7 +301,7 @@ router.get('/:eventId', async (req, res) => {
     // Buscar subtarefas de todas as tasks do ciclo
     const taskIds = (tasksRes.data || []).map(t => t.id);
     const { data: allSubs } = taskIds.length > 0
-      ? await supabase.from('cycle_task_subtasks').select('*').in('task_id', taskIds).order('sort_order')
+      ? await supabase.from('cycle_task_subtasks').select('*').in('task_id', taskIds).order('sort_order').limit(5000)
       : { data: [] };
     const subsMap = {};
     (allSubs || []).forEach(s => { if (!subsMap[s.task_id]) subsMap[s.task_id] = []; subsMap[s.task_id].push(s); });
