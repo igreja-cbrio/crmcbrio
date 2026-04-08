@@ -159,53 +159,14 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-[1400px] mx-auto px-6 space-y-8 pb-8">
-      {/* ── Hero greeting ────────────────────────── */}
-      <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm">
-        {/* Decorative gradient mesh */}
-        <div className="absolute inset-0 opacity-[0.04]" style={{
-          background: 'radial-gradient(ellipse 80% 50% at 20% 120%, #00B39D, transparent), radial-gradient(ellipse 60% 80% at 80% -20%, #8b5cf6, transparent)',
-        }} />
-        <div className="absolute top-0 right-0 w-64 h-64 opacity-[0.02]" style={{
-          background: 'radial-gradient(circle, #00B39D, transparent 70%)',
-        }} />
-        <div className="relative px-6 py-7 sm:px-8 sm:py-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <p className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground mb-1.5">
-              {dateStr}
-            </p>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-              {greeting}, {firstName}
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Resumo do seu dia no CBRio ERP
-            </p>
-          </div>
-          {/* Quick stats inline */}
-          {!loading && (rhData || finData) && (
-            <div className="flex items-center gap-4 sm:gap-6">
-              {rhData && (
-                <div className="text-center">
-                  <div className="text-lg font-bold text-foreground tabular-nums">{rhData.ativos ?? rhData.total ?? 0}</div>
-                  <div className="text-[10px] text-muted-foreground uppercase tracking-wide">colaboradores</div>
-                </div>
-              )}
-              {finData && (
-                <div className="text-center">
-                  <div className="text-lg font-bold text-foreground tabular-nums">
-                    R$ {Number(finData.saldo ?? finData.saldoTotal ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 0, notation: 'compact' })}
-                  </div>
-                  <div className="text-[10px] text-muted-foreground uppercase tracking-wide">saldo</div>
-                </div>
-              )}
-              {unread.length > 0 && (
-                <div className="text-center">
-                  <div className="text-lg font-bold text-primary tabular-nums">{unread.length}</div>
-                  <div className="text-[10px] text-muted-foreground uppercase tracking-wide">alertas</div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+      {/* ── Greeting ────────────────────────────── */}
+      <div>
+        <p className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground mb-1">
+          {dateStr}
+        </p>
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+          {greeting}, {firstName}
+        </h1>
       </div>
 
       {/* ── KPI Cards ────────────────────────────── */}
