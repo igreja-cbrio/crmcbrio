@@ -457,6 +457,7 @@ Estes arquivos afetam o sistema inteiro. Alterações devem ser feitas via **Pul
   - **Fix v10.1:** Upload agora usa mesma pasta do ciclo — formato `Fase_XX_-_Nome` (antes usava só `Nome`, criando pasta duplicada)
   - **Fix v10.1:** Removida seção "Anexos / Entregáveis" (AttachmentButton) do detalhe de tarefa no CycleView e Eventos — upload unificado via CompletionSection
   - **Fix v10.1:** Upload em chunks de 10MB para arquivos grandes (≤10MB = PUT único, >10MB = chunked upload com progresso %)
+  - **Fix v10.1:** Relatório IA agora inclui cards pendentes + progresso por fase via `vw_phase_progress` + `cycle_phase_tasks` (antes só via `card_completions`)
 - Ciclos criativos com 11 fases + 35 tarefas ADM + 138 subtarefas automáticas
 - **KPIs clicáveis** — todos os números do dashboard navegam para os dados filtrados
 - **Abas Riscos + Histórico + Retrospectiva** no detalhe do evento
