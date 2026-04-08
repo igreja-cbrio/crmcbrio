@@ -45,6 +45,9 @@ export default function CompletionSection({ task, phase, eventName, isPMO, onCom
   const removeFile = (idx) => setFiles(prev => prev.filter((_, i) => i !== idx));
 
   // Upload cada arquivo direto pro SharePoint via upload session
+  // Chunk size: 10MB (múltiplo de 320KB conforme exigência da Microsoft Graph API)
+  const CHUNK_SIZE = 10 * 1024 * 1024;
+
   const uploadFilesToSharePoint = async () => {
     const uploaded = [];
     for (let i = 0; i < files.length; i++) {
@@ -59,26 +62,60 @@ export default function CompletionSection({ task, phase, eventName, isPMO, onCom
           area: task.area || '',
         });
 
-        // 2. Upload direto para SharePoint (PUT com o arquivo inteiro)
-        const uploadRes = await fetch(uploadUrl, {
-          method: 'PUT',
-          headers: {
-            'Content-Length': f.file.size,
-            'Content-Range': `bytes 0-${f.file.size - 1}/${f.file.size}`,
-          },
-          body: f.file,
-        });
+        // 2. Upload direto para SharePoint (chunks de 10MB para arquivos grandes)
+        let uploadData;
+        if (f.file.size <= CHUNK_SIZE) {
+          // Arquivo pequeno — PUT único
+          const uploadRes = await fetch(uploadUrl, {
+            method: 'PUT',
+            headers: {
+              'Content-Length': f.file.size,
+              'Content-Range': `bytes 0-${f.file.size - 1}/${f.file.size}`,
+            },
+            body: f.file,
+          });
+          if (!uploadRes.ok) {
+            let errMsg = `SharePoint retornou ${uploadRes.status}`;
+            try { const ed = await uploadRes.json(); errMsg = ed.error?.message || ed.error || errMsg; } catch {}
+            throw new Error(errMsg);
+          }
+          uploadData = await uploadRes.json();
+          setFiles(prev => prev.map((pf, pi) => pi === i ? { ...pf, progress: 100 } : pf));
+        } else {
+          // Arquivo grande — upload em chunks
+          let offset = 0;
+          while (offset < f.file.size) {
+            const end = Math.min(offset + CHUNK_SIZE, f.file.size);
+            const chunk = f.file.slice(offset, end);
+            const isLast = end === f.file.size;
 
-        if (!uploadRes.ok) {
-          let errMsg = `SharePoint retornou ${uploadRes.status}`;
-          try {
-            const errData = await uploadRes.json();
-            errMsg = errData.error?.message || errData.error || errMsg;
-          } catch { /* resposta pode não ser JSON */ }
-          throw new Error(errMsg);
+            const chunkRes = await fetch(uploadUrl, {
+              method: 'PUT',
+              headers: {
+                'Content-Length': end - offset,
+                'Content-Range': `bytes ${offset}-${end - 1}/${f.file.size}`,
+              },
+              body: chunk,
+            });
+
+            if (isLast) {
+              if (!chunkRes.ok) {
+                let errMsg = `SharePoint retornou ${chunkRes.status}`;
+                try { const ed = await chunkRes.json(); errMsg = ed.error?.message || ed.error || errMsg; } catch {}
+                throw new Error(errMsg);
+              }
+              uploadData = await chunkRes.json();
+            } else {
+              if (chunkRes.status !== 202 && !chunkRes.ok) {
+                throw new Error(`Chunk falhou (${chunkRes.status}) em ${Math.round(offset / 1024 / 1024)}MB`);
+              }
+            }
+
+            offset = end;
+            const pct = Math.round((offset / f.file.size) * 100);
+            setFiles(prev => prev.map((pf, pi) => pi === i ? { ...pf, progress: pct } : pf));
+          }
         }
-
-        const uploadData = await uploadRes.json();
 
         const result = {
           file_name: f.file.name,
@@ -89,7 +126,6 @@ export default function CompletionSection({ task, phase, eventName, isPMO, onCom
           size: f.file.size,
         };
 
-        // Update progress
         setFiles(prev => prev.map((pf, pi) => pi === i ? { ...pf, progress: 100, uploaded: true, result } : pf));
         uploaded.push(result);
       } catch (err) {
@@ -272,6 +308,9 @@ export default function CompletionSection({ task, phase, eventName, isPMO, onCom
                     <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: C.text }}>{f.file.name}</span>
                     <span style={{ fontSize: 10, color: C.t3, flexShrink: 0 }}>{formatSize(f.file.size)}</span>
                     {f.uploaded && <Check style={{ width: 14, height: 14, color: C.green, flexShrink: 0 }} />}
+                    {!f.uploaded && f.progress > 0 && f.progress < 100 && (
+                      <span style={{ fontSize: 10, color: C.primary, fontWeight: 600, flexShrink: 0 }}>{f.progress}%</span>
+                    )}
                     {f.progress === -1 && <span style={{ fontSize: 10, color: C.red }}>Erro</span>}
                     {!f.uploaded && f.progress === 0 && (
                       <button onClick={() => removeFile(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.t3, padding: 0 }}>
