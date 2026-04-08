@@ -332,10 +332,10 @@ export default function RH() {
 
       {/* Tabs */}
       <Tabs value={tab} onValueChange={setTab}>
-        <div className="overflow-x-auto -mx-1 px-1">
-          <TabsList className="h-10 w-fit" style={{ background: 'var(--cbrio-input-bg)', padding: 4 }}>
+        <div className="overflow-x-auto -mx-1 px-1 pb-1">
+          <TabsList className="h-11 w-fit gap-1" style={{ background: 'var(--cbrio-input-bg)', padding: '4px 6px', borderRadius: 10 }}>
             {TABS.map((t, i) => (
-              <TabsTrigger key={TAB_KEYS[i]} value={TAB_KEYS[i]} className="px-3 text-xs sm:text-sm" style={{ borderRadius: 6 }}>
+              <TabsTrigger key={TAB_KEYS[i]} value={TAB_KEYS[i]} className="px-4 py-1.5 text-xs sm:text-sm" style={{ borderRadius: 7 }}>
                 {t}
               </TabsTrigger>
             ))}
@@ -464,19 +464,19 @@ function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* KPI Cards */}
-      <div className="grid gap-3 grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
+      <div className="grid gap-2.5 grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
             <Card key={stat.title} className={`py-0 gap-0 ${stat.onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`} onClick={stat.onClick} style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pt-4 pb-1">
-                <CardTitle className="text-[11px] font-medium" style={{ color: 'var(--cbrio-text3)' }}>{stat.title}</CardTitle>
-                <Icon className={`w-4 h-4 ${stat.color}`} />
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 px-3 pt-3 pb-0.5">
+                <CardTitle className="text-[10px] font-medium" style={{ color: 'var(--cbrio-text3)' }}>{stat.title}</CardTitle>
+                <Icon className={`w-3.5 h-3.5 ${stat.color}`} />
               </CardHeader>
-              <CardContent className="px-4 pb-4">
-                <div className="text-xl font-bold" style={{ color: 'var(--cbrio-text)' }}>{stat.value}</div>
+              <CardContent className="px-3 pb-3">
+                <div className="text-lg font-bold" style={{ color: 'var(--cbrio-text)' }}>{stat.value}</div>
               </CardContent>
             </Card>
           );
@@ -484,17 +484,17 @@ function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
       </div>
 
       {/* Extra metrics */}
-      <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+      <div className="grid gap-2.5 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         {extras.map((stat) => {
           const Icon = stat.icon;
           return (
             <Card key={stat.title} className="py-0 gap-0" style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pt-4 pb-1">
-                <CardTitle className="text-[11px] font-medium" style={{ color: 'var(--cbrio-text3)' }}>{stat.title}</CardTitle>
-                <Icon className={`w-4 h-4 ${stat.color}`} />
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 px-3 pt-3 pb-0.5">
+                <CardTitle className="text-[10px] font-medium" style={{ color: 'var(--cbrio-text3)' }}>{stat.title}</CardTitle>
+                <Icon className={`w-3.5 h-3.5 ${stat.color}`} />
               </CardHeader>
-              <CardContent className="px-4 pb-4">
-                <div className="text-xl font-bold" style={{ color: 'var(--cbrio-text)' }}>{stat.value}</div>
+              <CardContent className="px-3 pb-3">
+                <div className="text-lg font-bold" style={{ color: 'var(--cbrio-text)' }}>{stat.value}</div>
               </CardContent>
             </Card>
           );
@@ -502,64 +502,64 @@ function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
       </div>
 
       {/* Data cards */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-2">
         <Card className="py-0 gap-0" style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}>
-          <CardHeader className="px-5 pt-5 pb-2">
-            <CardTitle className="text-sm" style={{ color: 'var(--cbrio-text)' }}>Por Tipo de Contrato</CardTitle>
+          <CardHeader className="px-4 pt-4 pb-1.5">
+            <CardTitle className="text-[13px]" style={{ color: 'var(--cbrio-text)' }}>Por Tipo de Contrato</CardTitle>
           </CardHeader>
-          <CardContent className="px-5 pb-5">
+          <CardContent className="px-4 pb-4">
             {Object.entries(dash.porContrato || {}).map(([tipo, qtd]) => (
-              <div key={tipo} className="flex justify-between py-2 border-b border-border last:border-0">
-                <span className="text-sm text-foreground">{TIPO_CONTRATO[tipo] || tipo}</span>
-                <span className="text-sm font-bold text-primary">{qtd}</span>
+              <div key={tipo} className="flex justify-between py-1.5 border-b border-border last:border-0">
+                <span className="text-[13px] text-foreground">{TIPO_CONTRATO[tipo] || tipo}</span>
+                <span className="text-[13px] font-bold text-primary">{qtd}</span>
               </div>
             ))}
-            {Object.keys(dash.porContrato || {}).length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Nenhum dado</p>}
+            {Object.keys(dash.porContrato || {}).length === 0 && <p className="text-sm text-muted-foreground text-center py-3">Nenhum dado</p>}
           </CardContent>
         </Card>
 
         <Card className="py-0 gap-0" style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}>
-          <CardHeader className="px-5 pt-5 pb-2">
-            <CardTitle className="text-sm" style={{ color: 'var(--cbrio-text)' }}>Por Área</CardTitle>
+          <CardHeader className="px-4 pt-4 pb-1.5">
+            <CardTitle className="text-[13px]" style={{ color: 'var(--cbrio-text)' }}>Por Área</CardTitle>
           </CardHeader>
-          <CardContent className="px-5 pb-5">
+          <CardContent className="px-4 pb-4">
             {Object.entries(dash.porArea || {}).map(([area, qtd]) => (
-              <div key={area} className="flex justify-between py-2" style={{ borderBottom: `1px solid var(--cbrio-border)` }}>
-                <span className="text-sm" style={{ color: 'var(--cbrio-text)' }}>{area}</span>
-                <span className="text-sm font-bold" style={{ color: '#00B39D' }}>{qtd}</span>
+              <div key={area} className="flex justify-between py-1.5" style={{ borderBottom: `1px solid var(--cbrio-border)` }}>
+                <span className="text-[13px]" style={{ color: 'var(--cbrio-text)' }}>{area}</span>
+                <span className="text-[13px] font-bold" style={{ color: '#00B39D' }}>{qtd}</span>
               </div>
             ))}
-            {Object.keys(dash.porArea || {}).length === 0 && <p className="text-sm text-center py-4" style={{ color: 'var(--cbrio-text3)' }}>Nenhum dado</p>}
+            {Object.keys(dash.porArea || {}).length === 0 && <p className="text-sm text-center py-3" style={{ color: 'var(--cbrio-text3)' }}>Nenhum dado</p>}
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-2">
         <Card className="py-0 gap-0" style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}>
-          <CardHeader className="px-5 pt-5 pb-2">
-            <CardTitle className="text-sm" style={{ color: 'var(--cbrio-text)' }}>Férias Próximas (30 dias)</CardTitle>
+          <CardHeader className="px-4 pt-4 pb-1.5">
+            <CardTitle className="text-[13px]" style={{ color: 'var(--cbrio-text)' }}>Férias Próximas (30 dias)</CardTitle>
           </CardHeader>
-          <CardContent className="px-5 pb-5">
-            {(dash.feriasProximas || []).length === 0 && <p className="text-sm text-center py-4" style={{ color: 'var(--cbrio-text3)' }}>Nenhuma férias agendada</p>}
+          <CardContent className="px-4 pb-4">
+            {(dash.feriasProximas || []).length === 0 && <p className="text-sm text-center py-3" style={{ color: 'var(--cbrio-text3)' }}>Nenhuma férias agendada</p>}
             {(dash.feriasProximas || []).map(f => (
-              <div key={f.id} className="flex justify-between py-2" style={{ borderBottom: `1px solid var(--cbrio-border)` }}>
-                <span className="text-sm" style={{ color: 'var(--cbrio-text)' }}>{f.rh_funcionarios?.nome || '—'}</span>
-                <span className="text-xs" style={{ color: 'var(--cbrio-text2)' }}>{fmtDate(f.data_inicio)} → {fmtDate(f.data_fim)}</span>
+              <div key={f.id} className="flex justify-between py-1.5" style={{ borderBottom: `1px solid var(--cbrio-border)` }}>
+                <span className="text-[13px]" style={{ color: 'var(--cbrio-text)' }}>{f.rh_funcionarios?.nome || '—'}</span>
+                <span className="text-[11px]" style={{ color: 'var(--cbrio-text2)' }}>{fmtDate(f.data_inicio)} → {fmtDate(f.data_fim)}</span>
               </div>
             ))}
           </CardContent>
         </Card>
 
         <Card className="py-0 gap-0" style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}>
-          <CardHeader className="px-5 pt-5 pb-2">
-            <CardTitle className="text-sm" style={{ color: 'var(--cbrio-text)' }}>Documentos Vencendo (60 dias)</CardTitle>
+          <CardHeader className="px-4 pt-4 pb-1.5">
+            <CardTitle className="text-[13px]" style={{ color: 'var(--cbrio-text)' }}>Documentos Vencendo (60 dias)</CardTitle>
           </CardHeader>
-          <CardContent className="px-5 pb-5">
-            {(dash.docsVencendo || []).length === 0 && <p className="text-sm text-center py-4" style={{ color: 'var(--cbrio-text3)' }}>Nenhum documento vencendo</p>}
+          <CardContent className="px-4 pb-4">
+            {(dash.docsVencendo || []).length === 0 && <p className="text-sm text-center py-3" style={{ color: 'var(--cbrio-text3)' }}>Nenhum documento vencendo</p>}
             {(dash.docsVencendo || []).map(d => (
-              <div key={d.id} className="flex justify-between py-2" style={{ borderBottom: `1px solid var(--cbrio-border)` }}>
-                <span className="text-sm" style={{ color: 'var(--cbrio-text)' }}>{d.rh_funcionarios?.nome} — {d.nome}</span>
-                <span className="text-xs" style={{ color: '#ef4444' }}>{fmtDate(d.data_expiracao)}</span>
+              <div key={d.id} className="flex justify-between py-1.5" style={{ borderBottom: `1px solid var(--cbrio-border)` }}>
+                <span className="text-[13px]" style={{ color: 'var(--cbrio-text)' }}>{d.rh_funcionarios?.nome} — {d.nome}</span>
+                <span className="text-[11px]" style={{ color: '#ef4444' }}>{fmtDate(d.data_expiracao)}</span>
               </div>
             ))}
           </CardContent>
