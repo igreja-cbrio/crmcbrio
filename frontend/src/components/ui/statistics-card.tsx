@@ -94,5 +94,20 @@ function StatisticsCard({
   )
 }
 
-export { StatisticsCard }
+function StatisticsCardSkeleton({ className }: { className?: string }) {
+  return (
+    <div className={cn("flex flex-col bg-card rounded-xl border border-border overflow-hidden", className)}>
+      <div className="h-1 w-full shrink-0 bg-muted animate-pulse" />
+      <div className="flex items-start justify-between px-3 pt-3 pb-2.5">
+        <div className="flex-1 space-y-2">
+          <div className="h-2.5 w-16 bg-muted rounded animate-pulse" />
+          <div className="h-5 w-12 bg-muted rounded animate-pulse" />
+        </div>
+        <div className="size-8 rounded-lg bg-muted animate-pulse shrink-0 ml-2" />
+      </div>
+    </div>
+  )
+}
+
+export { StatisticsCard, StatisticsCardSkeleton }
 export type { StatisticsCardProps }
