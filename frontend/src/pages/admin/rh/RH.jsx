@@ -403,116 +403,169 @@ function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
   ];
 
   return (
-    <div className="space-y-5 pt-2">
-      {/* Primary KPI Cards — 4 columns */}
-      <div className="cbrio-stagger grid gap-4 grid-cols-2 lg:grid-cols-4">
-        {primaryStats.map((stat) => (
-          <StatisticsCard
-            key={stat.title}
-            title={stat.title}
-            value={stat.value}
-            icon={stat.icon}
-            iconColor={stat.iconColor}
-            onClick={stat.onClick}
-            subtitle={stat.subtitle}
-          />
-        ))}
-      </div>
+    <div className="space-y-8 pt-4 pb-8">
+      {/* Primary KPI Cards — 4 columns, generous size */}
+      <section>
+        <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">Resumo Geral</h3>
+        <div className="cbrio-stagger grid gap-5 grid-cols-2 lg:grid-cols-4">
+          {primaryStats.map((stat) => (
+            <StatisticsCard
+              key={stat.title}
+              title={stat.title}
+              value={stat.value}
+              icon={stat.icon}
+              iconColor={stat.iconColor}
+              onClick={stat.onClick}
+              subtitle={stat.subtitle}
+            />
+          ))}
+        </div>
+      </section>
 
-      {/* Secondary metrics */}
-      <div className="cbrio-stagger grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
-        {secondaryStats.map((stat) => (
-          <StatisticsCard
-            key={stat.title}
-            title={stat.title}
-            value={stat.value}
-            icon={stat.icon}
-            iconColor={stat.iconColor}
-            onClick={stat.onClick}
-          />
-        ))}
-      </div>
+      {/* Secondary metrics — 6 columns */}
+      <section>
+        <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">Métricas Detalhadas</h3>
+        <div className="cbrio-stagger grid gap-5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+          {secondaryStats.map((stat) => (
+            <StatisticsCard
+              key={stat.title}
+              title={stat.title}
+              value={stat.value}
+              icon={stat.icon}
+              iconColor={stat.iconColor}
+              onClick={stat.onClick}
+            />
+          ))}
+        </div>
+      </section>
 
-      {/* Data cards — 2x2 grid */}
-      <div className="grid gap-4 md:grid-cols-2">
-        {/* Por tipo de contrato */}
-        <Card className="py-0 gap-0 overflow-hidden border-border/50 shadow-sm">
-          <CardHeader className="px-5 pt-5 pb-2">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Por Tipo de Contrato</CardTitle>
-          </CardHeader>
-          <CardContent className="px-5 pb-5">
-            {Object.entries(dash.porContrato || {}).length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-3">Nenhum dado</p>
-            )}
-            {Object.entries(dash.porContrato || {}).map(([tipo, qtd]) => (
-              <div key={tipo} className="flex items-center justify-between py-2.5 border-b border-border/40 last:border-0">
-                <span className="text-sm text-foreground">{TIPO_CONTRATO[tipo] || tipo}</span>
-                <span className="text-sm font-bold text-primary tabular-nums">{qtd}</span>
+      {/* Main content — 3 column layout using full width */}
+      <section>
+        <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">Distribuição e Alertas</h3>
+        <div className="grid gap-5 lg:grid-cols-3">
+          {/* Por tipo de contrato */}
+          <Card className="py-0 gap-0 overflow-hidden border-border/50 shadow-sm">
+            <CardHeader className="px-5 pt-5 pb-3">
+              <CardTitle className="text-sm font-semibold text-foreground">Por Tipo de Contrato</CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">Distribuição por vínculo</p>
+            </CardHeader>
+            <CardContent className="px-5 pb-6">
+              {Object.entries(dash.porContrato || {}).length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-6">Nenhum dado</p>
+              )}
+              {Object.entries(dash.porContrato || {}).map(([tipo, qtd]) => {
+                const total = Object.values(dash.porContrato || {}).reduce((a, b) => a + b, 0);
+                const pct = total > 0 ? Math.round((qtd / total) * 100) : 0;
+                return (
+                  <div key={tipo} className="py-3 border-b border-border/30 last:border-0">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-sm text-foreground font-medium">{TIPO_CONTRATO[tipo] || tipo}</span>
+                      <span className="text-sm font-bold text-foreground tabular-nums">{qtd}</span>
+                    </div>
+                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+
+          {/* Por área — taller */}
+          <Card className="py-0 gap-0 overflow-hidden border-border/50 shadow-sm lg:row-span-2">
+            <CardHeader className="px-5 pt-5 pb-3">
+              <CardTitle className="text-sm font-semibold text-foreground">Por Área</CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">{Object.keys(dash.porArea || {}).length} áreas com colaboradores</p>
+            </CardHeader>
+            <CardContent className="px-5 pb-6 max-h-[480px] overflow-y-auto">
+              {Object.entries(dash.porArea || {}).length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-6">Nenhum dado</p>
+              )}
+              {Object.entries(dash.porArea || {}).sort((a, b) => b[1] - a[1]).map(([area, qtd]) => {
+                const total = Object.values(dash.porArea || {}).reduce((a, b) => a + b, 0);
+                const pct = total > 0 ? Math.round((qtd / total) * 100) : 0;
+                return (
+                  <div key={area} className="flex items-center gap-3 py-2.5 border-b border-border/30 last:border-0">
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm text-foreground truncate block">{area}</span>
+                    </div>
+                    <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden shrink-0">
+                      <div className="h-full rounded-full bg-primary/70 transition-all" style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="text-sm font-bold text-foreground tabular-nums w-8 text-right shrink-0">{qtd}</span>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+
+          {/* Férias próximas */}
+          <Card className="py-0 gap-0 overflow-hidden border-border/50 shadow-sm">
+            <CardHeader className="px-5 pt-5 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center size-7 rounded-lg bg-amber-500/10">
+                  <CalendarDays className="size-3.5 text-amber-500" />
+                </div>
+                <div>
+                  <CardTitle className="text-sm font-semibold text-foreground">Férias Próximas</CardTitle>
+                  <p className="text-xs text-muted-foreground">Próximos 30 dias</p>
+                </div>
               </div>
-            ))}
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent className="px-5 pb-6">
+              {(dash.feriasProximas || []).length === 0 && (
+                <div className="text-center py-8">
+                  <CalendarDays className="size-8 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">Nenhuma férias agendada</p>
+                </div>
+              )}
+              {(dash.feriasProximas || []).map(f => (
+                <div key={f.id} className="flex items-center justify-between py-3 border-b border-border/30 last:border-0">
+                  <div className="flex items-center gap-2.5">
+                    <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
+                      {(f.rh_funcionarios?.nome || '?')[0].toUpperCase()}
+                    </div>
+                    <span className="text-sm text-foreground font-medium">{f.rh_funcionarios?.nome || '—'}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground tabular-nums shrink-0 ml-2">{fmtDate(f.data_inicio)} → {fmtDate(f.data_fim)}</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
 
-        {/* Por área */}
-        <Card className="py-0 gap-0 overflow-hidden border-border/50 shadow-sm">
-          <CardHeader className="px-5 pt-5 pb-2">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Por Área</CardTitle>
-          </CardHeader>
-          <CardContent className="px-5 pb-5 max-h-[260px] overflow-y-auto">
-            {Object.entries(dash.porArea || {}).length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-3">Nenhum dado</p>
-            )}
-            {Object.entries(dash.porArea || {}).map(([area, qtd]) => (
-              <div key={area} className="flex items-center justify-between py-2.5 border-b border-border/40 last:border-0">
-                <span className="text-sm text-foreground">{area}</span>
-                <span className="text-sm font-bold text-primary tabular-nums">{qtd}</span>
+          {/* Documentos vencendo */}
+          <Card className="py-0 gap-0 overflow-hidden border-border/50 shadow-sm">
+            <CardHeader className="px-5 pt-5 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center size-7 rounded-lg bg-destructive/10">
+                  <AlertTriangle className="size-3.5 text-destructive" />
+                </div>
+                <div>
+                  <CardTitle className="text-sm font-semibold text-foreground">Documentos Vencendo</CardTitle>
+                  <p className="text-xs text-muted-foreground">Próximos 60 dias</p>
+                </div>
               </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        {/* Férias próximas */}
-        <Card className="py-0 gap-0 overflow-hidden border-border/50 shadow-sm">
-          <CardHeader className="px-5 pt-5 pb-2">
-            <div className="flex items-center gap-2">
-              <CalendarDays className="size-3.5 text-warning" />
-              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Férias Próximas (30 dias)</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="px-5 pb-5">
-            {(dash.feriasProximas || []).length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-3">Nenhuma férias agendada</p>
-            )}
-            {(dash.feriasProximas || []).map(f => (
-              <div key={f.id} className="flex items-center justify-between py-2.5 border-b border-border/40 last:border-0">
-                <span className="text-sm text-foreground font-medium">{f.rh_funcionarios?.nome || '—'}</span>
-                <span className="text-xs text-muted-foreground tabular-nums">{fmtDate(f.data_inicio)} → {fmtDate(f.data_fim)}</span>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        {/* Documentos vencendo */}
-        <Card className="py-0 gap-0 overflow-hidden border-border/50 shadow-sm">
-          <CardHeader className="px-5 pt-5 pb-2">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="size-3.5 text-destructive" />
-              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Documentos Vencendo (60 dias)</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="px-5 pb-5">
-            {(dash.docsVencendo || []).length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-3">Nenhum documento vencendo</p>
-            )}
-            {(dash.docsVencendo || []).map(d => (
-              <div key={d.id} className="flex items-center justify-between py-2.5 border-b border-border/40 last:border-0">
-                <span className="text-sm text-foreground">{d.rh_funcionarios?.nome} — {d.nome}</span>
-                <span className="text-xs font-medium text-destructive tabular-nums">{fmtDate(d.data_expiracao)}</span>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
+            </CardHeader>
+            <CardContent className="px-5 pb-6">
+              {(dash.docsVencendo || []).length === 0 && (
+                <div className="text-center py-8">
+                  <AlertTriangle className="size-8 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">Nenhum documento vencendo</p>
+                </div>
+              )}
+              {(dash.docsVencendo || []).map(d => (
+                <div key={d.id} className="flex items-center justify-between py-3 border-b border-border/30 last:border-0">
+                  <div className="min-w-0 flex-1">
+                    <span className="text-sm text-foreground block truncate">{d.rh_funcionarios?.nome}</span>
+                    <span className="text-xs text-muted-foreground">{d.nome}</span>
+                  </div>
+                  <span className="text-xs font-semibold text-destructive tabular-nums shrink-0 ml-3">{fmtDate(d.data_expiracao)}</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+      </section>
     </div>
   );
 }
