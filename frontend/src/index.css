@@ -132,8 +132,22 @@ body {
   -webkit-font-smoothing: antialiased;
   background: var(--color-background);
   color: var(--color-foreground);
-  transition: background 0.3s, color 0.3s;
+  transition: background 0.3s ease, color 0.3s ease;
 }
+
+/* ── Smooth theme transition on all themed elements ── */
+*,
+*::before,
+*::after {
+  transition-property: background-color, border-color, box-shadow;
+  transition-duration: 0.2s;
+  transition-timing-function: ease;
+}
+
+/* Opt-out for elements that animate other things */
+[style*="animation"],
+[class*="animate-"],
+.no-theme-transition { transition: none; }
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
@@ -141,13 +155,59 @@ h1, h2, h3, h4, h5, h6 {
 
 #root { min-height: 100vh; }
 
+/* ── Global focus-visible ring ────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-ring);
+  border-color: var(--color-ring);
+}
+
+/* ── Custom scrollbar ─────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--cbrio-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--cbrio-text3);
+}
+
 /* ── Table row hover (global) ───────────────────── */
 tr.cbrio-row {
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease !important;
 }
 tr.cbrio-row:hover {
   background: var(--cbrio-input-bg);
+}
+
+/* Generic table hover for all admin tables */
+table tbody tr {
+  transition: background 0.12s ease !important;
+}
+table tbody tr:hover {
+  background: color-mix(in srgb, var(--cbrio-input-bg) 50%, transparent);
 }
 
 /* ── Typography tokens ──────────────────────────── */
@@ -167,15 +227,105 @@ tr.cbrio-row:hover {
 
 /* ── Micro-interactions ─────────────────────────── */
 .cbrio-interactive {
-  transition: all 0.2s ease;
+  transition: all 0.2s ease !important;
   cursor: pointer;
 }
 .cbrio-interactive:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
 }
 .cbrio-interactive:active {
   transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+/* ── KPI card hover ───────────────────────────────── */
+.cbrio-kpi {
+  transition: all 0.2s ease !important;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+.cbrio-kpi:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+}
+.cbrio-kpi:active {
+  transform: translateY(0);
+}
+
+/* ── Notification badge pulse ─────────────────────── */
+@keyframes cbrio-badge-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+.cbrio-badge-pulse {
+  animation: cbrio-badge-pulse 2s ease-in-out infinite;
+}
+
+/* ── Staggered fade-in for list items ─────────────── */
+@keyframes cbrio-stagger-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.cbrio-stagger > * {
+  animation: cbrio-stagger-in 0.3s ease-out both;
+}
+.cbrio-stagger > *:nth-child(1) { animation-delay: 0s; }
+.cbrio-stagger > *:nth-child(2) { animation-delay: 0.03s; }
+.cbrio-stagger > *:nth-child(3) { animation-delay: 0.06s; }
+.cbrio-stagger > *:nth-child(4) { animation-delay: 0.09s; }
+.cbrio-stagger > *:nth-child(5) { animation-delay: 0.12s; }
+.cbrio-stagger > *:nth-child(6) { animation-delay: 0.15s; }
+.cbrio-stagger > *:nth-child(7) { animation-delay: 0.18s; }
+.cbrio-stagger > *:nth-child(8) { animation-delay: 0.21s; }
+
+/* ── Tab underline animation ──────────────────────── */
+.cbrio-tab {
+  position: relative;
+  transition: color 0.15s ease !important;
+}
+.cbrio-tab::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--color-primary);
+  transform: scaleX(0);
+  transition: transform 0.2s ease !important;
+  transform-origin: center;
+}
+.cbrio-tab[data-active="true"]::after,
+.cbrio-tab:hover::after {
+  transform: scaleX(1);
+}
+
+/* ── Toast enter/exit ─────────────────────────────── */
+@keyframes cbrio-toast-in {
+  from { transform: translateX(100%) scale(0.95); opacity: 0; }
+  to { transform: translateX(0) scale(1); opacity: 1; }
+}
+@keyframes cbrio-toast-out {
+  from { transform: translateX(0) scale(1); opacity: 1; }
+  to { transform: translateX(100%) scale(0.95); opacity: 0; }
+}
+
+/* ── Overlay fade ─────────────────────────────────── */
+@keyframes cbrio-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ── Modal slide-in ───────────────────────────────── */
+@keyframes cbrio-modal-in {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+@keyframes cbrio-modal-center-in {
+  from { opacity: 0; transform: scale(0.95) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 /* ── Mobile responsive ──────────────────────────── */

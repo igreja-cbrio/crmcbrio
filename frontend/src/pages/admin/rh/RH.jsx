@@ -414,12 +414,9 @@ export default function RH() {
 // Stat Card com visual moderno (inspirado em reui/statistics-card)
 function StatCard({ label, value, bg, svg, onClick }) {
   return (
-    <div onClick={onClick} style={{
-      position: 'relative', overflow: 'hidden', background: bg, borderRadius: 12, padding: '20px 24px', color: '#fff', minHeight: 100,
-      cursor: onClick ? 'pointer' : 'default', transition: 'transform 0.15s, box-shadow 0.15s',
-    }}
-      onMouseEnter={e => { if (onClick) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.3)'; } }}
-      onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
+    <div onClick={onClick}
+      className="cbrio-kpi"
+      style={{ position: 'relative', overflow: 'hidden', background: bg, borderRadius: 12, padding: '20px 24px', color: '#fff', minHeight: 100, cursor: onClick ? 'pointer' : 'default' }}
     >
       {svg}
       <div style={{ position: 'relative', zIndex: 1, overflow: 'hidden' }}>
@@ -466,11 +463,11 @@ function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
   return (
     <div className="space-y-6">
       {/* KPI Cards */}
-      <div className="grid gap-3 grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
+      <div className="cbrio-stagger grid gap-3 grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
-            <Card key={stat.title} className={`py-0 gap-0 ${stat.onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`} onClick={stat.onClick} style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}>
+            <Card key={stat.title} className={`cbrio-kpi py-0 gap-0 ${stat.onClick ? 'cursor-pointer' : ''}`} onClick={stat.onClick} style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pt-4 pb-1">
                 <CardTitle className="text-[11px] font-medium" style={{ color: 'var(--cbrio-text3)' }}>{stat.title}</CardTitle>
                 <Icon className={`w-4 h-4 ${stat.color}`} />
@@ -484,11 +481,11 @@ function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
       </div>
 
       {/* Extra metrics */}
-      <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+      <div className="cbrio-stagger grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         {extras.map((stat) => {
           const Icon = stat.icon;
           return (
-            <Card key={stat.title} className="py-0 gap-0" style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}>
+            <Card key={stat.title} className="cbrio-kpi py-0 gap-0" style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pt-4 pb-1">
                 <CardTitle className="text-[11px] font-medium" style={{ color: 'var(--cbrio-text3)' }}>{stat.title}</CardTitle>
                 <Icon className={`w-4 h-4 ${stat.color}`} />
