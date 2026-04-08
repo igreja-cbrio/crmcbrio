@@ -422,10 +422,10 @@ function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
         </div>
       </section>
 
-      {/* Secondary metrics — 6 columns */}
+      {/* Secondary metrics — 3 columns on large, never smaller than comfortable */}
       <section>
         <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">Métricas Detalhadas</h3>
-        <div className="cbrio-stagger grid gap-5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="cbrio-stagger grid gap-5 grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
           {secondaryStats.map((stat) => (
             <StatisticsCard
               key={stat.title}
