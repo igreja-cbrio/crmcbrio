@@ -51,6 +51,8 @@ export default function CycleView({ eventId, eventName }) {
   const [showNewTask, setShowNewTask] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [newTaskSubs, setNewTaskSubs] = useState([]);
+  const [editingTask, setEditingTask] = useState(false);
+  const [editData, setEditData] = useState({});
 
   const load = async () => {
     try {
@@ -519,27 +521,77 @@ export default function CycleView({ eventId, eventName }) {
 
               {/* Header */}
               <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid var(--cbrio-border)', position: 'sticky', top: 0, background: 'var(--cbrio-modal-bg, #fff)', zIndex: 1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 17, fontWeight: 700, color: C.dark, lineHeight: 1.3, marginBottom: 8 }}>{task.titulo}</div>
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                      <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 99, background: cat.bg, color: cat.color, fontWeight: 600 }}>{cat.label}</span>
-                      <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 99, background: `${ts.color}15`, color: ts.color, fontWeight: 600 }}>{ts.label}</span>
-                      {task.prioridade && task.prioridade !== 'normal' && (
-                        <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 99, background: task.prioridade === 'alta' ? '#fee2e2' : '#f0fdf4', color: task.prioridade === 'alta' ? '#ef4444' : '#10b981', fontWeight: 600 }}>
-                          {task.prioridade === 'alta' ? '↑ Alta' : '↓ Baixa'}
-                        </span>
-                      )}
+                {!editingTask ? (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 17, fontWeight: 700, color: C.dark, lineHeight: 1.3, marginBottom: 8 }}>{task.titulo}</div>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                          <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 99, background: cat.bg, color: cat.color, fontWeight: 600 }}>{cat.label}</span>
+                          <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 99, background: `${ts.color}15`, color: ts.color, fontWeight: 600 }}>{ts.label}</span>
+                          {task.prioridade && task.prioridade !== 'normal' && (
+                            <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 99, background: task.prioridade === 'alta' ? '#fee2e2' : '#f0fdf4', color: task.prioridade === 'alta' ? '#ef4444' : '#10b981', fontWeight: 600 }}>
+                              {task.prioridade === 'alta' ? '↑ Alta' : '↓ Baixa'}
+                            </span>
+                          )}
+                          <button onClick={() => { setEditingTask(true); setEditData({ titulo: task.titulo, area: task.area || 'adm', prazo: normDate(task.prazo) || '', responsavel_nome: task.responsavel_nome || '', prioridade: task.prioridade || 'normal', event_phase_id: task.event_phase_id }); }}
+                            style={{ fontSize: 10, padding: '2px 8px', borderRadius: 99, border: `1px solid ${C.border}`, background: 'transparent', cursor: 'pointer', color: C.t3, fontWeight: 500 }}>Editar</button>
+                        </div>
+                      </div>
+                      <button onClick={() => { setSelectedTask(null); setEditingTask(false); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: C.t3, padding: '4px 8px' }}>✕</button>
+                    </div>
+                    <div style={{ display: 'flex', gap: 16, fontSize: 12, color: C.t2 }}>
+                      <div><span style={{ fontWeight: 600 }}>Responsável:</span> {task.responsavel_nome || '—'}</div>
+                      {p && <div><span style={{ fontWeight: 600 }}>Prazo:</span> {fmtDate(p)} {daysColor && <span style={{ color: daysColor, fontWeight: 700 }}> ({diff < 0 ? `${Math.abs(diff)}d atrás` : diff === 0 ? 'Hoje' : `${diff}d`})</span>}</div>}
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: C.dark }}>Editar tarefa</span>
+                      <button onClick={() => setEditingTask(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: C.t3 }}>✕</button>
+                    </div>
+                    <input value={editData.titulo || ''} onChange={e => setEditData(d => ({ ...d, titulo: e.target.value }))} placeholder="Título"
+                      style={{ padding: '6px 10px', borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, fontWeight: 600, color: C.dark, background: 'var(--cbrio-input-bg, #fff)' }} />
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ fontSize: 10, fontWeight: 600, color: C.t3 }}>Fase</label>
+                        <select value={editData.event_phase_id || ''} onChange={e => setEditData(d => ({ ...d, event_phase_id: e.target.value }))}
+                          style={{ width: '100%', padding: '5px 8px', borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, color: C.dark, background: 'var(--cbrio-input-bg, #fff)' }}>
+                          {phases.map(ph => <option key={ph.id} value={ph.id}>F{ph.numero_fase} — {ph.nome_fase}</option>)}
+                        </select>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ fontSize: 10, fontWeight: 600, color: C.t3 }}>Área</label>
+                        <select value={editData.area || 'adm'} onChange={e => setEditData(d => ({ ...d, area: e.target.value }))}
+                          style={{ width: '100%', padding: '5px 8px', borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, color: C.dark, background: 'var(--cbrio-input-bg, #fff)' }}>
+                          <option value="adm">Administrativo</option><option value="marketing">Marketing</option>
+                          <option value="compras">Compras</option><option value="financeiro">Financeiro</option>
+                          <option value="manutencao">Manutenção</option><option value="limpeza">Limpeza</option><option value="cozinha">Cozinha</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ fontSize: 10, fontWeight: 600, color: C.t3 }}>Prazo</label>
+                        <input type="date" value={editData.prazo || ''} onChange={e => setEditData(d => ({ ...d, prazo: e.target.value }))}
+                          style={{ width: '100%', padding: '5px 8px', borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, color: C.dark, background: 'var(--cbrio-input-bg, #fff)', boxSizing: 'border-box' }} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ fontSize: 10, fontWeight: 600, color: C.t3 }}>Responsável</label>
+                        <input value={editData.responsavel_nome || ''} onChange={e => setEditData(d => ({ ...d, responsavel_nome: e.target.value }))} placeholder="Nome"
+                          style={{ width: '100%', padding: '5px 8px', borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, color: C.dark, background: 'var(--cbrio-input-bg, #fff)', boxSizing: 'border-box' }} />
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                      <button onClick={() => setEditingTask(false)} style={{ padding: '5px 12px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', cursor: 'pointer', fontSize: 11 }}>Cancelar</button>
+                      <button onClick={async () => {
+                        await api.updateTask(task.id, { titulo: editData.titulo, area: editData.area, prazo: editData.prazo || null, responsavel_nome: editData.responsavel_nome || null, event_phase_id: editData.event_phase_id });
+                        setEditingTask(false); load(); setSelectedTask(null);
+                      }} style={{ padding: '5px 12px', borderRadius: 6, border: 'none', background: C.accent, color: '#fff', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>Salvar</button>
                     </div>
                   </div>
-                  <button onClick={() => setSelectedTask(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: C.t3, padding: '4px 8px' }}>✕</button>
-                </div>
-
-                {/* Info rápida */}
-                <div style={{ display: 'flex', gap: 16, fontSize: 12, color: C.t2 }}>
-                  <div><span style={{ fontWeight: 600 }}>Responsável:</span> {task.responsavel_nome || '—'}</div>
-                  {p && <div><span style={{ fontWeight: 600 }}>Prazo:</span> {fmtDate(p)} {daysColor && <span style={{ color: daysColor, fontWeight: 700 }}> ({diff < 0 ? `${Math.abs(diff)}d atrás` : diff === 0 ? 'Hoje' : `${diff}d`})</span>}</div>}
-                </div>
+                )}
               </div>
 
               <div style={{ padding: '16px 24px' }}>
