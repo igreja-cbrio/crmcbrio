@@ -160,18 +160,24 @@ export default function AppShell() {
         className="flex items-center h-14 sm:h-16 px-4 sm:px-8 shrink-0 border-b z-30"
         style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}
       >
-        {/* Logo */}
-        <div className="flex items-center gap-2 sm:gap-3 mr-4 sm:mr-12 shrink-0">
-          <div className="flex items-center justify-center h-9 w-9 rounded-lg" style={{ background: '#00B39D', color: '#fff' }}>
+        {/* Logo — click to go to dashboard */}
+        <div
+          className="flex items-center gap-2.5 mr-4 sm:mr-12 shrink-0 cursor-pointer select-none group"
+          onClick={() => navigate('/')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={e => e.key === 'Enter' && navigate('/')}
+        >
+          <div className="flex items-center justify-center h-9 w-9 rounded-lg transition-transform group-hover:scale-105" style={{ background: '#00B39D' }}>
             <img
               src="/images/logo-cbrio.svg"
               alt="CBRio"
-              className="h-6 w-6"
+              className="h-5 w-5"
               style={{ filter: 'brightness(0) invert(1)' }}
             />
           </div>
-          <div className="flex flex-col leading-tight">
-            <span className="text-sm font-bold whitespace-nowrap" style={{ color: 'var(--cbrio-text)' }}>
+          <div className="hidden sm:flex flex-col leading-tight">
+            <span className="text-sm font-bold tracking-tight whitespace-nowrap" style={{ color: 'var(--cbrio-text)' }}>
               CBRio
             </span>
             <span className="text-[10px] font-medium whitespace-nowrap" style={{ color: 'var(--cbrio-text3)' }}>
@@ -314,12 +320,20 @@ export default function AppShell() {
 
           {/* User avatar + sign out */}
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#00B39D] text-white dark:text-[#0a0a0a] text-[11px] font-semibold shrink-0">
-              {initials}
-            </div>
-            <div className="hidden sm:block text-left min-w-0">
-              <p className="text-sm font-medium truncate leading-tight" style={{ color: 'var(--cbrio-text)' }}>{profile?.name || '—'}</p>
-              <p className="text-[10px] capitalize" style={{ color: 'var(--cbrio-text3)' }}>{profile?.role || ''}</p>
+            <div
+              className="flex items-center gap-2 cursor-pointer rounded-lg px-1.5 py-1 -mx-1.5 transition-colors hover:bg-accent"
+              onClick={() => navigate('/perfil')}
+              role="button"
+              tabIndex={0}
+              onKeyDown={e => e.key === 'Enter' && navigate('/perfil')}
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#00B39D] text-white dark:text-[#0a0a0a] text-[11px] font-semibold shrink-0">
+                {initials}
+              </div>
+              <div className="hidden sm:block text-left min-w-0">
+                <p className="text-sm font-medium truncate leading-tight" style={{ color: 'var(--cbrio-text)' }}>{profile?.name || '—'}</p>
+                <p className="text-[10px] capitalize" style={{ color: 'var(--cbrio-text3)' }}>{profile?.role || ''}</p>
+              </div>
             </div>
             <button
               onClick={handleSignOut}
