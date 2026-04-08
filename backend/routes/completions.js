@@ -162,6 +162,38 @@ router.post('/', async (req, res) => {
   }
 });
 
+// ── POST /api/completions/attach — adicionar arquivo(s) a uma tarefa já concluída ──
+router.post('/attach', async (req, res) => {
+  try {
+    const { task_id, event_id, phase_name, area, files } = req.body;
+    if (!task_id || !event_id || !files?.length) return res.status(400).json({ error: 'task_id, event_id e files são obrigatórios' });
+
+    const attachments = files.map(f => ({
+      cycle_task_id: task_id,
+      event_id,
+      file_name: f.file_name,
+      file_type: f.mime_type,
+      file_size: f.size || null,
+      sharepoint_url: f.file_url || null,
+      sharepoint_item_id: f.sharepoint_item_id || null,
+      phase_name: phase_name || null,
+      area: area || null,
+      uploaded_by: req.user.userId,
+      uploaded_by_name: req.user.name,
+    }));
+    const { data: inserted } = await supabase.from('event_task_attachments').insert(attachments).select('id, file_name, file_type, sharepoint_item_id, supabase_path');
+
+    if (inserted?.length > 0) {
+      generateDigestsInBackground(inserted).catch(e => console.error('[DIGEST BG]', e.message));
+    }
+
+    res.json({ success: true, filesCount: inserted?.length || 0 });
+  } catch (err) {
+    console.error('[COMPLETION ATTACH]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── GET /api/completions/task/:taskId — buscar conclusão + arquivos ──
 router.get('/task/:taskId', async (req, res) => {
   try {
