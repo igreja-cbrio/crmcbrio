@@ -114,19 +114,18 @@ export function CommandSearch() {
 
   if (!open) return null
 
-  // Group filtered items by category
-  const grouped: { category: string; items: SearchItem[] }[] = []
-  const categoryMap = new Map<string, SearchItem[]>()
+  // Build flat list with category headers for rendering
+  const renderItems: { type: 'header'; category: string }[] | { type: 'item'; item: SearchItem; flatIdx: number }[] = []
+  let lastCategory = ''
+  let flatIdx = 0
+  const items: Array<{ type: 'header'; category: string } | { type: 'item'; item: SearchItem; flatIdx: number }> = []
   for (const item of filtered) {
-    if (!categoryMap.has(item.category)) categoryMap.set(item.category, [])
-    categoryMap.get(item.category)!.push(item)
+    if (!query.trim() && item.category !== lastCategory) {
+      items.push({ type: 'header', category: item.category })
+      lastCategory = item.category
+    }
+    items.push({ type: 'item', item, flatIdx: flatIdx++ })
   }
-  for (const [category, items] of categoryMap) {
-    grouped.push({ category, items })
-  }
-
-  // Flat index tracking for keyboard nav
-  let flatIndex = 0
 
   return (
     <div className="fixed inset-0 z-50" onClick={handleClose}>
@@ -135,18 +134,25 @@ export function CommandSearch() {
 
       {/* Panel */}
       <div className="relative flex justify-center pt-[15vh] px-4" onClick={e => e.stopPropagation()}>
-        <div className="w-full max-w-[520px] rounded-2xl border border-border bg-background shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div
+          className="w-full max-w-[520px] rounded-2xl border shadow-2xl overflow-hidden"
+          style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}
+        >
           {/* Search input */}
-          <div className="flex items-center gap-3 px-4 h-13 border-b border-border">
-            <Search className="h-4 w-4 text-muted-foreground/60 shrink-0" />
+          <div className="flex items-center gap-3 px-4 border-b" style={{ borderColor: 'var(--cbrio-border)' }}>
+            <Search className="h-4 w-4 shrink-0" style={{ color: 'var(--cbrio-text3)' }} />
             <input
               ref={inputRef}
-              className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 outline-none py-4"
+              className="flex-1 bg-transparent text-sm outline-none py-3.5"
+              style={{ color: 'var(--cbrio-text)' }}
               placeholder="Buscar páginas, módulos..."
               value={query}
               onChange={e => setQuery(e.target.value)}
             />
-            <kbd className="hidden sm:inline-flex h-5 items-center rounded border border-border bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">
+            <kbd
+              className="hidden sm:inline-flex h-5 items-center rounded border px-1.5 text-[10px] font-medium"
+              style={{ borderColor: 'var(--cbrio-border)', color: 'var(--cbrio-text3)', background: 'var(--cbrio-bg)' }}
+            >
               ESC
             </kbd>
           </div>
@@ -154,56 +160,55 @@ export function CommandSearch() {
           {/* Results */}
           <div
             ref={listRef}
-            className="max-h-[min(360px,50vh)] overflow-y-auto py-2"
-            style={{ scrollbarWidth: 'none' }}
+            className="overflow-y-auto py-1"
+            style={{ maxHeight: 'min(360px, 50vh)', scrollbarWidth: 'none' }}
           >
             {filtered.length === 0 ? (
               <div className="px-5 py-10 text-center">
-                <p className="text-sm text-muted-foreground">Nenhum resultado encontrado</p>
+                <p className="text-sm" style={{ color: 'var(--cbrio-text3)' }}>Nenhum resultado encontrado</p>
               </div>
             ) : (
-              grouped.map((group) => (
-                <div key={group.category}>
-                  {/* Category header — only show when not searching */}
-                  {!query.trim() && (
-                    <div className="px-4 pt-3 pb-1.5">
-                      <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/50">
-                        {group.category}
+              items.map((entry, i) => {
+                if (entry.type === 'header') {
+                  return (
+                    <div key={`h-${entry.category}`} className="px-4 pt-3 pb-1">
+                      <span className="text-[11px] font-medium uppercase tracking-wider" style={{ color: 'var(--cbrio-text3)', opacity: 0.6 }}>
+                        {entry.category}
                       </span>
                     </div>
-                  )}
-                  {group.items.map((item) => {
-                    const currentIndex = flatIndex++
-                    const Icon = item.icon
-                    const isSelected = currentIndex === selectedIndex
-                    return (
-                      <button
-                        key={item.path}
-                        data-selected={isSelected}
-                        className={cn(
-                          "w-full flex items-center gap-3 px-4 py-2 text-left transition-colors duration-75 cursor-pointer",
-                          isSelected
-                            ? "bg-accent text-accent-foreground"
-                            : "text-foreground/80 hover:bg-accent/50"
-                        )}
-                        onClick={() => handleSelect(item)}
-                        onMouseEnter={() => setSelectedIndex(currentIndex)}
-                      >
-                        <div className={cn(
-                          "flex h-8 w-8 items-center justify-center rounded-lg shrink-0 transition-colors",
-                          isSelected ? "bg-primary/12 text-primary" : "bg-muted text-muted-foreground"
-                        )}>
-                          <Icon className="h-4 w-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[13px] font-medium leading-tight">{item.label}</div>
-                          <div className="text-[11px] text-muted-foreground/60 truncate">{item.description}</div>
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              ))
+                  )
+                }
+                const { item, flatIdx: idx } = entry
+                const Icon = item.icon
+                const isSelected = idx === selectedIndex
+                return (
+                  <button
+                    key={item.path}
+                    data-selected={isSelected}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-left transition-colors duration-75 cursor-pointer"
+                    style={{
+                      background: isSelected ? 'var(--cbrio-border)' : 'transparent',
+                      color: 'var(--cbrio-text)',
+                    }}
+                    onClick={() => handleSelect(item)}
+                    onMouseEnter={() => setSelectedIndex(idx)}
+                  >
+                    <div
+                      className="flex h-8 w-8 items-center justify-center rounded-lg shrink-0 transition-colors"
+                      style={{
+                        background: isSelected ? '#00B39D20' : 'var(--cbrio-bg)',
+                        color: isSelected ? '#00B39D' : 'var(--cbrio-text3)',
+                      }}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[13px] font-medium leading-tight">{item.label}</div>
+                      <div className="text-[11px] truncate" style={{ color: 'var(--cbrio-text3)' }}>{item.description}</div>
+                    </div>
+                  </button>
+                )
+              })
             )}
           </div>
         </div>
