@@ -197,11 +197,14 @@ export default function AppShell() {
           {/* Search */}
           <button
             onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
-            className="hidden sm:flex items-center gap-2 h-8 px-3 rounded-lg border border-border text-xs text-muted-foreground transition-colors hover:bg-accent cursor-pointer"
+            className="hidden sm:flex items-center gap-2 h-9 px-4 rounded-lg border text-sm transition-colors cursor-pointer"
+            style={{ borderColor: 'var(--cbrio-border)', color: 'var(--cbrio-text3)' }}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--cbrio-input-bg)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
           >
-            <Search className="h-3.5 w-3.5" />
+            <Search className="h-4 w-4" />
             <span>Buscar...</span>
-            <kbd className="ml-2 inline-flex h-5 items-center gap-0.5 rounded border border-border bg-muted px-1.5 text-[10px] font-medium">⌘K</kbd>
+            <kbd className="ml-2 inline-flex h-5 items-center gap-0.5 rounded border px-1.5 text-[10px] font-medium" style={{ borderColor: 'var(--cbrio-border)', color: 'var(--cbrio-text3)', background: 'var(--cbrio-input-bg)' }}>⌘K</kbd>
           </button>
 
           {/* Theme toggle */}
