@@ -4,12 +4,13 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { notificacoes as notifApi } from '../../api';
 import MegaMenu from '../ui/mega-menu';
+import { CommandSearch } from '../ui/command-search';
 import {
   Users, DollarSign, Truck, Tag,
   CalendarDays, FolderKanban, Map,
   UserCheck, UsersRound, Heart, HandHelping, BookOpen,
   Megaphone, BrainCircuit, ShoppingCart,
-  Sun, Moon, Bell, LogOut, Check,
+  Sun, Moon, Bell, LogOut, Check, Search,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -184,8 +185,18 @@ export default function AppShell() {
           <MegaMenu items={filteredNavItems} role={role} />
         </nav>
 
-        {/* Right side: theme toggle, notifications, user */}
+        {/* Right side: search, theme toggle, notifications, user */}
         <div className="flex items-center gap-3 shrink-0">
+          {/* Search */}
+          <button
+            onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
+            className="hidden sm:flex items-center gap-2 h-8 px-3 rounded-lg border border-border text-xs text-muted-foreground transition-colors hover:bg-accent cursor-pointer"
+          >
+            <Search className="h-3.5 w-3.5" />
+            <span>Buscar...</span>
+            <kbd className="ml-2 inline-flex h-5 items-center gap-0.5 rounded border border-border bg-muted px-1.5 text-[10px] font-medium">⌘K</kbd>
+          </button>
+
           {/* Theme toggle */}
           <button
             onClick={() => setIsDark(!isDark)}
@@ -331,6 +342,7 @@ export default function AppShell() {
           <Outlet />
         </div>
       </main>
+      <CommandSearch />
     </div>
   );
 }
