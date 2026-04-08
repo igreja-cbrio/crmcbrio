@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Users, Pencil, Trash2, Palmtree, X, Save, AlertTriangle, Download, UserPlus, Briefcase, Calendar, Search, Filter, Eye, Edit, MoreVertical } from 'lucide-react';
+import { Users, Pencil, Trash2, Palmtree, X, Save, AlertTriangle, Download, UserPlus, Briefcase, Calendar, Search, Filter, Eye, Edit, MoreVertical, LayoutDashboard, Network, FileSpreadsheet, Star, GraduationCap, Clock } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
+import { Tabs, TabsContent } from '../../../components/ui/tabs';
 import { useAuth } from '../../../contexts/AuthContext';
 import { rh, permissoes } from '../../../api';
 import { exportCSV, exportPDF } from '../../../lib/export';
@@ -182,6 +182,7 @@ function Badge({ status, map }) {
 // ── TABS ────────────────────────────────────────────────────
 const TABS = ['Dashboard', 'Colaboradores', 'Admissão', 'Organograma', 'Folha', 'Avaliações', 'Treinamentos', 'Férias/Licenças', 'Extras'];
 const TAB_KEYS = ['dashboard', 'colaboradores', 'admissao', 'organograma', 'folha', 'avaliacoes', 'treinamentos', 'ferias', 'extras'];
+const TAB_ICONS = [LayoutDashboard, Users, UserPlus, Network, FileSpreadsheet, Star, GraduationCap, Palmtree, Clock];
 
 // ═══════════════════════════════════════════════════════════
 // COMPONENTE PRINCIPAL
@@ -314,15 +315,19 @@ export default function RH() {
   return (
     <div className="w-full space-y-6" style={{ maxWidth: 1600, margin: '0 auto', padding: '0 24px' }}>
       {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-3" style={{ color: 'var(--cbrio-text)' }}>
-            <Users className="h-7 w-7" style={{ color: '#00B39D' }} />
-            Recursos Humanos
-          </h1>
-          <p className="mt-1 text-sm" style={{ color: 'var(--cbrio-text3)' }}>Gestão de colaboradores, treinamentos e férias</p>
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between pb-2">
+        <div className="flex items-center gap-3">
+          <div style={{ background: '#00B39D18', borderRadius: 10, padding: '8px 10px', display: 'flex', alignItems: 'center' }}>
+            <Users className="h-5 w-5" style={{ color: '#00B39D' }} />
+          </div>
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight" style={{ color: 'var(--cbrio-text)', lineHeight: 1.3 }}>
+              Recursos Humanos
+            </h1>
+            <p className="text-xs" style={{ color: 'var(--cbrio-text3)', marginTop: 1 }}>Colaboradores · Treinamentos · Férias</p>
+          </div>
         </div>
-        <Button className="gap-2" onClick={() => setModalFunc({})}>
+        <Button size="sm" className="gap-2" onClick={() => setModalFunc({})}>
           <UserPlus className="w-4 h-4" />
           Novo Colaborador
         </Button>
@@ -332,14 +337,35 @@ export default function RH() {
 
       {/* Tabs */}
       <Tabs value={tab} onValueChange={setTab}>
-        <div className="overflow-x-auto -mx-1 px-1">
-          <TabsList className="h-10 w-fit" style={{ background: 'var(--cbrio-input-bg)', padding: 4 }}>
-            {TABS.map((t, i) => (
-              <TabsTrigger key={TAB_KEYS[i]} value={TAB_KEYS[i]} className="px-3 text-xs sm:text-sm" style={{ borderRadius: 6 }}>
-                {t}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+        <div className="overflow-x-auto" style={{ borderBottom: '1px solid var(--cbrio-border)' }}>
+          <div style={{ display: 'flex', gap: 0, minWidth: 'max-content' }}>
+            {TABS.map((t, i) => {
+              const Icon = TAB_ICONS[i];
+              const active = tab === TAB_KEYS[i];
+              return (
+                <button
+                  key={TAB_KEYS[i]}
+                  onClick={() => setTab(TAB_KEYS[i])}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '10px 14px',
+                    fontSize: 13, fontWeight: active ? 600 : 500,
+                    cursor: 'pointer', border: 'none', background: 'none',
+                    color: active ? '#00B39D' : 'var(--cbrio-text2)',
+                    borderBottom: active ? '2px solid #00B39D' : '2px solid transparent',
+                    marginBottom: -1,
+                    transition: 'color 0.15s, border-color 0.15s',
+                    whiteSpace: 'nowrap',
+                  }}
+                  onMouseEnter={e => { if (!active) e.currentTarget.style.color = 'var(--cbrio-text)'; }}
+                  onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'var(--cbrio-text2)'; }}
+                >
+                  {Icon && <Icon style={{ width: 14, height: 14, flexShrink: 0 }} />}
+                  {t}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <TabsContent value="dashboard">
