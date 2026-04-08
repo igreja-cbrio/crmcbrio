@@ -553,13 +553,45 @@ export default function CycleView({ eventId, eventName }) {
                       <input type="checkbox" checked={sub.done} onChange={async () => {
                         await api.updateSubtask(sub.id, { done: !sub.done });
                         load();
-                        // Atualizar selectedTask
                         const updated = { ...task, subtasks: subs.map(s => s.id === sub.id ? { ...s, done: !s.done } : s) };
                         setSelectedTask(updated);
                       }} style={{ cursor: 'pointer', width: 16, height: 16, accentColor: C.accent }} />
-                      <span style={{ fontSize: 13, color: C.dark, ...(sub.done ? { textDecoration: 'line-through', color: C.t3 } : {}) }}>{sub.name}</span>
+                      <span style={{ flex: 1, fontSize: 13, color: C.dark, ...(sub.done ? { textDecoration: 'line-through', color: C.t3 } : {}) }}>{sub.name}</span>
+                      <button onClick={async () => {
+                        await api.deleteSubtask(sub.id);
+                        load();
+                        setSelectedTask({ ...task, subtasks: subs.filter(s => s.id !== sub.id) });
+                      }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.t3, padding: 0, lineHeight: 1 }} title="Excluir subtarefa">
+                        <span style={{ fontSize: 14 }}>✕</span>
+                      </button>
                     </div>
                   ))}
+                  {/* Adicionar subtarefa */}
+                  <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                    <input
+                      id="new-subtask-input"
+                      type="text" placeholder="Nova subtarefa..."
+                      onKeyDown={async (e) => {
+                        if (e.key === 'Enter' && e.target.value.trim()) {
+                          const name = e.target.value.trim();
+                          e.target.value = '';
+                          const newSub = await api.createSubtask(task.id, name);
+                          load();
+                          setSelectedTask({ ...task, subtasks: [...subs, newSub] });
+                        }
+                      }}
+                      style={{ flex: 1, padding: '5px 8px', borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, color: C.dark, background: 'var(--cbrio-input-bg, #fff)' }}
+                    />
+                    <button onClick={async () => {
+                      const input = document.getElementById('new-subtask-input');
+                      if (!input?.value.trim()) return;
+                      const name = input.value.trim();
+                      input.value = '';
+                      const newSub = await api.createSubtask(task.id, name);
+                      load();
+                      setSelectedTask({ ...task, subtasks: [...subs, newSub] });
+                    }} style={{ padding: '5px 10px', borderRadius: 6, border: 'none', background: C.accent, color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>+</button>
+                  </div>
                 </div>
 
                 {/* ── Observações ── */}
@@ -584,7 +616,10 @@ export default function CycleView({ eventId, eventName }) {
 
                 {/* ── Ações ── */}
                 <div style={{ display: 'flex', gap: 8, paddingTop: 16, borderTop: '1px solid var(--cbrio-border)', justifyContent: 'flex-end' }}>
-                  <button onClick={async () => { await handleDeleteTask(task.id); setSelectedTask(null); }}
+                  <button onClick={async () => {
+                    if (!window.confirm(`Excluir o card "${task.titulo}"? Esta ação não pode ser desfeita.`)) return;
+                    await handleDeleteTask(task.id); setSelectedTask(null);
+                  }}
                     style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#ef4444', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
                     Excluir
                   </button>

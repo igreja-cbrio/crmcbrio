@@ -383,6 +383,28 @@ router.post('/tasks', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// POST /api/cycles/tasks/:taskId/subtasks — criar subtarefa
+router.post('/tasks/:taskId/subtasks', async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name) return res.status(400).json({ error: 'name é obrigatório' });
+    const { data: maxSort } = await supabase.from('cycle_task_subtasks')
+      .select('sort_order').eq('task_id', req.params.taskId).order('sort_order', { ascending: false }).limit(1).maybeSingle();
+    const { data, error } = await supabase.from('cycle_task_subtasks')
+      .insert({ task_id: req.params.taskId, name, done: false, sort_order: (maxSort?.sort_order || 0) + 1 }).select().single();
+    if (error) throw error;
+    res.json(data);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// DELETE /api/cycles/subtasks/:subId — excluir subtarefa
+router.delete('/subtasks/:subId', async (req, res) => {
+  try {
+    await supabase.from('cycle_task_subtasks').delete().eq('id', req.params.subId);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // PATCH /api/cycles/subtasks/:subId — toggle subtarefa done
 router.patch('/subtasks/:subId', async (req, res) => {
   try {
