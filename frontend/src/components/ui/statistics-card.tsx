@@ -28,7 +28,7 @@ function StatisticsCard({
     <div
       data-slot="statistics-card"
       className={cn(
-        "group relative flex flex-col rounded-xl border border-border/60 overflow-hidden shadow-sm transition-all duration-200",
+        "group relative flex flex-col rounded-xl border border-border/40 shadow-sm transition-all duration-200",
         onClick && "cursor-pointer hover:-translate-y-0.5 hover:shadow-md",
         className,
       )}
@@ -94,7 +94,7 @@ function StatisticsCard({
 
 function StatisticsCardSkeleton({ className }: { className?: string }) {
   return (
-    <div className={cn("flex flex-col bg-card rounded-xl border border-border/60 overflow-hidden shadow-sm", className)}>
+    <div className={cn("flex flex-col bg-card rounded-xl border border-border/40 shadow-sm", className)}>
       <div className="flex items-start justify-between px-5 pt-5 pb-4">
         <div className="flex-1 space-y-2.5">
           <div className="h-3 w-20 bg-muted rounded animate-pulse" />
