@@ -2,13 +2,13 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { notificacoes as notifApi, rh, financeiro, patrimonio, logistica } from '../api';
-import { NumberTicker } from '../components/ui/number-ticker';
+import { StatisticsCard } from '../components/ui/statistics-card';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import {
   Users, DollarSign, CalendarDays, FolderKanban,
   Truck, Tag, BookOpen, ShoppingCart, Bell, ArrowRight,
-  TrendingUp, TrendingDown, Clock, AlertTriangle,
-  Package, ChevronRight, Sparkles,
-  Activity,
+  Clock, AlertTriangle, Package, ChevronRight, Sparkles,
+  Activity, LayoutGrid,
 } from 'lucide-react';
 
 /* ── Quick-access modules ──────────────────────── */
@@ -22,49 +22,6 @@ const MODULES = [
   { label: 'Membresia', desc: 'Membros e famílias', icon: BookOpen, path: '/ministerial/membresia', color: '#00B39D', perm: 'canMembresia' },
   { label: 'Solicitar Compra', desc: 'Peça materiais', icon: ShoppingCart, path: '/solicitar-compra', color: '#ec4899' },
 ];
-
-/* ── KPI card component (statistics-card style) ── */
-function KpiCard({ icon: Icon, label, value, prefix, suffix, color, trend, trendLabel, onClick, delay = 0 }) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex flex-col bg-card text-card-foreground rounded-xl border border-border shadow-xs text-left transition-all hover:shadow-md hover:-translate-y-px cursor-pointer w-full"
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 pt-4 pb-1">
-        <span className="text-muted-foreground text-[11px] font-medium uppercase tracking-wider">{label}</span>
-        <Icon className="size-4 shrink-0" style={{ color }} />
-      </div>
-      {/* Value */}
-      <div className="px-4 pb-4 space-y-1">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl font-semibold text-foreground tracking-tight">
-            {value !== null && value !== undefined ? (
-              <NumberTicker value={value} prefix={prefix} suffix={suffix} delay={delay} />
-            ) : (
-              <span className="inline-block w-14 h-6 rounded animate-pulse bg-muted" />
-            )}
-          </span>
-          {trend !== undefined && (
-            <span
-              className="inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[10px] font-semibold"
-              style={{
-                background: trend >= 0 ? 'var(--color-green-100, #dcfce7)' : 'var(--color-red-50, #fef2f2)',
-                color: trend >= 0 ? 'var(--color-green-700, #15803d)' : 'var(--color-red-700, #b91c1c)',
-              }}
-            >
-              {trend >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-              {trend >= 0 ? '+' : ''}{trend}%
-            </span>
-          )}
-        </div>
-        {trendLabel && (
-          <div className="text-[11px] text-muted-foreground border-t border-border pt-2">{trendLabel}</div>
-        )}
-      </div>
-    </button>
-  );
-}
 
 /* ── Notification item ─────────────────────────── */
 const SEV_COLORS = { urgente: '#ef4444', aviso: '#f59e0b', info: '#00B39D' };
@@ -87,10 +44,7 @@ function NotifItem({ n, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="flex items-start gap-2.5 w-full text-left px-4 py-3 transition-colors rounded-lg group cursor-pointer"
-      style={{ background: n.lida ? 'transparent' : `${sevColor}06` }}
-      onMouseEnter={e => e.currentTarget.style.background = 'var(--cbrio-input-bg)'}
-      onMouseLeave={e => e.currentTarget.style.background = n.lida ? 'transparent' : `${sevColor}06`}
+      className="flex items-start gap-2.5 w-full text-left px-4 py-3 transition-colors hover:bg-muted/50 rounded-lg group cursor-pointer"
     >
       <div
         className="w-2 h-2 rounded-full mt-1.5 shrink-0"
@@ -104,18 +58,18 @@ function NotifItem({ n, onClick }) {
           >
             {MOD_LABELS[n.modulo] || n.modulo}
           </span>
-          <span className="text-[10px] ml-auto shrink-0" style={{ color: 'var(--cbrio-text3)' }}>
+          <span className="text-[10px] text-muted-foreground ml-auto shrink-0">
             {timeAgo}
           </span>
         </div>
-        <p className="text-[13px] leading-snug" style={{ color: 'var(--cbrio-text)', fontWeight: n.lida ? 400 : 600 }}>
+        <p className={`text-[13px] leading-snug text-foreground ${n.lida ? 'font-normal' : 'font-semibold'}`}>
           {n.titulo}
         </p>
-        <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: 'var(--cbrio-text2)' }}>
+        <p className="text-[11px] mt-0.5 leading-relaxed text-muted-foreground">
           {n.mensagem}
         </p>
       </div>
-      <ChevronRight className="w-3.5 h-3.5 mt-1.5 shrink-0 opacity-0 group-hover:opacity-60 transition-opacity" style={{ color: 'var(--cbrio-text3)' }} />
+      <ChevronRight className="w-3.5 h-3.5 mt-1.5 shrink-0 opacity-0 group-hover:opacity-60 transition-opacity text-muted-foreground" />
     </button>
   );
 }
@@ -163,37 +117,40 @@ export default function Dashboard() {
 
   if (rhData) {
     kpis.push(
-      { icon: Users, label: 'Colaboradores ativos', value: rhData.ativos ?? rhData.total ?? 0, color: '#8b5cf6', path: '/admin/rh', delay: 0 },
+      { title: 'Colaboradores Ativos', value: rhData.ativos ?? rhData.total ?? 0, icon: Users, iconColor: '#8b5cf6', path: '/admin/rh' },
     );
     if (rhData.ferias > 0) kpis.push(
-      { icon: Clock, label: 'Em férias', value: rhData.ferias, color: '#f59e0b', path: '/admin/rh', delay: 0.1 },
+      { title: 'Em Férias', value: rhData.ferias, icon: Clock, iconColor: '#f59e0b', path: '/admin/rh' },
     );
   }
 
   if (finData) {
+    const saldo = finData.saldo ?? finData.saldoTotal ?? 0;
     kpis.push(
-      { icon: DollarSign, label: 'Saldo total', value: finData.saldo ?? finData.saldoTotal ?? 0, prefix: 'R$ ', color: '#10b981', path: '/admin/financeiro', delay: 0.15 },
+      { title: 'Saldo Total', value: `R$ ${Number(saldo).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}`, icon: DollarSign, iconColor: '#10b981', path: '/admin/financeiro' },
     );
-    if ((finData.contasVencendo ?? finData.contas_vencendo ?? 0) > 0) kpis.push(
-      { icon: AlertTriangle, label: 'Contas vencendo', value: finData.contasVencendo ?? finData.contas_vencendo ?? 0, color: '#ef4444', path: '/admin/financeiro', delay: 0.2 },
+    const vencendo = finData.contasVencendo ?? finData.contas_vencendo ?? 0;
+    if (vencendo > 0) kpis.push(
+      { title: 'Contas Vencendo', value: vencendo, icon: AlertTriangle, iconColor: '#ef4444', path: '/admin/financeiro' },
     );
   }
 
   if (patData) {
     kpis.push(
-      { icon: Package, label: 'Bens cadastrados', value: patData.total ?? 0, color: '#6366f1', path: '/admin/patrimonio', delay: 0.25 },
+      { title: 'Bens Cadastrados', value: patData.total ?? 0, icon: Package, iconColor: '#6366f1', path: '/admin/patrimonio' },
     );
   }
 
   if (logData) {
-    if ((logData.pedidosPendentes ?? logData.pedidos_pendentes ?? 0) > 0) kpis.push(
-      { icon: Truck, label: 'Pedidos pendentes', value: logData.pedidosPendentes ?? logData.pedidos_pendentes ?? 0, color: '#ef4444', path: '/admin/logistica', delay: 0.3 },
+    const pendentes = logData.pedidosPendentes ?? logData.pedidos_pendentes ?? 0;
+    if (pendentes > 0) kpis.push(
+      { title: 'Pedidos Pendentes', value: pendentes, icon: Truck, iconColor: '#ef4444', path: '/admin/logistica' },
     );
   }
 
   if (unread.length > 0) {
     kpis.push(
-      { icon: Bell, label: 'Notificações não lidas', value: unread.length, color: '#00B39D', delay: 0.1 },
+      { title: 'Notificações', value: unread.length, icon: Bell, iconColor: '#00B39D' },
     );
   }
 
@@ -201,90 +158,116 @@ export default function Dashboard() {
   const dateStr = today.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
   return (
-    <div style={{ maxWidth: 1400, margin: '0 auto', padding: '0 24px' }}>
+    <div className="max-w-[1400px] mx-auto px-6 space-y-6">
       {/* ── Hero greeting ────────────────────────── */}
-      <div className="relative overflow-hidden rounded-xl border mb-5" style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}>
-        {/* Decorative gradient */}
-        <div className="absolute inset-0 opacity-[0.03]" style={{
-          background: 'radial-gradient(ellipse at top right, #00B39D, transparent 60%), radial-gradient(ellipse at bottom left, #8b5cf6, transparent 60%)',
+      <div className="relative overflow-hidden rounded-2xl border border-border bg-card">
+        {/* Decorative gradient mesh */}
+        <div className="absolute inset-0 opacity-[0.04]" style={{
+          background: 'radial-gradient(ellipse 80% 50% at 20% 120%, #00B39D, transparent), radial-gradient(ellipse 60% 80% at 80% -20%, #8b5cf6, transparent)',
         }} />
-        <div className="relative px-6 py-5 sm:px-8 sm:py-6">
-          <p className="text-xs font-medium uppercase tracking-wide mb-1" style={{ color: 'var(--cbrio-text3)' }}>
-            {dateStr}
-          </p>
-          <h1 className="text-xl sm:text-2xl font-bold" style={{ color: 'var(--cbrio-text)' }}>
-            {greeting}, {firstName}
-          </h1>
-          <p className="text-sm mt-1" style={{ color: 'var(--cbrio-text2)' }}>
-            Aqui está o resumo do seu dia no CBRio ERP.
-          </p>
+        <div className="absolute top-0 right-0 w-64 h-64 opacity-[0.02]" style={{
+          background: 'radial-gradient(circle, #00B39D, transparent 70%)',
+        }} />
+        <div className="relative px-6 py-6 sm:px-8 sm:py-7 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground mb-1.5">
+              {dateStr}
+            </p>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+              {greeting}, {firstName}
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Resumo do seu dia no CBRio ERP
+            </p>
+          </div>
+          {/* Quick stats inline */}
+          {!loading && (rhData || finData) && (
+            <div className="flex items-center gap-4 sm:gap-6">
+              {rhData && (
+                <div className="text-center">
+                  <div className="text-lg font-bold text-foreground tabular-nums">{rhData.ativos ?? rhData.total ?? 0}</div>
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wide">colaboradores</div>
+                </div>
+              )}
+              {finData && (
+                <div className="text-center">
+                  <div className="text-lg font-bold text-foreground tabular-nums">
+                    R$ {Number(finData.saldo ?? finData.saldoTotal ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 0, notation: 'compact' })}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wide">saldo</div>
+                </div>
+              )}
+              {unread.length > 0 && (
+                <div className="text-center">
+                  <div className="text-lg font-bold text-primary tabular-nums">{unread.length}</div>
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wide">alertas</div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
       {/* ── KPI Cards ────────────────────────────── */}
       {kpis.length > 0 && (
-        <div className="mb-5">
+        <div>
           <div className="flex items-center gap-2 mb-3">
-            <Activity className="w-4 h-4" style={{ color: '#00B39D' }} />
-            <h2 className="text-sm font-semibold" style={{ color: 'var(--cbrio-text)' }}>Visão Geral</h2>
+            <Activity className="w-4 h-4 text-primary" />
+            <h2 className="text-sm font-semibold text-foreground">Visão Geral</h2>
           </div>
-          <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
+          <div className="cbrio-stagger grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
             {kpis.map((kpi, i) => (
-              <KpiCard
+              <StatisticsCard
                 key={i}
-                icon={kpi.icon}
-                label={kpi.label}
+                title={kpi.title}
                 value={kpi.value}
-                prefix={kpi.prefix}
-                suffix={kpi.suffix}
-                color={kpi.color}
-                trend={kpi.trend}
-                trendLabel={kpi.trendLabel}
+                icon={kpi.icon}
+                iconColor={kpi.iconColor}
                 onClick={kpi.path ? () => navigate(kpi.path) : undefined}
-                delay={kpi.delay}
               />
             ))}
           </div>
         </div>
       )}
 
+      {/* ── Loading skeleton ──────────────────────── */}
+      {loading && (
+        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-[88px] rounded-xl bg-muted animate-pulse" />
+          ))}
+        </div>
+      )}
+
       {/* ── Main content grid ────────────────────── */}
-      <div className="grid gap-5" style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 380px)' }}>
+      <div className="grid gap-5 lg:grid-cols-[1fr_380px]">
 
         {/* Left column — Quick access */}
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <Sparkles className="w-4 h-4" style={{ color: '#00B39D' }} />
-            <h2 className="text-sm font-semibold" style={{ color: 'var(--cbrio-text)' }}>Acesso Rápido</h2>
+            <LayoutGrid className="w-4 h-4 text-primary" />
+            <h2 className="text-sm font-semibold text-foreground">Acesso Rápido</h2>
           </div>
-          <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
+          <div className="grid gap-2.5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
             {links.map(link => {
               const Icon = link.icon;
               return (
                 <button
                   key={link.path}
                   onClick={() => navigate(link.path)}
-                  className="group flex items-center gap-3 rounded-xl border text-left transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-pointer w-full"
-                  style={{
-                    background: 'var(--cbrio-card)',
-                    borderColor: 'var(--cbrio-border)',
-                    padding: '12px 16px',
-                  }}
+                  className="group flex items-center gap-3 rounded-xl border border-border bg-card text-left transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-pointer w-full p-3.5"
                 >
                   <div
-                    className="flex items-center justify-center w-9 h-9 rounded-lg shrink-0 transition-transform group-hover:scale-110"
+                    className="flex items-center justify-center size-10 rounded-lg shrink-0 transition-transform group-hover:scale-110"
                     style={{ background: `${link.color}12` }}
                   >
-                    <Icon className="w-[18px] h-[18px]" style={{ color: link.color }} />
+                    <Icon className="size-[18px]" style={{ color: link.color }} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-semibold" style={{ color: 'var(--cbrio-text)' }}>{link.label}</div>
-                    <div className="text-[11px]" style={{ color: 'var(--cbrio-text3)' }}>{link.desc}</div>
+                    <div className="text-[13px] font-semibold text-foreground">{link.label}</div>
+                    <div className="text-[11px] text-muted-foreground">{link.desc}</div>
                   </div>
-                  <ArrowRight
-                    className="w-3.5 h-3.5 shrink-0 opacity-0 group-hover:opacity-60 transition-all group-hover:translate-x-0.5"
-                    style={{ color: 'var(--cbrio-text3)' }}
-                  />
+                  <ArrowRight className="size-3.5 shrink-0 opacity-0 group-hover:opacity-60 transition-all group-hover:translate-x-0.5 text-muted-foreground" />
                 </button>
               );
             })}
@@ -295,72 +278,67 @@ export default function Dashboard() {
         <div>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <Bell className="w-4 h-4" style={{ color: '#00B39D' }} />
-              <h2 className="text-sm font-semibold" style={{ color: 'var(--cbrio-text)' }}>
+              <Bell className="w-4 h-4 text-primary" />
+              <h2 className="text-sm font-semibold text-foreground">
                 Atividade Recente
               </h2>
               {unread.length > 0 && (
-                <span
-                  className="flex items-center justify-center h-5 min-w-5 rounded-full text-[10px] font-bold px-1.5"
-                  style={{ background: '#00B39D', color: '#fff' }}
-                >
+                <span className="flex items-center justify-center h-5 min-w-5 rounded-full text-[10px] font-bold px-1.5 bg-primary text-primary-foreground">
                   {unread.length}
                 </span>
               )}
             </div>
           </div>
-          <div
-            className="rounded-xl border overflow-hidden"
-            style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}
-          >
-            {loading ? (
-              <div className="p-6 space-y-4">
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className="flex items-start gap-3">
-                    <div className="w-2 h-2 rounded-full mt-1.5 animate-pulse" style={{ background: 'var(--cbrio-border)' }} />
-                    <div className="flex-1 space-y-2">
-                      <div className="h-3 rounded animate-pulse w-16" style={{ background: 'var(--cbrio-border)' }} />
-                      <div className="h-4 rounded animate-pulse w-3/4" style={{ background: 'var(--cbrio-border)' }} />
-                      <div className="h-3 rounded animate-pulse w-1/2" style={{ background: 'var(--cbrio-border)' }} />
+          <Card className="py-0 gap-0 overflow-hidden">
+            <CardContent className="p-0">
+              {loading ? (
+                <div className="p-5 space-y-4">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="flex items-start gap-3">
+                      <div className="w-2 h-2 rounded-full mt-1.5 animate-pulse bg-muted" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-3 rounded animate-pulse w-16 bg-muted" />
+                        <div className="h-4 rounded animate-pulse w-3/4 bg-muted" />
+                        <div className="h-3 rounded animate-pulse w-1/2 bg-muted" />
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            ) : notifs.length === 0 ? (
-              <div className="p-8 text-center">
-                <Bell className="w-8 h-8 mx-auto mb-2 opacity-20" style={{ color: 'var(--cbrio-text3)' }} />
-                <p className="text-sm" style={{ color: 'var(--cbrio-text3)' }}>Nenhuma notificação recente</p>
-              </div>
-            ) : (
-              <div className="divide-y" style={{ borderColor: 'var(--cbrio-border)' }}>
-                <div className="max-h-[420px] overflow-y-auto py-1">
-                  {notifs.slice(0, 10).map(n => (
-                    <NotifItem
-                      key={n.id}
-                      n={n}
-                      onClick={() => {
-                        if (n.link) navigate(n.link);
-                      }}
-                    />
                   ))}
                 </div>
-                {notifs.length > 10 && (
-                  <div className="p-3 text-center">
-                    <button
-                      onClick={() => navigate('/admin/notificacao-regras')}
-                      className="text-xs font-medium transition-colors cursor-pointer"
-                      style={{ color: '#00B39D' }}
-                    >
-                      Ver todas as notificações →
-                    </button>
+              ) : notifs.length === 0 ? (
+                <div className="p-10 text-center">
+                  <div className="size-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
+                    <Bell className="size-5 text-muted-foreground" />
                   </div>
-                )}
-              </div>
-            )}
-          </div>
+                  <p className="text-sm font-medium text-foreground mb-1">Tudo em dia</p>
+                  <p className="text-xs text-muted-foreground">Nenhuma notificação recente</p>
+                </div>
+              ) : (
+                <>
+                  <div className="max-h-[460px] overflow-y-auto py-1">
+                    {notifs.slice(0, 12).map(n => (
+                      <NotifItem
+                        key={n.id}
+                        n={n}
+                        onClick={() => { if (n.link) navigate(n.link); }}
+                      />
+                    ))}
+                  </div>
+                  {notifs.length > 12 && (
+                    <div className="p-3 text-center border-t border-border">
+                      <button
+                        onClick={() => navigate('/admin/notificacao-regras')}
+                        className="text-xs font-medium text-primary hover:text-primary/80 transition-colors cursor-pointer"
+                      >
+                        Ver todas as notificações →
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
-
     </div>
   );
 }

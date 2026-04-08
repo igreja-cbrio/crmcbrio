@@ -1,26 +1,19 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Users, Pencil, Trash2, Palmtree, X, Save, AlertTriangle, Download, UserPlus, Briefcase, Calendar, Search, Filter, Eye, Edit, MoreVertical } from 'lucide-react';
+import { Users, Pencil, Trash2, Palmtree, X, Save, AlertTriangle, Download, UserPlus, Briefcase, Calendar, Search, Filter, Eye, Edit, MoreVertical, LayoutDashboard, Network, Receipt, Star, Clock, CalendarDays } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { StatisticsCard } from '../../../components/ui/statistics-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
+import { ScrollArea, ScrollBar } from '../../../components/ui/scroll-area';
 import { useAuth } from '../../../contexts/AuthContext';
 import { rh, permissoes } from '../../../api';
 import { exportCSV, exportPDF } from '../../../lib/export';
 import { supabase } from '../../../supabaseClient';
+import { C, fmtDate, fmtMoney, TIPO_CONTRATO, TIPO_FERIAS, FERIAS_STATUS } from '../../../lib/theme';
 import TabAdmissao from './TabAdmissao';
 import TabFolha from './TabFolha';
 import TabAvaliacoes from './TabAvaliacoes';
 import TabExtras from './TabExtras';
-
-// ── Tema ────────────────────────────────────────────────────
-const C = {
-  bg: 'var(--cbrio-bg)', card: 'var(--cbrio-card)', primary: 'var(--cbrio-primary, #00B39D)', primaryBg: '#00B39D18',
-  text: 'var(--cbrio-text)', text2: 'var(--cbrio-text2)', text3: 'var(--cbrio-text3)',
-  border: 'var(--cbrio-border)', green: '#10b981', greenBg: '#10b98118',
-  red: '#ef4444', redBg: '#ef444418', amber: '#f59e0b', amberBg: '#f59e0b18',
-  blue: '#3b82f6', blueBg: '#3b82f618',
-};
 
 // ── Toast de feedback ───────────────────────────────────────
 function Toast({ message, type = 'error', onClose }) {
@@ -28,9 +21,12 @@ function Toast({ message, type = 'error', onClose }) {
   const colors = { error: { bg: '#ef444418', border: '#ef444450', text: '#ef4444' }, success: { bg: '#10b98118', border: '#10b98150', text: '#10b981' }, warning: { bg: '#f59e0b18', border: '#f59e0b50', text: '#f59e0b' } };
   const c = colors[type] || colors.error;
   return (
-    <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 9999, background: 'var(--cbrio-card)', border: `1px solid ${c.border}`, borderLeft: `4px solid ${c.text}`, borderRadius: 10, padding: '12px 16px', maxWidth: 400, boxShadow: '0 8px 30px rgba(0,0,0,0.3)', animation: 'slideInRight 0.25s ease-out', display: 'flex', alignItems: 'center', gap: 10 }}>
-      <div style={{ flex: 1, fontSize: 13, color: c.text, fontWeight: 500 }}>{message}</div>
-      <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--cbrio-text3)', fontSize: 16 }}>✕</button>
+    <div className="fixed top-5 right-5 z-[9999] flex items-center gap-2.5 rounded-xl border bg-card p-3 pr-4 shadow-lg max-w-[400px]"
+      style={{ borderLeft: `4px solid ${c.text}`, borderColor: c.border, animation: 'slideInRight 0.25s ease-out' }}>
+      <div className="flex-1 text-[13px] font-medium" style={{ color: c.text }}>{message}</div>
+      <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+        <X className="h-3.5 w-3.5" />
+      </button>
     </div>
   );
 }
@@ -39,11 +35,11 @@ function Toast({ message, type = 'error', onClose }) {
 function ConfirmDialog({ message, onConfirm, onCancel }) {
   if (!message) return null;
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)' }}>
-      <div style={{ background: 'var(--cbrio-modal-bg)', borderRadius: 16, padding: 28, maxWidth: 400, boxShadow: '0 20px 60px rgba(0,0,0,0.3)', textAlign: 'center' }}>
-        <AlertTriangle style={{ width: 36, height: 36, color: '#f59e0b', margin: '0 auto 12px' }} />
-        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--cbrio-text)', marginBottom: 20 }}>{message}</div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50">
+      <div className="bg-popover rounded-2xl p-7 max-w-[400px] shadow-2xl text-center" style={{ animation: 'cbrio-modal-center-in 0.2s ease-out' }}>
+        <AlertTriangle className="w-9 h-9 mx-auto mb-3 text-warning" />
+        <div className="text-[15px] font-semibold text-foreground mb-5">{message}</div>
+        <div className="flex gap-2.5 justify-center">
           <Button variant="ghost" onClick={onCancel}>Cancelar</Button>
           <Button variant="destructive" onClick={onConfirm}>Confirmar</Button>
         </div>
@@ -52,106 +48,40 @@ function ConfirmDialog({ message, onConfirm, onCancel }) {
   );
 }
 
+// Legacy compat maps (local uses { c, bg, label } shape)
 const STATUS_COLORS = {
   ativo: { c: C.green, bg: C.greenBg, label: 'Ativo' },
-  inativo: { c: C.text3, bg: 'var(--cbrio-text3-bg, #73737318)', label: 'Inativo' },
+  inativo: { c: '#737373', bg: '#73737318', label: 'Inativo' },
   ferias: { c: C.blue, bg: C.blueBg, label: 'Férias' },
   licenca: { c: C.amber, bg: C.amberBg, label: 'Licença' },
 };
 
-const TIPO_CONTRATO = {
-  clt: 'CLT', pj: 'PJ', voluntario: 'Voluntário', estagiario: 'Estagiário',
-};
-
-const TIPO_FERIAS = {
-  ferias: 'Férias', licenca_medica: 'Licença Médica',
-  licenca_maternidade: 'Lic. Maternidade', licenca_paternidade: 'Lic. Paternidade', outro: 'Outro',
-};
-
-const FERIAS_STATUS = {
-  pendente: { c: C.amber, bg: C.amberBg, label: 'Pendente' },
-  aprovado: { c: C.green, bg: C.greenBg, label: 'Aprovado' },
-  rejeitado: { c: C.red, bg: C.redBg, label: 'Rejeitado' },
-};
-
-// ── Estilos ─────────────────────────────────────────────────
+// ── Shared inline styles (kept for backward compat, gradually migrate to Tailwind) ──
 const styles = {
-  page: { maxWidth: 1600, margin: '0 auto', padding: '0 24px' },
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 },
-  title: { fontSize: 20, fontWeight: 700, color: C.text, letterSpacing: '-0.025em', lineHeight: 1.25 },
-  subtitle: { fontSize: 14, color: C.text2, marginTop: 2, lineHeight: 1.5 },
-  tabs: { display: 'flex', gap: 0, borderBottom: `2px solid ${C.border}`, marginBottom: 24 },
-  tab: (active) => ({
-    padding: '12px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer', border: 'none', background: 'none',
-    color: active ? C.primary : C.text2,
-    borderBottom: active ? `2px solid ${C.primary}` : '2px solid transparent',
-    marginBottom: -2, transition: 'all 0.15s',
-  }),
-  kpiGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 24 },
-  kpi: (color) => ({
-    background: C.card, borderRadius: 12, padding: 16, border: `1px solid ${C.border}`,
-    borderLeft: `4px solid ${color}`, boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-  }),
-  kpiValue: { fontSize: 20, fontWeight: 700, color: C.text, lineHeight: 1.25 },
-  kpiLabel: { fontSize: 12, fontWeight: 600, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 },
-  card: {
-    background: C.card, borderRadius: 12, border: `1px solid ${C.border}`,
-    boxShadow: '0 1px 2px rgba(0,0,0,0.05)', overflow: 'hidden',
-  },
-  cardHeader: { padding: 16, borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  cardTitle: { fontSize: 14, fontWeight: 600, color: C.text, lineHeight: 1.5 },
   table: { width: '100%', borderCollapse: 'collapse' },
-  th: { padding: '12px 16px', fontSize: 12, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'left', borderBottom: `1px solid ${C.border}`, background: 'var(--cbrio-table-header)' },
-  td: { padding: '12px 16px', fontSize: 14, color: C.text, borderBottom: `1px solid ${C.border}`, lineHeight: 1.5 },
-  badge: (color, bg) => ({
-    display: 'inline-block', padding: '2px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600,
-    color, background: bg,
-  }),
-  btn: (variant = 'primary') => ({
-    padding: '8px 16px', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', border: 'none',
-    transition: 'all 0.15s',
-    ...(variant === 'primary' ? { background: C.primary, color: '#fff' } : {}),
-    ...(variant === 'secondary' ? { background: 'transparent', color: C.primary, border: `1px solid ${C.primary}` } : {}),
-    ...(variant === 'danger' ? { background: C.red, color: '#fff' } : {}),
-    ...(variant === 'ghost' ? { background: 'transparent', color: C.text2, padding: '6px 12px' } : {}),
-  }),
-  btnSm: { padding: '4px 10px', fontSize: 12 },
-  filterRow: { display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' },
-  input: {
-    padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 14,
-    outline: 'none', width: '100%', transition: 'all 0.2s', background: 'var(--cbrio-input-bg)', color: 'var(--cbrio-text)', lineHeight: 1.5,
-  },
-  select: { padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 14, background: 'var(--cbrio-input-bg)', color: 'var(--cbrio-text)', outline: 'none' },
-  label: { fontSize: 12, fontWeight: 500, color: C.text2, marginBottom: 4, display: 'block', textTransform: 'uppercase', letterSpacing: 0.5 },
+  th: { padding: '12px 16px', fontSize: 12, fontWeight: 700, color: 'var(--cbrio-text2)', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'left', borderBottom: '1px solid var(--cbrio-border)', background: 'var(--cbrio-table-header)' },
+  td: { padding: '12px 16px', fontSize: 14, color: 'var(--cbrio-text)', borderBottom: '1px solid var(--cbrio-border)', lineHeight: 1.5 },
+  badge: (color, bg) => ({ display: 'inline-block', padding: '2px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600, color, background: bg }),
+  card: { background: 'var(--cbrio-card)', borderRadius: 12, border: '1px solid var(--cbrio-border)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', overflow: 'hidden' },
+  cardHeader: { padding: 16, borderBottom: '1px solid var(--cbrio-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  cardTitle: { fontSize: 14, fontWeight: 600, color: 'var(--cbrio-text)', lineHeight: 1.5 },
   formGroup: { marginBottom: 14 },
-  formRow: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 },
-  overlay: { position: 'fixed', inset: 0, background: 'var(--cbrio-overlay)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: 60, zIndex: 1000 },
-  modal: { background: 'var(--cbrio-modal-bg)', borderRadius: 12, width: '95%', maxWidth: 560, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 16px 48px rgba(0,0,0,0.12)' },
-  modalHeader: { padding: '20px 24px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  modalTitle: { fontSize: 18, fontWeight: 700, color: C.text },
-  modalBody: { padding: '16px 24px 24px' },
-  modalFooter: { padding: '12px 24px 20px', display: 'flex', gap: 8, justifyContent: 'flex-end' },
-  empty: { textAlign: 'center', padding: 40, color: C.text3, fontSize: 14, lineHeight: 1.5 },
-  clickRow: { cursor: 'pointer', transition: 'background 0.1s' },
+  empty: { textAlign: 'center', padding: 40, color: 'var(--cbrio-text3)', fontSize: 14, lineHeight: 1.5 },
 };
-
-// ── Helpers ─────────────────────────────────────────────────
-const fmtDate = (d) => d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
-const fmtMoney = (v) => v != null ? `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '—';
 
 // ── Componentes auxiliares ──────────────────────────────────
 function Modal({ open, onClose, title, children, footer }) {
   if (!open) return null;
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex' }}>
-      <div style={{ flex: 1, background: 'rgba(0,0,0,0.5)' }} onClick={onClose} />
-      <div style={{ width: '50%', minWidth: 440, maxWidth: 600, background: 'var(--cbrio-modal-bg)', overflowY: 'auto', boxShadow: '-8px 0 30px rgba(0,0,0,0.3)', animation: 'slideInRight 0.25s ease-out', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--cbrio-modal-bg)', padding: '20px 24px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={styles.modalTitle}>{title}</div>
+    <div className="fixed inset-0 z-[1000] flex">
+      <div className="flex-1 bg-black/50" onClick={onClose} />
+      <div className="w-1/2 min-w-[440px] max-w-[600px] bg-popover overflow-y-auto flex flex-col shadow-2xl" style={{ animation: 'slideInRight 0.25s ease-out' }}>
+        <div className="sticky top-0 z-10 bg-popover px-6 pt-5 pb-3 border-b border-border flex justify-between items-center">
+          <div className="text-lg font-bold text-foreground">{title}</div>
           <Button variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4" /></Button>
         </div>
-        <div style={{ padding: '16px 24px 24px', flex: 1 }}>{children}</div>
-        {footer && <div style={{ padding: '12px 24px 20px', display: 'flex', gap: 8, justifyContent: 'flex-end', borderTop: `1px solid ${C.border}` }}>{footer}</div>}
+        <div className="px-6 py-4 flex-1">{children}</div>
+        {footer && <div className="px-6 py-3 flex gap-2 justify-end border-t border-border">{footer}</div>}
       </div>
     </div>
   );
@@ -176,13 +106,24 @@ function Select({ label, children, ...props }) {
 }
 
 function Badge({ status, map }) {
-  const s = map[status] || { c: C.text3, bg: '#73737318', label: status };
-  return <span style={styles.badge(s.c, s.bg)}>{s.label}</span>;
+  const s = map[status] || { label: status };
+  const color = s.c || s.color || '#737373';
+  const bg = s.bg || '#73737318';
+  return <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold" style={{ color, background: bg }}>{s.label || status}</span>;
 }
 
 // ── TABS ────────────────────────────────────────────────────
-const TABS = ['Dashboard', 'Colaboradores', 'Admissão', 'Organograma', 'Folha', 'Avaliações', 'Treinamentos', 'Férias/Licenças', 'Extras'];
-const TAB_KEYS = ['dashboard', 'colaboradores', 'admissao', 'organograma', 'folha', 'avaliacoes', 'treinamentos', 'ferias', 'extras'];
+const TABS = [
+  { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { key: 'colaboradores', label: 'Colaboradores', icon: Users },
+  { key: 'admissao', label: 'Admissão', icon: UserPlus },
+  { key: 'organograma', label: 'Organograma', icon: Network },
+  { key: 'folha', label: 'Folha', icon: Receipt },
+  { key: 'avaliacoes', label: 'Avaliações', icon: Star },
+  { key: 'treinamentos', label: 'Treinamentos', icon: Briefcase },
+  { key: 'ferias', label: 'Férias/Licenças', icon: CalendarDays },
+  { key: 'extras', label: 'Extras', icon: Clock },
+];
 
 // ═══════════════════════════════════════════════════════════
 // COMPONENTE PRINCIPAL
@@ -313,15 +254,17 @@ export default function RH() {
 
   // ── Render ──
   return (
-    <div className="w-full space-y-6" style={{ maxWidth: 1600, margin: '0 auto', padding: '0 24px' }}>
+    <div className="w-full" style={{ maxWidth: 1600, margin: '0 auto', padding: '0 24px' }}>
       {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-3" style={{ color: 'var(--cbrio-text)' }}>
-            <Users className="h-7 w-7" style={{ color: '#00B39D' }} />
+          <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
+            <div className="flex items-center justify-center size-8 rounded-lg bg-primary/10">
+              <Users className="size-4 text-primary" />
+            </div>
             Recursos Humanos
           </h1>
-          <p className="mt-1 text-sm" style={{ color: 'var(--cbrio-text3)' }}>Gestão de colaboradores, treinamentos e férias</p>
+          <p className="mt-1 text-sm text-muted-foreground">Gestão de colaboradores, treinamentos e férias</p>
         </div>
         <Button className="gap-2" onClick={() => setModalFunc({})}>
           <UserPlus className="w-4 h-4" />
@@ -329,41 +272,28 @@ export default function RH() {
         </Button>
       </div>
 
-      {error && <div style={{ color: C.red, marginBottom: 12, fontSize: 13 }}>{error}</div>}
+      {error && <div className="text-destructive text-sm mb-3 px-3 py-2 rounded-lg bg-destructive/10 border border-destructive/20">{error}</div>}
 
-      {/* Tab Navigation */}
-      <div className="overflow-x-auto -mx-1 px-1">
-        <div
-          className="inline-flex items-center gap-1 border-b w-full"
-          style={{ borderColor: 'var(--cbrio-border)' }}
-        >
-          {TABS.map((t, i) => (
-            <button
-              key={TAB_KEYS[i]}
-              onClick={() => setTab(TAB_KEYS[i])}
-              className="relative px-3 py-2.5 text-[13px] font-medium whitespace-nowrap transition-colors cursor-pointer"
-              style={{
-                color: tab === TAB_KEYS[i] ? '#00B39D' : 'var(--cbrio-text3)',
-                background: 'none',
-                border: 'none',
-              }}
-              onMouseEnter={e => { if (tab !== TAB_KEYS[i]) e.currentTarget.style.color = 'var(--cbrio-text)'; }}
-              onMouseLeave={e => { if (tab !== TAB_KEYS[i]) e.currentTarget.style.color = 'var(--cbrio-text3)'; }}
-            >
-              {t}
-              {tab === TAB_KEYS[i] && (
-                <span
-                  className="absolute bottom-0 left-0 right-0 h-[2px] rounded-full"
-                  style={{ background: '#00B39D' }}
-                />
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Tab Content */}
+      {/* Tabs */}
       <Tabs value={tab} onValueChange={setTab}>
+        <ScrollArea className="w-full">
+          <TabsList className="inline-flex h-auto w-auto bg-transparent p-0 gap-0 border-b border-border rounded-none">
+            {TABS.map((t) => {
+              const Icon = t.icon;
+              return (
+                <TabsTrigger
+                  key={t.key}
+                  value={t.key}
+                  className="relative rounded-none border-b-2 border-transparent px-3 py-2.5 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground data-[state=active]:border-b-primary data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none bg-transparent"
+                >
+                  <Icon className="size-3.5 mr-1.5 hidden sm:inline-block" />
+                  {t.label}
+                </TabsTrigger>
+              );
+            })}
+          </TabsList>
+          <ScrollBar orientation="horizontal" className="invisible" />
+        </ScrollArea>
 
         <TabsContent value="dashboard">
           <DashboardTab dash={dash} onNavigate={setTab} setFiltroStatus={setFiltroStatus} />
@@ -435,35 +365,63 @@ export default function RH() {
 // TAB: DASHBOARD
 // ═══════════════════════════════════════════════════════════
 function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
-  if (!dash) return <div className="flex items-center justify-center py-12 gap-2"><div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground/25 border-t-primary" /><span className="text-sm text-muted-foreground">Carregando dashboard...</span></div>;
+  if (!dash) return (
+    <div className="space-y-4 py-6">
+      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="h-[88px] rounded-xl bg-muted animate-pulse" />
+        ))}
+      </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        {[...Array(2)].map((_, i) => (
+          <div key={i} className="h-[200px] rounded-xl bg-muted animate-pulse" />
+        ))}
+      </div>
+    </div>
+  );
 
   const goTo = (tabKey, status) => { if (setFiltroStatus) setFiltroStatus(status || ''); if (onNavigate) onNavigate(tabKey); };
 
   const fmtM = (v) => v != null ? `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}` : '—';
 
-  const stats = [
+  // Primary KPIs — 4 big cards
+  const primaryStats = [
     { title: 'Total Colaboradores', value: dash.total, icon: Users, iconColor: '#3b82f6', onClick: () => goTo('colaboradores') },
     { title: 'Ativos', value: dash.ativos, icon: Users, iconColor: '#10b981', onClick: () => goTo('colaboradores', 'ativo') },
-    { title: 'Em Férias', value: dash.ferias, icon: Calendar, iconColor: '#eab308', onClick: () => goTo('ferias') },
-    { title: 'Em Licença', value: dash.licenca, icon: Calendar, iconColor: '#f59e0b', onClick: () => goTo('ferias') },
-    { title: 'Inativos', value: dash.inativos, icon: Users, iconColor: '#6b7280', onClick: () => goTo('colaboradores', 'inativo') },
+    { title: 'Em Férias / Licença', value: (dash.ferias || 0) + (dash.licenca || 0), icon: CalendarDays, iconColor: '#f59e0b', onClick: () => goTo('ferias'), subtitle: `${dash.ferias || 0} férias · ${dash.licenca || 0} licença` },
     { title: 'Custo Mensal', value: fmtM(dash.custoMensal), icon: Briefcase, iconColor: '#ef4444' },
-    { title: 'Turnover', value: `${dash.turnover || 0}%`, icon: Briefcase, iconColor: dash.turnover > 15 ? '#ef4444' : '#10b981' },
   ];
 
-  const extras = [
+  // Secondary KPIs
+  const secondaryStats = [
     { title: 'Admissões (12m)', value: dash.admissoesAno ?? 0, icon: UserPlus, iconColor: '#10b981' },
     { title: 'Desligamentos (12m)', value: dash.desligamentosAno ?? 0, icon: Users, iconColor: '#ef4444' },
-    { title: 'Admissões Pendentes', value: dash.admissoesPendentes ?? 0, icon: UserPlus, iconColor: '#f59e0b' },
-    { title: 'Treinamentos Pend.', value: dash.treinosPendentes ?? 0, icon: Briefcase, iconColor: '#3b82f6' },
-    { title: 'Folha Salarial', value: fmtM(dash.totalSalarios), icon: Briefcase, iconColor: '#00B39D' },
+    { title: 'Inativos', value: dash.inativos, icon: Users, iconColor: '#6b7280', onClick: () => goTo('colaboradores', 'inativo') },
+    { title: 'Turnover', value: `${dash.turnover || 0}%`, icon: Briefcase, iconColor: dash.turnover > 15 ? '#ef4444' : '#10b981' },
+    { title: 'Admissões Pend.', value: dash.admissoesPendentes ?? 0, icon: UserPlus, iconColor: '#f59e0b' },
+    { title: 'Folha Salarial', value: fmtM(dash.totalSalarios), icon: Receipt, iconColor: '#00B39D' },
   ];
 
   return (
-    <div className="space-y-5">
-      {/* KPI Cards — main stats */}
-      <div className="cbrio-stagger grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-7">
-        {stats.map((stat) => (
+    <div className="space-y-5 pt-2">
+      {/* Primary KPI Cards — 4 columns */}
+      <div className="cbrio-stagger grid gap-3 grid-cols-2 lg:grid-cols-4">
+        {primaryStats.map((stat) => (
+          <StatisticsCard
+            key={stat.title}
+            title={stat.title}
+            value={stat.value}
+            icon={stat.icon}
+            iconColor={stat.iconColor}
+            onClick={stat.onClick}
+            subtitle={stat.subtitle}
+          />
+        ))}
+      </div>
+
+      {/* Secondary metrics */}
+      <div className="cbrio-stagger grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+        {secondaryStats.map((stat) => (
           <StatisticsCard
             key={stat.title}
             title={stat.title}
@@ -475,78 +433,81 @@ function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
         ))}
       </div>
 
-      {/* Extra metrics */}
-      <div className="cbrio-stagger grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
-        {extras.map((stat) => (
-          <StatisticsCard
-            key={stat.title}
-            title={stat.title}
-            value={stat.value}
-            icon={stat.icon}
-            iconColor={stat.iconColor}
-          />
-        ))}
-      </div>
-
-      {/* Data cards */}
+      {/* Data cards — 2x2 grid */}
       <div className="grid gap-3 md:grid-cols-2">
-        <Card className="py-0 gap-0" style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}>
-          <CardHeader className="px-4 pt-4 pb-1.5">
-            <CardTitle className="text-[13px]" style={{ color: 'var(--cbrio-text)' }}>Por Tipo de Contrato</CardTitle>
+        {/* Por tipo de contrato */}
+        <Card className="py-0 gap-0 overflow-hidden">
+          <CardHeader className="px-4 pt-4 pb-2">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Por Tipo de Contrato</CardTitle>
           </CardHeader>
           <CardContent className="px-4 pb-4">
+            {Object.entries(dash.porContrato || {}).length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-3">Nenhum dado</p>
+            )}
             {Object.entries(dash.porContrato || {}).map(([tipo, qtd]) => (
-              <div key={tipo} className="flex justify-between py-1.5 border-b border-border last:border-0">
-                <span className="text-[13px] text-foreground">{TIPO_CONTRATO[tipo] || tipo}</span>
-                <span className="text-[13px] font-bold text-primary">{qtd}</span>
+              <div key={tipo} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                <span className="text-sm text-foreground">{TIPO_CONTRATO[tipo] || tipo}</span>
+                <span className="text-sm font-bold text-primary tabular-nums">{qtd}</span>
               </div>
             ))}
-            {Object.keys(dash.porContrato || {}).length === 0 && <p className="text-sm text-muted-foreground text-center py-3">Nenhum dado</p>}
           </CardContent>
         </Card>
 
-        <Card className="py-0 gap-0" style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}>
-          <CardHeader className="px-4 pt-4 pb-1.5">
-            <CardTitle className="text-[13px]" style={{ color: 'var(--cbrio-text)' }}>Por Área</CardTitle>
+        {/* Por área */}
+        <Card className="py-0 gap-0 overflow-hidden">
+          <CardHeader className="px-4 pt-4 pb-2">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Por Área</CardTitle>
           </CardHeader>
-          <CardContent className="px-4 pb-4">
+          <CardContent className="px-4 pb-4 max-h-[240px] overflow-y-auto">
+            {Object.entries(dash.porArea || {}).length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-3">Nenhum dado</p>
+            )}
             {Object.entries(dash.porArea || {}).map(([area, qtd]) => (
-              <div key={area} className="flex justify-between py-1.5" style={{ borderBottom: `1px solid var(--cbrio-border)` }}>
-                <span className="text-[13px]" style={{ color: 'var(--cbrio-text)' }}>{area}</span>
-                <span className="text-[13px] font-bold" style={{ color: '#00B39D' }}>{qtd}</span>
+              <div key={area} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                <span className="text-sm text-foreground">{area}</span>
+                <span className="text-sm font-bold text-primary tabular-nums">{qtd}</span>
               </div>
             ))}
-            {Object.keys(dash.porArea || {}).length === 0 && <p className="text-sm text-center py-3" style={{ color: 'var(--cbrio-text3)' }}>Nenhum dado</p>}
           </CardContent>
         </Card>
-      </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <Card className="py-0 gap-0" style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}>
-          <CardHeader className="px-4 pt-4 pb-1.5">
-            <CardTitle className="text-[13px]" style={{ color: 'var(--cbrio-text)' }}>Férias Próximas (30 dias)</CardTitle>
+        {/* Férias próximas */}
+        <Card className="py-0 gap-0 overflow-hidden">
+          <CardHeader className="px-4 pt-4 pb-2">
+            <div className="flex items-center gap-2">
+              <CalendarDays className="size-3.5 text-warning" />
+              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Férias Próximas (30 dias)</CardTitle>
+            </div>
           </CardHeader>
           <CardContent className="px-4 pb-4">
-            {(dash.feriasProximas || []).length === 0 && <p className="text-sm text-center py-3" style={{ color: 'var(--cbrio-text3)' }}>Nenhuma férias agendada</p>}
+            {(dash.feriasProximas || []).length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-3">Nenhuma férias agendada</p>
+            )}
             {(dash.feriasProximas || []).map(f => (
-              <div key={f.id} className="flex justify-between py-1.5" style={{ borderBottom: `1px solid var(--cbrio-border)` }}>
-                <span className="text-[13px]" style={{ color: 'var(--cbrio-text)' }}>{f.rh_funcionarios?.nome || '—'}</span>
-                <span className="text-[11px]" style={{ color: 'var(--cbrio-text2)' }}>{fmtDate(f.data_inicio)} → {fmtDate(f.data_fim)}</span>
+              <div key={f.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                <span className="text-sm text-foreground font-medium">{f.rh_funcionarios?.nome || '—'}</span>
+                <span className="text-xs text-muted-foreground tabular-nums">{fmtDate(f.data_inicio)} → {fmtDate(f.data_fim)}</span>
               </div>
             ))}
           </CardContent>
         </Card>
 
-        <Card className="py-0 gap-0" style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}>
-          <CardHeader className="px-4 pt-4 pb-1.5">
-            <CardTitle className="text-[13px]" style={{ color: 'var(--cbrio-text)' }}>Documentos Vencendo (60 dias)</CardTitle>
+        {/* Documentos vencendo */}
+        <Card className="py-0 gap-0 overflow-hidden">
+          <CardHeader className="px-4 pt-4 pb-2">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="size-3.5 text-destructive" />
+              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Documentos Vencendo (60 dias)</CardTitle>
+            </div>
           </CardHeader>
           <CardContent className="px-4 pb-4">
-            {(dash.docsVencendo || []).length === 0 && <p className="text-sm text-center py-3" style={{ color: 'var(--cbrio-text3)' }}>Nenhum documento vencendo</p>}
+            {(dash.docsVencendo || []).length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-3">Nenhum documento vencendo</p>
+            )}
             {(dash.docsVencendo || []).map(d => (
-              <div key={d.id} className="flex justify-between py-1.5" style={{ borderBottom: `1px solid var(--cbrio-border)` }}>
-                <span className="text-[13px]" style={{ color: 'var(--cbrio-text)' }}>{d.rh_funcionarios?.nome} — {d.nome}</span>
-                <span className="text-[11px]" style={{ color: '#ef4444' }}>{fmtDate(d.data_expiracao)}</span>
+              <div key={d.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                <span className="text-sm text-foreground">{d.rh_funcionarios?.nome} — {d.nome}</span>
+                <span className="text-xs font-medium text-destructive tabular-nums">{fmtDate(d.data_expiracao)}</span>
               </div>
             ))}
           </CardContent>
