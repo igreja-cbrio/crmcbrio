@@ -38,14 +38,14 @@ function StatisticsCard({
       onClick={onClick}
       {...props}
     >
-      {/* Colored left accent bar */}
-      <div className="flex items-start justify-between px-4 pt-4 pb-3.5">
+      {/* Card content */}
+      <div className="flex items-start justify-between px-5 pt-5 pb-4">
         <div className="min-w-0 flex-1">
-          <span className="text-muted-foreground text-[11px] font-medium uppercase tracking-wider leading-none block mb-2 truncate">
+          <span className="text-muted-foreground text-[11px] font-medium uppercase tracking-wider leading-tight block mb-2">
             {title}
           </span>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-foreground tracking-tight leading-none truncate">
+            <span className="text-2xl font-bold text-foreground tracking-tight leading-tight">
               {value}
             </span>
             {delta !== undefined && delta !== 0 && (
@@ -62,7 +62,7 @@ function StatisticsCard({
         </div>
         {Icon && (
           <div
-            className="flex items-center justify-center size-9 rounded-lg shrink-0 ml-3"
+            className="flex items-center justify-center size-10 rounded-lg shrink-0 ml-4"
             style={{
               background: iconColor ? `${iconColor}18` : 'var(--color-primary-foreground)',
               color: iconColor || 'var(--color-primary)',
@@ -74,7 +74,7 @@ function StatisticsCard({
       </div>
 
       {subtitle && (
-        <div className="text-[11px] text-muted-foreground border-t border-border/50 px-4 py-2">
+        <div className="text-[11px] text-muted-foreground border-t border-border/50 px-5 py-2.5">
           {subtitle}
         </div>
       )}
@@ -95,12 +95,12 @@ function StatisticsCard({
 function StatisticsCardSkeleton({ className }: { className?: string }) {
   return (
     <div className={cn("flex flex-col bg-card rounded-xl border border-border/60 overflow-hidden shadow-sm", className)}>
-      <div className="flex items-start justify-between px-4 pt-4 pb-3.5">
+      <div className="flex items-start justify-between px-5 pt-5 pb-4">
         <div className="flex-1 space-y-2.5">
           <div className="h-3 w-20 bg-muted rounded animate-pulse" />
           <div className="h-6 w-14 bg-muted rounded animate-pulse" />
         </div>
-        <div className="size-9 rounded-lg bg-muted animate-pulse shrink-0 ml-3" />
+        <div className="size-10 rounded-lg bg-muted animate-pulse shrink-0 ml-4" />
       </div>
     </div>
   )
