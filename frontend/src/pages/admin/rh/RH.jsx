@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Users, Pencil, Trash2, Palmtree, X, Save, AlertTriangle, Download, UserPlus, Briefcase, Calendar, Search, Filter, Eye, Edit, MoreVertical } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
+import { StatisticsCard } from '../../../components/ui/statistics-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 import { useAuth } from '../../../contexts/AuthContext';
 import { rh, permissoes } from '../../../api';
@@ -330,17 +331,39 @@ export default function RH() {
 
       {error && <div style={{ color: C.red, marginBottom: 12, fontSize: 13 }}>{error}</div>}
 
-      {/* Tabs */}
-      <Tabs value={tab} onValueChange={setTab}>
-        <div className="overflow-x-auto -mx-1 px-1 pb-1">
-          <TabsList className="h-11 w-fit gap-1" style={{ background: 'var(--cbrio-input-bg)', padding: '4px 6px', borderRadius: 10 }}>
-            {TABS.map((t, i) => (
-              <TabsTrigger key={TAB_KEYS[i]} value={TAB_KEYS[i]} className="px-4 py-1.5 text-xs sm:text-sm" style={{ borderRadius: 7 }}>
-                {t}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+      {/* Tab Navigation */}
+      <div className="overflow-x-auto -mx-1 px-1">
+        <div
+          className="inline-flex items-center gap-1 border-b w-full"
+          style={{ borderColor: 'var(--cbrio-border)' }}
+        >
+          {TABS.map((t, i) => (
+            <button
+              key={TAB_KEYS[i]}
+              onClick={() => setTab(TAB_KEYS[i])}
+              className="relative px-3 py-2.5 text-[13px] font-medium whitespace-nowrap transition-colors cursor-pointer"
+              style={{
+                color: tab === TAB_KEYS[i] ? '#00B39D' : 'var(--cbrio-text3)',
+                background: 'none',
+                border: 'none',
+              }}
+              onMouseEnter={e => { if (tab !== TAB_KEYS[i]) e.currentTarget.style.color = 'var(--cbrio-text)'; }}
+              onMouseLeave={e => { if (tab !== TAB_KEYS[i]) e.currentTarget.style.color = 'var(--cbrio-text3)'; }}
+            >
+              {t}
+              {tab === TAB_KEYS[i] && (
+                <span
+                  className="absolute bottom-0 left-0 right-0 h-[2px] rounded-full"
+                  style={{ background: '#00B39D' }}
+                />
+              )}
+            </button>
+          ))}
         </div>
+      </div>
+
+      {/* Tab Content */}
+      <Tabs value={tab} onValueChange={setTab}>
 
         <TabsContent value="dashboard">
           <DashboardTab dash={dash} onNavigate={setTab} setFiltroStatus={setFiltroStatus} />
@@ -446,59 +469,50 @@ function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
   const fmtM = (v) => v != null ? `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}` : '—';
 
   const stats = [
-    { title: 'Total Colaboradores', value: dash.total, icon: Users, color: 'text-blue-500', onClick: () => goTo('colaboradores') },
-    { title: 'Ativos', value: dash.ativos, icon: Users, color: 'text-green-500', onClick: () => goTo('colaboradores', 'ativo') },
-    { title: 'Em Férias', value: dash.ferias, icon: Calendar, color: 'text-yellow-500', onClick: () => goTo('ferias') },
-    { title: 'Em Licença', value: dash.licenca, icon: Calendar, color: 'text-amber-500', onClick: () => goTo('ferias') },
-    { title: 'Inativos', value: dash.inativos, icon: Users, color: 'text-gray-500', onClick: () => goTo('colaboradores', 'inativo') },
-    { title: 'Custo Mensal', value: fmtM(dash.custoMensal), icon: Briefcase, color: 'text-red-500' },
-    { title: 'Turnover', value: `${dash.turnover || 0}%`, icon: Briefcase, color: dash.turnover > 15 ? 'text-red-500' : 'text-green-500' },
+    { title: 'Total Colaboradores', value: dash.total, icon: Users, iconColor: '#3b82f6', onClick: () => goTo('colaboradores') },
+    { title: 'Ativos', value: dash.ativos, icon: Users, iconColor: '#10b981', onClick: () => goTo('colaboradores', 'ativo') },
+    { title: 'Em Férias', value: dash.ferias, icon: Calendar, iconColor: '#eab308', onClick: () => goTo('ferias') },
+    { title: 'Em Licença', value: dash.licenca, icon: Calendar, iconColor: '#f59e0b', onClick: () => goTo('ferias') },
+    { title: 'Inativos', value: dash.inativos, icon: Users, iconColor: '#6b7280', onClick: () => goTo('colaboradores', 'inativo') },
+    { title: 'Custo Mensal', value: fmtM(dash.custoMensal), icon: Briefcase, iconColor: '#ef4444' },
+    { title: 'Turnover', value: `${dash.turnover || 0}%`, icon: Briefcase, iconColor: dash.turnover > 15 ? '#ef4444' : '#10b981' },
   ];
 
   const extras = [
-    { title: 'Admissões (12m)', value: dash.admissoesAno ?? 0, icon: UserPlus, color: 'text-green-500' },
-    { title: 'Desligamentos (12m)', value: dash.desligamentosAno ?? 0, icon: Users, color: 'text-red-500' },
-    { title: 'Admissões Pendentes', value: dash.admissoesPendentes ?? 0, icon: UserPlus, color: 'text-amber-500' },
-    { title: 'Treinamentos Pend.', value: dash.treinosPendentes ?? 0, icon: Briefcase, color: 'text-blue-500' },
-    { title: 'Folha Salarial', value: fmtM(dash.totalSalarios), icon: Briefcase, color: 'text-foreground' },
+    { title: 'Admissões (12m)', value: dash.admissoesAno ?? 0, icon: UserPlus, iconColor: '#10b981' },
+    { title: 'Desligamentos (12m)', value: dash.desligamentosAno ?? 0, icon: Users, iconColor: '#ef4444' },
+    { title: 'Admissões Pendentes', value: dash.admissoesPendentes ?? 0, icon: UserPlus, iconColor: '#f59e0b' },
+    { title: 'Treinamentos Pend.', value: dash.treinosPendentes ?? 0, icon: Briefcase, iconColor: '#3b82f6' },
+    { title: 'Folha Salarial', value: fmtM(dash.totalSalarios), icon: Briefcase, iconColor: '#00B39D' },
   ];
 
   return (
     <div className="space-y-5">
       {/* KPI Cards */}
-      <div className="grid gap-2.5 grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <Card key={stat.title} className={`py-0 gap-0 ${stat.onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`} onClick={stat.onClick} style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 px-3 pt-3 pb-0.5">
-                <CardTitle className="text-[10px] font-medium" style={{ color: 'var(--cbrio-text3)' }}>{stat.title}</CardTitle>
-                <Icon className={`w-3.5 h-3.5 ${stat.color}`} />
-              </CardHeader>
-              <CardContent className="px-3 pb-3">
-                <div className="text-lg font-bold" style={{ color: 'var(--cbrio-text)' }}>{stat.value}</div>
-              </CardContent>
-            </Card>
-          );
-        })}
+      <div className="grid gap-3 grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
+        {stats.map((stat) => (
+          <StatisticsCard
+            key={stat.title}
+            title={stat.title}
+            value={stat.value}
+            icon={stat.icon}
+            iconColor={stat.iconColor}
+            onClick={stat.onClick}
+          />
+        ))}
       </div>
 
       {/* Extra metrics */}
-      <div className="grid gap-2.5 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-        {extras.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <Card key={stat.title} className="py-0 gap-0" style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 px-3 pt-3 pb-0.5">
-                <CardTitle className="text-[10px] font-medium" style={{ color: 'var(--cbrio-text3)' }}>{stat.title}</CardTitle>
-                <Icon className={`w-3.5 h-3.5 ${stat.color}`} />
-              </CardHeader>
-              <CardContent className="px-3 pb-3">
-                <div className="text-lg font-bold" style={{ color: 'var(--cbrio-text)' }}>{stat.value}</div>
-              </CardContent>
-            </Card>
-          );
-        })}
+      <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+        {extras.map((stat) => (
+          <StatisticsCard
+            key={stat.title}
+            title={stat.title}
+            value={stat.value}
+            icon={stat.icon}
+            iconColor={stat.iconColor}
+          />
+        ))}
       </div>
 
       {/* Data cards */}

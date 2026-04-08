@@ -23,49 +23,43 @@ const MODULES = [
   { label: 'Solicitar Compra', desc: 'Peça materiais', icon: ShoppingCart, path: '/solicitar-compra', color: '#ec4899' },
 ];
 
-/* ── KPI card component ────────────────────────── */
+/* ── KPI card component (statistics-card style) ── */
 function KpiCard({ icon: Icon, label, value, prefix, suffix, color, trend, trendLabel, onClick, delay = 0 }) {
   return (
     <button
       onClick={onClick}
-      className="group relative rounded-xl border text-left transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-pointer w-full"
-      style={{
-        background: 'var(--cbrio-card)',
-        borderColor: 'var(--cbrio-border)',
-      }}
+      className="flex flex-col bg-card text-card-foreground rounded-xl border border-border shadow-xs text-left transition-all hover:shadow-md hover:-translate-y-px cursor-pointer w-full"
     >
-      {/* Gradient accent top */}
-      <div
-        className="absolute top-0 left-0 right-0 h-[2px] rounded-t-xl opacity-60 group-hover:opacity-100 transition-opacity"
-        style={{ background: `linear-gradient(90deg, ${color}, ${color}80)` }}
-      />
-      <div style={{ padding: '16px 20px 14px' }}>
-        <div className="flex items-start justify-between mb-3">
-          <div
-            className="flex items-center justify-center w-9 h-9 rounded-lg transition-transform group-hover:scale-110"
-            style={{ background: `${color}15` }}
-          >
-            <Icon className="w-[18px] h-[18px]" style={{ color }} />
-          </div>
-          {trend !== undefined && (
-            <div className="flex items-center gap-1 text-xs font-medium" style={{ color: trend >= 0 ? '#10b981' : '#ef4444' }}>
-              {trend >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-              <span>{trend >= 0 ? '+' : ''}{trend}%</span>
-            </div>
-          )}
-        </div>
-        <div className="mb-1">
-          <span className="text-2xl font-bold" style={{ color: 'var(--cbrio-text)' }}>
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 pt-4 pb-1">
+        <span className="text-muted-foreground text-[11px] font-medium uppercase tracking-wider">{label}</span>
+        <Icon className="size-4 shrink-0" style={{ color }} />
+      </div>
+      {/* Value */}
+      <div className="px-4 pb-4 space-y-1">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl font-semibold text-foreground tracking-tight">
             {value !== null && value !== undefined ? (
               <NumberTicker value={value} prefix={prefix} suffix={suffix} delay={delay} />
             ) : (
-              <span className="inline-block w-14 h-6 rounded animate-pulse" style={{ background: 'var(--cbrio-border)' }} />
+              <span className="inline-block w-14 h-6 rounded animate-pulse bg-muted" />
             )}
           </span>
+          {trend !== undefined && (
+            <span
+              className="inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[10px] font-semibold"
+              style={{
+                background: trend >= 0 ? 'var(--color-green-100, #dcfce7)' : 'var(--color-red-50, #fef2f2)',
+                color: trend >= 0 ? 'var(--color-green-700, #15803d)' : 'var(--color-red-700, #b91c1c)',
+              }}
+            >
+              {trend >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+              {trend >= 0 ? '+' : ''}{trend}%
+            </span>
+          )}
         </div>
-        <p className="text-xs font-medium" style={{ color: 'var(--cbrio-text3)' }}>{label}</p>
         {trendLabel && (
-          <p className="text-[11px] mt-0.5" style={{ color: 'var(--cbrio-text3)' }}>{trendLabel}</p>
+          <div className="text-[11px] text-muted-foreground border-t border-border pt-2">{trendLabel}</div>
         )}
       </div>
     </button>
