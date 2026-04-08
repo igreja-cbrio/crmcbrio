@@ -28,26 +28,24 @@ function StatisticsCard({
     <div
       data-slot="statistics-card"
       className={cn(
-        "group relative flex flex-col bg-card text-card-foreground rounded-xl border border-border overflow-hidden",
-        onClick && "cursor-pointer",
+        "group relative flex flex-col rounded-xl border border-border/60 overflow-hidden shadow-sm transition-all duration-200",
+        onClick && "cursor-pointer hover:-translate-y-0.5 hover:shadow-md",
         className,
       )}
+      style={{
+        background: iconColor ? `color-mix(in srgb, ${iconColor} 4%, var(--color-card))` : 'var(--color-card)',
+      }}
       onClick={onClick}
       {...props}
     >
-      {/* Colored top accent */}
-      <div
-        className="h-1 w-full shrink-0"
-        style={{ background: iconColor || 'var(--color-primary)' }}
-      />
-
-      <div className="flex items-start justify-between px-3 pt-3 pb-2.5">
+      {/* Colored left accent bar */}
+      <div className="flex items-start justify-between px-4 pt-4 pb-3.5">
         <div className="min-w-0 flex-1">
-          <span className="text-muted-foreground text-[10px] font-semibold uppercase tracking-wider leading-none block mb-1.5 truncate">
+          <span className="text-muted-foreground text-[11px] font-medium uppercase tracking-wider leading-none block mb-2 truncate">
             {title}
           </span>
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-xl font-bold text-foreground tracking-tight leading-none truncate">
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-bold text-foreground tracking-tight leading-none truncate">
               {value}
             </span>
             {delta !== undefined && delta !== 0 && (
@@ -64,19 +62,19 @@ function StatisticsCard({
         </div>
         {Icon && (
           <div
-            className="flex items-center justify-center size-8 rounded-lg shrink-0 ml-2"
+            className="flex items-center justify-center size-9 rounded-lg shrink-0 ml-3"
             style={{
-              background: iconColor ? `${iconColor}15` : 'var(--color-primary-foreground)',
+              background: iconColor ? `${iconColor}18` : 'var(--color-primary-foreground)',
               color: iconColor || 'var(--color-primary)',
             }}
           >
-            <Icon className="size-4" />
+            <Icon className="size-[18px]" />
           </div>
         )}
       </div>
 
       {subtitle && (
-        <div className="text-[10px] text-muted-foreground border-t border-border px-3 py-2">
+        <div className="text-[11px] text-muted-foreground border-t border-border/50 px-4 py-2">
           {subtitle}
         </div>
       )}
@@ -86,7 +84,7 @@ function StatisticsCard({
         <div
           className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none rounded-xl"
           style={{
-            boxShadow: `0 0 0 1px ${iconColor || 'var(--color-primary)'}30, 0 4px 16px ${iconColor || 'var(--color-primary)'}10`,
+            boxShadow: `0 0 0 1px ${iconColor || 'var(--color-primary)'}25, 0 4px 20px ${iconColor || 'var(--color-primary)'}12`,
           }}
         />
       )}
@@ -96,14 +94,13 @@ function StatisticsCard({
 
 function StatisticsCardSkeleton({ className }: { className?: string }) {
   return (
-    <div className={cn("flex flex-col bg-card rounded-xl border border-border overflow-hidden", className)}>
-      <div className="h-1 w-full shrink-0 bg-muted animate-pulse" />
-      <div className="flex items-start justify-between px-3 pt-3 pb-2.5">
-        <div className="flex-1 space-y-2">
-          <div className="h-2.5 w-16 bg-muted rounded animate-pulse" />
-          <div className="h-5 w-12 bg-muted rounded animate-pulse" />
+    <div className={cn("flex flex-col bg-card rounded-xl border border-border/60 overflow-hidden shadow-sm", className)}>
+      <div className="flex items-start justify-between px-4 pt-4 pb-3.5">
+        <div className="flex-1 space-y-2.5">
+          <div className="h-3 w-20 bg-muted rounded animate-pulse" />
+          <div className="h-6 w-14 bg-muted rounded animate-pulse" />
         </div>
-        <div className="size-8 rounded-lg bg-muted animate-pulse shrink-0 ml-2" />
+        <div className="size-9 rounded-lg bg-muted animate-pulse shrink-0 ml-3" />
       </div>
     </div>
   )

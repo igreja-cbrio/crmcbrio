@@ -277,14 +277,14 @@ export default function RH() {
       {/* Tabs */}
       <Tabs value={tab} onValueChange={setTab}>
         <ScrollArea className="w-full">
-          <TabsList className="inline-flex h-auto w-auto bg-transparent p-0 gap-0 border-b border-border rounded-none">
+          <TabsList className="inline-flex h-auto w-auto bg-transparent p-0 gap-1 border-b border-border rounded-none">
             {TABS.map((t) => {
               const Icon = t.icon;
               return (
                 <TabsTrigger
                   key={t.key}
                   value={t.key}
-                  className="relative rounded-none border-b-2 border-transparent px-3 py-2.5 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground data-[state=active]:border-b-primary data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none bg-transparent"
+                  className="relative rounded-none border-b-2 border-transparent px-4 py-3 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground data-[state=active]:border-b-primary data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none bg-transparent"
                 >
                   <Icon className="size-3.5 mr-1.5 hidden sm:inline-block" />
                   {t.label}
@@ -405,7 +405,7 @@ function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
   return (
     <div className="space-y-5 pt-2">
       {/* Primary KPI Cards — 4 columns */}
-      <div className="cbrio-stagger grid gap-3 grid-cols-2 lg:grid-cols-4">
+      <div className="cbrio-stagger grid gap-4 grid-cols-2 lg:grid-cols-4">
         {primaryStats.map((stat) => (
           <StatisticsCard
             key={stat.title}
@@ -420,7 +420,7 @@ function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
       </div>
 
       {/* Secondary metrics */}
-      <div className="cbrio-stagger grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="cbrio-stagger grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
         {secondaryStats.map((stat) => (
           <StatisticsCard
             key={stat.title}
@@ -434,18 +434,18 @@ function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
       </div>
 
       {/* Data cards — 2x2 grid */}
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2">
         {/* Por tipo de contrato */}
-        <Card className="py-0 gap-0 overflow-hidden">
-          <CardHeader className="px-4 pt-4 pb-2">
+        <Card className="py-0 gap-0 overflow-hidden border-border/50 shadow-sm">
+          <CardHeader className="px-5 pt-5 pb-2">
             <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Por Tipo de Contrato</CardTitle>
           </CardHeader>
-          <CardContent className="px-4 pb-4">
+          <CardContent className="px-5 pb-5">
             {Object.entries(dash.porContrato || {}).length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-3">Nenhum dado</p>
             )}
             {Object.entries(dash.porContrato || {}).map(([tipo, qtd]) => (
-              <div key={tipo} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+              <div key={tipo} className="flex items-center justify-between py-2.5 border-b border-border/40 last:border-0">
                 <span className="text-sm text-foreground">{TIPO_CONTRATO[tipo] || tipo}</span>
                 <span className="text-sm font-bold text-primary tabular-nums">{qtd}</span>
               </div>
@@ -454,16 +454,16 @@ function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
         </Card>
 
         {/* Por área */}
-        <Card className="py-0 gap-0 overflow-hidden">
-          <CardHeader className="px-4 pt-4 pb-2">
+        <Card className="py-0 gap-0 overflow-hidden border-border/50 shadow-sm">
+          <CardHeader className="px-5 pt-5 pb-2">
             <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Por Área</CardTitle>
           </CardHeader>
-          <CardContent className="px-4 pb-4 max-h-[240px] overflow-y-auto">
+          <CardContent className="px-5 pb-5 max-h-[260px] overflow-y-auto">
             {Object.entries(dash.porArea || {}).length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-3">Nenhum dado</p>
             )}
             {Object.entries(dash.porArea || {}).map(([area, qtd]) => (
-              <div key={area} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+              <div key={area} className="flex items-center justify-between py-2.5 border-b border-border/40 last:border-0">
                 <span className="text-sm text-foreground">{area}</span>
                 <span className="text-sm font-bold text-primary tabular-nums">{qtd}</span>
               </div>
@@ -472,19 +472,19 @@ function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
         </Card>
 
         {/* Férias próximas */}
-        <Card className="py-0 gap-0 overflow-hidden">
-          <CardHeader className="px-4 pt-4 pb-2">
+        <Card className="py-0 gap-0 overflow-hidden border-border/50 shadow-sm">
+          <CardHeader className="px-5 pt-5 pb-2">
             <div className="flex items-center gap-2">
               <CalendarDays className="size-3.5 text-warning" />
               <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Férias Próximas (30 dias)</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="px-4 pb-4">
+          <CardContent className="px-5 pb-5">
             {(dash.feriasProximas || []).length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-3">Nenhuma férias agendada</p>
             )}
             {(dash.feriasProximas || []).map(f => (
-              <div key={f.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+              <div key={f.id} className="flex items-center justify-between py-2.5 border-b border-border/40 last:border-0">
                 <span className="text-sm text-foreground font-medium">{f.rh_funcionarios?.nome || '—'}</span>
                 <span className="text-xs text-muted-foreground tabular-nums">{fmtDate(f.data_inicio)} → {fmtDate(f.data_fim)}</span>
               </div>
@@ -493,19 +493,19 @@ function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
         </Card>
 
         {/* Documentos vencendo */}
-        <Card className="py-0 gap-0 overflow-hidden">
-          <CardHeader className="px-4 pt-4 pb-2">
+        <Card className="py-0 gap-0 overflow-hidden border-border/50 shadow-sm">
+          <CardHeader className="px-5 pt-5 pb-2">
             <div className="flex items-center gap-2">
               <AlertTriangle className="size-3.5 text-destructive" />
               <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Documentos Vencendo (60 dias)</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="px-4 pb-4">
+          <CardContent className="px-5 pb-5">
             {(dash.docsVencendo || []).length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-3">Nenhum documento vencendo</p>
             )}
             {(dash.docsVencendo || []).map(d => (
-              <div key={d.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+              <div key={d.id} className="flex items-center justify-between py-2.5 border-b border-border/40 last:border-0">
                 <span className="text-sm text-foreground">{d.rh_funcionarios?.nome} — {d.nome}</span>
                 <span className="text-xs font-medium text-destructive tabular-nums">{fmtDate(d.data_expiracao)}</span>
               </div>

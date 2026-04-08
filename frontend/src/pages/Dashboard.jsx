@@ -160,7 +160,7 @@ export default function Dashboard() {
   return (
     <div className="max-w-[1400px] mx-auto px-6 space-y-6">
       {/* ── Hero greeting ────────────────────────── */}
-      <div className="relative overflow-hidden rounded-2xl border border-border bg-card">
+      <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm">
         {/* Decorative gradient mesh */}
         <div className="absolute inset-0 opacity-[0.04]" style={{
           background: 'radial-gradient(ellipse 80% 50% at 20% 120%, #00B39D, transparent), radial-gradient(ellipse 60% 80% at 80% -20%, #8b5cf6, transparent)',
@@ -215,7 +215,7 @@ export default function Dashboard() {
             <Activity className="w-4 h-4 text-primary" />
             <h2 className="text-sm font-semibold text-foreground">Visão Geral</h2>
           </div>
-          <div className="cbrio-stagger grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
+          <div className="cbrio-stagger grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
             {kpis.map((kpi, i) => (
               <StatisticsCard
                 key={i}
@@ -248,14 +248,14 @@ export default function Dashboard() {
             <LayoutGrid className="w-4 h-4 text-primary" />
             <h2 className="text-sm font-semibold text-foreground">Acesso Rápido</h2>
           </div>
-          <div className="grid gap-2.5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
             {links.map(link => {
               const Icon = link.icon;
               return (
                 <button
                   key={link.path}
                   onClick={() => navigate(link.path)}
-                  className="group flex items-center gap-3 rounded-xl border border-border bg-card text-left transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-pointer w-full p-3.5"
+                  className="group flex items-center gap-3 rounded-xl border border-border/50 bg-card shadow-sm text-left transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-pointer w-full p-4"
                 >
                   <div
                     className="flex items-center justify-center size-10 rounded-lg shrink-0 transition-transform group-hover:scale-110"
