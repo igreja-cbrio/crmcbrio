@@ -969,9 +969,42 @@ export default function Eventos() {
                           loadKanban();
                           setKanbanSelectedTask({ ...task, subtasks: subs.map(s => s.id === sub.id ? { ...s, done: !s.done } : s) });
                         }} style={{ cursor: 'pointer', width: 16, height: 16, accentColor: '#00B39D' }} />
-                        <span style={{ fontSize: 13, color: 'var(--cbrio-text)', ...(sub.done ? { textDecoration: 'line-through', color: 'var(--cbrio-text3)' } : {}) }}>{sub.name}</span>
+                        <span style={{ flex: 1, fontSize: 13, color: 'var(--cbrio-text)', ...(sub.done ? { textDecoration: 'line-through', color: 'var(--cbrio-text3)' } : {}) }}>{sub.name}</span>
+                        <button onClick={async () => {
+                          await cyclesApi.deleteSubtask(sub.id);
+                          loadKanban();
+                          setKanbanSelectedTask({ ...task, subtasks: subs.filter(s => s.id !== sub.id) });
+                        }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--cbrio-text3)', padding: 0, lineHeight: 1 }} title="Excluir subtarefa">
+                          <span style={{ fontSize: 14 }}>✕</span>
+                        </button>
                       </div>
                     ))}
+                    {/* Adicionar subtarefa */}
+                    <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                      <input
+                        id="kanban-new-subtask"
+                        type="text" placeholder="Nova subtarefa..."
+                        onKeyDown={async (e) => {
+                          if (e.key === 'Enter' && e.target.value.trim()) {
+                            const name = e.target.value.trim();
+                            e.target.value = '';
+                            const newSub = await cyclesApi.createSubtask(task.id, name);
+                            loadKanban();
+                            setKanbanSelectedTask({ ...task, subtasks: [...subs, newSub] });
+                          }
+                        }}
+                        style={{ flex: 1, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--cbrio-border)', fontSize: 12, color: 'var(--cbrio-text)', background: 'var(--cbrio-input-bg, #fff)' }}
+                      />
+                      <button onClick={async () => {
+                        const input = document.getElementById('kanban-new-subtask');
+                        if (!input?.value.trim()) return;
+                        const name = input.value.trim();
+                        input.value = '';
+                        const newSub = await cyclesApi.createSubtask(task.id, name);
+                        loadKanban();
+                        setKanbanSelectedTask({ ...task, subtasks: [...subs, newSub] });
+                      }} style={{ padding: '5px 10px', borderRadius: 6, border: 'none', background: '#00B39D', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>+</button>
+                    </div>
                   </div>
 
                   {/* Observações */}
