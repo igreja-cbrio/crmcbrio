@@ -32,6 +32,18 @@ function sortByUrgency(tasks) {
 }
 function getCategory(task) { return (task.area || '').toLowerCase() || 'outros'; }
 
+// Mapeamento setor → areas do ciclo criativo
+const SETOR_AREAS = {
+  'Gestão': ['compras', 'financeiro', 'manutencao', 'limpeza', 'cozinha'],
+  'Gestao': ['compras', 'financeiro', 'manutencao', 'limpeza', 'cozinha'],
+  'Criativo': ['marketing'],
+};
+function taskBelongsToSetor(task, setor) {
+  const areas = SETOR_AREAS[setor];
+  if (!areas) return false;
+  return areas.includes(getCategory(task));
+}
+
 export default function CycleView({ eventId, eventName }) {
   const { profile, user } = useAuth();
   const userRole = profile?.role || '';
@@ -138,7 +150,7 @@ export default function CycleView({ eventId, eventName }) {
   let phaseTasks = currentPhase ? tasks.filter(t => t.event_phase_id === currentPhase.id) : [];
   if (areaFilter !== 'all') phaseTasks = phaseTasks.filter(t => getCategory(t) === areaFilter);
   // Filtro por visão
-  if (cycleViewMode === 'area' && userArea) phaseTasks = phaseTasks.filter(t => getCategory(t) === userArea || t.area === userArea);
+  if (cycleViewMode === 'area' && userArea) phaseTasks = phaseTasks.filter(t => taskBelongsToSetor(t, userArea));
   if (cycleViewMode === 'minhas') phaseTasks = phaseTasks.filter(t => t.responsavel_id === userId || t.responsavel_nome === profile?.name);
 
   return (
