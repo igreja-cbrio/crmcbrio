@@ -39,7 +39,7 @@ function KpiCard({ icon: Icon, label, value, prefix, suffix, color, trend, trend
         className="absolute top-0 left-0 right-0 h-[2px] rounded-t-2xl opacity-60 group-hover:opacity-100 transition-opacity"
         style={{ background: `linear-gradient(90deg, ${color}, ${color}80)` }}
       />
-      <div className="p-7">
+      <div style={{ padding: '28px 28px 24px' }}>
         <div className="flex items-start justify-between mb-4">
           <div
             className="flex items-center justify-center w-12 h-12 rounded-xl transition-transform group-hover:scale-110"
@@ -270,10 +270,11 @@ export default function Dashboard() {
                 <button
                   key={link.path}
                   onClick={() => navigate(link.path)}
-                  className="group flex items-center gap-4 rounded-2xl border p-5 text-left transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-pointer w-full"
+                  className="group flex items-center gap-4 rounded-2xl border text-left transition-all duration-200 hover:shadow-md hover:-translate-y-px cursor-pointer w-full"
                   style={{
                     background: 'var(--cbrio-card)',
                     borderColor: 'var(--cbrio-border)',
+                    padding: '20px 24px',
                   }}
                 >
                   <div
