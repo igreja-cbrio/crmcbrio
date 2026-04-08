@@ -316,11 +316,11 @@ export default function RH() {
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-3">
-            <Users className="h-7 w-7 text-primary" />
+          <h1 className="text-2xl font-bold flex items-center gap-3" style={{ color: 'var(--cbrio-text)' }}>
+            <Users className="h-7 w-7" style={{ color: '#00B39D' }} />
             Recursos Humanos
           </h1>
-          <p className="text-muted-foreground mt-1">Gestão de colaboradores, treinamentos e férias</p>
+          <p className="mt-1 text-sm" style={{ color: 'var(--cbrio-text3)' }}>Gestão de colaboradores, treinamentos e férias</p>
         </div>
         <Button className="gap-2" onClick={() => setModalFunc({})}>
           <UserPlus className="w-4 h-4" />
@@ -332,10 +332,10 @@ export default function RH() {
 
       {/* Tabs */}
       <Tabs value={tab} onValueChange={setTab}>
-        <div className="overflow-x-auto">
-          <TabsList className="h-10 w-fit">
+        <div className="overflow-x-auto -mx-1 px-1">
+          <TabsList className="h-10 w-fit" style={{ background: 'var(--cbrio-input-bg)', padding: 4 }}>
             {TABS.map((t, i) => (
-              <TabsTrigger key={TAB_KEYS[i]} value={TAB_KEYS[i]} className="px-3 text-xs sm:text-sm">
+              <TabsTrigger key={TAB_KEYS[i]} value={TAB_KEYS[i]} className="px-3 text-xs sm:text-sm" style={{ borderRadius: 6 }}>
                 {t}
               </TabsTrigger>
             ))}
@@ -466,17 +466,17 @@ function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
   return (
     <div className="space-y-6">
       {/* KPI Cards */}
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
+      <div className="grid gap-3 grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
-            <Card key={stat.title} className={stat.onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : ''} onClick={stat.onClick}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-xs font-medium text-muted-foreground">{stat.title}</CardTitle>
+            <Card key={stat.title} className={`py-0 gap-0 ${stat.onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`} onClick={stat.onClick} style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pt-4 pb-1">
+                <CardTitle className="text-[11px] font-medium" style={{ color: 'var(--cbrio-text3)' }}>{stat.title}</CardTitle>
                 <Icon className={`w-4 h-4 ${stat.color}`} />
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
+              <CardContent className="px-4 pb-4">
+                <div className="text-xl font-bold" style={{ color: 'var(--cbrio-text)' }}>{stat.value}</div>
               </CardContent>
             </Card>
           );
@@ -484,17 +484,17 @@ function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
       </div>
 
       {/* Extra metrics */}
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+      <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         {extras.map((stat) => {
           const Icon = stat.icon;
           return (
-            <Card key={stat.title}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-xs font-medium text-muted-foreground">{stat.title}</CardTitle>
+            <Card key={stat.title} className="py-0 gap-0" style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 pt-4 pb-1">
+                <CardTitle className="text-[11px] font-medium" style={{ color: 'var(--cbrio-text3)' }}>{stat.title}</CardTitle>
                 <Icon className={`w-4 h-4 ${stat.color}`} />
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
+              <CardContent className="px-4 pb-4">
+                <div className="text-xl font-bold" style={{ color: 'var(--cbrio-text)' }}>{stat.value}</div>
               </CardContent>
             </Card>
           );
@@ -503,11 +503,11 @@ function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
 
       {/* Data cards */}
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Por Tipo de Contrato</CardTitle>
+        <Card className="py-0 gap-0" style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}>
+          <CardHeader className="px-5 pt-5 pb-2">
+            <CardTitle className="text-sm" style={{ color: 'var(--cbrio-text)' }}>Por Tipo de Contrato</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-5 pb-5">
             {Object.entries(dash.porContrato || {}).map(([tipo, qtd]) => (
               <div key={tipo} className="flex justify-between py-2 border-b border-border last:border-0">
                 <span className="text-sm text-foreground">{TIPO_CONTRATO[tipo] || tipo}</span>
@@ -518,48 +518,48 @@ function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Por Área</CardTitle>
+        <Card className="py-0 gap-0" style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}>
+          <CardHeader className="px-5 pt-5 pb-2">
+            <CardTitle className="text-sm" style={{ color: 'var(--cbrio-text)' }}>Por Área</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-5 pb-5">
             {Object.entries(dash.porArea || {}).map(([area, qtd]) => (
-              <div key={area} className="flex justify-between py-2 border-b border-border last:border-0">
-                <span className="text-sm text-foreground">{area}</span>
-                <span className="text-sm font-bold text-primary">{qtd}</span>
+              <div key={area} className="flex justify-between py-2" style={{ borderBottom: `1px solid var(--cbrio-border)` }}>
+                <span className="text-sm" style={{ color: 'var(--cbrio-text)' }}>{area}</span>
+                <span className="text-sm font-bold" style={{ color: '#00B39D' }}>{qtd}</span>
               </div>
             ))}
-            {Object.keys(dash.porArea || {}).length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Nenhum dado</p>}
+            {Object.keys(dash.porArea || {}).length === 0 && <p className="text-sm text-center py-4" style={{ color: 'var(--cbrio-text3)' }}>Nenhum dado</p>}
           </CardContent>
         </Card>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Férias Próximas (30 dias)</CardTitle>
+        <Card className="py-0 gap-0" style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}>
+          <CardHeader className="px-5 pt-5 pb-2">
+            <CardTitle className="text-sm" style={{ color: 'var(--cbrio-text)' }}>Férias Próximas (30 dias)</CardTitle>
           </CardHeader>
-          <CardContent>
-            {(dash.feriasProximas || []).length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Nenhuma férias agendada</p>}
+          <CardContent className="px-5 pb-5">
+            {(dash.feriasProximas || []).length === 0 && <p className="text-sm text-center py-4" style={{ color: 'var(--cbrio-text3)' }}>Nenhuma férias agendada</p>}
             {(dash.feriasProximas || []).map(f => (
-              <div key={f.id} className="flex justify-between py-2 border-b border-border last:border-0">
-                <span className="text-sm">{f.rh_funcionarios?.nome || '—'}</span>
-                <span className="text-xs text-muted-foreground">{fmtDate(f.data_inicio)} → {fmtDate(f.data_fim)}</span>
+              <div key={f.id} className="flex justify-between py-2" style={{ borderBottom: `1px solid var(--cbrio-border)` }}>
+                <span className="text-sm" style={{ color: 'var(--cbrio-text)' }}>{f.rh_funcionarios?.nome || '—'}</span>
+                <span className="text-xs" style={{ color: 'var(--cbrio-text2)' }}>{fmtDate(f.data_inicio)} → {fmtDate(f.data_fim)}</span>
               </div>
             ))}
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Documentos Vencendo (60 dias)</CardTitle>
+        <Card className="py-0 gap-0" style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}>
+          <CardHeader className="px-5 pt-5 pb-2">
+            <CardTitle className="text-sm" style={{ color: 'var(--cbrio-text)' }}>Documentos Vencendo (60 dias)</CardTitle>
           </CardHeader>
-          <CardContent>
-            {(dash.docsVencendo || []).length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Nenhum documento vencendo</p>}
+          <CardContent className="px-5 pb-5">
+            {(dash.docsVencendo || []).length === 0 && <p className="text-sm text-center py-4" style={{ color: 'var(--cbrio-text3)' }}>Nenhum documento vencendo</p>}
             {(dash.docsVencendo || []).map(d => (
-              <div key={d.id} className="flex justify-between py-2 border-b border-border last:border-0">
-                <span className="text-sm">{d.rh_funcionarios?.nome} — {d.nome}</span>
-                <span className="text-xs text-destructive">{fmtDate(d.data_expiracao)}</span>
+              <div key={d.id} className="flex justify-between py-2" style={{ borderBottom: `1px solid var(--cbrio-border)` }}>
+                <span className="text-sm" style={{ color: 'var(--cbrio-text)' }}>{d.rh_funcionarios?.nome} — {d.nome}</span>
+                <span className="text-xs" style={{ color: '#ef4444' }}>{fmtDate(d.data_expiracao)}</span>
               </div>
             ))}
           </CardContent>
@@ -611,12 +611,12 @@ function FuncionariosTab({ funcs, loading, busca, setBusca, filtroStatus, setFil
   }
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="py-0 gap-0" style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}>
+      <CardHeader className="px-5 pt-5 pb-4">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <CardTitle>Diretório de Colaboradores</CardTitle>
-            <CardDescription>{funcs.length} colaboradores encontrados</CardDescription>
+            <CardTitle style={{ color: 'var(--cbrio-text)' }}>Diretório de Colaboradores</CardTitle>
+            <CardDescription style={{ color: 'var(--cbrio-text3)' }}>{funcs.length} colaboradores encontrados</CardDescription>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
             <div className="relative">
@@ -655,8 +655,8 @@ function FuncionariosTab({ funcs, loading, busca, setBusca, filtroStatus, setFil
           </Button>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto rounded-md border border-border">
+      <CardContent className="px-5 pb-5">
+        <div className="overflow-x-auto rounded-md" style={{ border: `1px solid var(--cbrio-border)` }}>
           <table style={styles.table}>
             <thead>
               <tr>
