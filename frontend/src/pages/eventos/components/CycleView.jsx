@@ -49,6 +49,8 @@ export default function CycleView({ eventId, eventName }) {
   const [selectedTask, setSelectedTask] = useState(null);
   const [showNewPhase, setShowNewPhase] = useState(false);
   const [showNewTask, setShowNewTask] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [newTaskSubs, setNewTaskSubs] = useState([]);
 
   const load = async () => {
     try {
@@ -103,8 +105,15 @@ export default function CycleView({ eventId, eventName }) {
     e.preventDefault();
     const fd = new FormData(e.target);
     const d = Object.fromEntries(fd.entries());
-    await api.createTask({ event_phase_id: activePhase, event_id: eventId, titulo: d.titulo, area: d.area, prazo: d.prazo || null, responsavel_nome: d.responsavel || null, status: 'a_fazer', prioridade: 'normal', observacoes: d.categoria ? `Área: ${d.categoria}` : '' });
+    const phaseId = d.phase_id || activePhase;
+    const task = await api.createTask({ event_phase_id: phaseId, event_id: eventId, titulo: d.titulo, area: d.area, prazo: d.prazo || null, responsavel_nome: d.responsavel || null, status: 'a_fazer', prioridade: 'normal' });
+    if (task?.id && newTaskSubs.length > 0) {
+      for (const name of newTaskSubs) {
+        await api.createSubtask(task.id, name);
+      }
+    }
     setShowNewTask(false);
+    setNewTaskSubs([]);
     load();
   };
 
@@ -412,38 +421,70 @@ export default function CycleView({ eventId, eventName }) {
       )}
 
       {/* Modal: Nova Tarefa */}
-      {showNewTask && currentPhase && (
-        <div style={modalOverlay} onClick={() => setShowNewTask(false)}>
+      {showNewTask && (
+        <div style={modalOverlay} onClick={() => { setShowNewTask(false); setNewTaskSubs([]); }}>
           <div style={modalBox} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-              <span style={{ fontSize: 16, fontWeight: 700, color: C.dark }}>Nova Tarefa — {currentPhase.nome_fase}</span>
-              <button onClick={() => setShowNewTask(false)} style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: C.t3 }}>✕</button>
+              <span style={{ fontSize: 16, fontWeight: 700, color: C.dark }}>Nova Tarefa</span>
+              <button onClick={() => { setShowNewTask(false); setNewTaskSubs([]); }} style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: C.t3 }}>✕</button>
             </div>
             <form onSubmit={handleCreateTask}>
               <div style={{ marginBottom: 10 }}>
+                <label style={lblStyle}>Fase</label>
+                <select name="phase_id" defaultValue={activePhase || ''} style={inputStyle}
+                  onChange={e => {
+                    const p = phases.find(ph => ph.id === e.target.value);
+                    const prazoInput = e.target.form?.querySelector('[name=prazo]');
+                    if (p?.data_fim_prevista && prazoInput) prazoInput.value = p.data_fim_prevista;
+                  }}>
+                  {phases.map(p => <option key={p.id} value={p.id}>F{p.numero_fase} — {p.nome_fase}</option>)}
+                </select>
+              </div>
+              <div style={{ marginBottom: 10 }}>
                 <label style={lblStyle}>Título *</label>
-                <input name="titulo" required style={inputStyle} />
+                <input name="titulo" required style={inputStyle} placeholder="Nome da tarefa" />
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <div style={{ flex: 1, marginBottom: 10 }}>
                   <label style={lblStyle}>Área</label>
-                  <select name="area" style={inputStyle}><option value="adm">Administrativo</option><option value="marketing">Marketing</option></select>
-                </div>
-                <div style={{ flex: 1, marginBottom: 10 }}>
-                  <label style={lblStyle}>Categoria</label>
-                  <select name="categoria" style={inputStyle}>
-                    <option value="">Nenhuma</option><option value="compras">Compras</option><option value="financeiro">Financeiro</option>
+                  <select name="area" style={inputStyle}>
+                    <option value="adm">Administrativo</option><option value="marketing">Marketing</option>
+                    <option value="compras">Compras</option><option value="financeiro">Financeiro</option>
                     <option value="manutencao">Manutenção</option><option value="limpeza">Limpeza</option><option value="cozinha">Cozinha</option>
                   </select>
                 </div>
+                <div style={{ flex: 1, marginBottom: 10 }}>
+                  <label style={lblStyle}>Prazo</label>
+                  <input type="date" name="prazo" defaultValue={currentPhase?.data_fim_prevista || ''} style={inputStyle} />
+                </div>
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <div style={{ flex: 1, marginBottom: 10 }}><label style={lblStyle}>Prazo</label><input type="date" name="prazo" style={inputStyle} /></div>
-                <div style={{ flex: 1, marginBottom: 10 }}><label style={lblStyle}>Responsável</label><input name="responsavel" style={inputStyle} /></div>
+              <div style={{ marginBottom: 10 }}>
+                <label style={lblStyle}>Responsável</label>
+                <input name="responsavel" style={inputStyle} placeholder="Nome do responsável" />
               </div>
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                <button type="button" onClick={() => setShowNewTask(false)} style={{ padding: '6px 14px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', cursor: 'pointer', fontSize: 12 }}>Cancelar</button>
-                <button type="submit" style={{ padding: '6px 14px', borderRadius: 6, border: 'none', background: C.accent, color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>Criar</button>
+              {/* Subtarefas */}
+              <div style={{ marginBottom: 10 }}>
+                <label style={lblStyle}>Subtarefas</label>
+                {newTaskSubs.map((s, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 4 }}>
+                    <span style={{ flex: 1, fontSize: 12, color: C.dark, padding: '4px 8px', background: 'var(--cbrio-bg)', borderRadius: 4 }}>{s}</span>
+                    <button type="button" onClick={() => setNewTaskSubs(prev => prev.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.t3, fontSize: 14 }}>✕</button>
+                  </div>
+                ))}
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <input id="new-task-sub-input" type="text" placeholder="Nova subtarefa..." style={{ flex: 1, ...inputStyle, marginBottom: 0 }}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') { e.preventDefault(); const v = e.target.value.trim(); if (v) { setNewTaskSubs(prev => [...prev, v]); e.target.value = ''; } }
+                    }} />
+                  <button type="button" onClick={() => {
+                    const inp = document.getElementById('new-task-sub-input');
+                    if (inp?.value.trim()) { setNewTaskSubs(prev => [...prev, inp.value.trim()]); inp.value = ''; }
+                  }} style={{ padding: '5px 10px', borderRadius: 6, border: 'none', background: C.accent, color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>+</button>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 12 }}>
+                <button type="button" onClick={() => { setShowNewTask(false); setNewTaskSubs([]); }} style={{ padding: '6px 14px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', cursor: 'pointer', fontSize: 12 }}>Cancelar</button>
+                <button type="submit" style={{ padding: '6px 14px', borderRadius: 6, border: 'none', background: C.accent, color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>Criar tarefa</button>
               </div>
             </form>
           </div>
@@ -615,14 +656,26 @@ export default function CycleView({ eventId, eventName }) {
                 </div>
 
                 {/* ── Ações ── */}
-                <div style={{ display: 'flex', gap: 8, paddingTop: 16, borderTop: '1px solid var(--cbrio-border)', justifyContent: 'flex-end' }}>
-                  <button onClick={async () => {
-                    if (!window.confirm(`Excluir o card "${task.titulo}"? Esta ação não pode ser desfeita.`)) return;
-                    await handleDeleteTask(task.id); setSelectedTask(null);
-                  }}
-                    style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#ef4444', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-                    Excluir
-                  </button>
+                <div style={{ paddingTop: 16, borderTop: '1px solid var(--cbrio-border)' }}>
+                  {!confirmDelete ? (
+                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                      <button onClick={() => setConfirmDelete(true)}
+                        style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#ef4444', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                        Excluir
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ background: '#fee2e220', border: '1px solid #ef444430', borderRadius: 8, padding: 12 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#ef4444', marginBottom: 8 }}>Excluir "{task.titulo}"?</div>
+                      <div style={{ fontSize: 11, color: C.t2, marginBottom: 10 }}>Esta acao nao pode ser desfeita. O card e suas subtarefas serao removidos.</div>
+                      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                        <button onClick={() => setConfirmDelete(false)}
+                          style={{ padding: '6px 14px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', cursor: 'pointer', fontSize: 12 }}>Cancelar</button>
+                        <button onClick={async () => { await handleDeleteTask(task.id); setConfirmDelete(false); setSelectedTask(null); }}
+                          style={{ padding: '6px 14px', borderRadius: 6, border: 'none', background: '#ef4444', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>Sim, excluir</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
