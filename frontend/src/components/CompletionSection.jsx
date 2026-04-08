@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { completions } from '../api';
-import { Upload, Check, RotateCcw, X, FileText } from 'lucide-react';
+import { completions, attachments as attachApi } from '../api';
+import { Upload, Check, RotateCcw, X, FileText, Trash2, Plus } from 'lucide-react';
 
 const C = {
   text: 'var(--cbrio-text)', t2: 'var(--cbrio-text2)', t3: 'var(--cbrio-text3)',
@@ -19,22 +19,26 @@ export default function CompletionSection({ task, phase, eventName, isPMO, onCom
   const [existing, setExisting] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [observacao, setObservacao] = useState('');
-  const [files, setFiles] = useState([]); // [{ file, progress, uploaded, result }]
+  const [files, setFiles] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [reopenReason, setReopenReason] = useState('');
   const [showReopen, setShowReopen] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const [addingFiles, setAddingFiles] = useState(false);
   const fileRef = useRef(null);
+  const addFileRef = useRef(null);
 
-  useEffect(() => {
-    if (task?.id) {
-      completions.getByTask(task.id).then(setExisting).catch(() => setExisting(null));
-    }
-  }, [task?.id]);
+  const reload = () => {
+    if (task?.id) completions.getByTask(task.id).then(setExisting).catch(() => setExisting(null));
+  };
+
+  useEffect(() => { reload(); }, [task?.id]);
 
   const isDone = task.status === 'concluida';
+  const phaseFolderName = phase ? `Fase ${String(phase.numero_fase).padStart(2, '0')} - ${phase.nome_fase}` : '';
 
-  const addFiles = (e) => {
+  const addFilesFromInput = (e) => {
     const newFiles = Array.from(e.target.files || []).map(f => ({
       file: f, progress: 0, uploaded: false, result: null,
     }));
@@ -42,90 +46,85 @@ export default function CompletionSection({ task, phase, eventName, isPMO, onCom
     if (fileRef.current) fileRef.current.value = '';
   };
 
+  const addFilesFromDrop = (fileList) => {
+    const newFiles = Array.from(fileList).map(f => ({
+      file: f, progress: 0, uploaded: false, result: null,
+    }));
+    setFiles(prev => [...prev, ...newFiles]);
+  };
+
   const removeFile = (idx) => setFiles(prev => prev.filter((_, i) => i !== idx));
 
-  // Upload cada arquivo direto pro SharePoint via upload session
-  // Chunk size: 10MB (múltiplo de 320KB conforme exigência da Microsoft Graph API)
+  // ── Drag & Drop handlers ──
+  const handleDragOver = (e) => { e.preventDefault(); e.stopPropagation(); setDragging(true); };
+  const handleDragLeave = (e) => { e.preventDefault(); e.stopPropagation(); setDragging(false); };
+  const handleDrop = (e) => {
+    e.preventDefault(); e.stopPropagation(); setDragging(false);
+    if (e.dataTransfer.files?.length > 0) addFilesFromDrop(e.dataTransfer.files);
+  };
+
+  // ── Upload para SharePoint (chunks de 10MB) ──
   const CHUNK_SIZE = 10 * 1024 * 1024;
+
+  const uploadToSharePoint = async (fileObj, idx, progressSetter) => {
+    const { uploadUrl, sharepointPath } = await completions.getUploadUrl({
+      fileName: fileObj.name,
+      eventName: eventName || '',
+      phaseName: phaseFolderName,
+      area: task.area || '',
+    });
+
+    let uploadData;
+    if (fileObj.size <= CHUNK_SIZE) {
+      const res = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Length': fileObj.size, 'Content-Range': `bytes 0-${fileObj.size - 1}/${fileObj.size}` },
+        body: fileObj,
+      });
+      if (!res.ok) {
+        let errMsg = `SharePoint retornou ${res.status}`;
+        try { const ed = await res.json(); errMsg = ed.error?.message || ed.error || errMsg; } catch {}
+        throw new Error(errMsg);
+      }
+      uploadData = await res.json();
+      progressSetter(idx, 100);
+    } else {
+      let offset = 0;
+      while (offset < fileObj.size) {
+        const end = Math.min(offset + CHUNK_SIZE, fileObj.size);
+        const chunk = fileObj.slice(offset, end);
+        const isLast = end === fileObj.size;
+        const res = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Length': end - offset, 'Content-Range': `bytes ${offset}-${end - 1}/${fileObj.size}` },
+          body: chunk,
+        });
+        if (isLast) {
+          if (!res.ok) { let m = `SharePoint ${res.status}`; try { const e = await res.json(); m = e.error?.message || m; } catch {} throw new Error(m); }
+          uploadData = await res.json();
+        } else if (res.status !== 202 && !res.ok) {
+          throw new Error(`Chunk falhou (${res.status})`);
+        }
+        offset = end;
+        progressSetter(idx, Math.round((offset / fileObj.size) * 100));
+      }
+    }
+
+    return {
+      file_name: fileObj.name, file_url: uploadData.webUrl || '',
+      sharepoint_path: sharepointPath, sharepoint_item_id: uploadData.id || null,
+      mime_type: fileObj.type, size: fileObj.size,
+    };
+  };
 
   const uploadFilesToSharePoint = async () => {
     const uploaded = [];
+    const setProg = (i, pct) => setFiles(prev => prev.map((pf, pi) => pi === i ? { ...pf, progress: pct } : pf));
     for (let i = 0; i < files.length; i++) {
       const f = files[i];
       if (f.uploaded && f.result) { uploaded.push(f.result); continue; }
       try {
-        // 1. Obter upload URL do backend
-        const { uploadUrl, sharepointPath, fileName } = await completions.getUploadUrl({
-          fileName: f.file.name,
-          eventName: eventName || '',
-          phaseName: phase ? `Fase ${String(phase.numero_fase).padStart(2, '0')} - ${phase.nome_fase}` : '',
-          area: task.area || '',
-        });
-
-        // 2. Upload direto para SharePoint (chunks de 10MB para arquivos grandes)
-        let uploadData;
-        if (f.file.size <= CHUNK_SIZE) {
-          // Arquivo pequeno — PUT único
-          const uploadRes = await fetch(uploadUrl, {
-            method: 'PUT',
-            headers: {
-              'Content-Length': f.file.size,
-              'Content-Range': `bytes 0-${f.file.size - 1}/${f.file.size}`,
-            },
-            body: f.file,
-          });
-          if (!uploadRes.ok) {
-            let errMsg = `SharePoint retornou ${uploadRes.status}`;
-            try { const ed = await uploadRes.json(); errMsg = ed.error?.message || ed.error || errMsg; } catch {}
-            throw new Error(errMsg);
-          }
-          uploadData = await uploadRes.json();
-          setFiles(prev => prev.map((pf, pi) => pi === i ? { ...pf, progress: 100 } : pf));
-        } else {
-          // Arquivo grande — upload em chunks
-          let offset = 0;
-          while (offset < f.file.size) {
-            const end = Math.min(offset + CHUNK_SIZE, f.file.size);
-            const chunk = f.file.slice(offset, end);
-            const isLast = end === f.file.size;
-
-            const chunkRes = await fetch(uploadUrl, {
-              method: 'PUT',
-              headers: {
-                'Content-Length': end - offset,
-                'Content-Range': `bytes ${offset}-${end - 1}/${f.file.size}`,
-              },
-              body: chunk,
-            });
-
-            if (isLast) {
-              if (!chunkRes.ok) {
-                let errMsg = `SharePoint retornou ${chunkRes.status}`;
-                try { const ed = await chunkRes.json(); errMsg = ed.error?.message || ed.error || errMsg; } catch {}
-                throw new Error(errMsg);
-              }
-              uploadData = await chunkRes.json();
-            } else {
-              if (chunkRes.status !== 202 && !chunkRes.ok) {
-                throw new Error(`Chunk falhou (${chunkRes.status}) em ${Math.round(offset / 1024 / 1024)}MB`);
-              }
-            }
-
-            offset = end;
-            const pct = Math.round((offset / f.file.size) * 100);
-            setFiles(prev => prev.map((pf, pi) => pi === i ? { ...pf, progress: pct } : pf));
-          }
-        }
-
-        const result = {
-          file_name: f.file.name,
-          file_url: uploadData.webUrl || '',
-          sharepoint_path: sharepointPath,
-          sharepoint_item_id: uploadData.id || null,
-          mime_type: f.file.type,
-          size: f.file.size,
-        };
-
+        const result = await uploadToSharePoint(f.file, i, setProg);
         setFiles(prev => prev.map((pf, pi) => pi === i ? { ...pf, progress: 100, uploaded: true, result } : pf));
         uploaded.push(result);
       } catch (err) {
@@ -136,56 +135,94 @@ export default function CompletionSection({ task, phase, eventName, isPMO, onCom
     return uploaded;
   };
 
+  // ── Concluir tarefa ──
   const handleComplete = async () => {
-    setSubmitting(true);
-    setError('');
+    setSubmitting(true); setError('');
     try {
-      // Upload arquivos para SharePoint
       let uploadedFiles = [];
-      if (files.length > 0) {
-        uploadedFiles = await uploadFilesToSharePoint();
-      }
-
-      // Registrar conclusão com metadata dos arquivos
+      if (files.length > 0) uploadedFiles = await uploadFilesToSharePoint();
       const result = await completions.complete({
-        task_id: task.id,
-        event_id: task.event_id,
-        event_phase_id: task.event_phase_id || '',
-        phase_number: phase?.numero_fase || 0,
-        phase_name: phase?.nome_fase || '',
-        area: task.area || '',
-        observacao: observacao.trim() || null,
-        files: uploadedFiles,
+        task_id: task.id, event_id: task.event_id, event_phase_id: task.event_phase_id || '',
+        phase_number: phase?.numero_fase || 0, phase_name: phase?.nome_fase || '',
+        area: task.area || '', observacao: observacao.trim() || null, files: uploadedFiles,
       });
       if (result.error) throw new Error(result.error);
-
-      setShowForm(false);
-      setObservacao('');
-      setFiles([]);
-      if (onComplete) onComplete();
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleReopen = async () => {
-    setSubmitting(true);
-    try {
-      await completions.reopen(task.id, reopenReason);
-      setShowReopen(false);
-      setReopenReason('');
-      setExisting(null);
+      setShowForm(false); setObservacao(''); setFiles([]);
       if (onComplete) onComplete();
     } catch (e) { setError(e.message); }
     finally { setSubmitting(false); }
   };
 
+  // ── Reabrir ──
+  const handleReopen = async () => {
+    setSubmitting(true);
+    try {
+      await completions.reopen(task.id, reopenReason);
+      setShowReopen(false); setReopenReason(''); setExisting(null);
+      if (onComplete) onComplete();
+    } catch (e) { setError(e.message); }
+    finally { setSubmitting(false); }
+  };
+
+  // ── Excluir arquivo ──
+  const handleDeleteFile = async (fileId) => {
+    if (!window.confirm('Excluir este arquivo?')) return;
+    try {
+      await attachApi.remove(fileId);
+      reload();
+    } catch (e) { setError(e.message); }
+  };
+
+  // ── Adicionar arquivo(s) a tarefa já concluída ──
+  const handleAddFilesToCompleted = async (fileList) => {
+    setAddingFiles(true); setError('');
+    try {
+      const uploadedFiles = [];
+      const filesToUpload = Array.from(fileList);
+      for (const f of filesToUpload) {
+        const result = await uploadToSharePoint(f, 0, () => {});
+        uploadedFiles.push(result);
+      }
+      await completions.attach({
+        task_id: task.id, event_id: task.event_id,
+        phase_name: phase?.nome_fase || '', area: task.area || '',
+        files: uploadedFiles,
+      });
+      reload();
+      if (addFileRef.current) addFileRef.current.value = '';
+    } catch (e) { setError(e.message); }
+    finally { setAddingFiles(false); }
+  };
+
+  // ── Drop zone (compartilhado entre form e completed) ──
+  const DropZone = ({ children, onFiles }) => (
+    <div
+      onDragOver={handleDragOver} onDragLeave={handleDragLeave}
+      onDrop={(e) => { handleDrop(e); if (onFiles) onFiles(e.dataTransfer.files); else addFilesFromDrop(e.dataTransfer.files); }}
+      style={{
+        padding: '8px 14px', borderRadius: 6, cursor: 'pointer', width: '100%',
+        border: `1px dashed ${dragging ? C.primary : C.border}`,
+        background: dragging ? `${C.primary}08` : 'transparent',
+        transition: 'all .15s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+        fontSize: 12, color: C.t2,
+      }}
+    >
+      {children}
+    </div>
+  );
+
+  // ══════════════════════════════════════════════════════
   // ── Card já concluído ──
+  // ══════════════════════════════════════════════════════
   if (isDone && existing) {
     return (
       <div style={{ border: `1px solid ${C.green}30`, borderRadius: 10, overflow: 'hidden' }}>
+        {error && (
+          <div style={{ padding: '8px 12px', background: '#fee2e2', color: C.red, fontSize: 11 }}>
+            {error}
+            <button onClick={() => setError('')} style={{ float: 'right', background: 'none', border: 'none', cursor: 'pointer', color: C.red }}>✕</button>
+          </div>
+        )}
         <div style={{ padding: '12px 16px', background: `${C.green}08`, display: 'flex', alignItems: 'center', gap: 8 }}>
           <Check style={{ width: 16, height: 16, color: C.green }} />
           <span style={{ fontSize: 13, fontWeight: 600, color: C.green }}>Concluído</span>
@@ -198,16 +235,22 @@ export default function CompletionSection({ task, phase, eventName, isPMO, onCom
             "{existing.observacao}"
           </div>
         )}
-        {/* Lista de arquivos */}
+        {/* Lista de arquivos com opção de excluir */}
         {existing.files && existing.files.length > 0 && (
           <div style={{ borderTop: `1px solid ${C.border}` }}>
             {existing.files.map((f, i) => (
-              <div key={i} style={{ padding: '6px 16px', fontSize: 12, color: C.text, display: 'flex', alignItems: 'center', gap: 6, borderBottom: `1px solid ${C.border}` }}>
+              <div key={f.id || i} style={{ padding: '6px 16px', fontSize: 12, color: C.text, display: 'flex', alignItems: 'center', gap: 6, borderBottom: `1px solid ${C.border}` }}>
                 <FileText style={{ width: 14, height: 14, color: C.t3 }} />
                 <span style={{ flex: 1 }}>{f.file_name}</span>
                 <span style={{ fontSize: 10, color: C.t3 }}>{formatSize(f.file_size)}</span>
                 {f.sharepoint_url && (
                   <a href={f.sharepoint_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 10, color: C.primary }}>Abrir</a>
+                )}
+                {f.id && (
+                  <button onClick={() => handleDeleteFile(f.id)} title="Excluir arquivo"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.t3, padding: 0 }}>
+                    <Trash2 style={{ width: 13, height: 13 }} />
+                  </button>
                 )}
               </div>
             ))}
@@ -216,12 +259,23 @@ export default function CompletionSection({ task, phase, eventName, isPMO, onCom
         {/* Backward compat: arquivo único no card_completions */}
         {existing.file_name && (!existing.files || existing.files.length === 0) && (
           <div style={{ padding: '8px 16px', fontSize: 12, color: C.text, borderTop: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 6 }}>
-            📎 {existing.file_name}
+            <FileText style={{ width: 14, height: 14, color: C.t3 }} /> {existing.file_name}
             {(existing.file_signed_url || existing.file_url) && (
               <a href={existing.file_signed_url || existing.file_url} target="_blank" rel="noopener noreferrer" style={{ color: C.primary, fontSize: 11 }}>Abrir</a>
             )}
           </div>
         )}
+        {/* Adicionar mais arquivos (drag & drop ou botão) */}
+        <div style={{ padding: '10px 16px', borderTop: `1px solid ${C.border}` }}>
+          <input ref={addFileRef} type="file" multiple onChange={(e) => handleAddFilesToCompleted(e.target.files)} style={{ display: 'none' }} />
+          <DropZone onFiles={(fl) => handleAddFilesToCompleted(fl)}>
+            {addingFiles ? (
+              <span style={{ color: C.primary, fontWeight: 600 }}>Enviando...</span>
+            ) : (
+              <><Plus style={{ width: 14, height: 14 }} /> Adicionar entregável (ou arraste aqui)</>
+            )}
+          </DropZone>
+        </div>
         {/* PMO reabrir */}
         {isPMO && (
           <div style={{ padding: '10px 16px', borderTop: `1px solid ${C.border}` }}>
@@ -251,7 +305,9 @@ export default function CompletionSection({ task, phase, eventName, isPMO, onCom
     );
   }
 
+  // ══════════════════════════════════════════════════════
   // ── Card não concluído ──
+  // ══════════════════════════════════════════════════════
   return (
     <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: 'hidden' }}>
       {error && (
@@ -286,18 +342,18 @@ export default function CompletionSection({ task, phase, eventName, isPMO, onCom
               style={{ width: '100%', padding: '6px 10px', borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, color: C.text, resize: 'vertical', boxSizing: 'border-box', background: 'var(--cbrio-input-bg, #fff)' }} />
           </div>
 
-          {/* Arquivos (múltiplos) */}
+          {/* Arquivos — botão + drag & drop */}
           <div>
             <label style={{ fontSize: 11, fontWeight: 600, color: C.t2, display: 'block', marginBottom: 4 }}>
               Entregáveis <span style={{ fontWeight: 400 }}>(opcional — múltiplos arquivos)</span>
             </label>
-            <input ref={fileRef} type="file" multiple onChange={addFiles} style={{ display: 'none' }} />
-            <button onClick={() => fileRef.current?.click()} style={{
-              padding: '8px 14px', borderRadius: 6, border: `1px dashed ${C.border}`, background: 'transparent',
-              cursor: 'pointer', fontSize: 12, color: C.t2, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            }}>
-              <Upload style={{ width: 14, height: 14 }} /> Adicionar arquivos
-            </button>
+            <input ref={fileRef} type="file" multiple onChange={addFilesFromInput} style={{ display: 'none' }} />
+            <DropZone>
+              <button onClick={() => fileRef.current?.click()}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.t2, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Upload style={{ width: 14, height: 14 }} /> Adicionar arquivos ou arraste aqui
+              </button>
+            </DropZone>
 
             {/* Lista de arquivos selecionados */}
             {files.length > 0 && (

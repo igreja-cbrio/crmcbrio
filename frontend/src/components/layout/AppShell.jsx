@@ -1,5 +1,5 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { notificacoes as notifApi } from '../../api';
@@ -10,8 +10,12 @@ import {
   CalendarDays, FolderKanban, Map,
   UserCheck, UsersRound, Heart, HandHelping, BookOpen,
   Megaphone, BrainCircuit, ShoppingCart,
-  Sun, Moon, Bell, LogOut, Check, Search,
+  Sun, Moon, Bell, LogOut, Search, CheckCheck, Sparkles, Inbox,
 } from 'lucide-react';
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
+} from '../ui/dropdown-menu';
+import { ScrollArea } from '../ui/scroll-area';
 
 const NAV_ITEMS = [
   {
@@ -111,7 +115,6 @@ export default function AppShell() {
 
   const [notifCount, setNotifCount] = useState(0);
   const [notifs, setNotifs] = useState([]);
-  const [showNotifs, setShowNotifs] = useState(false);
 
   useEffect(() => {
     loadNotifCount();
@@ -127,13 +130,10 @@ export default function AppShell() {
   }
 
   async function openNotifs() {
-    setShowNotifs(!showNotifs);
-    if (!showNotifs) {
-      try {
-        const data = await notifApi.list();
-        setNotifs(data);
-      } catch { }
-    }
+    try {
+      const data = await notifApi.list();
+      setNotifs(data);
+    } catch { }
   }
 
   async function markRead(id) {
@@ -157,8 +157,7 @@ export default function AppShell() {
     <div className="flex flex-col h-screen" style={{ background: 'var(--cbrio-bg)', color: 'var(--cbrio-text)' }}>
       {/* Header */}
       <header
-        className="flex items-center h-14 sm:h-16 px-4 sm:px-8 shrink-0 border-b z-30"
-        style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}
+        className="flex items-center h-14 sm:h-16 px-4 sm:px-8 shrink-0 border-b border-border z-30 bg-card backdrop-blur-sm bg-opacity-80"
       >
         {/* Logo — click to go to dashboard */}
         <div
@@ -197,77 +196,75 @@ export default function AppShell() {
           {/* Search */}
           <button
             onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
-            className="hidden sm:flex items-center gap-2 h-9 px-4 rounded-lg border text-sm transition-colors cursor-pointer"
-            style={{ borderColor: 'var(--cbrio-border)', color: 'var(--cbrio-text3)' }}
-            onMouseEnter={e => e.currentTarget.style.background = 'var(--cbrio-input-bg)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            className="hidden sm:flex items-center gap-2 h-9 px-4 rounded-lg border border-border text-sm text-muted-foreground transition-colors cursor-pointer hover:bg-accent hover:text-foreground"
           >
             <Search className="h-4 w-4" />
-            <span>Buscar...</span>
-            <kbd className="ml-2 inline-flex h-5 items-center gap-0.5 rounded border px-1.5 text-[10px] font-medium" style={{ borderColor: 'var(--cbrio-border)', color: 'var(--cbrio-text3)', background: 'var(--cbrio-input-bg)' }}>⌘K</kbd>
+            <span>Buscar</span>
           </button>
 
           {/* Theme toggle */}
           <button
             onClick={() => setIsDark(!isDark)}
-            className="flex items-center justify-center h-8 w-8 rounded-lg transition-colors"
-            style={{ color: 'var(--cbrio-text3)' }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'var(--cbrio-border)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             aria-label="Alternar tema"
           >
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
 
           {/* Notifications */}
-          <div className="relative">
-            <button
-              onClick={openNotifs}
-              className="relative flex items-center justify-center h-8 w-8 rounded-lg transition-colors"
-              style={{ color: 'var(--cbrio-text3)' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--cbrio-border)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-            >
-              <Bell className="h-4 w-4" />
-              {notifCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#00B39D] px-1 text-[9px] font-bold text-white dark:text-[#0a0a0a]">
-                  {notifCount > 9 ? '9+' : notifCount}
-                </span>
-              )}
-            </button>
+          <DropdownMenu onOpenChange={(open) => { if (open) openNotifs(); }}>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="relative flex items-center justify-center h-8 w-8 rounded-lg transition-colors hover:bg-accent"
+                style={{ color: 'var(--cbrio-text3)' }}
+              >
+                <Bell className="h-4 w-4" />
+                {notifCount > 0 && (
+                  <span className="cbrio-badge-pulse absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#00B39D] px-1 text-[9px] font-bold text-white">
+                    {notifCount > 9 ? '9+' : notifCount}
+                  </span>
+                )}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[380px] p-0 rounded-xl shadow-xl border-border/60">
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+                <span className="text-sm font-semibold text-foreground">Notificações</span>
+                <div className="flex items-center gap-2">
+                  {role === 'diretor' && (
+                    <button
+                      onClick={async (e) => { e.stopPropagation(); try { await notifApi.gerar(); loadNotifCount(); openNotifs(); } catch {} }}
+                      className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <Sparkles className="h-3 w-3" />
+                      Gerar
+                    </button>
+                  )}
+                  {notifCount > 0 && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); markAllRead(); }}
+                      className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 font-medium transition-colors"
+                    >
+                      <CheckCheck className="h-3.5 w-3.5" />
+                      Marcar lidas
+                    </button>
+                  )}
+                </div>
+              </div>
 
-            {/* Notification dropdown */}
-            {showNotifs && (
-              <>
-                <div style={{ position: 'fixed', inset: 0, zIndex: 40 }} onClick={() => setShowNotifs(false)} />
-                <div style={{
-                  position: 'absolute', right: 0, top: '100%', marginTop: 8,
-                  width: 360, maxHeight: 420, overflow: 'auto',
-                  background: 'var(--cbrio-card)', border: '1px solid var(--cbrio-border)',
-                  borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.4)', zIndex: 50,
-                }}>
-                  <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--cbrio-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--cbrio-text)' }}>Notificações</span>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      {role === 'diretor' && (
-                        <button onClick={async () => { try { await notifApi.gerar(); loadNotifCount(); openNotifs(); } catch {} }} style={{ fontSize: 11, color: 'var(--cbrio-text3)', background: 'none', border: 'none', cursor: 'pointer' }}>
-                          Gerar agora
-                        </button>
-                      )}
-                      {notifCount > 0 && (
-                        <button onClick={markAllRead} style={{ fontSize: 12, color: '#00B39D', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}>
-                          Marcar todas como lidas
-                        </button>
-                      )}
+              {/* Notification list */}
+              <ScrollArea className="max-h-[360px]">
+                {notifs.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 px-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted mb-3">
+                      <Inbox className="h-5 w-5 text-muted-foreground" />
                     </div>
+                    <p className="text-sm text-muted-foreground">Nenhuma notificação</p>
                   </div>
-                  {notifs.length === 0 ? (
-                    <div style={{ padding: 32, textAlign: 'center', color: 'var(--cbrio-text3)', fontSize: 13 }}>
-                      Nenhuma notificação
-                    </div>
-                  ) : (
-                    notifs.slice(0, 20).map(n => {
-                      const MOD_COLORS = { rh: '#00B39D', financeiro: '#00B39D', logistica: '#00B39D', patrimonio: '#00B39D', eventos: '#00B39D', projetos: '#00B39D', sistema: '#00B39D' };
+                ) : (
+                  <div className="cbrio-stagger">
+                    {notifs.slice(0, 20).map(n => {
+                      const MOD_COLORS = { rh: '#00B39D', financeiro: '#0ea5e9', logistica: '#8b5cf6', patrimonio: '#f59e0b', eventos: '#ec4899', projetos: '#6366f1', sistema: '#6b7280' };
                       const MOD_LABELS = { rh: 'RH', financeiro: 'Financeiro', logistica: 'Logística', patrimonio: 'Patrimônio', eventos: 'Eventos', projetos: 'Projetos', sistema: 'Sistema' };
                       const SEV_COLORS = { urgente: '#ef4444', aviso: '#f59e0b', info: '#00B39D' };
                       const modColor = MOD_COLORS[n.modulo] || '#6b7280';
@@ -277,46 +274,56 @@ export default function AppShell() {
                           key={n.id}
                           onClick={() => {
                             if (!n.lida) markRead(n.id);
-                            if (n.link) { navigate(n.link); setShowNotifs(false); }
+                            if (n.link) { navigate(n.link); }
                           }}
-                          style={{
-                            padding: '14px 20px', borderBottom: '1px solid var(--cbrio-border)',
-                            cursor: 'pointer',
-                            background: n.lida ? 'transparent' : '#00B39D08',
-                            borderLeft: `3px solid ${sevColor}`,
-                          }}
+                          className="group flex gap-3 px-4 py-3 cursor-pointer border-b border-border/50 transition-colors hover:bg-accent/50"
+                          style={{ borderLeft: `3px solid ${sevColor}` }}
                         >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: 8 }}>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                                {n.modulo && (
-                                  <span style={{
-                                    fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5,
-                                    padding: '1px 6px', borderRadius: 4, color: '#fff', background: modColor,
-                                  }}>
-                                    {MOD_LABELS[n.modulo] || n.modulo}
-                                  </span>
-                                )}
-                                {n.severidade === 'urgente' && (
-                                  <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 4, color: '#fff', background: '#ef4444' }}>URGENTE</span>
-                                )}
-                              </div>
-                              <p style={{ fontSize: 13, fontWeight: n.lida ? 400 : 600, color: 'var(--cbrio-text)', margin: 0 }}>{n.titulo}</p>
-                              <p style={{ fontSize: 12, color: 'var(--cbrio-text2)', margin: '4px 0 0', lineHeight: 1.4 }}>{n.mensagem}</p>
-                            </div>
-                            {!n.lida && <div style={{ width: 8, height: 8, borderRadius: '50%', background: sevColor, flexShrink: 0, marginTop: 4 }} />}
+                          {/* Unread dot */}
+                          <div className="pt-1.5 shrink-0">
+                            {!n.lida ? (
+                              <div className="h-2 w-2 rounded-full" style={{ background: sevColor }} />
+                            ) : (
+                              <div className="h-2 w-2" />
+                            )}
                           </div>
-                          <p style={{ fontSize: 10, color: 'var(--cbrio-text3)', marginTop: 6 }}>
-                            {new Date(n.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                          </p>
+                          {/* Content */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 mb-1">
+                              {n.modulo && (
+                                <span
+                                  className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-px rounded"
+                                  style={{ color: '#fff', background: modColor }}
+                                >
+                                  {MOD_LABELS[n.modulo] || n.modulo}
+                                </span>
+                              )}
+                              {n.severidade === 'urgente' && (
+                                <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-px rounded bg-red-500 text-white">
+                                  Urgente
+                                </span>
+                              )}
+                            </div>
+                            <p className={`text-[13px] leading-snug ${n.lida ? 'text-foreground/70' : 'text-foreground font-semibold'}`}>
+                              {n.titulo}
+                            </p>
+                            {n.mensagem && (
+                              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">
+                                {n.mensagem}
+                              </p>
+                            )}
+                            <p className="text-[10px] text-muted-foreground/70 mt-1.5">
+                              {new Date(n.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
                         </div>
                       );
-                    })
-                  )}
-                </div>
-              </>
-            )}
-          </div>
+                    })}
+                  </div>
+                )}
+              </ScrollArea>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* Separator */}
           <div className="h-6 w-px mx-2" style={{ background: 'var(--cbrio-border)' }} />
@@ -340,10 +347,7 @@ export default function AppShell() {
             </div>
             <button
               onClick={handleSignOut}
-              className="flex items-center justify-center h-8 w-8 rounded-lg transition-colors"
-              style={{ color: 'var(--cbrio-text3)' }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#ef444418'; e.currentTarget.style.color = '#ef4444'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--cbrio-text3)'; }}
+              className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
               title="Sair"
             >
               <LogOut className="h-4 w-4" />
