@@ -158,11 +158,12 @@ router.get('/kanban/all', async (req, res) => {
       ? await supabase.from('event_tasks').select('*').in('event_id', simpleIds)
       : { data: [] };
 
-    // Mapear event_tasks para formato compatível com cycle_phase_tasks
+    // Mapear event_tasks para formato compatível com cycle_phase_tasks.
+    // Status enum agora é o mesmo nas duas tabelas (migration 037), então pass-through.
     const mappedSimpleTasks = (simpleTasks || []).map(t => ({
       id: t.id, event_phase_id: 'simple', event_id: t.event_id,
       titulo: t.name, responsavel_nome: t.responsible, area: t.area || 'adm',
-      prazo: t.deadline, status: t.status === 'pendente' ? 'a_fazer' : t.status === 'em-andamento' ? 'em_andamento' : t.status,
+      prazo: t.deadline, status: t.status,
       prioridade: t.priority || 'normal', observacoes: '', subtasks: [],
       _source: 'simple',
     }));
@@ -245,7 +246,7 @@ router.post('/activate/:eventId', async (req, res) => {
         titulo: tmpl.titulo,
         area: tmpl.area,
         prazo: dataFim.toISOString().split('T')[0],
-        status: 'a_fazer',
+        status: 'pendente',
         prioridade: 'normal',
         observacoes: `Área: ${tmpl.area} | Início: ${dataInicio.toISOString().split('T')[0]} | Fim: ${dataFim.toISOString().split('T')[0]}`,
       }).select().single();

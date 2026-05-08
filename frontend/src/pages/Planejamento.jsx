@@ -20,9 +20,10 @@ const CAT = {
   outros:     { label: 'Outros',     color: 'var(--cbrio-text3)', bg: 'var(--cbrio-bg)' },
 };
 
+// Vocabulário alinhado com event_tasks (migration 037).
 const COLS = [
-  { key: 'a_fazer', label: 'A fazer', color: 'var(--cbrio-text3)' },
-  { key: 'em_andamento', label: 'Em andamento', color: '#3b82f6' },
+  { key: 'pendente', label: 'A fazer', color: 'var(--cbrio-text3)' },
+  { key: 'em-andamento', label: 'Em andamento', color: '#3b82f6' },
   { key: 'bloqueada', label: 'Bloqueada', color: '#ef4444' },
   { key: 'concluida', label: 'Concluída', color: '#10b981' },
 ];
@@ -549,7 +550,7 @@ export default function Planejamento() {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, minHeight: 200 }}>
           {TASK_COLS.map(col => {
-            const colT = sortByUrgency(myTasks.filter(t => (t.status === col.key) || (col.key === 'pendente' && t.status === 'a_fazer')));
+            const colT = sortByUrgency(myTasks.filter(t => t.status === col.key));
             return (
               <div key={col.key} style={{ background: C.bg, borderRadius: 10, padding: 8 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -616,7 +617,7 @@ export default function Planejamento() {
             {/* 4 columns */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginLeft: 38 }}>
               {TASK_COLS.map(col => {
-                const colT = sortByUrgency(tasks.filter(t => (t.status === col.key) || (col.key === 'pendente' && t.status === 'a_fazer')));
+                const colT = sortByUrgency(tasks.filter(t => t.status === col.key));
                 return (
                   <div key={col.key} style={{ background: C.bg, borderRadius: 8, padding: 6, minHeight: 40 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>

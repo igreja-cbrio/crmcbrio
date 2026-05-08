@@ -42,7 +42,7 @@ router.get('/all', async (req, res) => {
 
       (data || []).forEach(t => results.push({
         id: t.id, name: t.titulo, responsible: t.responsavel_nome, area: t.area,
-        deadline: t.prazo, status: t.status === 'a_fazer' ? 'pendente' : t.status === 'em_andamento' ? 'em-andamento' : t.status,
+        deadline: t.prazo, status: t.status,
         priority: t.prioridade, parent_name: (t.events?.name || '—') + ' → ' + (t.event_cycle_phases?.nome_fase || ''),
         parent_id: t.event_id, source: 'ciclo', created_at: t.created_at,
         observacoes: t.observacoes,
@@ -85,12 +85,8 @@ router.patch('/:source/:taskId/status', async (req, res) => {
     const tableMap = { evento: 'event_tasks', ciclo: 'cycle_phase_tasks', projeto: 'project_tasks', planejamento: 'strategic_tasks' };
     const table = tableMap[source];
     if (!table) return res.status(400).json({ error: 'Source inválido' });
-    // Mapear status para cycle_phase_tasks (usa underscores)
-    let newStatus = req.body.status;
-    if (source === 'ciclo') {
-      const map = { 'pendente': 'a_fazer', 'em-andamento': 'em_andamento', 'concluida': 'concluida', 'bloqueada': 'bloqueada' };
-      newStatus = map[newStatus] || newStatus;
-    }
+    // Vocabulário de status alinhado entre todas as tabelas (migration 037).
+    const newStatus = req.body.status;
     const { data, error } = await supabase.from(table).update({ status: newStatus }).eq('id', taskId).select().single();
     if (error) throw error;
 
