@@ -6,10 +6,12 @@ import { normDate, fmtDateShort as fmtDate, sortByUrgency, CYCLE_CATEGORIES as C
 
 const C = { dark: 'var(--cbrio-text)', t2: 'var(--cbrio-text2)', t3: 'var(--cbrio-text3)', border: 'var(--cbrio-border)', accent: '#00B39D' };
 
+// Vocabulário alinhado com event_tasks (migration 037): 'pendente'/'em-andamento'/'concluida'
 const TASK_STATUS = {
-  a_fazer:       { label: 'A fazer',       color: 'var(--cbrio-text3)' },
-  em_andamento:  { label: 'Em andamento',  color: '#3b82f6' },
-  concluida:     { label: 'Concluída',     color: '#10b981' },
+  pendente:        { label: 'A fazer',       color: 'var(--cbrio-text3)' },
+  'em-andamento':  { label: 'Em andamento',  color: '#3b82f6' },
+  concluida:       { label: 'Concluída',     color: '#10b981' },
+  bloqueada:       { label: 'Bloqueada',     color: '#ef4444' },
 };
 
 function getCategory(task) { return (task.area || '').toLowerCase() || 'outros'; }
@@ -109,7 +111,7 @@ export default function CycleView({ eventId, eventName }) {
     const fd = new FormData(e.target);
     const d = Object.fromEntries(fd.entries());
     const phaseId = d.phase_id || activePhase;
-    const task = await api.createTask({ event_phase_id: phaseId, event_id: eventId, titulo: d.titulo, area: d.area, prazo: d.prazo || null, responsavel_nome: d.responsavel || null, status: 'a_fazer', prioridade: 'normal' });
+    const task = await api.createTask({ event_phase_id: phaseId, event_id: eventId, titulo: d.titulo, area: d.area, prazo: d.prazo || null, responsavel_nome: d.responsavel || null, status: 'pendente', prioridade: 'normal' });
     const createdSubs = [];
     if (task?.id && newTaskSubs.length > 0) {
       for (const name of newTaskSubs) {
@@ -362,7 +364,7 @@ export default function CycleView({ eventId, eventName }) {
                     const isOpen = selectedTask?.id === task.id;
                     const subs = task.subtasks || [];
                     const subsDone = subs.filter(s => s.done).length;
-                    const ts = TASK_STATUS[task.status] || TASK_STATUS.a_fazer;
+                    const ts = TASK_STATUS[task.status] || TASK_STATUS.pendente;
                     return (
                       <div key={task.id} style={{ background: 'var(--cbrio-card)', borderRadius: 8, padding: '8px 12px', border: selectedTask?.id === task.id ? `1.5px solid ${C.accent}` : `1px solid ${C.border}`, marginBottom: 3, cursor: 'pointer', transition: 'box-shadow .15s' }}
                         onClick={() => setSelectedTask(task)}
@@ -505,7 +507,7 @@ export default function CycleView({ eventId, eventName }) {
         const subs = task.subtasks || [];
         const subsDone = subs.filter(s => s.done).length;
         const subsPct = subs.length > 0 ? Math.round((subsDone / subs.length) * 100) : task.status === 'concluida' ? 100 : 0;
-        const ts = TASK_STATUS[task.status] || TASK_STATUS.a_fazer;
+        const ts = TASK_STATUS[task.status] || TASK_STATUS.pendente;
         const p = normDate(task.prazo);
         const diff = p ? Math.ceil((new Date(p + 'T12:00:00') - new Date()) / 86400000) : null;
         const daysColor = diff === null || task.status === 'concluida' ? null : diff < 0 ? '#ef4444' : diff <= 7 ? '#f59e0b' : '#10b981';

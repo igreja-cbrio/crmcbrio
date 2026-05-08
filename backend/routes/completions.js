@@ -240,7 +240,7 @@ router.delete('/:taskId/reopen', async (req, res) => {
       .is('reopened_at', null);
 
     const { data: task } = await supabase.from('cycle_phase_tasks')
-      .update({ status: 'a_fazer' })
+      .update({ status: 'pendente' })
       .eq('id', req.params.taskId)
       .select('event_phase_id')
       .single();

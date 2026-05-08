@@ -1028,7 +1028,7 @@ export default function Eventos() {
                   const fd = new FormData(e.target);
                   const d = Object.fromEntries(fd.entries());
                   const phaseId = d.phase_id;
-                  const task = await cyclesApi.createTask({ event_phase_id: phaseId, event_id: d.event_id, titulo: d.titulo, area: d.area, prazo: d.prazo || null, responsavel_nome: d.responsavel || null, status: 'a_fazer', prioridade: 'normal' });
+                  const task = await cyclesApi.createTask({ event_phase_id: phaseId, event_id: d.event_id, titulo: d.titulo, area: d.area, prazo: d.prazo || null, responsavel_nome: d.responsavel || null, status: 'pendente', prioridade: 'normal' });
                   if (task?.id && kanbanNewTaskSubs.length > 0) {
                     for (const name of kanbanNewTaskSubs) await cyclesApi.createSubtask(task.id, name);
                   }
