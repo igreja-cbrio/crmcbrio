@@ -1,6 +1,7 @@
 # CLAUDE.md — CBRio ERP
 
 Guia para Claude Code e agentes de IA trabalhando neste repositório.
+Atualizado em: 2026-05-08 (v10.6) — HOTFIX migration `038_fix_workload_view.sql`: restaura definição correta de `vw_workload` (versão da 027, com `WHERE status NOT IN ('concluida','concluido')`). A 037 acidentalmente recriou a view com a versão antiga da 025 que não filtrava status, fazendo o widget "Carga de Trabalho" inflacionar (~2480 "Sem responsável" incluindo concluídas). **Aplicar imediatamente no Supabase SQL Editor.**
 Atualizado em: 2026-05-08 (v10.5) — Migration `037_align_task_status_enums.sql`: alinha enum de status em `cycle_phase_tasks` com `event_tasks` (`'a_fazer'`→`'pendente'`, `'em_andamento'`→`'em-andamento'`). Remove os mapeamentos ternary em `cycles.js` (kanbanAll), `tasks.js` (/all e /:source/:taskId/status) e o `CASE WHEN` em `vw_workload`. Backend: `cycles.js`/`completions.js` agora usam vocabulário canônico. Frontend: `CycleView.jsx` (TASK_STATUS map), `Eventos.jsx` (createTask kanban), `Planejamento.jsx` (COLS + filtros). **Aplicar manualmente no Supabase SQL Editor.**
 Atualizado em: 2026-05-08 (v10.4) — Migration `036_event_status_trigger.sql`: `events.status` agora auto-mantido por trigger no DB (`recalc_event_status` PL/pgSQL + triggers em events e event_occurrences). Removido `recalcEventStatus()` do backend (events.js); PATCH `/:id/status` reabrir agora chama RPC `recalc_event_status`; PUT `/:id` não escreve mais status (corrige bug de overwrite). Manual override (Finalizar) preservado. **Aplicar manualmente no Supabase SQL Editor.**
 Atualizado em: 2026-05-08 (v10.3) — Migration `035_event_project_fks.sql`: FKs `events/meetings/pendencies.project_id` → `projects(id)` ON DELETE SET NULL (estavam como "FK futura" desde 006); limpeza de órfãos + índices novos em meetings/pendencies. **Aplicar manualmente no Supabase SQL Editor.**
@@ -198,7 +199,8 @@ Migrations em `supabase/migrations/`:
 - `027_pmo_views.sql` — views `vw_pmo_kpis` (KPIs agregados) e `vw_workload` (carga por responsável)
 - `035_event_project_fks.sql` — FKs `events.project_id`, `meetings.project_id`, `pendencies.project_id` → `projects(id)` ON DELETE SET NULL (eram "FK futura" desde 006); limpa órfãos antes; índices em meetings/pendencies
 - `036_event_status_trigger.sql` — função `recalc_event_status(uuid)` + triggers em `events` (INSERT/UPDATE OF date,recurrence) e `event_occurrences` (INSERT/UPDATE/DELETE) mantêm `events.status` derivado automaticamente. Manual override via PATCH /:id/status sobrevive (trigger só dispara em deps). Backfill no fim recomputa todos os eventos.
-- `037_align_task_status_enums.sql` — alinha `cycle_phase_tasks.status` com vocabulário canônico do PMO (`'pendente'`/`'em-andamento'`/`'concluida'`/`'bloqueada'`); recria `vw_workload` sem o `CASE WHEN` que convertia. Phase status (event_cycle_phases) NÃO mudou — phases mantêm enum próprio.
+- `037_align_task_status_enums.sql` — alinha `cycle_phase_tasks.status` com vocabulário canônico do PMO (`'pendente'`/`'em-andamento'`/`'concluida'`/`'bloqueada'`); recria `vw_workload` sem o `CASE WHEN` que convertia. Phase status (event_cycle_phases) NÃO mudou — phases mantêm enum próprio. **BUG**: a recriação da view voltou pra versão da 025 sem filtro de status — fix em 038.
+- `038_fix_workload_view.sql` — HOTFIX `vw_workload` (regressão da 037): restaura `WHERE status NOT IN ('concluida', 'concluido')` em ambos os UNION (event_tasks + cycle_phase_tasks). Sem isso, "Carga de Trabalho" no Planejamento conta concluídas e infla "Sem responsável".
 
 **RLS importante:** A policy `profiles_select_all_authenticated` permite qualquer user autenticado ler perfis (evita recursão infinita). NÃO usar sub-select em profiles dentro de policies de profiles.
 
@@ -496,7 +498,7 @@ Estes arquivos afetam o sistema inteiro. Alterações devem ser feitas via **Pul
 **Project ref:** `hhntwfawfnxvuobhdfkb`
 **URL:** `https://hhntwfawfnxvuobhdfkb.supabase.co`
 
-Migrations aplicadas: 001-022, 027, 030, 031, 032, 033, 034 (a aplicar: 035, 036, 037)
+Migrations aplicadas: 001-022, 027, 030, 031, 032, 033, 034, 035, 036, 037 (a aplicar HOTFIX: 038)
 
 Para novas migrations: criar arquivo em `supabase/migrations/` e rodar manualmente no Supabase SQL Editor.
 
