@@ -460,9 +460,8 @@ const STAT_SVGS = [
 function StatCard({ label, value, bg, svg }) {
   return (
     <div
-      style={{ position: 'relative', overflow: 'hidden', background: bg, borderRadius: 12, padding: '20px 24px', color: '#fff', minHeight: 100, cursor: 'pointer', transition: 'transform 0.15s, box-shadow 0.15s' }}
-      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.3)'; }}
-      onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
+      className="cbrio-kpi"
+      style={{ position: 'relative', overflow: 'hidden', background: bg, borderRadius: 12, padding: '20px 24px', color: '#fff', minHeight: 100 }}
     >
       {svg}
       <div style={{ position: 'relative', zIndex: 1 }}>
@@ -485,7 +484,7 @@ function DashboardTab({ dash }) {
     { label: 'Valor Total Pedidos', value: fmtMoney(dash.valorTotalPedidos), bg: '#00B39D' },
   ];
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 24 }}>
+    <div className="cbrio-stagger" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 24 }}>
       {kpis.map((k, i) => <StatCard key={k.label} label={k.label} value={k.value} bg={k.bg} svg={STAT_SVGS[i % STAT_SVGS.length]} />)}
     </div>
   );

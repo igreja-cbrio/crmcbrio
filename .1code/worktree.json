@@ -1,0 +1,8 @@
+{
+  "setup-worktree": [
+    "cd backend && npm install",
+    "cd frontend && npm install",
+    "test -f $ROOT_WORKTREE_PATH/backend/.env && cp $ROOT_WORKTREE_PATH/backend/.env backend/.env",
+    "test -f $ROOT_WORKTREE_PATH/frontend/.env && cp $ROOT_WORKTREE_PATH/frontend/.env frontend/.env"
+  ]
+}

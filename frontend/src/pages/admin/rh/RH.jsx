@@ -1,22 +1,19 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Users, Pencil, Trash2, Palmtree, X, Save, AlertTriangle } from 'lucide-react';
+import { Users, Pencil, Trash2, Palmtree, X, Save, AlertTriangle, Download, UserPlus, Briefcase, Calendar, Search, Filter, Eye, Edit, MoreVertical, LayoutDashboard, Network, Receipt, Star, Clock, CalendarDays } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
+import { StatisticsCard } from '../../../components/ui/statistics-card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
+import { ScrollArea, ScrollBar } from '../../../components/ui/scroll-area';
 import { useAuth } from '../../../contexts/AuthContext';
 import { rh, permissoes } from '../../../api';
+import { exportCSV, exportPDF } from '../../../lib/export';
 import { supabase } from '../../../supabaseClient';
+import { C, fmtDate, fmtMoney, TIPO_CONTRATO, TIPO_FERIAS, FERIAS_STATUS } from '../../../lib/theme';
 import TabAdmissao from './TabAdmissao';
 import TabFolha from './TabFolha';
 import TabAvaliacoes from './TabAvaliacoes';
 import TabExtras from './TabExtras';
-
-// ── Tema ────────────────────────────────────────────────────
-const C = {
-  bg: 'var(--cbrio-bg)', card: 'var(--cbrio-card)', primary: 'var(--cbrio-primary, #00B39D)', primaryBg: '#00B39D18',
-  text: 'var(--cbrio-text)', text2: 'var(--cbrio-text2)', text3: 'var(--cbrio-text3)',
-  border: 'var(--cbrio-border)', green: '#10b981', greenBg: '#10b98118',
-  red: '#ef4444', redBg: '#ef444418', amber: '#f59e0b', amberBg: '#f59e0b18',
-  blue: '#3b82f6', blueBg: '#3b82f618',
-};
 
 // ── Toast de feedback ───────────────────────────────────────
 function Toast({ message, type = 'error', onClose }) {
@@ -24,9 +21,12 @@ function Toast({ message, type = 'error', onClose }) {
   const colors = { error: { bg: '#ef444418', border: '#ef444450', text: '#ef4444' }, success: { bg: '#10b98118', border: '#10b98150', text: '#10b981' }, warning: { bg: '#f59e0b18', border: '#f59e0b50', text: '#f59e0b' } };
   const c = colors[type] || colors.error;
   return (
-    <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 9999, background: 'var(--cbrio-card)', border: `1px solid ${c.border}`, borderLeft: `4px solid ${c.text}`, borderRadius: 10, padding: '12px 16px', maxWidth: 400, boxShadow: '0 8px 30px rgba(0,0,0,0.3)', animation: 'slideInRight 0.25s ease-out', display: 'flex', alignItems: 'center', gap: 10 }}>
-      <div style={{ flex: 1, fontSize: 13, color: c.text, fontWeight: 500 }}>{message}</div>
-      <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--cbrio-text3)', fontSize: 16 }}>✕</button>
+    <div className="fixed top-5 right-5 z-[9999] flex items-center gap-2.5 rounded-xl border bg-card p-3 pr-4 shadow-lg max-w-[400px]"
+      style={{ borderLeft: `4px solid ${c.text}`, borderColor: c.border, animation: 'slideInRight 0.25s ease-out' }}>
+      <div className="flex-1 text-[13px] font-medium" style={{ color: c.text }}>{message}</div>
+      <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+        <X className="h-3.5 w-3.5" />
+      </button>
     </div>
   );
 }
@@ -35,11 +35,11 @@ function Toast({ message, type = 'error', onClose }) {
 function ConfirmDialog({ message, onConfirm, onCancel }) {
   if (!message) return null;
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)' }}>
-      <div style={{ background: 'var(--cbrio-modal-bg)', borderRadius: 16, padding: 28, maxWidth: 400, boxShadow: '0 20px 60px rgba(0,0,0,0.3)', textAlign: 'center' }}>
-        <AlertTriangle style={{ width: 36, height: 36, color: '#f59e0b', margin: '0 auto 12px' }} />
-        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--cbrio-text)', marginBottom: 20 }}>{message}</div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50">
+      <div className="bg-popover rounded-2xl p-7 max-w-[400px] shadow-2xl text-center" style={{ animation: 'cbrio-modal-center-in 0.2s ease-out' }}>
+        <AlertTriangle className="w-9 h-9 mx-auto mb-3 text-warning" />
+        <div className="text-[15px] font-semibold text-foreground mb-5">{message}</div>
+        <div className="flex gap-2.5 justify-center">
           <Button variant="ghost" onClick={onCancel}>Cancelar</Button>
           <Button variant="destructive" onClick={onConfirm}>Confirmar</Button>
         </div>
@@ -48,106 +48,40 @@ function ConfirmDialog({ message, onConfirm, onCancel }) {
   );
 }
 
+// Legacy compat maps (local uses { c, bg, label } shape)
 const STATUS_COLORS = {
   ativo: { c: C.green, bg: C.greenBg, label: 'Ativo' },
-  inativo: { c: C.text3, bg: 'var(--cbrio-text3-bg, #73737318)', label: 'Inativo' },
+  inativo: { c: '#737373', bg: '#73737318', label: 'Inativo' },
   ferias: { c: C.blue, bg: C.blueBg, label: 'Férias' },
   licenca: { c: C.amber, bg: C.amberBg, label: 'Licença' },
 };
 
-const TIPO_CONTRATO = {
-  clt: 'CLT', pj: 'PJ', voluntario: 'Voluntário', estagiario: 'Estagiário',
-};
-
-const TIPO_FERIAS = {
-  ferias: 'Férias', licenca_medica: 'Licença Médica',
-  licenca_maternidade: 'Lic. Maternidade', licenca_paternidade: 'Lic. Paternidade', outro: 'Outro',
-};
-
-const FERIAS_STATUS = {
-  pendente: { c: C.amber, bg: C.amberBg, label: 'Pendente' },
-  aprovado: { c: C.green, bg: C.greenBg, label: 'Aprovado' },
-  rejeitado: { c: C.red, bg: C.redBg, label: 'Rejeitado' },
-};
-
-// ── Estilos ─────────────────────────────────────────────────
+// ── Shared inline styles (kept for backward compat, gradually migrate to Tailwind) ──
 const styles = {
-  page: { maxWidth: 1600, margin: '0 auto', padding: '0 24px' },
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 },
-  title: { fontSize: 20, fontWeight: 700, color: C.text, letterSpacing: '-0.025em', lineHeight: 1.25 },
-  subtitle: { fontSize: 14, color: C.text2, marginTop: 2, lineHeight: 1.5 },
-  tabs: { display: 'flex', gap: 0, borderBottom: `2px solid ${C.border}`, marginBottom: 24 },
-  tab: (active) => ({
-    padding: '12px 16px', fontSize: 14, fontWeight: 600, cursor: 'pointer', border: 'none', background: 'none',
-    color: active ? C.primary : C.text2,
-    borderBottom: active ? `2px solid ${C.primary}` : '2px solid transparent',
-    marginBottom: -2, transition: 'all 0.15s',
-  }),
-  kpiGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 24 },
-  kpi: (color) => ({
-    background: C.card, borderRadius: 12, padding: 16, border: `1px solid ${C.border}`,
-    borderLeft: `4px solid ${color}`, boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-  }),
-  kpiValue: { fontSize: 20, fontWeight: 700, color: C.text, lineHeight: 1.25 },
-  kpiLabel: { fontSize: 12, fontWeight: 600, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 },
-  card: {
-    background: C.card, borderRadius: 12, border: `1px solid ${C.border}`,
-    boxShadow: '0 1px 2px rgba(0,0,0,0.05)', overflow: 'hidden',
-  },
-  cardHeader: { padding: 16, borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  cardTitle: { fontSize: 14, fontWeight: 600, color: C.text, lineHeight: 1.5 },
   table: { width: '100%', borderCollapse: 'collapse' },
-  th: { padding: '12px 16px', fontSize: 12, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'left', borderBottom: `1px solid ${C.border}`, background: 'var(--cbrio-table-header)' },
-  td: { padding: '12px 16px', fontSize: 14, color: C.text, borderBottom: `1px solid ${C.border}`, lineHeight: 1.5 },
-  badge: (color, bg) => ({
-    display: 'inline-block', padding: '2px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600,
-    color, background: bg,
-  }),
-  btn: (variant = 'primary') => ({
-    padding: '8px 16px', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', border: 'none',
-    transition: 'all 0.15s',
-    ...(variant === 'primary' ? { background: C.primary, color: '#fff' } : {}),
-    ...(variant === 'secondary' ? { background: 'transparent', color: C.primary, border: `1px solid ${C.primary}` } : {}),
-    ...(variant === 'danger' ? { background: C.red, color: '#fff' } : {}),
-    ...(variant === 'ghost' ? { background: 'transparent', color: C.text2, padding: '6px 12px' } : {}),
-  }),
-  btnSm: { padding: '4px 10px', fontSize: 12 },
-  filterRow: { display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' },
-  input: {
-    padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 14,
-    outline: 'none', width: '100%', transition: 'all 0.2s', background: 'var(--cbrio-input-bg)', color: 'var(--cbrio-text)', lineHeight: 1.5,
-  },
-  select: { padding: '8px 12px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 14, background: 'var(--cbrio-input-bg)', color: 'var(--cbrio-text)', outline: 'none' },
-  label: { fontSize: 12, fontWeight: 500, color: C.text2, marginBottom: 4, display: 'block', textTransform: 'uppercase', letterSpacing: 0.5 },
+  th: { padding: '12px 16px', fontSize: 12, fontWeight: 700, color: 'var(--cbrio-text2)', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'left', borderBottom: '1px solid var(--cbrio-border)', background: 'var(--cbrio-table-header)' },
+  td: { padding: '12px 16px', fontSize: 14, color: 'var(--cbrio-text)', borderBottom: '1px solid var(--cbrio-border)', lineHeight: 1.5 },
+  badge: (color, bg) => ({ display: 'inline-block', padding: '2px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600, color, background: bg }),
+  card: { background: 'var(--cbrio-card)', borderRadius: 12, border: '1px solid var(--cbrio-border)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', overflow: 'hidden' },
+  cardHeader: { padding: 16, borderBottom: '1px solid var(--cbrio-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  cardTitle: { fontSize: 14, fontWeight: 600, color: 'var(--cbrio-text)', lineHeight: 1.5 },
   formGroup: { marginBottom: 14 },
-  formRow: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 },
-  overlay: { position: 'fixed', inset: 0, background: 'var(--cbrio-overlay)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: 60, zIndex: 1000 },
-  modal: { background: 'var(--cbrio-modal-bg)', borderRadius: 12, width: '95%', maxWidth: 560, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 16px 48px rgba(0,0,0,0.12)' },
-  modalHeader: { padding: '20px 24px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  modalTitle: { fontSize: 18, fontWeight: 700, color: C.text },
-  modalBody: { padding: '16px 24px 24px' },
-  modalFooter: { padding: '12px 24px 20px', display: 'flex', gap: 8, justifyContent: 'flex-end' },
-  empty: { textAlign: 'center', padding: 40, color: C.text3, fontSize: 14, lineHeight: 1.5 },
-  clickRow: { cursor: 'pointer', transition: 'background 0.1s' },
+  empty: { textAlign: 'center', padding: 40, color: 'var(--cbrio-text3)', fontSize: 14, lineHeight: 1.5 },
 };
-
-// ── Helpers ─────────────────────────────────────────────────
-const fmtDate = (d) => d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
-const fmtMoney = (v) => v != null ? `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '—';
 
 // ── Componentes auxiliares ──────────────────────────────────
 function Modal({ open, onClose, title, children, footer }) {
   if (!open) return null;
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex' }}>
-      <div style={{ flex: 1, background: 'rgba(0,0,0,0.5)' }} onClick={onClose} />
-      <div style={{ width: '50%', minWidth: 440, maxWidth: 600, background: 'var(--cbrio-modal-bg)', overflowY: 'auto', boxShadow: '-8px 0 30px rgba(0,0,0,0.3)', animation: 'slideInRight 0.25s ease-out', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--cbrio-modal-bg)', padding: '20px 24px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={styles.modalTitle}>{title}</div>
+    <div className="fixed inset-0 z-[1000] flex">
+      <div className="flex-1 bg-black/50" onClick={onClose} />
+      <div className="w-1/2 min-w-[440px] max-w-[600px] bg-popover overflow-y-auto flex flex-col shadow-2xl" style={{ animation: 'slideInRight 0.25s ease-out' }}>
+        <div className="sticky top-0 z-10 bg-popover px-6 pt-5 pb-3 border-b border-border flex justify-between items-center">
+          <div className="text-lg font-bold text-foreground">{title}</div>
           <Button variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4" /></Button>
         </div>
-        <div style={{ padding: '16px 24px 24px', flex: 1 }}>{children}</div>
-        {footer && <div style={{ padding: '12px 24px 20px', display: 'flex', gap: 8, justifyContent: 'flex-end', borderTop: `1px solid ${C.border}` }}>{footer}</div>}
+        <div className="px-6 py-4 flex-1">{children}</div>
+        {footer && <div className="px-6 py-3 flex gap-2 justify-end border-t border-border">{footer}</div>}
       </div>
     </div>
   );
@@ -172,19 +106,31 @@ function Select({ label, children, ...props }) {
 }
 
 function Badge({ status, map }) {
-  const s = map[status] || { c: C.text3, bg: '#73737318', label: status };
-  return <span style={styles.badge(s.c, s.bg)}>{s.label}</span>;
+  const s = map[status] || { label: status };
+  const color = s.c || s.color || '#737373';
+  const bg = s.bg || '#73737318';
+  return <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold" style={{ color, background: bg }}>{s.label || status}</span>;
 }
 
 // ── TABS ────────────────────────────────────────────────────
-const TABS = ['Dashboard', 'Colaboradores', 'Admissão', 'Organograma', 'Folha', 'Avaliações', 'Treinamentos', 'Férias/Licenças', 'Extras'];
+const TABS = [
+  { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { key: 'colaboradores', label: 'Colaboradores', icon: Users },
+  { key: 'admissao', label: 'Admissão', icon: UserPlus },
+  { key: 'organograma', label: 'Organograma', icon: Network },
+  { key: 'folha', label: 'Folha', icon: Receipt },
+  { key: 'avaliacoes', label: 'Avaliações', icon: Star },
+  { key: 'treinamentos', label: 'Treinamentos', icon: Briefcase },
+  { key: 'ferias', label: 'Férias/Licenças', icon: CalendarDays },
+  { key: 'extras', label: 'Extras', icon: Clock },
+];
 
 // ═══════════════════════════════════════════════════════════
 // COMPONENTE PRINCIPAL
 // ═══════════════════════════════════════════════════════════
 export default function RH() {
   const { isDiretor } = useAuth();
-  const [tab, setTab] = useState(0);
+  const [tab, setTab] = useState('dashboard');
   const [dash, setDash] = useState(null);
   const [funcs, setFuncs] = useState([]);
   const [treinos, setTreinos] = useState([]);
@@ -308,56 +254,83 @@ export default function RH() {
 
   // ── Render ──
   return (
-    <div style={styles.page}>
+    <div className="w-full" style={{ maxWidth: 1600, margin: '0 auto', padding: '0 24px' }}>
       {/* Header */}
-      <div style={styles.header}>
-        <div>
-          <div style={{ ...styles.title, display: 'flex', alignItems: 'center', gap: 10 }}><Users className="h-7 w-7" style={{ color: C.primary }} /> Recursos Humanos</div>
-          <div style={styles.subtitle}>Gestão de colaboradores, treinamentos e férias</div>
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between pb-2">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center size-9 rounded-lg bg-primary/10">
+            <Users className="size-4 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight text-foreground" style={{ lineHeight: 1.3 }}>
+              Recursos Humanos
+            </h1>
+            <p className="text-xs text-muted-foreground" style={{ marginTop: 2 }}>Colaboradores · Treinamentos · Férias</p>
+          </div>
         </div>
+        <Button size="sm" className="gap-2" onClick={() => setModalFunc({})}>
+          <UserPlus className="w-4 h-4" />
+          Novo Colaborador
+        </Button>
       </div>
+
+      {error && <div className="text-destructive text-sm mb-3 px-3 py-2 rounded-lg bg-destructive/10 border border-destructive/20">{error}</div>}
 
       {/* Tabs */}
-      <div style={styles.tabs}>
-        {TABS.map((t, i) => (
-          <button key={t} style={styles.tab(tab === i)} onClick={() => setTab(i)}>{t}</button>
-        ))}
-      </div>
+      <Tabs value={tab} onValueChange={setTab}>
+        <ScrollArea className="w-full">
+          <TabsList className="inline-flex h-auto w-auto bg-transparent p-0 gap-1 border-b border-border rounded-none">
+            {TABS.map((t) => {
+              const Icon = t.icon;
+              return (
+                <TabsTrigger
+                  key={t.key}
+                  value={t.key}
+                  className="relative rounded-none border-b-2 border-transparent px-4 py-3 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground data-[state=active]:border-b-primary data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none bg-transparent"
+                >
+                  <Icon className="size-3.5 mr-1.5 hidden sm:inline-block" />
+                  {t.label}
+                </TabsTrigger>
+              );
+            })}
+          </TabsList>
+          <ScrollBar orientation="horizontal" className="invisible" />
+        </ScrollArea>
 
-      {error && <div style={{ color: C.red, marginBottom: 12, fontSize: 13 }}>{error}</div>}
-
-      {/* Tab Content */}
-      {tab === 0 && <DashboardTab dash={dash} onNavigate={setTab} setFiltroStatus={setFiltroStatus} />}
-      {tab === 1 && (
-        <FuncionariosTab
-          funcs={funcs} loading={loading} busca={busca} setBusca={setBusca}
-          filtroStatus={filtroStatus} setFiltroStatus={setFiltroStatus}
-          filtroArea={filtroArea} setFiltroArea={setFiltroArea}
-          onNew={() => setModalFunc({})} onEdit={(f) => setModalFunc(f)} onDetail={openDetail} onDelete={deleteFuncionario} onImport={() => { loadFuncs(); loadDash(); }}
-          showToast={showToast}
-        />
-      )}
-      {tab === 2 && <TabAdmissao />}
-      {tab === 3 && <OrgChartTab funcs={funcs} onDetail={openDetail} />}
-      {tab === 4 && <TabFolha />}
-      {tab === 5 && <TabAvaliacoes funcionarios={funcs} />}
-      {tab === 6 && (
-        <TreinamentosTab treinos={treinos} funcs={funcs}
-          onNew={() => setModalTreino({})} onEdit={(t) => setModalTreino(t)} onDelete={deleteTreinamento}
-          onInscrever={async (treinoId, funcId) => { await rh.treinamentos.inscrever(treinoId, { funcionario_id: funcId }); loadTreinos(); }}
-          showToast={showToast}
-        />
-      )}
-      {tab === 7 && (
-        <FeriasTab dash={dash} funcs={funcs}
-          onNew={() => setModalFerias({})} onAprovar={aprovarFerias}
-        />
-      )}
-      {tab === 8 && (
-        <div style={{ minHeight: 200, padding: '4px 0' }}>
-          <TabExtras funcionarios={funcs} onRefresh={() => { loadDash(); loadFuncs(); }} />
-        </div>
-      )}
+        <TabsContent value="dashboard">
+          <DashboardTab dash={dash} onNavigate={setTab} setFiltroStatus={setFiltroStatus} />
+        </TabsContent>
+        <TabsContent value="colaboradores">
+          <FuncionariosTab
+            funcs={funcs} loading={loading} busca={busca} setBusca={setBusca}
+            filtroStatus={filtroStatus} setFiltroStatus={setFiltroStatus}
+            filtroArea={filtroArea} setFiltroArea={setFiltroArea}
+            onNew={() => setModalFunc({})} onEdit={(f) => setModalFunc(f)} onDetail={openDetail} onDelete={deleteFuncionario} onImport={() => { loadFuncs(); loadDash(); }}
+            showToast={showToast}
+          />
+        </TabsContent>
+        <TabsContent value="admissao"><TabAdmissao /></TabsContent>
+        <TabsContent value="organograma"><OrgChartTab funcs={funcs} onDetail={openDetail} /></TabsContent>
+        <TabsContent value="folha"><TabFolha /></TabsContent>
+        <TabsContent value="avaliacoes"><TabAvaliacoes funcionarios={funcs} /></TabsContent>
+        <TabsContent value="treinamentos">
+          <TreinamentosTab treinos={treinos} funcs={funcs}
+            onNew={() => setModalTreino({})} onEdit={(t) => setModalTreino(t)} onDelete={deleteTreinamento}
+            onInscrever={async (treinoId, funcId) => { await rh.treinamentos.inscrever(treinoId, { funcionario_id: funcId }); loadTreinos(); }}
+            showToast={showToast}
+          />
+        </TabsContent>
+        <TabsContent value="ferias">
+          <FeriasTab dash={dash} funcs={funcs}
+            onNew={() => setModalFerias({})} onAprovar={aprovarFerias}
+          />
+        </TabsContent>
+        <TabsContent value="extras">
+          <div style={{ minHeight: 200, padding: '4px 0' }}>
+            <TabExtras funcionarios={funcs} onRefresh={() => { loadDash(); loadFuncs(); }} />
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Modais */}
       <FuncionarioFormModal open={!!modalFunc} data={modalFunc} onClose={() => setModalFunc(null)} onSave={saveFuncionario} funcionarios={funcs} setores={setores} />
@@ -393,126 +366,209 @@ export default function RH() {
 // ═══════════════════════════════════════════════════════════
 // TAB: DASHBOARD
 // ═══════════════════════════════════════════════════════════
-// Stat Card com visual moderno (inspirado em reui/statistics-card)
-function StatCard({ label, value, bg, svg, onClick }) {
-  return (
-    <div onClick={onClick} style={{
-      position: 'relative', overflow: 'hidden', background: bg, borderRadius: 12, padding: '20px 24px', color: '#fff', minHeight: 100,
-      cursor: onClick ? 'pointer' : 'default', transition: 'transform 0.15s, box-shadow 0.15s',
-    }}
-      onMouseEnter={e => { if (onClick) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.3)'; } }}
-      onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
-    >
-      {svg}
-      <div style={{ position: 'relative', zIndex: 1, overflow: 'hidden' }}>
-        <div style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.8)', marginBottom: 8 }}>{label}</div>
-        <div style={{ fontSize: String(value).length > 10 ? 22 : 32, fontWeight: 700, letterSpacing: -1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</div>
+function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
+  if (!dash) return (
+    <div className="space-y-4 py-6">
+      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="h-[88px] rounded-xl bg-muted animate-pulse" />
+        ))}
+      </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        {[...Array(2)].map((_, i) => (
+          <div key={i} className="h-[200px] rounded-xl bg-muted animate-pulse" />
+        ))}
       </div>
     </div>
   );
-}
 
-const kpiSvgs = [
-  <svg key="s1" style={{ position: 'absolute', right: 0, top: 0, height: '100%', width: '67%', pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 300 200" fill="none"><circle cx="220" cy="100" r="90" fill="#fff" fillOpacity="0.08" /><circle cx="260" cy="60" r="60" fill="#fff" fillOpacity="0.10" /><circle cx="200" cy="160" r="50" fill="#fff" fillOpacity="0.07" /><circle cx="270" cy="150" r="30" fill="#fff" fillOpacity="0.12" /></svg>,
-  <svg key="s2" style={{ position: 'absolute', right: 0, top: 0, width: 192, height: 192, pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 200 200" fill="none"><ellipse cx="170" cy="60" rx="40" ry="18" fill="#fff" fillOpacity="0.13" /><rect x="120" y="20" width="60" height="20" rx="8" fill="#fff" fillOpacity="0.10" /><polygon points="150,0 200,0 200,50" fill="#fff" fillOpacity="0.07" /><circle cx="180" cy="100" r="14" fill="#fff" fillOpacity="0.16" /></svg>,
-  <svg key="s3" style={{ position: 'absolute', right: 0, top: 0, width: 192, height: 192, pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 200 200" fill="none"><rect x="120" y="0" width="70" height="70" rx="35" fill="#fff" fillOpacity="0.09" /><ellipse cx="170" cy="80" rx="28" ry="12" fill="#fff" fillOpacity="0.12" /><polygon points="200,0 200,60 140,0" fill="#fff" fillOpacity="0.07" /><circle cx="150" cy="30" r="10" fill="#fff" fillOpacity="0.15" /></svg>,
-  <svg key="s4" style={{ position: 'absolute', right: 0, top: 0, width: 192, height: 192, pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 200 200" fill="none"><polygon points="200,0 200,100 100,0" fill="#fff" fillOpacity="0.09" /><ellipse cx="170" cy="40" rx="30" ry="18" fill="#fff" fillOpacity="0.13" /><rect x="140" y="60" width="40" height="18" rx="8" fill="#fff" fillOpacity="0.10" /><circle cx="150" cy="30" r="14" fill="#fff" fillOpacity="0.18" /></svg>,
-  <svg key="s5" style={{ position: 'absolute', right: 0, top: 0, width: 192, height: 192, pointerEvents: 'none', zIndex: 0 }} viewBox="0 0 200 200" fill="none"><circle cx="160" cy="50" r="40" fill="#fff" fillOpacity="0.10" /><rect x="130" y="80" width="50" height="16" rx="8" fill="#fff" fillOpacity="0.08" /><polygon points="180,0 200,0 200,40" fill="#fff" fillOpacity="0.12" /></svg>,
-];
-
-function DashboardTab({ dash, onNavigate, setFiltroStatus }) {
-  if (!dash) return <div style={styles.empty}>Carregando dashboard...</div>;
-
-  const goTo = (tab, status) => { if (setFiltroStatus) setFiltroStatus(status || ''); if (onNavigate) onNavigate(tab); };
+  const goTo = (tabKey, status) => { if (setFiltroStatus) setFiltroStatus(status || ''); if (onNavigate) onNavigate(tabKey); };
 
   const fmtM = (v) => v != null ? `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}` : '—';
-  const kpis = [
-    { label: 'Total Colaboradores', value: dash.total, bg: '#0a0a0a', onClick: () => goTo(1) },
-    { label: 'Ativos', value: dash.ativos, bg: '#00B39D', onClick: () => goTo(1, 'ativo') },
-    { label: 'Em Férias', value: dash.ferias, bg: '#3b82f6', onClick: () => goTo(7) },
-    { label: 'Em Licença', value: dash.licenca, bg: '#f59e0b', onClick: () => goTo(7) },
-    { label: 'Inativos', value: dash.inativos, bg: '#6b7280', onClick: () => goTo(1, 'inativo') },
-    { label: 'Custo Mensal', value: fmtM(dash.custoMensal), bg: '#dc2626' },
-    { label: 'Turnover', value: `${dash.turnover || 0}%`, bg: dash.turnover > 15 ? '#ef4444' : '#10b981' },
+
+  // Primary KPIs — 4 big cards
+  const primaryStats = [
+    { title: 'Total Colaboradores', value: dash.total, icon: Users, iconColor: '#3b82f6', onClick: () => goTo('colaboradores') },
+    { title: 'Ativos', value: dash.ativos, icon: Users, iconColor: '#10b981', onClick: () => goTo('colaboradores', 'ativo') },
+    { title: 'Em Férias / Licença', value: (dash.ferias || 0) + (dash.licenca || 0), icon: CalendarDays, iconColor: '#f59e0b', onClick: () => goTo('ferias'), subtitle: `${dash.ferias || 0} férias · ${dash.licenca || 0} licença` },
+    { title: 'Custo Mensal', value: fmtM(dash.custoMensal), icon: Briefcase, iconColor: '#ef4444' },
+  ];
+
+  // Secondary KPIs
+  const secondaryStats = [
+    { title: 'Admissões (12m)', value: dash.admissoesAno ?? 0, icon: UserPlus, iconColor: '#10b981' },
+    { title: 'Desligamentos (12m)', value: dash.desligamentosAno ?? 0, icon: Users, iconColor: '#ef4444' },
+    { title: 'Inativos', value: dash.inativos, icon: Users, iconColor: '#6b7280', onClick: () => goTo('colaboradores', 'inativo') },
+    { title: 'Turnover', value: `${dash.turnover || 0}%`, icon: Briefcase, iconColor: dash.turnover > 15 ? '#ef4444' : '#10b981' },
+    { title: 'Admissões Pend.', value: dash.admissoesPendentes ?? 0, icon: UserPlus, iconColor: '#f59e0b' },
+    { title: 'Folha Salarial', value: fmtM(dash.totalSalarios), icon: Receipt, iconColor: '#00B39D' },
   ];
 
   return (
-    <>
-      <div style={styles.kpiGrid}>
-        {kpis.map((k, i) => (
-          <StatCard key={k.label} label={k.label} value={k.value} bg={k.bg} svg={kpiSvgs[i]} onClick={k.onClick} />
-        ))}
-      </div>
-
-      {/* Métricas extras — mesmo layout StatCard */}
-      <div style={styles.kpiGrid}>
-        {[
-          { label: 'Admissões (12m)', value: dash.admissoesAno ?? 0, bg: '#10b981' },
-          { label: 'Desligamentos (12m)', value: dash.desligamentosAno ?? 0, bg: '#ef4444' },
-          { label: 'Admissões Pendentes', value: dash.admissoesPendentes ?? 0, bg: '#f59e0b' },
-          { label: 'Treinamentos Pend.', value: dash.treinosPendentes ?? 0, bg: '#3b82f6' },
-          { label: 'Folha Salarial', value: fmtM(dash.totalSalarios), bg: '#0a0a0a' },
-        ].map((k, i) => (
-          <StatCard key={k.label} label={k.label} value={k.value} bg={k.bg} svg={kpiSvgs[i % kpiSvgs.length]} />
-        ))}
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
-        <div style={styles.card}>
-          <div style={styles.cardHeader}><div style={styles.cardTitle}>Por Tipo de Contrato</div></div>
-          <div style={{ padding: 16 }}>
-            {Object.entries(dash.porContrato || {}).map(([tipo, qtd]) => (
-              <div key={tipo} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: `1px solid ${C.border}` }}>
-                <span style={{ fontSize: 13, color: C.text }}>{TIPO_CONTRATO[tipo] || tipo}</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: C.primary }}>{qtd}</span>
-              </div>
-            ))}
-            {Object.keys(dash.porContrato || {}).length === 0 && <div style={styles.empty}>Nenhum dado</div>}
-          </div>
+    <div className="space-y-8 pt-4 pb-8">
+      {/* Primary KPI Cards — 4 columns, generous size */}
+      <section>
+        <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">Resumo Geral</h3>
+        <div className="cbrio-stagger grid gap-5 grid-cols-2 lg:grid-cols-4">
+          {primaryStats.map((stat) => (
+            <StatisticsCard
+              key={stat.title}
+              title={stat.title}
+              value={stat.value}
+              icon={stat.icon}
+              iconColor={stat.iconColor}
+              onClick={stat.onClick}
+              subtitle={stat.subtitle}
+            />
+          ))}
         </div>
+      </section>
 
-        <div style={styles.card}>
-          <div style={styles.cardHeader}><div style={styles.cardTitle}>Por Área</div></div>
-          <div style={{ padding: 16 }}>
-            {Object.entries(dash.porArea || {}).map(([area, qtd]) => (
-              <div key={area} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: `1px solid ${C.border}` }}>
-                <span style={{ fontSize: 13, color: C.text }}>{area}</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: C.primary }}>{qtd}</span>
-              </div>
-            ))}
-            {Object.keys(dash.porArea || {}).length === 0 && <div style={styles.empty}>Nenhum dado</div>}
-          </div>
+      {/* Secondary metrics — 3 columns on large, never smaller than comfortable */}
+      <section>
+        <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">Métricas Detalhadas</h3>
+        <div className="cbrio-stagger grid gap-5 grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
+          {secondaryStats.map((stat) => (
+            <StatisticsCard
+              key={stat.title}
+              title={stat.title}
+              value={stat.value}
+              icon={stat.icon}
+              iconColor={stat.iconColor}
+              onClick={stat.onClick}
+            />
+          ))}
         </div>
-      </div>
+      </section>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        <div style={styles.card}>
-          <div style={styles.cardHeader}><div style={styles.cardTitle}>📅 Férias Próximas (30 dias)</div></div>
-          <div style={{ padding: 16 }}>
-            {(dash.feriasProximas || []).length === 0 && <div style={styles.empty}>Nenhuma férias agendada</div>}
-            {(dash.feriasProximas || []).map(f => (
-              <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: `1px solid ${C.border}` }}>
-                <span style={{ fontSize: 13 }}>{f.rh_funcionarios?.nome || '—'}</span>
-                <span style={{ fontSize: 12, color: C.text2 }}>{fmtDate(f.data_inicio)} → {fmtDate(f.data_fim)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+      {/* Main content — 3 column layout using full width */}
+      <section>
+        <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">Distribuição e Alertas</h3>
+        <div className="grid gap-5 lg:grid-cols-3">
+          {/* Por tipo de contrato */}
+          <Card className="py-0 gap-0 overflow-hidden border-border/50 shadow-sm">
+            <CardHeader className="px-5 pt-5 pb-3">
+              <CardTitle className="text-sm font-semibold text-foreground">Por Tipo de Contrato</CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">Distribuição por vínculo</p>
+            </CardHeader>
+            <CardContent className="px-5 pb-6">
+              {Object.entries(dash.porContrato || {}).length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-6">Nenhum dado</p>
+              )}
+              {Object.entries(dash.porContrato || {}).map(([tipo, qtd]) => {
+                const total = Object.values(dash.porContrato || {}).reduce((a, b) => a + b, 0);
+                const pct = total > 0 ? Math.round((qtd / total) * 100) : 0;
+                return (
+                  <div key={tipo} className="py-3 border-b border-border/30 last:border-0">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-sm text-foreground font-medium">{TIPO_CONTRATO[tipo] || tipo}</span>
+                      <span className="text-sm font-bold text-foreground tabular-nums">{qtd}</span>
+                    </div>
+                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
 
-        <div style={styles.card}>
-          <div style={styles.cardHeader}><div style={styles.cardTitle}>📄 Documentos Vencendo (60 dias)</div></div>
-          <div style={{ padding: 16 }}>
-            {(dash.docsVencendo || []).length === 0 && <div style={styles.empty}>Nenhum documento vencendo</div>}
-            {(dash.docsVencendo || []).map(d => (
-              <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: `1px solid ${C.border}` }}>
-                <span style={{ fontSize: 13 }}>{d.rh_funcionarios?.nome} — {d.nome}</span>
-                <span style={{ fontSize: 12, color: C.red }}>{fmtDate(d.data_expiracao)}</span>
+          {/* Por área — taller */}
+          <Card className="py-0 gap-0 overflow-hidden border-border/50 shadow-sm lg:row-span-2">
+            <CardHeader className="px-5 pt-5 pb-3">
+              <CardTitle className="text-sm font-semibold text-foreground">Por Área</CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">{Object.keys(dash.porArea || {}).length} áreas com colaboradores</p>
+            </CardHeader>
+            <CardContent className="px-5 pb-6 max-h-[480px] overflow-y-auto">
+              {Object.entries(dash.porArea || {}).length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-6">Nenhum dado</p>
+              )}
+              {Object.entries(dash.porArea || {}).sort((a, b) => b[1] - a[1]).map(([area, qtd]) => {
+                const total = Object.values(dash.porArea || {}).reduce((a, b) => a + b, 0);
+                const pct = total > 0 ? Math.round((qtd / total) * 100) : 0;
+                return (
+                  <div key={area} className="flex items-center gap-3 py-2.5 border-b border-border/30 last:border-0">
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm text-foreground truncate block">{area}</span>
+                    </div>
+                    <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden shrink-0">
+                      <div className="h-full rounded-full bg-primary/70 transition-all" style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="text-sm font-bold text-foreground tabular-nums w-8 text-right shrink-0">{qtd}</span>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+
+          {/* Férias próximas */}
+          <Card className="py-0 gap-0 overflow-hidden border-border/50 shadow-sm">
+            <CardHeader className="px-5 pt-5 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center size-7 rounded-lg bg-amber-500/10">
+                  <CalendarDays className="size-3.5 text-amber-500" />
+                </div>
+                <div>
+                  <CardTitle className="text-sm font-semibold text-foreground">Férias Próximas</CardTitle>
+                  <p className="text-xs text-muted-foreground">Próximos 30 dias</p>
+                </div>
               </div>
-            ))}
-          </div>
+            </CardHeader>
+            <CardContent className="px-5 pb-6">
+              {(dash.feriasProximas || []).length === 0 && (
+                <div className="text-center py-8">
+                  <CalendarDays className="size-8 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">Nenhuma férias agendada</p>
+                </div>
+              )}
+              {(dash.feriasProximas || []).map(f => (
+                <div key={f.id} className="flex items-center justify-between py-3 border-b border-border/30 last:border-0">
+                  <div className="flex items-center gap-2.5">
+                    <div className="size-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
+                      {(f.rh_funcionarios?.nome || '?')[0].toUpperCase()}
+                    </div>
+                    <span className="text-sm text-foreground font-medium">{f.rh_funcionarios?.nome || '—'}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground tabular-nums shrink-0 ml-2">{fmtDate(f.data_inicio)} → {fmtDate(f.data_fim)}</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Documentos vencendo */}
+          <Card className="py-0 gap-0 overflow-hidden border-border/50 shadow-sm">
+            <CardHeader className="px-5 pt-5 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center size-7 rounded-lg bg-destructive/10">
+                  <AlertTriangle className="size-3.5 text-destructive" />
+                </div>
+                <div>
+                  <CardTitle className="text-sm font-semibold text-foreground">Documentos Vencendo</CardTitle>
+                  <p className="text-xs text-muted-foreground">Próximos 60 dias</p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="px-5 pb-6">
+              {(dash.docsVencendo || []).length === 0 && (
+                <div className="text-center py-8">
+                  <AlertTriangle className="size-8 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">Nenhum documento vencendo</p>
+                </div>
+              )}
+              {(dash.docsVencendo || []).map(d => (
+                <div key={d.id} className="flex items-center justify-between py-3 border-b border-border/30 last:border-0">
+                  <div className="min-w-0 flex-1">
+                    <span className="text-sm text-foreground block truncate">{d.rh_funcionarios?.nome}</span>
+                    <span className="text-xs text-muted-foreground">{d.nome}</span>
+                  </div>
+                  <span className="text-xs font-semibold text-destructive tabular-nums shrink-0 ml-3">{fmtDate(d.data_expiracao)}</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
         </div>
-      </div>
-    </>
+      </section>
+    </div>
   );
 }
 
@@ -558,26 +614,52 @@ function FuncionariosTab({ funcs, loading, busca, setBusca, filtroStatus, setFil
   }
 
   return (
-    <>
-      <div style={styles.filterRow}>
-        <input className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" style={{ maxWidth: 280 }} placeholder="🔍 Buscar por nome..." value={busca} onChange={e => setBusca(e.target.value)} />
-        <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}>
-          <option value="">Todos os status</option>
-          {Object.entries(STATUS_COLORS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-        </select>
-        <select className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={filtroArea} onChange={e => setFiltroArea(e.target.value)}>
-          <option value="">Todas as áreas</option>
-          {areas.map(a => <option key={a} value={a}>{a}</option>)}
-        </select>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+    <Card className="py-0 gap-0" style={{ background: 'var(--cbrio-card)', borderColor: 'var(--cbrio-border)' }}>
+      <CardHeader className="px-5 pt-5 pb-4">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <CardTitle style={{ color: 'var(--cbrio-text)' }}>Diretório de Colaboradores</CardTitle>
+            <CardDescription style={{ color: 'var(--cbrio-text3)' }}>{funcs.length} colaboradores encontrados</CardDescription>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                className="flex h-9 w-full rounded-md border border-input bg-transparent pl-9 pr-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-[250px]"
+                placeholder="Buscar por nome..."
+                value={busca} onChange={e => setBusca(e.target.value)}
+              />
+            </div>
+            <select
+              className="flex h-9 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}
+            >
+              <option value="">Todos os status</option>
+              {Object.entries(STATUS_COLORS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+            </select>
+            <select
+              className="flex h-9 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              value={filtroArea} onChange={e => setFiltroArea(e.target.value)}
+            >
+              <option value="">Todas as áreas</option>
+              {areas.map(a => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="flex gap-2 mt-2 justify-end">
           <input ref={csvRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={handleCSVImport} />
           <Button variant="outline" size="sm" onClick={() => csvRef.current?.click()}>Importar CSV</Button>
-          <Button onClick={onNew}>+ Novo Colaborador</Button>
+          <Button variant="outline" size="sm" onClick={() => {
+            const headers = ['Nome', 'Cargo', 'Área', 'Contrato', 'Admissão', 'Status', 'Email'];
+            const rows = funcs.map(f => [f.nome, f.cargo, f.area || '', f.tipo_contrato, f.data_admissao || '', f.status, f.email || '']);
+            exportPDF('Colaboradores', headers, rows, { subtitle: `${funcs.length} colaboradores` });
+          }}>
+            <Download className="h-3.5 w-3.5" /> Exportar
+          </Button>
         </div>
-      </div>
-
-      <div style={styles.card}>
-        <div style={{ overflowX: 'auto' }}>
+      </CardHeader>
+      <CardContent className="px-5 pb-5">
+        <div className="overflow-x-auto rounded-md" style={{ border: `1px solid var(--cbrio-border)` }}>
           <table style={styles.table}>
             <thead>
               <tr>
@@ -592,37 +674,42 @@ function FuncionariosTab({ funcs, loading, busca, setBusca, filtroStatus, setFil
             </thead>
             <tbody>
               {loading && <tr><td colSpan={7}><div className="flex items-center justify-center py-6 gap-2"><div className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground/25 border-t-primary" /><span className="text-xs text-muted-foreground">Carregando...</span></div></td></tr>}
-              {!loading && funcs.length === 0 && <tr><td colSpan={7}><div className="flex flex-col items-center py-10 gap-2"><div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mb-1"><svg className="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg></div><span className="text-sm font-medium text-foreground">Nenhum colaborador encontrado</span><span className="text-xs text-muted-foreground">Tente ajustar os filtros</span></div></td></tr>}
+              {!loading && funcs.length === 0 && <tr><td colSpan={7}><div className="flex flex-col items-center py-10 gap-2"><div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mb-1"><Users className="h-5 w-5 text-muted-foreground" /></div><span className="text-sm font-medium text-foreground">Nenhum colaborador encontrado</span><span className="text-xs text-muted-foreground">Tente ajustar os filtros</span></div></td></tr>}
               {funcs.map(f => (
-                <tr key={f.id} className="cbrio-row"
+                <tr key={f.id} className="cbrio-row hover:bg-muted/50 transition-colors"
                   onClick={() => onDetail(f.id)}>
                   <td style={{ ...styles.td, fontWeight: 600 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div className="flex items-center gap-3">
                       {f.foto_url ? (
-                        <img src={f.foto_url} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                        <img src={f.foto_url} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
                       ) : (
-                        <div style={{ width: 32, height: 32, borderRadius: '50%', background: C.primaryBg, color: C.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, flexShrink: 0 }}>
+                        <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold shrink-0">
                           {(f.nome || '?')[0].toUpperCase()}
                         </div>
                       )}
-                      {f.nome}
+                      <div>
+                        <p className="font-medium text-sm">{f.nome}</p>
+                        {f.email && <p className="text-xs text-muted-foreground truncate max-w-[200px]">{f.email}</p>}
+                      </div>
                     </div>
                   </td>
-                  <td style={styles.td}>{f.cargo}</td>
-                  <td style={styles.td}>{f.area || '—'}</td>
-                  <td style={styles.td}>{TIPO_CONTRATO[f.tipo_contrato] || f.tipo_contrato}</td>
-                  <td style={styles.td}>{fmtDate(f.data_admissao)}</td>
+                  <td style={styles.td}><span className="text-sm">{f.cargo}</span></td>
+                  <td style={styles.td}><span className="text-sm text-muted-foreground">{f.area || '—'}</span></td>
+                  <td style={styles.td}><span className="text-sm">{TIPO_CONTRATO[f.tipo_contrato] || f.tipo_contrato}</span></td>
+                  <td style={styles.td}><span className="text-sm text-muted-foreground">{fmtDate(f.data_admissao)}</span></td>
                   <td style={styles.td}><Badge status={f.status} map={STATUS_COLORS} /></td>
                   <td style={styles.td}>
-                    <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); onDelete(f.id); }}>🗑</Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={e => { e.stopPropagation(); onDelete(f.id); }}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </div>
-    </>
+      </CardContent>
+    </Card>
   );
 }
 

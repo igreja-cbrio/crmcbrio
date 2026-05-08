@@ -4,38 +4,9 @@ const { supabase } = require('../utils/supabase');
 const storage = require('../services/storageService');
 const { AgentService } = require('../services/agentService');
 
-router.use(authenticate);
+const { extractText } = require('../services/textExtractor');
 
-// ── Text extraction helpers ──
-async function extractText(buffer, mimeType, fileName) {
-  try {
-    if (mimeType === 'application/pdf') {
-      const pdf = require('pdf-parse');
-      const data = await pdf(buffer);
-      return data.text?.slice(0, 15000) || '';
-    }
-    if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileName?.endsWith('.docx')) {
-      const mammoth = require('mammoth');
-      const result = await mammoth.extractRawText({ buffer });
-      return result.value?.slice(0, 15000) || '';
-    }
-    if (mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || fileName?.endsWith('.xlsx')) {
-      const XLSX = require('xlsx');
-      const workbook = XLSX.read(buffer, { type: 'buffer' });
-      let text = '';
-      for (const name of workbook.SheetNames) {
-        const sheet = workbook.Sheets[name];
-        text += `\n--- Planilha: ${name} ---\n`;
-        text += XLSX.utils.sheet_to_csv(sheet);
-      }
-      return text.slice(0, 15000);
-    }
-    // Images and others — just return metadata
-    return `[Arquivo binário: ${fileName || 'desconhecido'}, tipo: ${mimeType}]`;
-  } catch (e) {
-    return `[Erro ao extrair texto de ${fileName}: ${e.message}]`;
-  }
-}
+router.use(authenticate);
 
 // POST /api/events/:eventId/report — gerar relatório por IA
 router.post('/:eventId/report', async (req, res) => {
@@ -62,15 +33,36 @@ router.post('/:eventId/report', async (req, res) => {
     }
     const { data: completions } = await compQ.order('completed_at');
 
-    if ((!attachs || attachs.length === 0) && (!completions || completions.length === 0)) {
-      return res.status(400).json({ error: 'Nenhum anexo ou conclusão encontrado para gerar relatório.' });
+    // Buscar progresso por fase/área (totais, concluídos, pendentes)
+    let progressQ = supabase.from('vw_phase_progress').select('*').eq('event_id', eventId);
+    if (type === 'phase' && phase_name) progressQ = progressQ.eq('nome_fase', phase_name);
+    const { data: progress } = await progressQ.order('phase_number');
+
+    // Buscar cards pendentes (não concluídos)
+    let pendingQ = supabase.from('cycle_phase_tasks')
+      .select('titulo, area, status, responsavel_nome, event_phase_id')
+      .eq('event_id', eventId)
+      .neq('status', 'concluida');
+    if (type === 'phase' && phase_name) {
+      const { data: phaseRow } = await supabase.from('event_cycle_phases')
+        .select('id').eq('event_id', eventId).eq('nome_fase', phase_name).limit(1).maybeSingle();
+      if (phaseRow) pendingQ = pendingQ.eq('event_phase_id', phaseRow.id);
+    }
+    const { data: pendingTasks } = await pendingQ;
+
+    if ((!attachs || attachs.length === 0) && (!completions || completions.length === 0) && (!pendingTasks || pendingTasks.length === 0)) {
+      return res.status(400).json({ error: 'Nenhum dado encontrado para gerar relatório.' });
     }
 
-    // Extrair texto dos arquivos
+    // Montar conteúdo dos arquivos (usar digest se disponível, fallback para download)
     const fileContents = [];
     for (const a of attachs) {
       let text = '';
-      if (a.supabase_path || a.sharepoint_item_id) {
+      if (a.file_digest) {
+        // Digest já gerado na hora do upload — usar direto
+        text = a.file_digest;
+      } else if (a.supabase_path || a.sharepoint_item_id) {
+        // Fallback: arquivo antigo sem digest — baixar e extrair
         try {
           const buffer = await storage.downloadFile(a.supabase_path, a.sharepoint_item_id);
           text = await extractText(buffer, a.file_type, a.file_name);
@@ -93,28 +85,54 @@ router.post('/:eventId/report', async (req, res) => {
       `- Card: "${c.card_titulo}" | Área: ${c.area} | Fase: ${c.phase_number} | Concluído por: ${c.completed_by_name || 'desconhecido'} em ${new Date(c.completed_at).toLocaleDateString('pt-BR')}${c.observacao ? ` | Observação: "${c.observacao}"` : ''}${c.file_name ? ` | Arquivo: ${c.file_name}` : ''}`
     ).join('\n');
 
+    // Calcular totais a partir do progresso
+    const totalCards = (progress || []).reduce((s, p) => s + (p.total_cards || 0), 0);
+    const totalConcluidos = (progress || []).reduce((s, p) => s + (p.cards_concluidos || 0), 0);
+    const totalPendentes = totalCards - totalConcluidos;
+    const pctGeral = totalCards > 0 ? Math.round(totalConcluidos / totalCards * 100) : 0;
+
     // Montar prompt
     const scope = type === 'phase' ? `Fase: ${phase_name}` : 'Evento Completo';
     const system = `Você é um analista de eventos da Igreja Comunidade Batista do Rio de Janeiro (CBRio).
-Gere um relatório estruturado em markdown com base nos entregáveis e conclusões de cards.
+Gere um relatório estruturado em markdown com base nos entregáveis, conclusões e status dos cards.
 
 Evento: ${event.name}
 Data: ${event.date || 'não definida'}
 Escopo: ${scope}
+Total de cards: ${totalCards}
+Cards concluídos: ${totalConcluidos} (${pctGeral}%)
+Cards pendentes: ${totalPendentes}
 Total de anexos: ${attachs?.length || 0}
-Total de cards concluídos: ${completions?.length || 0}
 
 O relatório deve conter:
-1. **Resumo Executivo** — visão geral do que foi entregue
-2. **Entregas por Área** — o que cada área (marketing, produção, financeiro, etc.) entregou, quem concluiu e quando
-3. **Status Geral** — avaliação da completude (cards concluídos vs pendentes)
-4. **Observações dos Responsáveis** — destaque as observações relevantes registradas nas conclusões
-5. **Pontos de Atenção** — gaps, entregas faltantes ou problemas identificados
-6. **Recomendações** — próximos passos sugeridos
+1. **Resumo Executivo** — visão geral do evento: o que foi entregue e o que ainda falta
+2. **Progresso por Fase** — para cada fase, mostrar total de cards, concluídos, pendentes e % de conclusão
+3. **Entregas por Área** — o que cada área (marketing, produção, adm, etc.) entregou, quem concluiu e quando
+4. **Cards Pendentes** — listar os cards que ainda não foram concluídos, agrupados por fase/área, e avaliar o impacto de cada pendência no evento
+5. **Observações dos Responsáveis** — destaque as observações relevantes registradas nas conclusões
+6. **Pontos de Atenção** — gaps, atrasos, entregas faltantes ou problemas identificados com base nas pendências
+7. **Recomendações** — próximos passos sugeridos para resolver as pendências a tempo
 
 Baseie-se APENAS nos dados fornecidos. Não invente informações.`;
 
     let userMessage = '';
+
+    // Progresso por fase
+    if (progress && progress.length > 0) {
+      userMessage += '=== PROGRESSO POR FASE/ÁREA ===\n';
+      userMessage += progress.map(p =>
+        `- Fase ${p.phase_number} "${p.nome_fase}" | Área: ${p.area} | ${p.cards_concluidos}/${p.total_cards} concluídos (${p.pct_concluido}%)${p.cards_bloqueados > 0 ? ` | ${p.cards_bloqueados} bloqueado(s)` : ''}`
+      ).join('\n') + '\n\n';
+    }
+
+    // Cards pendentes
+    if (pendingTasks && pendingTasks.length > 0) {
+      userMessage += '=== CARDS PENDENTES (NÃO CONCLUÍDOS) ===\n';
+      userMessage += pendingTasks.map(t =>
+        `- "${t.titulo}" | Área: ${t.area || 'não definida'} | Status: ${t.status} | Responsável: ${t.responsavel_nome || 'não atribuído'}`
+      ).join('\n') + '\n\n';
+    }
+
     if (fileContents.length > 0) {
       userMessage += '=== ARQUIVOS ANEXADOS ===\n' + fileContents.map((f, i) =>
         `--- Arquivo ${i + 1}: ${f.file_name} ---\nÁrea: ${f.area}\nFase: ${f.phase}\nDescrição: ${f.description}\nEnviado por: ${f.uploaded_by}\n\nConteúdo:\n${f.content}\n`

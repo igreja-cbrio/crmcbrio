@@ -26,7 +26,7 @@ router.get('/', async (req, res) => {
     let query = supabase
       .from('notificacoes')
       .select('*')
-      .eq('usuario_id', req.user.id)
+      .eq('usuario_id', req.user.userId)
       .order('created_at', { ascending: false })
       .limit(50);
 
@@ -47,7 +47,7 @@ router.get('/count', async (req, res) => {
     const { count, error } = await supabase
       .from('notificacoes')
       .select('id', { count: 'exact', head: true })
-      .eq('usuario_id', req.user.id)
+      .eq('usuario_id', req.user.userId)
       .eq('lida', false);
     if (error) return res.status(400).json({ error: error.message });
     res.json({ count: count || 0 });
@@ -74,7 +74,7 @@ router.patch('/:id/ler', async (req, res) => {
       .from('notificacoes')
       .update({ lida: true })
       .eq('id', req.params.id)
-      .eq('usuario_id', req.user.id);
+      .eq('usuario_id', req.user.userId);
     if (error) return res.status(400).json({ error: error.message });
     res.json({ success: true });
   } catch (e) {
@@ -88,7 +88,7 @@ router.patch('/ler-todas', async (req, res) => {
     const { error } = await supabase
       .from('notificacoes')
       .update({ lida: true })
-      .eq('usuario_id', req.user.id)
+      .eq('usuario_id', req.user.userId)
       .eq('lida', false);
     if (error) return res.status(400).json({ error: error.message });
     res.json({ success: true });

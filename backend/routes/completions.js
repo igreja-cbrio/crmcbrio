@@ -1,34 +1,37 @@
 const router = require('express').Router();
 const { authenticate } = require('../middleware/auth');
 const { supabase } = require('../utils/supabase');
+const { getGraphToken, ensureSharePointFolder, sanitizePath, SHAREPOINT_CONFIGURED, downloadFile } = require('../services/storageService');
+const { extractText } = require('../services/textExtractor');
 require('dotenv').config();
 
 router.use(authenticate);
 
-// ── Helper: get Graph API token ──
-let cachedToken = null;
-let tokenExpiry = 0;
-async function getGraphToken() {
-  if (cachedToken && Date.now() < tokenExpiry - 60000) return cachedToken;
-  const res = await fetch(`https://login.microsoftonline.com/${process.env.MICROSOFT_TENANT_ID}/oauth2/v2.0/token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id: process.env.MICROSOFT_CLIENT_ID,
-      client_secret: process.env.MICROSOFT_CLIENT_SECRET,
-      scope: 'https://graph.microsoft.com/.default',
-      grant_type: 'client_credentials',
-    }),
-  });
-  const data = await res.json();
-  if (!data.access_token) throw new Error('Graph auth failed');
-  cachedToken = data.access_token;
-  tokenExpiry = Date.now() + (data.expires_in || 3600) * 1000;
-  return cachedToken;
-}
+// ── Gerar digest de arquivo em background (não bloqueia response) ──
+async function generateDigestsInBackground(attachmentRows) {
+  for (const att of attachmentRows) {
+    if (!att.sharepoint_item_id && !att.supabase_path) continue;
+    try {
+      const buffer = await downloadFile(att.supabase_path, att.sharepoint_item_id);
+      const text = await extractText(buffer, att.file_type, att.file_name, 8000);
+      if (!text || text.startsWith('[')) continue; // binário ou erro
 
-function sanitize(s) {
-  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9_\-. ]/g, '').replace(/\s+/g, '_').slice(0, 100);
+      const Anthropic = require('@anthropic-ai/sdk');
+      const client = new Anthropic();
+      const msg = await client.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 600,
+        messages: [{ role: 'user', content: `Resuma este documento em 200-300 palavras. Foco em: valores monetários, datas, itens/materiais, decisões, responsáveis e qualquer dado relevante para um evento de igreja.\n\nArquivo: ${att.file_name}\n\nConteúdo:\n${text}` }],
+      });
+      const digest = msg.content?.[0]?.text || '';
+      if (digest) {
+        await supabase.from('event_task_attachments').update({ file_digest: digest }).eq('id', att.id);
+        console.log(`[DIGEST] ${att.file_name} → ${digest.length} chars`);
+      }
+    } catch (e) {
+      console.error(`[DIGEST] Falha ${att.file_name}:`, e.message);
+    }
+  }
 }
 
 // ── POST /api/completions/upload-url — gerar URL de upload direto para SharePoint ──
@@ -36,14 +39,16 @@ router.post('/upload-url', async (req, res) => {
   try {
     const { fileName, eventName, phaseName, area } = req.body;
     if (!fileName) return res.status(400).json({ error: 'fileName é obrigatório' });
+    if (!SHAREPOINT_CONFIGURED) return res.status(400).json({ error: 'SharePoint não configurado (variáveis de ambiente ausentes)' });
 
     const siteId = process.env.SHAREPOINT_SITE_ID;
-    if (!siteId) return res.status(400).json({ error: 'SharePoint não configurado' });
-
     const token = await getGraphToken();
-    const safeName = sanitize(fileName);
-    const folder = `Eventos/${sanitize(eventName || 'geral')}/${sanitize(phaseName || 'geral')}`;
+    const safeName = sanitizePath(fileName);
+    const folder = `Eventos/${sanitizePath(eventName || 'geral')}/${sanitizePath(phaseName || 'geral')}`;
     const filePath = `${folder}/${safeName}`;
+
+    // Garantir que a estrutura de pastas existe no SharePoint
+    await ensureSharePointFolder(folder);
 
     // Criar upload session (suporta arquivos de qualquer tamanho)
     const sessionRes = await fetch(`https://graph.microsoft.com/v1.0/sites/${siteId}/drive/root:/${filePath}:/createUploadSession`, {
@@ -106,6 +111,10 @@ router.post('/', async (req, res) => {
 
     // Salvar todos os arquivos em event_task_attachments (para relatório IA)
     if (files && files.length > 0) {
+      const filesWithoutUrl = files.filter(f => !f.file_url);
+      if (filesWithoutUrl.length > 0) {
+        console.warn(`[COMPLETION POST] ${filesWithoutUrl.length} arquivo(s) sem URL SharePoint:`, filesWithoutUrl.map(f => f.file_name));
+      }
       const attachments = files.map(f => ({
         cycle_task_id: task_id,
         event_id,
@@ -120,7 +129,12 @@ router.post('/', async (req, res) => {
         uploaded_by: req.user.userId,
         uploaded_by_name: req.user.name,
       }));
-      await supabase.from('event_task_attachments').insert(attachments);
+      const { data: insertedAttachments } = await supabase.from('event_task_attachments').insert(attachments).select('id, file_name, file_type, sharepoint_item_id, supabase_path');
+
+      // Gerar digest em background (não bloqueia o response)
+      if (insertedAttachments?.length > 0) {
+        generateDigestsInBackground(insertedAttachments).catch(e => console.error('[DIGEST BG]', e.message));
+      }
     }
 
     // Atualizar status do card para 'concluida'
@@ -144,6 +158,38 @@ router.post('/', async (req, res) => {
     res.json({ success: true, completion, filesCount: files?.length || 0 });
   } catch (err) {
     console.error('[COMPLETION POST]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── POST /api/completions/attach — adicionar arquivo(s) a uma tarefa já concluída ──
+router.post('/attach', async (req, res) => {
+  try {
+    const { task_id, event_id, phase_name, area, files } = req.body;
+    if (!task_id || !event_id || !files?.length) return res.status(400).json({ error: 'task_id, event_id e files são obrigatórios' });
+
+    const attachments = files.map(f => ({
+      cycle_task_id: task_id,
+      event_id,
+      file_name: f.file_name,
+      file_type: f.mime_type,
+      file_size: f.size || null,
+      sharepoint_url: f.file_url || null,
+      sharepoint_item_id: f.sharepoint_item_id || null,
+      phase_name: phase_name || null,
+      area: area || null,
+      uploaded_by: req.user.userId,
+      uploaded_by_name: req.user.name,
+    }));
+    const { data: inserted } = await supabase.from('event_task_attachments').insert(attachments).select('id, file_name, file_type, sharepoint_item_id, supabase_path');
+
+    if (inserted?.length > 0) {
+      generateDigestsInBackground(inserted).catch(e => console.error('[DIGEST BG]', e.message));
+    }
+
+    res.json({ success: true, filesCount: inserted?.length || 0 });
+  } catch (err) {
+    console.error('[COMPLETION ATTACH]', err.message);
     res.status(500).json({ error: err.message });
   }
 });

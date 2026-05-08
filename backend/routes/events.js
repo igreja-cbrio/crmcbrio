@@ -406,17 +406,20 @@ router.post('/:eventId/tasks/:taskId/attachments', upload.single('file'), async 
     const { eventId, taskId } = req.params;
     const { description, area, phase_name, task_type } = req.body; // task_type: 'event' | 'cycle'
 
+    // Fix encoding: multer/busboy interpreta filenames como latin1, mas browser envia UTF-8
+    const fileName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
+
     // Buscar nome do evento para organizar pastas
     const { data: event } = await supabase.from('events').select('name').eq('id', eventId).single();
     const eventName = event?.name || eventId;
 
     // Upload para storage
-    const result = await storage.uploadFile(eventName, phase_name || '', req.file.originalname, req.file.buffer, req.file.mimetype);
+    const result = await storage.uploadFile(eventName, phase_name || '', fileName, req.file.buffer, req.file.mimetype);
 
     // Salvar registro no banco
     const attachment = {
       event_id: eventId,
-      file_name: req.file.originalname,
+      file_name: fileName,
       file_type: req.file.mimetype,
       file_size: req.file.size,
       supabase_path: result.provider === 'supabase' ? result.path : null,

@@ -1,7 +1,7 @@
 # CLAUDE.md — CBRio ERP
 
 Guia para Claude Code e agentes de IA trabalhando neste repositório.
-Atualizado em: 2026-04-07 (v10) — Card completions (conclusão formal + reopen) + relatório IA enriquecido
+Atualizado em: 2026-04-08 (v10.1) — Fix upload SharePoint via CompletionSection + ensureFolder + token cache unificado
 
 ---
 
@@ -441,7 +441,7 @@ Estes arquivos afetam o sistema inteiro. Alterações devem ser feitas via **Pul
   - Tab "Relatórios" no detalhe do evento com histórico + visualização + copiar
   - SharePoint integrado via Microsoft Graph API (App Registration configurado)
   - Sync automático Supabase→SharePoint via cron /api/cron/sharepoint-sync
-- **Card Completions (v10):**
+- **Card Completions (v10 + v10.1 fix):**
   - Tabela `card_completions`: registro formal de conclusão com observação + arquivo + snapshot
   - Botão "Concluir tarefa" nos modais de detalhe (CycleView + Eventos kanban)
   - Ao concluir: observação opcional + upload de arquivo → status muda para 'concluida' → fase recalculada
@@ -450,6 +450,15 @@ Estes arquivos afetam o sistema inteiro. Alterações devem ser feitas via **Pul
   - Dropdown de status oculta opção 'concluida' (só via botão Concluir)
   - View SQL `vw_phase_progress`: progresso por fase/área (migration 033)
   - Relatório IA enriquecido: inclui dados de conclusões (quem, quando, observações)
+  - **Fix v10.1:** CompletionSection.jsx agora valida `uploadRes.ok` — antes, falhas no PUT ao SharePoint eram silenciosas (arquivo se perdia, tarefa ficava 'concluída' sem documento)
+  - **Fix v10.1:** `completions.js` agora chama `ensureSharePointFolder()` antes de criar upload session (evita 404)
+  - **Fix v10.1:** Token cache do Graph API unificado — `completions.js` reutiliza `getGraphToken` de `storageService.js` (antes eram caches duplicados)
+  - **Fix v10.1:** Encoding de filenames com acentos corrigido — multer/busboy interpreta como latin1, agora usa `Buffer.from(originalname, 'latin1').toString('utf8')`
+  - **Fix v10.1:** Upload agora usa mesma pasta do ciclo — formato `Fase_XX_-_Nome` (antes usava só `Nome`, criando pasta duplicada)
+  - **Fix v10.1:** Removida seção "Anexos / Entregáveis" (AttachmentButton) do detalhe de tarefa no CycleView e Eventos — upload unificado via CompletionSection
+  - **Fix v10.1:** Upload em chunks de 10MB para arquivos grandes (≤10MB = PUT único, >10MB = chunked upload com progresso %)
+  - **Fix v10.1:** Relatório IA agora inclui cards pendentes + progresso por fase via `vw_phase_progress` + `cycle_phase_tasks` (antes só via `card_completions`)
+  - **Feat v10.1:** File digest incremental — ao subir arquivo, Haiku gera resumo (~300 palavras) salvo em `file_digest` (migration 034). Relatório usa digests ao invés de baixar 100+ arquivos.
 - Ciclos criativos com 11 fases + 35 tarefas ADM + 138 subtarefas automáticas
 - **KPIs clicáveis** — todos os números do dashboard navegam para os dados filtrados
 - **Abas Riscos + Histórico + Retrospectiva** no detalhe do evento
