@@ -165,35 +165,75 @@ router.put('/:id', async (req, res) => {
 
 // PATCH /api/events/:id/status
 // 'reabrir' → invoca recalc_event_status no DB (mesma lógica do trigger).
-// Outros valores são manual override (Finalizar etc.).
+// 'concluido' → marca evento + cascata todas as event_tasks/cycle_phase_tasks como concluida.
+// Outros valores são manual override.
 router.patch('/:id/status', async (req, res) => {
+  const eventId = req.params.id;
   try {
     const { status } = req.body;
     if (!status) return res.status(400).json({ error: 'Status obrigatório' });
 
-    const { data: oldEv } = await supabase.from('events').select('status, name').eq('id', req.params.id).single();
+    const { data: oldEv, error: getErr } = await supabase
+      .from('events').select('status, name').eq('id', eventId).single();
+    if (getErr) {
+      console.error('[Events] PATCH status — falha ao ler evento:', getErr.message);
+      return res.status(500).json({ error: `Erro ao buscar evento: ${getErr.message}` });
+    }
     if (!oldEv) return res.status(404).json({ error: 'Evento não encontrado' });
 
     let newStatus = status;
     if (status === 'reabrir') {
-      await supabase.rpc('recalc_event_status', { p_event_id: req.params.id });
-      const { data: refreshed } = await supabase.from('events').select('status').eq('id', req.params.id).single();
+      const { error: rpcErr } = await supabase.rpc('recalc_event_status', { p_event_id: eventId });
+      if (rpcErr) {
+        console.error('[Events] PATCH status — recalc rpc:', rpcErr.message);
+        return res.status(500).json({ error: `Recalc falhou: ${rpcErr.message}` });
+      }
+      const { data: refreshed } = await supabase.from('events').select('status').eq('id', eventId).single();
       newStatus = refreshed?.status || oldEv.status;
     } else {
-      const { error: updErr } = await supabase.from('events').update({ status }).eq('id', req.params.id);
-      if (updErr) throw updErr;
+      const { error: updErr } = await supabase.from('events').update({ status }).eq('id', eventId);
+      if (updErr) {
+        console.error('[Events] PATCH status — update events:', updErr.message);
+        return res.status(500).json({ error: `Update falhou: ${updErr.message}` });
+      }
+
+      // Ao finalizar evento: cascatear conclusão para todas as tarefas
+      if (status === 'concluido') {
+        const [tRes, cRes] = await Promise.all([
+          supabase.from('event_tasks')
+            .update({ status: 'concluida' })
+            .eq('event_id', eventId)
+            .neq('status', 'concluida'),
+          supabase.from('cycle_phase_tasks')
+            .update({ status: 'concluida' })
+            .eq('event_id', eventId)
+            .neq('status', 'concluida'),
+        ]);
+        if (tRes.error) console.error('[Events] auto-finalize event_tasks:', tRes.error.message);
+        if (cRes.error) console.error('[Events] auto-finalize cycle_phase_tasks:', cRes.error.message);
+      }
     }
 
-    const { data } = await supabase.from('events').select().eq('id', req.params.id).single();
-    await supabase.from('audit_log').insert({
-      table_name: 'events', record_id: req.params.id, event_id: req.params.id,
-      action: 'status_change', field_name: 'status',
-      old_value: oldEv.status, new_value: newStatus,
-      description: `Evento "${oldEv.name}" ${oldEv.status} → ${newStatus}`,
-      changed_by: req.user.userId, changed_by_name: req.user.name,
-    });
+    const { data } = await supabase.from('events').select().eq('id', eventId).single();
+
+    // Audit best-effort (não bloqueia resposta)
+    try {
+      await supabase.from('audit_log').insert({
+        table_name: 'events', record_id: eventId, event_id: eventId,
+        action: 'status_change', field_name: 'status',
+        old_value: oldEv.status, new_value: newStatus,
+        description: `Evento "${oldEv.name}" ${oldEv.status} → ${newStatus}`,
+        changed_by: req.user.userId, changed_by_name: req.user.name,
+      });
+    } catch (auditErr) {
+      console.error('[Events] audit_log (não-bloqueante):', auditErr.message);
+    }
+
     res.json(data);
-  } catch (e) { console.error(e); res.status(500).json({ error: 'Erro ao atualizar status' }); }
+  } catch (e) {
+    console.error('[Events] PATCH /:id/status — exceção:', e);
+    res.status(500).json({ error: e.message || 'Erro ao atualizar status' });
+  }
 });
 
 // DELETE /api/events/:id
