@@ -1,6 +1,7 @@
 # CLAUDE.md — CBRio ERP
 
 Guia para Claude Code e agentes de IA trabalhando neste repositório.
+Atualizado em: 2026-05-08 (v10.3) — Migration `035_event_project_fks.sql`: FKs `events/meetings/pendencies.project_id` → `projects(id)` ON DELETE SET NULL (estavam como "FK futura" desde 006); limpeza de órfãos + índices novos em meetings/pendencies. **Aplicar manualmente no Supabase SQL Editor.**
 Atualizado em: 2026-05-08 (v10.2) — Refactor módulo Eventos: helpers compartilhados (`utils/helpers.js`), hook `useEventList`, selective updates no CycleView (~10 `load()` redundantes removidos), `EventDetail.jsx` apagado (era duplicata do modal inline), paginação em `GET /events/:id` (`tasksLimit`/`commentsLimit` + `has_more_tasks`)
 
 ---
@@ -193,6 +194,7 @@ Migrations em `supabase/migrations/`:
 - `021_rh_organograma.sql` — gestor_id em rh_funcionarios (hierarquia)
 - `022_rh_avaliacoes.sql` — avaliações de desempenho (6 critérios, notas 1-5)
 - `027_pmo_views.sql` — views `vw_pmo_kpis` (KPIs agregados) e `vw_workload` (carga por responsável)
+- `035_event_project_fks.sql` — FKs `events.project_id`, `meetings.project_id`, `pendencies.project_id` → `projects(id)` ON DELETE SET NULL (eram "FK futura" desde 006); limpa órfãos antes; índices em meetings/pendencies
 
 **RLS importante:** A policy `profiles_select_all_authenticated` permite qualquer user autenticado ler perfis (evita recursão infinita). NÃO usar sub-select em profiles dentro de policies de profiles.
 
@@ -490,7 +492,7 @@ Estes arquivos afetam o sistema inteiro. Alterações devem ser feitas via **Pul
 **Project ref:** `hhntwfawfnxvuobhdfkb`
 **URL:** `https://hhntwfawfnxvuobhdfkb.supabase.co`
 
-Migrations aplicadas: 001-022, 027, 030, 031, 032, 033
+Migrations aplicadas: 001-022, 027, 030, 031, 032, 033, 034 (a aplicar: 035)
 
 Para novas migrations: criar arquivo em `supabase/migrations/` e rodar manualmente no Supabase SQL Editor.
 
