@@ -231,8 +231,18 @@ router.patch('/:id/status', async (req, res) => {
 
     res.json(data);
   } catch (e) {
-    console.error('[Events] PATCH /:id/status — exceção:', e);
-    res.status(500).json({ error: e.message || 'Erro ao atualizar status' });
+    // Diagnóstico ultra-explícito: dump tudo que houver de informação
+    const detail = [
+      e?.message,
+      e?.code && `code=${e.code}`,
+      e?.details && `details=${e.details}`,
+      e?.hint && `hint=${e.hint}`,
+    ].filter(Boolean).join(' | ');
+    console.error('[Events] PATCH /:id/status — exceção:', { eventId, message: e?.message, code: e?.code, details: e?.details, hint: e?.hint, stack: e?.stack });
+    res.status(500).json({
+      error: detail || `Falha sem mensagem (typeof=${typeof e})`,
+      _v: 'patch-status-v10.7',  // marker pra confirmar que esta versão está deployada
+    });
   }
 });
 
