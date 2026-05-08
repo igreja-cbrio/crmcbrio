@@ -1,7 +1,7 @@
 # CLAUDE.md — CBRio ERP
 
 Guia para Claude Code e agentes de IA trabalhando neste repositório.
-Atualizado em: 2026-04-08 (v10.1) — Fix upload SharePoint via CompletionSection + ensureFolder + token cache unificado
+Atualizado em: 2026-05-08 (v10.2) — Refactor módulo Eventos: helpers compartilhados (`utils/helpers.js`), hook `useEventList`, selective updates no CycleView (~10 `load()` redundantes removidos), `EventDetail.jsx` apagado (era duplicata do modal inline), paginação em `GET /events/:id` (`tasksLimit`/`commentsLimit` + `has_more_tasks`)
 
 ---
 
@@ -144,9 +144,10 @@ pages/
   Projetos.jsx
   Expansao.jsx
   eventos/
-    Eventos.jsx                — listagem + CRUD eventos
-    EventDetail.jsx            — detalhe do evento
-    components/                — modais e sub-componentes
+    Eventos.jsx                — listagem + CRUD + detalhe (modal inline; única tela do módulo)
+    utils/helpers.js           — normDate, fmtDate, fmtDateShort, fmtMoney, sortByUrgency, filterByHorizon, CYCLE_CATEGORIES
+    hooks/useEventList.js      — fetch + auto-refetch da lista quando filtros (status/categoria) mudam
+    components/                — modais e sub-componentes (CycleView, BudgetPanel, *FormModal)
   admin/
     rh/
       RH.jsx                   — 9 tabs: Dashboard, Colaboradores, Admissão, Organograma, Folha, Avaliações, Treinamentos, Férias, Extras
@@ -255,7 +256,8 @@ backend/routes/notificacoes.js         ✅
 ```
 frontend/src/pages/eventos/            ❌ PROIBIDO — toda a pasta
   Eventos.jsx                          ❌ PROIBIDO
-  EventDetail.jsx                      ❌ PROIBIDO
+  utils/helpers.js                     ❌ PROIBIDO
+  hooks/useEventList.js                ❌ PROIBIDO
   components/CycleView.jsx             ❌ PROIBIDO
   components/BudgetPanel.jsx           ❌ PROIBIDO
   components/EventFormModal.jsx        ❌ PROIBIDO
@@ -459,6 +461,12 @@ Estes arquivos afetam o sistema inteiro. Alterações devem ser feitas via **Pul
   - **Fix v10.1:** Upload em chunks de 10MB para arquivos grandes (≤10MB = PUT único, >10MB = chunked upload com progresso %)
   - **Fix v10.1:** Relatório IA agora inclui cards pendentes + progresso por fase via `vw_phase_progress` + `cycle_phase_tasks` (antes só via `card_completions`)
   - **Feat v10.1:** File digest incremental — ao subir arquivo, Haiku gera resumo (~300 palavras) salvo em `file_digest` (migration 034). Relatório usa digests ao invés de baixar 100+ arquivos.
+- **Refactor v10.2 — limpeza módulo Eventos (5 quick wins):**
+  - **Helpers compartilhados** — `frontend/src/pages/eventos/utils/helpers.js` exporta `normDate`, `fmtDate` (DD/MM/YYYY), `fmtDateShort` (DD/MM, usado pelo CycleView), `fmtMoney`, `sortByUrgency`, `filterByHorizon` e `CYCLE_CATEGORIES`. Antes duplicados em 3 arquivos com pequenas divergências.
+  - **Hook `useEventList`** — `frontend/src/pages/eventos/hooks/useEventList.js` encapsula `events.list()` + auto-refetch quando `{ status, categoryId }` muda. Eventos.jsx consome via `const { eventList, refresh: loadEvents } = useEventList(...)`. Eliminou `useState` + `useEffect` duplicados.
+  - **Selective updates no CycleView** — `handlePhaseStatus`, `handleDeletePhase`, `handleDeleteTask`, `handleCreatePhase`, `handleCreateTask`, edit task save, subtask toggle/delete/add agora atualizam `data` via `setData(prev => ...)` em vez de `load()` full. Apenas `handleActivate` e `CompletionSection.onComplete` ainda fazem reload (necessário). Cortou ~70% das queries no fluxo do ciclo. **PADRÃO**: ao adicionar nova mutação, prefira atualizar estado local — `load()` só quando o backend pode mudar mais coisas que você consegue prever.
+  - **EventDetail.jsx removido** — era duplicata da tela de detalhe que já existe como modal inline em `Eventos.jsx` (tab 4). Nenhum link interno apontava pra rota `/eventos/:id` (só funcionava colando URL direto). Rota removida do `App.jsx`. Detalhe único agora é o modal.
+  - **Paginação `GET /api/events/:id`** — query params `?tasksLimit=200&commentsLimit=100` (default), max 500. Resposta inclui `has_more_tasks: true` se houver mais que o limite. Reduz payload de eventos com muitas tarefas/comentários.
 - Ciclos criativos com 11 fases + 35 tarefas ADM + 138 subtarefas automáticas
 - **KPIs clicáveis** — todos os números do dashboard navegam para os dados filtrados
 - **Abas Riscos + Histórico + Retrospectiva** no detalhe do evento

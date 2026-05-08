@@ -5,6 +5,8 @@ import CycleView from './components/CycleView';
 import BudgetPanel from './components/BudgetPanel';
 import { Button } from '../../components/ui/button';
 import CompletionSection from '../../components/CompletionSection';
+import { normDate, fmtDate, fmtMoney, filterByHorizon, sortByUrgency, CYCLE_CATEGORIES } from './utils/helpers';
+import { useEventList } from './hooks/useEventList';
 
 // ── Tema ────────────────────────────────────────────────────
 const C = {
@@ -100,23 +102,6 @@ const styles = {
   inlineInput: { padding: '4px 8px', borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, outline: 'none', flex: 1 },
   inlineBtn: { padding: '4px 10px', borderRadius: 6, border: 'none', background: C.primary, color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer' },
 };
-
-// ── Helpers ─────────────────────────────────────────────────
-function normDate(d) { return d ? (typeof d === 'string' ? d.slice(0, 10) : '') : ''; }
-const fmtDate = (d) => { const s = normDate(d); if (!s) return '—'; const [y, m, day] = s.split('-'); return `${day}/${m}/${y}`; };
-const fmtMoney = (v) => v != null ? `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '—';
-function filterByHorizon(items, days, dateField = 'prazo') {
-  if (!days) return items;
-  const limit = new Date(); limit.setDate(limit.getDate() + days);
-  return items.filter(t => { const d = normDate(t[dateField]); if (!d) return true; return new Date(d + 'T12:00:00') <= limit; });
-}
-function sortByUrgency(tasks) {
-  return [...tasks].sort((a, b) => {
-    const pa = normDate(a.prazo || a.deadline); const pb = normDate(b.prazo || b.deadline);
-    if (!pa && !pb) return 0; if (!pa) return 1; if (!pb) return -1;
-    return pa.localeCompare(pb);
-  });
-}
 
 function DaysCounter({ date, status }) {
   const s = normDate(date);
@@ -297,7 +282,6 @@ export default function Eventos() {
   const urlEventId = urlParams.get('id') || '';
 
   const [tab, setTab] = useState(urlStatus ? 1 : urlEventId ? 4 : 0); // 0=Home, 1=Lista, 4=Detail
-  const [eventList, setEventList] = useState([]);
   const [categories, setCategories] = useState([]);
   const [dash, setDash] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -307,6 +291,9 @@ export default function Eventos() {
   // Filtros
   const [filtroStatus, setFiltroStatus] = useState(urlStatus);
   const [filtroCategoria, setFiltroCategoria] = useState('');
+
+  // Lista de eventos via hook (auto-refetch quando filtros mudam)
+  const { eventList, refresh: loadEvents } = useEventList({ status: filtroStatus, categoryId: filtroCategoria });
 
   // PMO KPIs + workload
   const [pmoKpis, setPmoKpis] = useState(null);
@@ -365,17 +352,6 @@ export default function Eventos() {
     try { setDash(await events.dashboard()); } catch (e) { console.error(e); }
   }, []);
 
-  const loadEvents = useCallback(async () => {
-    try {
-      setLoading(true);
-      const params = {};
-      if (filtroStatus) params.status = filtroStatus;
-      if (filtroCategoria) params.category_id = filtroCategoria;
-      setEventList(await events.list(params));
-    } catch (e) { setError(e.message); }
-    finally { setLoading(false); }
-  }, [filtroStatus, filtroCategoria]);
-
   const loadDetail = useCallback(async (id) => {
     try {
       setLoading(true);
@@ -411,14 +387,13 @@ export default function Eventos() {
   }, [selectedEvent?.id]);
 
   useEffect(() => {
-    loadCategories(); loadDash(); loadEvents();
+    loadCategories(); loadDash();
     dashApi.pmo().then(d => setPmoKpis(d)).catch(() => {});
     dashApi.workload().then(d => setWorkload(d)).catch(() => {});
     usersApi.list().then(d => setUsersList(Array.isArray(d) ? d : [])).catch(() => setUsersList([]));
     // Abrir evento direto se veio via URL param
     if (urlEventId) loadDetail(urlEventId);
   }, []);
-  useEffect(() => { loadEvents(); }, [filtroStatus, filtroCategoria]);
 
   // ── Event CRUD ──
   async function saveEvent(data) {
@@ -649,15 +624,7 @@ export default function Eventos() {
   // RENDER — KANBAN (dois níveis: fases + kanban por fase)
   // ═══════════════════════════════════════════════════════════
   function renderKanban() {
-    const CAT = {
-      marketing:  { label: 'Marketing',  color: '#00B39D', bg: '#d1fae5' },
-      compras:    { label: 'Compras',    color: '#3b82f6', bg: '#dbeafe' },
-      financeiro: { label: 'Financeiro', color: '#10b981', bg: '#d1fae5' },
-      manutencao: { label: 'Manutenção', color: '#f59e0b', bg: '#fef3c7' },
-      limpeza:    { label: 'Limpeza',    color: '#8b5cf6', bg: '#ede9fe' },
-      cozinha:    { label: 'Cozinha',    color: '#ec4899', bg: '#fce7f3' },
-      outros:     { label: 'Outros',     color: 'var(--cbrio-text3)', bg: 'var(--cbrio-bg)' },
-    };
+    const CAT = CYCLE_CATEGORIES;
     const getCat = (t) => { if (t.area === 'marketing') return 'marketing'; const m = (t.observacoes || '').match(/Área:\s*(\w+)/i); return m ? m[1] : 'outros'; };
 
     const d = kanbanCycleData;

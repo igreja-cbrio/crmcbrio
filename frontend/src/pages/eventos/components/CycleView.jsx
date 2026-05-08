@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { cycles as api } from '../../../api';
 import CompletionSection from '../../../components/CompletionSection';
+import { normDate, fmtDateShort as fmtDate, sortByUrgency, CYCLE_CATEGORIES as CAT } from '../utils/helpers';
 
 const C = { dark: 'var(--cbrio-text)', t2: 'var(--cbrio-text2)', t3: 'var(--cbrio-text3)', border: 'var(--cbrio-border)', accent: '#00B39D' };
 
@@ -11,25 +12,6 @@ const TASK_STATUS = {
   concluida:     { label: 'Concluída',     color: '#10b981' },
 };
 
-const CAT = {
-  marketing:   { label: 'Marketing',   color: '#00B39D', bg: '#d1fae5', border: '#5dcaa5' },
-  compras:     { label: 'Compras',     color: '#3b82f6', bg: '#dbeafe', border: '#85b7eb' },
-  financeiro:  { label: 'Financeiro',  color: '#10b981', bg: '#d1fae5', border: '#5dcaa5' },
-  manutencao:  { label: 'Manutenção',  color: '#f59e0b', bg: '#fef3c7', border: '#ef9f27' },
-  limpeza:     { label: 'Limpeza',     color: '#8b5cf6', bg: '#ede9fe', border: '#afa9ec' },
-  cozinha:     { label: 'Cozinha',     color: '#ec4899', bg: '#fce7f3', border: '#f0997b' },
-  outros:      { label: 'Outros',      color: 'var(--cbrio-text3)', bg: 'var(--cbrio-bg)', border: 'var(--cbrio-border)' },
-};
-
-function normDate(d) { return d ? (typeof d === 'string' ? d.slice(0, 10) : '') : ''; }
-function fmtDate(d) { const s = normDate(d); if (!s) return ''; const [y, m, day] = s.split('-'); return `${day}/${m}`; }
-function sortByUrgency(tasks) {
-  return [...tasks].sort((a, b) => {
-    const pa = normDate(a.prazo); const pb = normDate(b.prazo);
-    if (!pa && !pb) return 0; if (!pa) return 1; if (!pb) return -1;
-    return pa.localeCompare(pb);
-  });
-}
 function getCategory(task) { return (task.area || '').toLowerCase() || 'outros'; }
 
 // Mapeamento setor → areas do ciclo criativo
@@ -88,31 +70,38 @@ export default function CycleView({ eventId, eventName }) {
   };
 
   const handlePhaseStatus = async (phaseId, status) => {
-    await api.updatePhase(phaseId, { status });
-    load();
+    const updated = await api.updatePhase(phaseId, { status });
+    setData(prev => prev && ({
+      ...prev,
+      phases: prev.phases.map(p => p.id === phaseId ? { ...p, ...(updated || {}), status } : p),
+    }));
   };
 
   const handleDeletePhase = async (phaseId) => {
     if (!window.confirm('Excluir esta fase e todas as suas tarefas?')) return;
     await api.deletePhase(phaseId);
     setActivePhase(null);
-    load();
+    setData(prev => prev && ({
+      ...prev,
+      phases: prev.phases.filter(p => p.id !== phaseId),
+      tasks: prev.tasks.filter(t => t.event_phase_id !== phaseId),
+    }));
   };
 
   const handleDeleteTask = async (taskId) => {
     if (!window.confirm('Excluir esta tarefa?')) return;
     await api.deleteTask(taskId);
-    load();
+    setData(prev => prev && ({ ...prev, tasks: prev.tasks.filter(t => t.id !== taskId) }));
   };
 
   const handleCreatePhase = async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
     const d = Object.fromEntries(fd.entries());
-    const maxNum = Math.max(0, ...phases.map(p => p.numero_fase));
-    await api.createPhase({ event_id: eventId, numero_fase: maxNum + 1, nome_fase: d.nome_fase, area: d.area, data_inicio_prevista: d.data_inicio || null, data_fim_prevista: d.data_fim || null });
+    const maxNum = Math.max(0, ...(data?.phases || []).map(p => p.numero_fase));
+    const newPhase = await api.createPhase({ event_id: eventId, numero_fase: maxNum + 1, nome_fase: d.nome_fase, area: d.area, data_inicio_prevista: d.data_inicio || null, data_fim_prevista: d.data_fim || null });
     setShowNewPhase(false);
-    load();
+    if (newPhase) setData(prev => prev && ({ ...prev, phases: [...prev.phases, newPhase] }));
   };
 
   const handleCreateTask = async (e) => {
@@ -121,14 +110,18 @@ export default function CycleView({ eventId, eventName }) {
     const d = Object.fromEntries(fd.entries());
     const phaseId = d.phase_id || activePhase;
     const task = await api.createTask({ event_phase_id: phaseId, event_id: eventId, titulo: d.titulo, area: d.area, prazo: d.prazo || null, responsavel_nome: d.responsavel || null, status: 'a_fazer', prioridade: 'normal' });
+    const createdSubs = [];
     if (task?.id && newTaskSubs.length > 0) {
       for (const name of newTaskSubs) {
-        await api.createSubtask(task.id, name);
+        const sub = await api.createSubtask(task.id, name);
+        if (sub) createdSubs.push(sub);
       }
     }
     setShowNewTask(false);
     setNewTaskSubs([]);
-    load();
+    if (task?.id) {
+      setData(prev => prev && ({ ...prev, tasks: [...prev.tasks, { ...task, subtasks: createdSubs }] }));
+    }
   };
 
   if (loading) return <div style={{ padding: 16, color: C.t2 }}>Carregando ciclo...</div>;
@@ -598,8 +591,13 @@ export default function CycleView({ eventId, eventName }) {
                     <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                       <button onClick={() => setEditingTask(false)} style={{ padding: '5px 12px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', cursor: 'pointer', fontSize: 11 }}>Cancelar</button>
                       <button onClick={async () => {
-                        await api.updateTask(task.id, { titulo: editData.titulo, area: editData.area, prazo: editData.prazo || null, responsavel_nome: editData.responsavel_nome || null, event_phase_id: editData.event_phase_id });
-                        setEditingTask(false); load(); setSelectedTask(null);
+                        const updated = await api.updateTask(task.id, { titulo: editData.titulo, area: editData.area, prazo: editData.prazo || null, responsavel_nome: editData.responsavel_nome || null, event_phase_id: editData.event_phase_id });
+                        setEditingTask(false);
+                        setData(prev => prev && ({
+                          ...prev,
+                          tasks: prev.tasks.map(t => t.id === task.id ? { ...t, ...(updated || {}), subtasks: t.subtasks } : t),
+                        }));
+                        setSelectedTask(null);
                       }} style={{ padding: '5px 12px', borderRadius: 6, border: 'none', background: C.accent, color: '#fff', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>Salvar</button>
                     </div>
                   </div>
@@ -657,15 +655,22 @@ export default function CycleView({ eventId, eventName }) {
                     <div key={sub.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid var(--cbrio-border)' }}>
                       <input type="checkbox" checked={sub.done} onChange={async () => {
                         await api.updateSubtask(sub.id, { done: !sub.done });
-                        load();
-                        const updated = { ...task, subtasks: subs.map(s => s.id === sub.id ? { ...s, done: !s.done } : s) };
-                        setSelectedTask(updated);
+                        const newSubs = subs.map(s => s.id === sub.id ? { ...s, done: !s.done } : s);
+                        setData(prev => prev && ({
+                          ...prev,
+                          tasks: prev.tasks.map(t => t.id === task.id ? { ...t, subtasks: newSubs } : t),
+                        }));
+                        setSelectedTask({ ...task, subtasks: newSubs });
                       }} style={{ cursor: 'pointer', width: 16, height: 16, accentColor: C.accent }} />
                       <span style={{ flex: 1, fontSize: 13, color: C.dark, ...(sub.done ? { textDecoration: 'line-through', color: C.t3 } : {}) }}>{sub.name}</span>
                       <button onClick={async () => {
                         await api.deleteSubtask(sub.id);
-                        load();
-                        setSelectedTask({ ...task, subtasks: subs.filter(s => s.id !== sub.id) });
+                        const newSubs = subs.filter(s => s.id !== sub.id);
+                        setData(prev => prev && ({
+                          ...prev,
+                          tasks: prev.tasks.map(t => t.id === task.id ? { ...t, subtasks: newSubs } : t),
+                        }));
+                        setSelectedTask({ ...task, subtasks: newSubs });
                       }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.t3, padding: 0, lineHeight: 1 }} title="Excluir subtarefa">
                         <span style={{ fontSize: 14 }}>✕</span>
                       </button>
@@ -681,8 +686,12 @@ export default function CycleView({ eventId, eventName }) {
                           const name = e.target.value.trim();
                           e.target.value = '';
                           const newSub = await api.createSubtask(task.id, name);
-                          load();
-                          setSelectedTask({ ...task, subtasks: [...subs, newSub] });
+                          const newSubs = [...subs, newSub];
+                          setData(prev => prev && ({
+                            ...prev,
+                            tasks: prev.tasks.map(t => t.id === task.id ? { ...t, subtasks: newSubs } : t),
+                          }));
+                          setSelectedTask({ ...task, subtasks: newSubs });
                         }
                       }}
                       style={{ flex: 1, padding: '5px 8px', borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, color: C.dark, background: 'var(--cbrio-input-bg, #fff)' }}
@@ -693,8 +702,12 @@ export default function CycleView({ eventId, eventName }) {
                       const name = input.value.trim();
                       input.value = '';
                       const newSub = await api.createSubtask(task.id, name);
-                      load();
-                      setSelectedTask({ ...task, subtasks: [...subs, newSub] });
+                      const newSubs = [...subs, newSub];
+                      setData(prev => prev && ({
+                        ...prev,
+                        tasks: prev.tasks.map(t => t.id === task.id ? { ...t, subtasks: newSubs } : t),
+                      }));
+                      setSelectedTask({ ...task, subtasks: newSubs });
                     }} style={{ padding: '5px 10px', borderRadius: 6, border: 'none', background: C.accent, color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>+</button>
                   </div>
                 </div>
