@@ -61,28 +61,37 @@ router.get('/', async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ error: 'Erro ao buscar eventos' }); }
 });
 
-// GET /api/events/:id
+// GET /api/events/:id?tasksLimit=200&commentsLimit=100
+// Defaults atendem 99% dos eventos. has_more_tasks indica se cliente deve buscar mais.
 router.get('/:id', async (req, res) => {
   try {
+    const tasksLimit = Math.min(parseInt(req.query.tasksLimit, 10) || 200, 500);
+    const commentsLimit = Math.min(parseInt(req.query.commentsLimit, 10) || 100, 500);
+
     const { data: ev, error } = await supabase.from('events').select('*, event_categories(name, color)').eq('id', req.params.id).single();
     if (error || !ev) return res.status(404).json({ error: 'Evento não encontrado' });
 
     const [tasksRes, occsRes, meetingsRes] = await Promise.all([
-      supabase.from('event_tasks').select('*').eq('event_id', req.params.id).order('sort_order').order('deadline'),
+      // +1 para detectar se há mais
+      supabase.from('event_tasks').select('*').eq('event_id', req.params.id).order('sort_order').order('deadline').limit(tasksLimit + 1),
       supabase.from('event_occurrences').select('*').eq('event_id', req.params.id).order('date'),
       supabase.from('meetings').select('*').eq('event_id', req.params.id).order('date', { ascending: false }),
     ]);
 
+    const allTasks = tasksRes.data || [];
+    const hasMoreTasks = allTasks.length > tasksLimit;
+    const tasksData = hasMoreTasks ? allTasks.slice(0, tasksLimit) : allTasks;
+    const taskIds = tasksData.map(t => t.id);
+
     // Subtarefas, comentários, links, dependências
-    const taskIds = (tasksRes.data || []).map(t => t.id);
     const [subsRes, commentsRes, linksRes, depsRes] = taskIds.length > 0 ? await Promise.all([
       supabase.from('event_task_subtasks').select('*').in('task_id', taskIds).order('sort_order'),
-      supabase.from('event_task_comments').select('*').in('task_id', taskIds).order('created_at', { ascending: false }),
+      supabase.from('event_task_comments').select('*').in('task_id', taskIds).order('created_at', { ascending: false }).limit(commentsLimit),
       supabase.from('event_task_links').select('*').in('task_id', taskIds).order('created_at'),
       supabase.from('event_task_dependencies').select('*').in('task_id', taskIds),
     ]) : [{ data: [] }, { data: [] }, { data: [] }, { data: [] }];
 
-    const tasks = (tasksRes.data || []).map(t => ({
+    const tasks = tasksData.map(t => ({
       ...t,
       subtasks: (subsRes.data || []).filter(s => s.task_id === t.id),
       comments: (commentsRes.data || []).filter(c => c.task_id === t.id),
@@ -106,6 +115,7 @@ router.get('/:id', async (req, res) => {
       category_name: ev.event_categories?.name || null,
       category_color: ev.event_categories?.color || null,
       tasks,
+      has_more_tasks: hasMoreTasks,
       occurrences: occsRes.data || [],
       meetings,
     });
