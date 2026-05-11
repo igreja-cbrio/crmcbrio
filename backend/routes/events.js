@@ -164,9 +164,13 @@ router.put('/:id', async (req, res) => {
 });
 
 // PATCH /api/events/:id/status
-// 'reabrir' → invoca recalc_event_status no DB (mesma lógica do trigger).
+// 'reabrir' → invoca recalc_event_status(p_force=true) no DB.
 // 'concluido' → marca evento + cascata todas as event_tasks/cycle_phase_tasks como concluida.
 // Outros valores são manual override.
+//
+// Política: depois que o UPDATE primário passa, qualquer falha posterior
+// (cascade, audit, select) é apenas LOGGED — a resposta é 200. Evita o
+// caso "status atualizado no banco mas frontend mostra erro".
 router.patch('/:id/status', async (req, res) => {
   const eventId = req.params.id;
   try {
@@ -181,9 +185,11 @@ router.patch('/:id/status', async (req, res) => {
     }
     if (!oldEv) return res.status(404).json({ error: 'Evento não encontrado' });
 
+    // ── UPDATE PRIMÁRIO ──
     let newStatus = status;
     if (status === 'reabrir') {
-      const { error: rpcErr } = await supabase.rpc('recalc_event_status', { p_event_id: eventId });
+      // p_force=true ignora o guard de 'concluido' manual no recalc
+      const { error: rpcErr } = await supabase.rpc('recalc_event_status', { p_event_id: eventId, p_force: true });
       if (rpcErr) {
         console.error('[Events] PATCH status — recalc rpc:', rpcErr.message);
         return res.status(500).json({ error: `Recalc falhou: ${rpcErr.message}` });
@@ -196,27 +202,32 @@ router.patch('/:id/status', async (req, res) => {
         console.error('[Events] PATCH status — update events:', updErr.message);
         return res.status(500).json({ error: `Update falhou: ${updErr.message}` });
       }
+    }
 
-      // Ao finalizar evento: cascatear conclusão para todas as tarefas
-      if (status === 'concluido') {
+    // ── DAQUI EM DIANTE: tudo é best-effort (loga e segue) ──
+    // O usuário NÃO deve ver erro só porque audit/cascade/select falhou.
+
+    if (status === 'concluido') {
+      try {
         const [tRes, cRes] = await Promise.all([
-          supabase.from('event_tasks')
-            .update({ status: 'concluida' })
-            .eq('event_id', eventId)
-            .neq('status', 'concluida'),
-          supabase.from('cycle_phase_tasks')
-            .update({ status: 'concluida' })
-            .eq('event_id', eventId)
-            .neq('status', 'concluida'),
+          supabase.from('event_tasks').update({ status: 'concluida' }).eq('event_id', eventId).neq('status', 'concluida'),
+          supabase.from('cycle_phase_tasks').update({ status: 'concluida' }).eq('event_id', eventId).neq('status', 'concluida'),
         ]);
-        if (tRes.error) console.error('[Events] auto-finalize event_tasks:', tRes.error.message);
-        if (cRes.error) console.error('[Events] auto-finalize cycle_phase_tasks:', cRes.error.message);
+        if (tRes.error) console.error('[Events] cascade event_tasks (não-bloqueante):', tRes.error.message);
+        if (cRes.error) console.error('[Events] cascade cycle_phase_tasks (não-bloqueante):', cRes.error.message);
+      } catch (cascErr) {
+        console.error('[Events] cascade exceção (não-bloqueante):', cascErr?.message);
       }
     }
 
-    const { data } = await supabase.from('events').select().eq('id', eventId).single();
+    let data = null;
+    try {
+      const sel = await supabase.from('events').select().eq('id', eventId).single();
+      data = sel.data;
+    } catch (selErr) {
+      console.error('[Events] post-update select (não-bloqueante):', selErr?.message);
+    }
 
-    // Audit best-effort (não bloqueia resposta)
     try {
       await supabase.from('audit_log').insert({
         table_name: 'events', record_id: eventId, event_id: eventId,
@@ -226,12 +237,12 @@ router.patch('/:id/status', async (req, res) => {
         changed_by: req.user.userId, changed_by_name: req.user.name,
       });
     } catch (auditErr) {
-      console.error('[Events] audit_log (não-bloqueante):', auditErr.message);
+      console.error('[Events] audit_log (não-bloqueante):', auditErr?.message);
     }
 
-    res.json(data);
+    // 200 mesmo que data seja null (UPDATE passou, cliente pode recarregar)
+    res.json(data || { id: eventId, status: newStatus });
   } catch (e) {
-    // Diagnóstico ultra-explícito: dump tudo que houver de informação
     const detail = [
       e?.message,
       e?.code && `code=${e.code}`,
@@ -241,7 +252,7 @@ router.patch('/:id/status', async (req, res) => {
     console.error('[Events] PATCH /:id/status — exceção:', { eventId, message: e?.message, code: e?.code, details: e?.details, hint: e?.hint, stack: e?.stack });
     res.status(500).json({
       error: detail || `Falha sem mensagem (typeof=${typeof e})`,
-      _v: 'patch-status-v10.7',  // marker pra confirmar que esta versão está deployada
+      _v: 'patch-status-v10.8',
     });
   }
 });
