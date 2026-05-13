@@ -267,7 +267,11 @@ router.delete('/:id', async (req, res) => {
 
 // ── OCCURRENCES ──
 // trigger no DB recalcula events.status automaticamente ao mudar event_occurrences.
+// Política: UPDATE primário precisa passar. SELECT pós-update é best-effort —
+// mesmo que falhe (trigger lateral, RLS edge case, etc.), o cliente recebe 200
+// porque o estado já foi persistido. Mesmo padrão da PATCH /:id/status (v10.8).
 router.patch('/:id/occurrences/:occId', async (req, res) => {
+  const { id: eventId, occId } = req.params;
   try {
     const d = req.body;
     const update = {};
@@ -275,10 +279,30 @@ router.patch('/:id/occurrences/:occId', async (req, res) => {
     if (d.notes !== undefined) update.notes = d.notes;
     if (d.lessons_learned !== undefined) update.lessons_learned = d.lessons_learned;
     if (d.attendance !== undefined) update.attendance = d.attendance;
-    const { data, error } = await supabase.from('event_occurrences').update(update).eq('id', req.params.occId).eq('event_id', req.params.id).select().single();
-    if (error) throw error;
-    res.json(data);
-  } catch (e) { res.status(500).json({ error: 'Erro ao atualizar ocorrência' }); }
+
+    // ── UPDATE PRIMÁRIO (sem .select() pra não falhar se trigger lateral travar o select) ──
+    const { error: updErr } = await supabase
+      .from('event_occurrences').update(update).eq('id', occId).eq('event_id', eventId);
+    if (updErr) {
+      console.error('[Events] PATCH occurrence — update:', { eventId, occId, message: updErr.message, code: updErr.code, details: updErr.details, hint: updErr.hint });
+      return res.status(500).json({ error: `Update falhou: ${updErr.message}`, code: updErr.code, details: updErr.details, hint: updErr.hint });
+    }
+
+    // ── SELECT pós-update é best-effort (loga e segue) ──
+    let data = null;
+    try {
+      const sel = await supabase.from('event_occurrences').select().eq('id', occId).single();
+      data = sel.data;
+    } catch (selErr) {
+      console.error('[Events] PATCH occurrence — select pós-update (não-bloqueante):', selErr?.message);
+    }
+
+    res.json(data || { id: occId, event_id: eventId, ...update });
+  } catch (e) {
+    const detail = [e?.message, e?.code && `code=${e.code}`, e?.details && `details=${e.details}`, e?.hint && `hint=${e.hint}`].filter(Boolean).join(' | ');
+    console.error('[Events] PATCH occurrence — exceção:', { eventId, occId, message: e?.message, code: e?.code, details: e?.details, hint: e?.hint, stack: e?.stack });
+    res.status(500).json({ error: detail || 'Erro ao atualizar ocorrência', _v: 'patch-occ-v10.9' });
+  }
 });
 
 // ── TASKS ──
