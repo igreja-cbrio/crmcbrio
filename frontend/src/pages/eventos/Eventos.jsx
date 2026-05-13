@@ -8,6 +8,13 @@ import CompletionSection from '../../components/CompletionSection';
 import { normDate, fmtDate, fmtMoney, filterByHorizon, sortByUrgency, CYCLE_CATEGORIES } from './utils/helpers';
 import { useEventList } from './hooks/useEventList';
 
+// Sentinel: confirma no console qual versão do bundle está rodando.
+// Se "[CBRio Eventos v10.12]" não aparecer no Console, o deploy ainda é antigo.
+if (typeof window !== 'undefined') {
+  // eslint-disable-next-line no-console
+  console.info('[CBRio Eventos v10.12] frontend carregado');
+}
+
 // ── Tema ────────────────────────────────────────────────────
 const C = {
   bg: 'var(--cbrio-bg)', card: 'var(--cbrio-card)', primary: '#00B39D', primaryBg: '#00B39D20',
@@ -429,11 +436,17 @@ export default function Eventos() {
     // já ter persistido o status — fazemos refetch e suprimimos o erro se o
     // banco realmente reflete a mudança. Sem isso, o usuário vê "Erro X" mas
     // o evento finalizou — UX confusa.
+    // eslint-disable-next-line no-console
+    console.info('[CBRio toggleEventStatus v10.12] start', { id, currentStatus, newStatus });
     let apiError = null;
     try {
       await events.updateStatus(id, newStatus);
+      // eslint-disable-next-line no-console
+      console.info('[CBRio toggleEventStatus v10.12] API ok (sem throw)');
     } catch (e) {
       apiError = e;
+      // eslint-disable-next-line no-console
+      console.warn('[CBRio toggleEventStatus v10.12] API throw', { message: e?.message, stack: e?.stack });
     }
 
     loadEvents();
@@ -446,9 +459,13 @@ export default function Eventos() {
         const finalizou = fresh?.status === 'concluido';
         const reabriu = fresh?.status !== 'concluido';
         const sucessoReal = newStatus === 'reabrir' ? reabriu : finalizou;
+        // eslint-disable-next-line no-console
+        console.info('[CBRio toggleEventStatus v10.12] refetch', { freshStatus: fresh?.status, sucessoReal, willSuppress: sucessoReal });
         if (!sucessoReal) setError(apiError.message);
         // sucesso real → silencia o erro lateral (audit_log, trigger derivado, etc)
-      } catch {
+      } catch (refErr) {
+        // eslint-disable-next-line no-console
+        console.error('[CBRio toggleEventStatus v10.12] refetch falhou', refErr);
         setError(apiError.message);
       }
     }
