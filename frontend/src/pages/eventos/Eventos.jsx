@@ -424,11 +424,34 @@ export default function Eventos() {
     const newStatus = currentStatus === 'concluido' ? 'reabrir' : 'concluido';
     const label = newStatus === 'concluido' ? 'finalizar' : 'reabrir';
     if (!window.confirm(`Deseja ${label} este evento?`)) return;
+
+    // Tenta a operação. Se der erro lateral (audit/cascade/etc) o backend pode
+    // já ter persistido o status — fazemos refetch e suprimimos o erro se o
+    // banco realmente reflete a mudança. Sem isso, o usuário vê "Erro X" mas
+    // o evento finalizou — UX confusa.
+    let apiError = null;
     try {
       await events.updateStatus(id, newStatus);
-      loadEvents();
-      if (selectedEvent?.id === id) refreshDetail();
-    } catch (e) { setError(e.message); }
+    } catch (e) {
+      apiError = e;
+    }
+
+    loadEvents();
+    loadDash();
+    if (selectedEvent?.id === id) refreshDetail();
+
+    if (apiError) {
+      try {
+        const fresh = await events.get(id);
+        const finalizou = fresh?.status === 'concluido';
+        const reabriu = fresh?.status !== 'concluido';
+        const sucessoReal = newStatus === 'reabrir' ? reabriu : finalizou;
+        if (!sucessoReal) setError(apiError.message);
+        // sucesso real → silencia o erro lateral (audit_log, trigger derivado, etc)
+      } catch {
+        setError(apiError.message);
+      }
+    }
   }
 
   async function deleteEvent(id) {
@@ -1732,8 +1755,15 @@ export default function Eventos() {
             <Button variant={expandedOcc.status === 'concluido' ? 'outline' : 'default'} size="sm"
               onClick={async () => {
                 const ns = expandedOcc.status === 'concluido' ? 'pendente' : 'concluido';
-                try { await events.updateOccurrence(ev.id, expandedOcc.id, { status: ns }); refreshDetail(); loadOccurrence(expandedOcc.id); dashApi.pmo().then(setPmoKpis).catch(() => {}); }
-                catch (err) { setError(err.message); }
+                try {
+                  await events.updateOccurrence(ev.id, expandedOcc.id, { status: ns });
+                  // Refresh detalhe, ocorrência, lista (próxima data) e dashboard
+                  refreshDetail();
+                  loadOccurrence(expandedOcc.id);
+                  loadEvents();
+                  loadDash();
+                  dashApi.pmo().then(setPmoKpis).catch(() => {});
+                } catch (err) { setError(err.message); }
               }}>
               {expandedOcc.status === 'concluido' ? 'Reabrir' : 'Finalizar'}
             </Button>
