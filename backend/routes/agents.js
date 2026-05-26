@@ -7,6 +7,8 @@ const { sanitizeObj } = require('../utils/sanitize');
 const { runSystemAudit } = require('../agents/systemAuditor');
 const { runModuleAudit, MODULE_PROMPTS } = require('../agents/moduleAuditor');
 const { runDesignAudit } = require('../agents/designAuditor');
+const { runFinanceiroExecutor } = require('../agents/financeiroExecutor');
+const { applyQueueAction } = require('../agents/tools/financeiroApply');
 
 router.use(authenticate, authorizeModule('agents'));
 
@@ -32,6 +34,8 @@ router.post('/run', aiLimiter, async (req, res) => {
       runPromise = runSystemAudit(req.user.id, config || {});
     } else if (agentType === 'design_auditor') {
       runPromise = runDesignAudit(req.user.id, config || {});
+    } else if (agentType === 'agent_executor_financeiro') {
+      runPromise = runFinanceiroExecutor(req.user.id, config || {});
     } else if (agentType.startsWith('module_') && MODULE_PROMPTS[agentType.replace('module_', '')]) {
       runPromise = runModuleAudit(agentType, req.user.id, config || {});
     } else {
@@ -225,28 +229,76 @@ router.post('/generate', aiLimiter, async (req, res) => {
   }
 });
 
-// GET /api/agents/queue
+// GET /api/agents/queue — fila de ações pendentes
 router.get('/queue', async (req, res) => {
   try {
-    const r = await db.query('SELECT * FROM agent_queue WHERE status = $1 ORDER BY created_at DESC LIMIT 20', ['pending']);
-    res.json(r.rows);
-  } catch (e) { res.status(500).json({ error: 'Erro' }); }
+    const { status, agent, limit } = req.query;
+    let query = supabase.from('agent_queue')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(Number(limit) || 50);
+    if (status) query = query.eq('status', status);
+    else query = query.eq('status', 'pending'); // default: só pendentes
+    if (agent) query = query.eq('agent', agent);
+    const { data, error } = await query;
+    if (error) throw error;
+    res.json(data || []);
+  } catch (e) {
+    console.error('[Queue] GET:', e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
 
-// PATCH /api/agents/queue/:id/approve
+// PATCH /api/agents/queue/:id/approve — aprova E aplica a ação real
 router.patch('/queue/:id/approve', async (req, res) => {
   try {
-    await db.query('UPDATE agent_queue SET status=$1, reviewed_by=$2, reviewed_at=NOW() WHERE id=$3', ['approved', req.user.userId, req.params.id]);
-    res.json({ success: true });
-  } catch (e) { res.status(500).json({ error: 'Erro' }); }
+    // 1. Lê a row e garante que ainda está 'pending'
+    const { data: row, error: readErr } = await supabase.from('agent_queue')
+      .select('*').eq('id', req.params.id).single();
+    if (readErr) return res.status(404).json({ error: 'Item da fila não encontrado' });
+    if (row.status !== 'pending') return res.status(409).json({ error: `Já está ${row.status}` });
+
+    // 2. Aplica a ação real (depende do action_type)
+    let applyResult, applyError;
+    try {
+      const out = await applyQueueAction(row, req.user.id);
+      applyResult = out.result;
+    } catch (e) {
+      applyError = e.message;
+    }
+
+    // 3. Atualiza a row com o resultado
+    const updatePayload = applyError
+      ? { status: 'failed', apply_error: applyError, reviewed_by: req.user.id, reviewed_at: new Date().toISOString() }
+      : { status: 'applied', applied_at: new Date().toISOString(), reviewed_by: req.user.id, reviewed_at: new Date().toISOString() };
+
+    const { error: updErr } = await supabase.from('agent_queue').update(updatePayload).eq('id', req.params.id);
+    if (updErr) console.error('[Queue] update após apply:', updErr.message);
+
+    if (applyError) return res.status(500).json({ error: applyError, status: 'failed' });
+    res.json({ success: true, status: 'applied', result: applyResult });
+  } catch (e) {
+    console.error('[Queue] approve:', e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
 
-// PATCH /api/agents/queue/:id/reject
+// PATCH /api/agents/queue/:id/reject — rejeita sem aplicar
 router.patch('/queue/:id/reject', async (req, res) => {
   try {
-    await db.query('UPDATE agent_queue SET status=$1, reviewed_by=$2, reviewed_at=NOW() WHERE id=$3', ['rejected', req.user.userId, req.params.id]);
-    res.json({ success: true });
-  } catch (e) { res.status(500).json({ error: 'Erro' }); }
+    const { data: row } = await supabase.from('agent_queue').select('status').eq('id', req.params.id).single();
+    if (!row) return res.status(404).json({ error: 'Item da fila não encontrado' });
+    if (row.status !== 'pending') return res.status(409).json({ error: `Já está ${row.status}` });
+
+    const { error } = await supabase.from('agent_queue')
+      .update({ status: 'rejected', reviewed_by: req.user.id, reviewed_at: new Date().toISOString() })
+      .eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ success: true, status: 'rejected' });
+  } catch (e) {
+    console.error('[Queue] reject:', e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // GET /api/agents/log

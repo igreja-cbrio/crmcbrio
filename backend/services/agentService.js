@@ -154,6 +154,109 @@ class AgentService {
     });
   }
 
+  /**
+   * Loop "agentic" com tool use.
+   * Recebe um registry de tools (schemas Claude) + handlers (funções js que executam cada tool).
+   * Chama o modelo, executa tool_use, alimenta tool_result, repete até stop_reason='end_turn'
+   * ou bater no maxIterations / budget.
+   *
+   * @param {object} opts
+   * @param {string} opts.system           system prompt do agente
+   * @param {string} opts.initialMessage   primeira mensagem do "usuário" (a tarefa)
+   * @param {Array}  opts.tools            schemas no formato Anthropic ({name, description, input_schema})
+   * @param {object} opts.handlers         { [toolName]: async (input, ctx) => any }
+   * @param {object} [opts.handlerContext] objeto passado como segundo arg dos handlers (ex: runId, supabase)
+   * @param {string} [opts.model]          default 'claude-sonnet-4-20250514'
+   * @param {number} [opts.maxIterations]  default 12
+   * @param {number} [opts.maxTokensPerCall] default 2048
+   * @returns {{ finalText, toolCallsExecuted, iterations, stopReason }}
+   */
+  async runWithTools({
+    system,
+    initialMessage,
+    tools,
+    handlers,
+    handlerContext = {},
+    model = 'claude-sonnet-4-20250514',
+    maxIterations = 12,
+    maxTokensPerCall = 2048,
+  }) {
+    const messages = [{ role: 'user', content: initialMessage }];
+    const toolCallsExecuted = [];
+    let stopReason = null;
+    let finalText = '';
+    let iter = 0;
+
+    while (iter < maxIterations) {
+      iter++;
+
+      const result = await this.call({
+        model,
+        system,
+        messages,
+        tools,
+        role: iter === 1 ? 'plan' : 'tool_iter',
+        maxTokens: maxTokensPerCall,
+      });
+
+      stopReason = result.stopReason;
+
+      // Capturar último texto pra retornar
+      if (result.text) finalText = result.text;
+
+      // Sem tool_use? Acabou.
+      if (!result.toolCalls?.length || result.stopReason === 'end_turn') {
+        break;
+      }
+
+      // Reconstrói o assistant message exatamente como veio
+      const assistantContent = [];
+      if (result.text) assistantContent.push({ type: 'text', text: result.text });
+      for (const tc of result.toolCalls) {
+        assistantContent.push({ type: 'tool_use', id: tc.id, name: tc.name, input: tc.input });
+      }
+      messages.push({ role: 'assistant', content: assistantContent });
+
+      // Executa cada tool_use e monta tool_result
+      const toolResults = [];
+      for (const tc of result.toolCalls) {
+        const handler = handlers[tc.name];
+        let toolOutput, isError = false;
+
+        if (!handler) {
+          toolOutput = { error: `Tool '${tc.name}' não está registrada.` };
+          isError = true;
+        } else {
+          try {
+            toolOutput = await handler(tc.input || {}, handlerContext);
+          } catch (e) {
+            toolOutput = { error: e.message };
+            isError = true;
+          }
+        }
+
+        toolCallsExecuted.push({
+          name: tc.name,
+          input: tc.input,
+          output: toolOutput,
+          isError,
+        });
+
+        const contentStr = typeof toolOutput === 'string' ? toolOutput : JSON.stringify(toolOutput);
+        toolResults.push({
+          type: 'tool_result',
+          tool_use_id: tc.id,
+          content: contentStr.slice(0, 20000), // safety cap
+          ...(isError ? { is_error: true } : {}),
+        });
+      }
+
+      messages.push({ role: 'user', content: toolResults });
+    }
+
+    return { finalText, toolCallsExecuted, iterations: iter, stopReason };
+  }
+
   /** Finaliza run com sucesso */
   async complete(summary, findings = [], actionsTaken = []) {
     await supabase.from('agent_runs').update({

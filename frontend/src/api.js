@@ -206,7 +206,7 @@ export const cycles = {
 
 export const agents = {
   generate: (data) => post('/agents/generate', data),
-  queue: () => get('/agents/queue'),
+  queue: (params) => get('/agents/queue' + (params ? '?' + new URLSearchParams(params) : '')),
   approve: (id) => patch(`/agents/queue/${id}/approve`),
   reject: (id) => patch(`/agents/queue/${id}/reject`),
   log: () => get('/agents/log'),

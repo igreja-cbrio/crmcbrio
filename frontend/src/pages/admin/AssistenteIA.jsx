@@ -24,16 +24,25 @@ const SEV_MAP = {
 };
 
 const AGENT_TYPES = [
-  { value: 'system_auditor', label: '🔍 Auditor Geral', desc: 'Analisa dados reais de todos os módulos e identifica problemas, inconsistências e oportunidades de melhoria.', icon: '🔍' },
-  { value: 'module_rh', label: '👥 Agente RH', desc: 'Audita colaboradores, admissões, férias, treinamentos. Verifica campos faltantes e inconsistências.', icon: '👥' },
-  { value: 'module_financeiro', label: '💰 Agente Financeiro', desc: 'Audita contas, transações, contas a pagar e reembolsos. Detecta vencimentos e anomalias.', icon: '💰' },
-  { value: 'module_eventos', label: '📅 Agente Eventos', desc: 'Audita eventos, tarefas, orçamentos e reuniões. Identifica atrasos e eventos sem responsável.', icon: '📅' },
-  { value: 'module_projetos', label: '📊 Agente Projetos', desc: 'Audita projetos, fases, tarefas e riscos. Detecta progresso estagnado e marcos vencidos.', icon: '📊' },
-  { value: 'module_logistica', label: '🚚 Agente Logística', desc: 'Audita fornecedores, pedidos, solicitações e notas fiscais. Verifica atrasos e pendências.', icon: '🚚' },
-  { value: 'module_patrimonio', label: '🏢 Agente Patrimônio', desc: 'Audita bens, inventários e movimentações. Detecta bens extraviados e sem catalogação.', icon: '🏢' },
-  { value: 'module_membresia', label: '⛪ Agente Membresia', desc: 'Audita membros, integração e engajamento. Identifica dados incompletos e inativos.', icon: '⛪' },
-  { value: 'design_auditor', label: '🎨 Agente Design', desc: 'Analisa layout e UI do sistema, traz referências modernas (Linear, Vercel, Notion) e sugere melhorias concretas com Tailwind.', icon: '🎨' },
+  { value: 'system_auditor', label: '🔍 Auditor Geral', desc: 'Analisa dados reais de todos os módulos e identifica problemas, inconsistências e oportunidades de melhoria.', icon: '🔍', kind: 'auditor' },
+  { value: 'module_rh', label: '👥 Agente RH', desc: 'Audita colaboradores, admissões, férias, treinamentos. Verifica campos faltantes e inconsistências.', icon: '👥', kind: 'auditor' },
+  { value: 'module_financeiro', label: '💰 Agente Financeiro', desc: 'Audita contas, transações, contas a pagar e reembolsos. Detecta vencimentos e anomalias.', icon: '💰', kind: 'auditor' },
+  { value: 'module_eventos', label: '📅 Agente Eventos', desc: 'Audita eventos, tarefas, orçamentos e reuniões. Identifica atrasos e eventos sem responsável.', icon: '📅', kind: 'auditor' },
+  { value: 'module_projetos', label: '📊 Agente Projetos', desc: 'Audita projetos, fases, tarefas e riscos. Detecta progresso estagnado e marcos vencidos.', icon: '📊', kind: 'auditor' },
+  { value: 'module_logistica', label: '🚚 Agente Logística', desc: 'Audita fornecedores, pedidos, solicitações e notas fiscais. Verifica atrasos e pendências.', icon: '🚚', kind: 'auditor' },
+  { value: 'module_patrimonio', label: '🏢 Agente Patrimônio', desc: 'Audita bens, inventários e movimentações. Detecta bens extraviados e sem catalogação.', icon: '🏢', kind: 'auditor' },
+  { value: 'module_membresia', label: '⛪ Agente Membresia', desc: 'Audita membros, integração e engajamento. Identifica dados incompletos e inativos.', icon: '⛪', kind: 'auditor' },
+  { value: 'design_auditor', label: '🎨 Agente Design', desc: 'Analisa layout e UI do sistema, traz referências modernas (Linear, Vercel, Notion) e sugere melhorias concretas com Tailwind.', icon: '🎨', kind: 'auditor' },
+  { value: 'agent_executor_financeiro', label: '⚡ Executor Financeiro', desc: 'Age sobre os dados: categoriza transações, sugere quitação de contas, decide reembolsos. Cada ação entra na fila de aprovação humana antes de virar real.', icon: '⚡', kind: 'executor' },
 ];
+
+const QUEUE_STATUS_MAP = {
+  pending:  { c: '#000', bg: '#f59e0b', label: 'Pendente' },
+  approved: { c: '#fff', bg: '#3b82f6', label: 'Aprovado' },
+  applied:  { c: '#fff', bg: '#10b981', label: 'Aplicado' },
+  rejected: { c: '#fff', bg: '#737373', label: 'Rejeitado' },
+  failed:   { c: '#fff', bg: '#ef4444', label: 'Falhou' },
+};
 
 const s = {
   page: { maxWidth: 1600, margin: '0 auto', padding: '0 24px' },
@@ -95,6 +104,8 @@ export default function AssistenteIA() {
   const [selectedRun, setSelectedRun] = useState(null);
   const [steps, setSteps] = useState([]);
   const [pollingId, setPollingId] = useState(null);
+  const [queue, setQueue] = useState([]);
+  const [queueBusyId, setQueueBusyId] = useState(null);
 
   const loadRuns = useCallback(async () => {
     try { setRuns(await agents.runs()); } catch (e) { console.error(e); }
@@ -108,7 +119,11 @@ export default function AssistenteIA() {
     try { setStats(await agents.stats()); } catch (e) { console.error(e); }
   }, []);
 
-  useEffect(() => { loadRuns(); loadStats(); loadScores(); }, [loadRuns, loadStats, loadScores]);
+  const loadQueue = useCallback(async () => {
+    try { setQueue(await agents.queue({ status: 'pending' })); } catch (e) { console.error(e); }
+  }, []);
+
+  useEffect(() => { loadRuns(); loadStats(); loadScores(); loadQueue(); }, [loadRuns, loadStats, loadScores, loadQueue]);
 
   // Polling para runs em execução
   useEffect(() => {
@@ -142,6 +157,31 @@ export default function AssistenteIA() {
     } catch (e) { console.error(e); }
   }
 
+  async function approveQueueItem(id) {
+    if (queueBusyId) return;
+    setQueueBusyId(id);
+    try {
+      await agents.approve(id);
+      await loadQueue();
+    } catch (e) {
+      alert('Erro ao aprovar: ' + e.message);
+    }
+    setQueueBusyId(null);
+  }
+
+  async function rejectQueueItem(id) {
+    if (queueBusyId) return;
+    if (!confirm('Rejeitar esta ação? Ela não será aplicada.')) return;
+    setQueueBusyId(id);
+    try {
+      await agents.reject(id);
+      await loadQueue();
+    } catch (e) {
+      alert('Erro ao rejeitar: ' + e.message);
+    }
+    setQueueBusyId(null);
+  }
+
   return (
     <div style={s.page}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
@@ -161,6 +201,58 @@ export default function AssistenteIA() {
       {/* Score History Chart */}
       <ScoreChart scores={scores} />
 
+      {/* Fila de Aprovação (ações de agentes executores aguardando humano) */}
+      <div style={{ ...s.card, marginBottom: 24, borderLeft: queue.length ? `4px solid ${C.amber}` : `1px solid ${C.border}` }}>
+        <div style={s.cardHeader}>
+          <div style={s.cardTitle}>
+            ⏳ Fila de Aprovação {queue.length > 0 && <span style={{ marginLeft: 8, ...s.badge('#000', C.amber) }}>{queue.length}</span>}
+          </div>
+          <Button variant="ghost" onClick={loadQueue}>Atualizar</Button>
+        </div>
+        {queue.length === 0 ? (
+          <div style={s.empty}>Nenhuma ação aguardando aprovação. Execute um agente executor para gerar propostas.</div>
+        ) : (
+          <div style={{ maxHeight: 380, overflowY: 'auto' }}>
+            {queue.map(q => {
+              const payload = (typeof q.payload === 'string' ? (() => { try { return JSON.parse(q.payload); } catch { return {}; } })() : q.payload) || {};
+              const snap = payload.snapshot || {};
+              return (
+                <div key={q.id} style={{ padding: '14px 20px', borderBottom: `1px solid ${C.border}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 6 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{q.action_label || q.action || '(sem rótulo)'}</div>
+                      <div style={{ fontSize: 11, color: C.text3, marginTop: 2 }}>
+                        {q.action_type} · {fmtDate(q.created_at)} · agente: <strong>{q.agent}</strong>
+                      </div>
+                      {q.reasoning && (
+                        <div style={{ fontSize: 12, color: C.text2, marginTop: 6, padding: '6px 10px', background: C.blueBg, borderRadius: 6, borderLeft: `3px solid ${C.blue}` }}>
+                          <strong style={{ color: C.blue }}>Motivo:</strong> {q.reasoning}
+                        </div>
+                      )}
+                      {Object.keys(snap).length > 0 && (
+                        <div style={{ fontSize: 11, color: C.text3, marginTop: 6, fontFamily: 'ui-monospace, monospace' }}>
+                          {Object.entries(snap).map(([k, v]) => (
+                            <span key={k} style={{ marginRight: 12 }}>{k}: <strong style={{ color: C.text2 }}>{String(v)}</strong></span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                      <Button size="sm" variant="default" onClick={() => approveQueueItem(q.id)} disabled={queueBusyId === q.id}>
+                        {queueBusyId === q.id ? '...' : 'Aprovar'}
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => rejectQueueItem(q.id)} disabled={queueBusyId === q.id}>
+                        Rejeitar
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       {/* Launch All */}
       <div style={{ marginBottom: 16 }}>
         <Button onClick={async () => { for (const at of AGENT_TYPES) { await launchAgent(at.value); } }} disabled={launching}>
@@ -174,21 +266,29 @@ export default function AssistenteIA() {
           const lastRun = runs.find(r => r.agent_type === at.value);
           const lastStatus = lastRun ? STATUS_MAP[lastRun.status] : null;
           const score = lastRun?.config?.score;
+          const proposalsCount = lastRun?.config?.proposals_count;
           const findingsCount = lastRun?.findings?.length || 0;
           const scoreColor = score >= 8 ? C.green : score >= 5 ? C.amber : score ? C.red : C.text3;
+          const isExecutor = at.kind === 'executor';
           return (
-            <div key={at.value} style={{ ...s.card, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div key={at.value} style={{ ...s.card, padding: 16, display: 'flex', flexDirection: 'column', gap: 10, borderTop: isExecutor ? `3px solid ${C.purple}` : undefined }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{at.label}</div>
-                {score != null && (
+                {isExecutor ? (
+                  <span style={{ ...s.badge('#fff', C.purple), fontSize: 9 }}>EXECUTOR</span>
+                ) : score != null ? (
                   <div style={{ fontSize: 20, fontWeight: 800, color: scoreColor }}>{score}</div>
-                )}
+                ) : null}
               </div>
               <div style={{ fontSize: 11, color: C.text3, lineHeight: 1.4 }}>{at.desc}</div>
               {lastRun && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, color: C.text3 }}>
                   <span style={s.badge(lastStatus?.c || C.text3, lastStatus?.bg || '#73737318')}>{lastStatus?.label || '—'}</span>
-                  <span>{findingsCount > 0 ? `${findingsCount} finding(s)` : 'Sem alertas'}</span>
+                  <span>
+                    {isExecutor
+                      ? (proposalsCount != null ? `${proposalsCount} proposta(s)` : (findingsCount > 0 ? `${findingsCount} proposta(s)` : 'Sem propostas'))
+                      : (findingsCount > 0 ? `${findingsCount} finding(s)` : 'Sem alertas')}
+                  </span>
                 </div>
               )}
               <Button size="sm" variant={lastRun ? 'outline' : 'default'} className="w-full" onClick={() => launchAgent(at.value)} disabled={launching}>
@@ -219,7 +319,7 @@ export default function AssistenteIA() {
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                       <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{
-                        { system_auditor: '🔍 Auditor', design_auditor: '🎨 Design', module_rh: '👥 RH', module_financeiro: '💰 Financeiro', module_eventos: '📅 Eventos', module_projetos: '📊 Projetos', module_logistica: '🚚 Logística', module_patrimonio: '🏢 Patrimônio', module_membresia: '⛪ Membresia' }[r.agent_type] || r.agent_type
+                        { system_auditor: '🔍 Auditor', design_auditor: '🎨 Design', module_rh: '👥 RH', module_financeiro: '💰 Financeiro', module_eventos: '📅 Eventos', module_projetos: '📊 Projetos', module_logistica: '🚚 Logística', module_patrimonio: '🏢 Patrimônio', module_membresia: '⛪ Membresia', agent_executor_financeiro: '⚡ Executor Fin' }[r.agent_type] || r.agent_type
                       }</span>
                       <span style={s.badge(st.c, st.bg)}>{st.label}</span>
                     </div>
