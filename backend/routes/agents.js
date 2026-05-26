@@ -9,6 +9,40 @@ const { runModuleAudit, MODULE_PROMPTS } = require('../agents/moduleAuditor');
 const { runDesignAudit } = require('../agents/designAuditor');
 const { runFinanceiroExecutor } = require('../agents/financeiroExecutor');
 const { applyQueueAction } = require('../agents/tools/financeiroApply');
+const crypto = require('crypto');
+
+/**
+ * Dispatch via worker remoto (Railway) quando AGENT_WORKER_URL está definido.
+ * Caso contrário, retorna null e o caller usa o executor inline (legacy).
+ */
+async function dispatchToWorker(agent, triggeredBy, config) {
+  const url = process.env.AGENT_WORKER_URL;
+  const secret = process.env.WORKER_SECRET;
+  if (!url || !secret) return null;
+
+  const body = JSON.stringify({ agent, triggeredBy, config });
+  const signature = crypto.createHmac('sha256', secret).update(body).digest('hex');
+
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 8000);
+    const res = await fetch(`${url.replace(/\/$/, '')}/run`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CBRio-Signature': signature },
+      body,
+      signal: ctrl.signal,
+    });
+    clearTimeout(t);
+    if (!res.ok) {
+      const txt = await res.text().catch(() => '');
+      throw new Error(`Worker respondeu ${res.status}: ${txt.slice(0, 200)}`);
+    }
+    return await res.json();
+  } catch (e) {
+    console.error('[Worker] dispatch erro:', e.message);
+    throw e;
+  }
+}
 
 router.use(authenticate, authorizeModule('agents'));
 
@@ -30,6 +64,17 @@ router.post('/run', aiLimiter, async (req, res) => {
 
     // Dispara o agente assincronamente
     let runPromise;
+    // Tipos que rodam no worker (Agent SDK + scheduler). Se AGENT_WORKER_URL
+    // estiver setado, dispatcha — senão fallback pro executor inline.
+    if (agentType === 'agent_executor_financeiro' && process.env.AGENT_WORKER_URL) {
+      try {
+        const workerResp = await dispatchToWorker('financeiro', req.user.id, config || {});
+        return res.json({ runId: workerResp?.runId || null, status: 'running', via: 'worker' });
+      } catch (e) {
+        return res.status(502).json({ error: `Worker indisponível: ${e.message}` });
+      }
+    }
+
     if (agentType === 'system_auditor') {
       runPromise = runSystemAudit(req.user.id, config || {});
     } else if (agentType === 'design_auditor') {
